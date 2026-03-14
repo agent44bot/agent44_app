@@ -1,0 +1,32 @@
+<% content_for(:title, @post.title) %>
+
+<article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Back link -->
+  <div class="mb-6">
+    <%= link_to "&larr; Back to Blog".html_safe, posts_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+  </div>
+
+  <!-- Header -->
+  <header class="mb-10">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 leading-tight"><%= @post.title %></h1>
+    <div class="mt-4 flex items-center gap-4 text-sm text-gray-500">
+      <% if @post.published_at.present? %>
+        <time><%= @post.published_at.strftime("%B %d, %Y") %></time>
+      <% end %>
+      <% if @post.user.present? %>
+        <span>&middot;</span>
+        <span>by <%= @post.user.display_identifier %></span>
+      <% end %>
+    </div>
+  </header>
+
+  <!-- Body -->
+  <div class="prose prose-lg prose-indigo max-w-none">
+    <%= @post.body %>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-12 pt-8 border-t border-gray-200">
+    <%= link_to "&larr; Back to Blog".html_safe, posts_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+  </footer>
+</article>

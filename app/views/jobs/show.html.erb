@@ -1,0 +1,72 @@
+<% content_for(:title, @job.title) %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Back link -->
+  <div class="mb-6">
+    <%= link_to "&larr; Back to Jobs".html_safe, jobs_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+  </div>
+
+  <!-- Job Header -->
+  <div class="bg-white rounded-xl border border-gray-200 p-8">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+      <div>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 mb-3">
+          <%= @job.category&.titleize || "General" %>
+        </span>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900"><%= @job.title %></h1>
+        <p class="mt-2 text-lg text-gray-600"><%= @job.company %></p>
+      </div>
+      <% if @job.url.present? %>
+        <%= link_to @job.url, target: "_blank", rel: "noopener noreferrer",
+              class: "inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm whitespace-nowrap" do %>
+          Apply Now
+          <svg class="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Meta -->
+    <div class="flex flex-wrap gap-4 text-sm text-gray-500 border-t border-gray-100 pt-6 mb-8">
+      <% if @job.location.present? %>
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span><%= @job.location %></span>
+        </div>
+      <% end %>
+      <% if @job.salary.present? %>
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="text-green-600 font-medium"><%= @job.salary %></span>
+        </div>
+      <% end %>
+      <% if @job.source.present? %>
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          <span>via <%= @job.source %></span>
+        </div>
+      <% end %>
+      <div class="flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Posted <%= days_ago_in_words(@job.posted_at) %></span>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <% if @job.description.present? %>
+      <div class="prose prose-indigo max-w-none">
+        <%= simple_format(@job.description) %>
+      </div>
+    <% end %>
+
+    <!-- Bottom Apply -->
+    <% if @job.url.present? %>
+      <div class="mt-10 pt-6 border-t border-gray-100">
+        <%= link_to @job.url, target: "_blank", rel: "noopener noreferrer",
+              class: "inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm" do %>
+          Apply for this Position
+          <svg class="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

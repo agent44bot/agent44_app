@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  challenge: MyString
+  pubkey_hex: MyString
+  expires_at: 2026-03-14 09:54:09
+  consumed: false
+
+two:
+  challenge: MyString
+  pubkey_hex: MyString
+  expires_at: 2026-03-14 09:54:09
+  consumed: false

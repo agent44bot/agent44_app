@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+automation_engineer:
+  title: Automation Test Engineer
+  company: Tec Partners Limited
+  location: London, United Kingdom
+  url: https://www.linkedin.com/jobs/view/12345
+  salary: "$100,000 - $130,000"
+  source: linkedin
+  description: We are looking for an Automation Test Engineer...
+  category: full_time
+  external_id: linkedin-12345
+  posted_at: 2026-03-07 09:00:00
+  active: true
+
+senior_qa:
+  title: Senior QA Engineer
+  company: Frontsteps
+  location: Denver, Colorado, United States
+  url: https://www.indeed.com/jobs/view/67890
+  salary: "$120,000 - $150,000"
+  source: indeed
+  description: Senior QA Engineer position...
+  category: full_time
+  external_id: indeed-67890
+  posted_at: 2026-03-10 12:00:00
+  active: true

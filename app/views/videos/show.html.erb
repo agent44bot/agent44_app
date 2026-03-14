@@ -1,0 +1,30 @@
+<% content_for(:title, @video.title) %>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Back link -->
+  <div class="mb-6">
+    <%= link_to "&larr; Back to Videos".html_safe, videos_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+  </div>
+
+  <!-- Video Embed -->
+  <div class="bg-black rounded-xl overflow-hidden shadow-lg">
+    <div class="relative aspect-video">
+      <iframe src="<%= @video.embed_url %>"
+              class="absolute inset-0 w-full h-full"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+
+  <!-- Details -->
+  <div class="mt-8">
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-900"><%= @video.title %></h1>
+    <% if @video.description.present? %>
+      <div class="mt-4 prose prose-indigo max-w-none text-gray-600">
+        <%= simple_format(@video.description) %>
+      </div>
+    <% end %>
+  </div>
+</div>

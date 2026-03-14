@@ -1,0 +1,12 @@
+<% content_for(:title, "Edit Video") %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <div class="mb-8">
+    <%= link_to "&larr; Back to Videos".html_safe, admin_videos_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+    <h1 class="mt-4 text-2xl font-bold text-gray-900">Edit Video</h1>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <%= render "form" %>
+  </div>
+</div>

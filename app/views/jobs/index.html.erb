@@ -1,0 +1,108 @@
+<% content_for(:title, "Jobs") %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">SDET & Test Automation Jobs</h1>
+    <p class="mt-2 text-gray-500">Curated positions from across the web, updated daily.</p>
+  </div>
+
+  <!-- Search -->
+  <div class="mb-6">
+    <%= form_with url: jobs_path, method: :get, class: "flex gap-3", data: { turbo_frame: "jobs_list" } do |f| %>
+      <div class="flex-1 relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text" name="q" value="<%= params[:q] %>" placeholder="Search by title, company, or keyword..."
+               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+      </div>
+      <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
+        Search
+      </button>
+    <% end %>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-4">
+    <%
+      categories = [
+        ["All", nil],
+        ["Full-Time", "full_time"],
+        ["Part-Time", "part_time"],
+        ["Contract", "contract"],
+        ["AI", "ai"]
+      ]
+    %>
+    <% categories.each do |label, value| %>
+      <% active = params[:category] == value || (value.nil? && params[:category].blank?) %>
+      <%= link_to label, jobs_path(category: value, q: params[:q]),
+            class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+            data: { turbo_frame: "jobs_list" } %>
+    <% end %>
+  </div>
+
+  <!-- Job List -->
+  <%= turbo_frame_tag "jobs_list" do %>
+    <% if @jobs.present? %>
+      <div class="space-y-4">
+        <% @jobs.each do |job| %>
+          <div class="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-1">
+                  <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate">
+                    <%= link_to job.title, job_path(job) %>
+                  </h2>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 whitespace-nowrap">
+                    <%= job.category&.titleize || "General" %>
+                  </span>
+                </div>
+                <p class="text-sm text-gray-600"><%= job.company %></p>
+                <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
+                  <% if job.location.present? %>
+                    <span class="flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      <%= job.location %>
+                    </span>
+                  <% end %>
+                  <% if job.salary.present? %>
+                    <span class="text-green-600 font-medium"><%= job.salary %></span>
+                  <% end %>
+                  <% if job.url.present? %>
+                    <%= link_to job.url, target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-1 text-indigo-500 hover:text-indigo-700 transition" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                      See listing
+                    <% end %>
+                  <% end %>
+                  <% if job.source.present? %>
+                    <span>via <%= job.source %></span>
+                  <% end %>
+                  <span><%= days_ago_in_words(job.posted_at) %></span>
+                </div>
+              </div>
+              <div class="sm:ml-4 flex-shrink-0">
+                <%= link_to "View", job_path(job),
+                      class: "inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @jobs.respond_to?(:total_pages) && @jobs.total_pages > 1 %>
+        <div class="mt-8 flex justify-center">
+          <%== pagy_nav(@pagy) if defined?(@pagy) %>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="text-center py-16">
+        <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">No jobs found</h3>
+        <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filters.</p>
+      </div>
+    <% end %>
+  <% end %>
+</div>

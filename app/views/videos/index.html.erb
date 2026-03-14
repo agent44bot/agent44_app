@@ -1,0 +1,46 @@
+<% content_for(:title, "Videos") %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <div class="mb-10">
+    <h1 class="text-3xl font-bold text-gray-900">Videos</h1>
+    <p class="mt-2 text-gray-500">Tutorials, walkthroughs, and talks on test automation and AI.</p>
+  </div>
+
+  <% if @videos.present? %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <% @videos.each do |video| %>
+        <%= link_to video_path(video), class: "group block" do %>
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-indigo-200 transition">
+            <div class="relative aspect-video bg-gray-100">
+              <img src="<%= video.thumbnail_url %>" alt="<%= video.title %>"
+                   class="w-full h-full object-cover" loading="lazy">
+              <div class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition">
+                <div class="w-14 h-14 rounded-full bg-indigo-600/90 flex items-center justify-center shadow-lg opacity-80 group-hover:opacity-100 group-hover:scale-110 transition">
+                  <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="p-5">
+              <h2 class="font-semibold text-gray-900 group-hover:text-indigo-600 transition line-clamp-2">
+                <%= video.title %>
+              </h2>
+              <% if video.description.present? %>
+                <p class="mt-2 text-sm text-gray-500 line-clamp-2"><%= video.description %></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-center py-16">
+      <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+      <h3 class="mt-4 text-lg font-medium text-gray-900">No videos yet</h3>
+      <p class="mt-1 text-sm text-gray-500">Check back soon for new content.</p>
+    </div>
+  <% end %>
+</div>
