@@ -36,9 +36,12 @@
     %>
     <% categories.each do |label, value| %>
       <% active = params[:category] == value || (value.nil? && params[:category].blank?) %>
-      <%= link_to label, jobs_path(category: value, q: params[:q]),
+      <% count = value.nil? ? @total_count : (@category_counts[value] || 0) %>
+      <%= link_to jobs_path(category: value, q: params[:q]),
             class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
-            data: { turbo_frame: "jobs_list" } %>
+            data: { turbo_frame: "jobs_list" } do %>
+        <%= label %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
+      <% end %>
     <% end %>
   </div>
 
