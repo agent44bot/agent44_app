@@ -76,7 +76,7 @@
         return { total, trending, pct };
       }
 
-      function buildChart(canvasId, data, accentColor) {
+      function buildChart(canvasId, data, accentColor, yMax) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
         const info = trendInfo(data);
@@ -101,7 +101,7 @@
               tooltip: { callbacks: { label: function(item) { return item.raw + " jobs posted"; } } }
             },
             scales: {
-              y: { beginAtZero: true, ticks: { precision: 0 } },
+              y: { beginAtZero: true, max: yMax, ticks: { precision: 0 } },
               x: { ticks: { maxTicksLimit: 8 } }
             }
           }
@@ -116,8 +116,12 @@
         ctx.parentNode.appendChild(el);
       }
 
-      buildChart("autoChart", <%= raw @trend_data_auto.to_json %>, "rgb(99,102,241)");
-      buildChart("aiChart", <%= raw @trend_data_ai.to_json %>, "rgb(139,92,246)");
+      const autoData = <%= raw @trend_data_auto.to_json %>;
+      const aiData = <%= raw @trend_data_ai.to_json %>;
+      const sharedMax = Math.max(...autoData, ...aiData);
+
+      buildChart("autoChart", autoData, "rgb(99,102,241)", sharedMax);
+      buildChart("aiChart", aiData, "rgb(139,92,246)", sharedMax);
     });
   </script>
 
