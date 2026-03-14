@@ -13,10 +13,17 @@ class JobsController < ApplicationController
 
     # Trend data: daily job counts for the last 30 days
     thirty_days_ago = 30.days.ago.beginning_of_day
-    trend_base = Job.active.where("posted_at >= ?", thirty_days_ago)
-    daily_counts = trend_base.group("date(posted_at)").count
     @trend_labels = (30.downto(0)).map { |i| i.days.ago.to_date }
-    @trend_data = @trend_labels.map { |d| daily_counts[d.to_s] || 0 }
+
+    # All test automation jobs (non-AI categories)
+    auto_base = Job.active.where("posted_at >= ?", thirty_days_ago).where.not(category: "ai")
+    auto_counts = auto_base.group("date(posted_at)").count
+    @trend_data_auto = @trend_labels.map { |d| auto_counts[d.to_s] || 0 }
+
+    # AI jobs only
+    ai_base = Job.active.where("posted_at >= ?", thirty_days_ago).where(category: "ai")
+    ai_counts = ai_base.group("date(posted_at)").count
+    @trend_data_ai = @trend_labels.map { |d| ai_counts[d.to_s] || 0 }
   end
 
   def show
