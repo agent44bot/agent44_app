@@ -1,0 +1,237 @@
+<% content_for(:title, "Dashboard") %>
+<% content_for(:head) do %>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<% end %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header + Period Toggle -->
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div class="flex items-center space-x-2">
+      <% %w[today week month].each do |period| %>
+        <%= link_to period.titleize, admin_dashboard_path(period: period),
+              class: "px-3 py-1.5 text-sm font-medium rounded-md transition #{@period == period ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Page Views</p>
+      <p class="mt-1 text-3xl font-bold text-gray-900"><%= number_with_delimiter(@total_views) %></p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Unique Visitors</p>
+      <p class="mt-1 text-3xl font-bold text-gray-900"><%= number_with_delimiter(@unique_visitors) %></p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Unique IPs</p>
+      <p class="mt-1 text-3xl font-bold text-gray-900"><%= number_with_delimiter(@unique_ips) %></p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Registered Users</p>
+      <p class="mt-1 text-3xl font-bold text-gray-900"><%= number_with_delimiter(@registered_users) %></p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">New Users (<%= @period %>)</p>
+      <p class="mt-1 text-3xl font-bold text-indigo-600"><%= number_with_delimiter(@new_users) %></p>
+    </div>
+  </div>
+
+  <!-- Daily Trend Chart -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Page Views (Last 30 Days)</h2>
+    <div style="height: 200px;">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Two Column: Top Pages + Device Breakdown -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Top Pages -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Top Pages</h2>
+      </div>
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Page</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Views</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <% @top_pages.each do |path, count| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-3 text-sm text-gray-900 font-mono"><%= path %></td>
+              <td class="px-6 py-3 text-sm text-gray-900 text-right font-semibold"><%= number_with_delimiter(count) %></td>
+            </tr>
+          <% end %>
+          <% if @top_pages.empty? %>
+            <tr><td colspan="2" class="px-6 py-8 text-center text-sm text-gray-400">No data yet</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Device Breakdown + Countries -->
+    <div class="space-y-8">
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Device Breakdown</h2>
+        <% if @device_breakdown.any? %>
+          <div style="height: 180px;">
+            <canvas id="deviceChart"></canvas>
+          </div>
+        <% else %>
+          <p class="text-sm text-gray-400 text-center py-8">No data yet</p>
+        <% end %>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">Top Countries</h2>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Views</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% @top_countries.each do |country, count| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-3 text-sm text-gray-900"><%= country %></td>
+                <td class="px-6 py-3 text-sm text-gray-900 text-right font-semibold"><%= number_with_delimiter(count) %></td>
+              </tr>
+            <% end %>
+            <% if @top_countries.empty? %>
+              <tr><td colspan="2" class="px-6 py-8 text-center text-sm text-gray-400">No data yet</td></tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two Column: Top Referrers + Recent Users -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Top Referrers -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Top Referrers</h2>
+      </div>
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referrer</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Views</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <% @top_referrers.each do |referrer, count| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-3 text-sm text-gray-900 truncate max-w-xs"><%= truncate(referrer, length: 60) %></td>
+              <td class="px-6 py-3 text-sm text-gray-900 text-right font-semibold"><%= number_with_delimiter(count) %></td>
+            </tr>
+          <% end %>
+          <% if @top_referrers.empty? %>
+            <tr><td colspan="2" class="px-6 py-8 text-center text-sm text-gray-400">No referrer data yet</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Recent Users -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Recent Registrations</h2>
+      </div>
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Joined</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <% @recent_users.each do |user| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-3">
+                <div class="text-sm font-medium text-gray-900"><%= user.display_identifier %></div>
+                <% if user.email_address.present? && user.display_name.present? %>
+                  <div class="text-xs text-gray-400"><%= user.email_address %></div>
+                <% end %>
+              </td>
+              <td class="px-6 py-3">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= user.admin? ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800' %>">
+                  <%= user.role %>
+                </span>
+              </td>
+              <td class="px-6 py-3 text-sm text-gray-500 text-right"><%= user.created_at.strftime("%b %d, %Y") %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Daily Trend Chart
+  const trendData = <%= @trend_data.to_json.html_safe %>;
+  const labels = Object.keys(trendData);
+  const values = Object.values(trendData);
+
+  new Chart(document.getElementById("trendChart"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Page Views",
+        data: values,
+        borderColor: "#4f46e5",
+        backgroundColor: "rgba(79, 70, 229, 0.1)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        x: { ticks: { maxTicksAutoSkip: true, maxRotation: 0 } }
+      }
+    }
+  });
+
+  // Device Breakdown Chart
+  const deviceData = <%= @device_breakdown.to_json.html_safe %>;
+  const deviceLabels = Object.keys(deviceData);
+  const deviceValues = Object.values(deviceData);
+
+  if (deviceLabels.length > 0) {
+    new Chart(document.getElementById("deviceChart"), {
+      type: "doughnut",
+      data: {
+        labels: deviceLabels.map(l => l ? l.charAt(0).toUpperCase() + l.slice(1) : "Unknown"),
+        datasets: [{
+          data: deviceValues,
+          backgroundColor: ["#4f46e5", "#06b6d4", "#f59e0b", "#ef4444", "#10b981"]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "right" } }
+      }
+    });
+  }
+});
+</script>

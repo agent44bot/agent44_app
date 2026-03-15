@@ -19,8 +19,11 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
+    get "dashboard", to: "dashboard#index"
     resources :posts
     resources :videos
+    resources :users, only: [:index]
+    get "visitors/map", to: "visitors#map"
   end
 
   get "up" => "rails/health#show", as: :rails_health_check

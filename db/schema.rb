@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_14_165421) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_15_170405) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -77,6 +77,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_14_165421) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "page_views", force: :cascade do |t|
+    t.string "browser"
+    t.string "city"
+    t.string "country"
+    t.datetime "created_at", null: false
+    t.string "device_type"
+    t.string "ip_address"
+    t.float "latitude"
+    t.float "longitude"
+    t.string "os"
+    t.string "path", null: false
+    t.text "referrer"
+    t.string "session_id"
+    t.datetime "updated_at", null: false
+    t.text "user_agent"
+    t.integer "user_id"
+    t.index ["country"], name: "index_page_views_on_country"
+    t.index ["created_at", "path"], name: "index_page_views_on_created_at_and_path"
+    t.index ["created_at"], name: "index_page_views_on_created_at"
+    t.index ["path"], name: "index_page_views_on_path"
+    t.index ["session_id"], name: "index_page_views_on_session_id"
+    t.index ["user_id"], name: "index_page_views_on_user_id"
+  end
+
   create_table "posts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.boolean "published"
@@ -133,6 +157,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_14_165421) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
   add_foreign_key "sessions", "users"
 end

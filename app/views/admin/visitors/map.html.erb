@@ -1,0 +1,84 @@
+<% content_for(:title, "Visitor Map") %>
+<% content_for(:head) do %>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
+<% end %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Visitor Map</h1>
+      <p class="mt-1 text-sm text-gray-500">
+        <%= @visitor_count %> tracked visits from <%= @country_count %> countries (last 30 days)
+      </p>
+    </div>
+    <%= link_to "&larr; Dashboard".html_safe, admin_dashboard_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+  </div>
+
+  <!-- Map -->
+  <div id="visitor-map" style="height: 500px;" class="rounded-xl border border-gray-200 overflow-hidden shadow-sm mb-8"></div>
+
+  <!-- Recent Visitors Table -->
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900">Recent Visitor Locations</h2>
+    </div>
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Page</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device</th>
+          <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Time</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <% @visitors.first(50).each do |v| %>
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-3 text-sm text-gray-900"><%= [v.city, v.country].compact.join(", ") %></td>
+            <td class="px-6 py-3 text-sm text-gray-600 font-mono"><%= v.path %></td>
+            <td class="px-6 py-3 text-sm text-gray-500"><%= [v.browser, v.device_type&.titleize].compact.join(" / ") %></td>
+            <td class="px-6 py-3 text-sm text-gray-500 text-right"><%= v.created_at.strftime("%b %d, %H:%M") %></td>
+          </tr>
+        <% end %>
+        <% if @visitors.empty? %>
+          <tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-400">No visitor location data yet</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const visitors = <%= @visitors.map { |v|
+    { lat: v.latitude, lng: v.longitude, city: v.city, country: v.country,
+      path: v.path, time: v.created_at.strftime("%b %d, %Y %H:%M"),
+      device: v.device_type, browser: v.browser }
+  }.to_json.html_safe %>;
+
+  const map = L.map("visitor-map").setView([30, 0], 2);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 18
+  }).addTo(map);
+
+  visitors.forEach(function(v) {
+    const marker = L.circleMarker([v.lat, v.lng], {
+      radius: 6,
+      fillColor: "#4f46e5",
+      color: "#312e81",
+      weight: 1,
+      fillOpacity: 0.7
+    }).addTo(map);
+
+    marker.bindPopup(
+      "<strong>" + (v.city || "Unknown") + ", " + (v.country || "Unknown") + "</strong><br>" +
+      "<span style='color:#666;'>" + v.path + "</span><br>" +
+      "<span style='color:#999;font-size:12px;'>" + (v.browser || "") + " / " + (v.device || "") + "</span><br>" +
+      "<span style='color:#999;font-size:12px;'>" + v.time + "</span>"
+    );
+  });
+});
+</script>
