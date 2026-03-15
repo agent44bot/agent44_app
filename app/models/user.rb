@@ -6,6 +6,8 @@ class User < ApplicationRecord
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validates :email_address, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_nil: true
+  validates :password, length: { minimum: 8, maximum: 72 }, if: -> { password.present? }
+  validates :password, confirmation: true, if: -> { password.present? }
   validates :pubkey_hex, uniqueness: true, format: { with: /\A[0-9a-f]{64}\z/ }, allow_nil: true
   validates :npub, uniqueness: true, allow_nil: true
   validate :has_auth_method

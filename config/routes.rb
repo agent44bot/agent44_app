@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   resource :session do
     post :challenge, on: :collection
   end
+  resource :registration, only: [:new, :create]
   resources :passwords, param: :token
 
   resources :jobs, only: [:index, :show]
