@@ -42,7 +42,9 @@
         </div>
 
         <div class="flex items-center space-x-4">
-          <%= link_to "View Site", root_path, class: "text-sm text-gray-400 hover:text-white transition", target: "_blank" %>
+          <%= link_to "Home", root_path, class: "text-sm text-gray-400 hover:text-white transition" %>
+          <%= link_to "Jobs", jobs_path, class: "text-sm text-gray-400 hover:text-white transition" %>
+          <span class="text-gray-600">|</span>
           <span class="text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
           <%= button_to "Sign Out", session_path, method: :delete,
                 class: "text-sm text-gray-400 hover:text-white transition" %>
