@@ -135,7 +135,7 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-1">
                   <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate">
-                    <%= link_to job.title, job_path(job) %>
+                    <%= link_to job.title, job_path(job), data: { turbo_frame: "_top" } %>
                   </h2>
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 whitespace-nowrap">
                     <%= job.category&.titleize || "General" %>
