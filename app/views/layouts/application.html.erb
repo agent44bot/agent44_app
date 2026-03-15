@@ -44,6 +44,9 @@
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
+            <% if Current.session.user.admin? %>
+              <%= link_to "Dashboard", admin_dashboard_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+            <% end %>
             <span class="text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
             <%= button_to "Sign Out", session_path, method: :delete,
                   class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
@@ -74,6 +77,9 @@
         <%= link_to "Videos", videos_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
         <div class="border-t border-gray-200 pt-2">
           <% if authenticated? %>
+            <% if Current.session.user.admin? %>
+              <%= link_to "Dashboard", admin_dashboard_path, class: "block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-gray-100" %>
+            <% end %>
             <span class="block px-3 py-2 text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
             <%= button_to "Sign Out", session_path, method: :delete,
                   class: "block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
