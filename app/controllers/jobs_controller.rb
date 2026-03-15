@@ -7,8 +7,15 @@ class JobsController < ApplicationController
 
     @category_counts = base.group(:category).count
     @total_count = @category_counts.values.sum
+    @new_today_count = base.posted_today.count
 
-    @jobs = params[:category].present? ? base.by_category(params[:category]) : base
+    if params[:category] == "new_today"
+      @jobs = base.posted_today
+    elsif params[:category].present?
+      @jobs = base.by_category(params[:category])
+    else
+      @jobs = base
+    end
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
     # Trend data: daily job counts for the last 30 days

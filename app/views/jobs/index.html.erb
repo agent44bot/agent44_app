@@ -28,6 +28,7 @@
     <%
       categories = [
         ["All", nil],
+        ["New Today", "new_today"],
         ["Full-Time", "full_time"],
         ["Part-Time", "part_time"],
         ["Contract", "contract"],
@@ -36,7 +37,7 @@
     %>
     <% categories.each do |label, value| %>
       <% active = params[:category] == value || (value.nil? && params[:category].blank?) %>
-      <% count = value.nil? ? @total_count : (@category_counts[value] || 0) %>
+      <% count = value.nil? ? @total_count : (value == "new_today" ? @new_today_count : (@category_counts[value] || 0)) %>
       <%= link_to jobs_path(category: value, q: params[:q]),
             class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
             data: { turbo_frame: "jobs_list" } do %>
@@ -130,7 +131,7 @@
     <% if @jobs.present? %>
       <div class="space-y-4">
         <% @jobs.each do |job| %>
-          <div class="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group">
+          <div class="<%= job.posted_today? ? 'bg-green-50 rounded-xl border border-green-300 p-6 hover:shadow-md hover:border-green-400 transition group' : 'bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group' %>">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-1">
@@ -140,6 +141,11 @@
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 whitespace-nowrap">
                     <%= job.category&.titleize || "General" %>
                   </span>
+                  <% if job.posted_today? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 whitespace-nowrap">
+                      New
+                    </span>
+                  <% end %>
                 </div>
                 <p class="text-sm text-gray-600"><%= job.company %></p>
                 <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
