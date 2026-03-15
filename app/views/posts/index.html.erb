@@ -1,32 +1,35 @@
-<% content_for(:title, "Blog") %>
+<% content_for(:title, "Newsletter") %>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-  <div class="mb-10">
-    <h1 class="text-3xl font-bold text-gray-900">Blog</h1>
-    <p class="mt-2 text-gray-500">Insights on test automation, AI tooling, and software quality.</p>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <div class="mb-12 text-center">
+    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900">Newsletter</h1>
+    <p class="mt-3 text-lg text-gray-500 max-w-2xl mx-auto">The latest on test automation, AI in QA, and the evolving job market for testers.</p>
   </div>
 
   <% if @posts.present? %>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <% @posts.each do |post| %>
-        <article class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-indigo-200 transition group">
-          <div class="p-6">
-            <time class="text-xs text-gray-400 uppercase tracking-wide font-medium">
+    <div class="space-y-8">
+      <% @posts.each_with_index do |post, index| %>
+        <article class="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg hover:border-indigo-200 transition group">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 uppercase tracking-wide">
+              Newsletter
+            </span>
+            <time class="text-sm text-gray-400">
               <%= post.published_at&.strftime("%B %d, %Y") %>
             </time>
-            <h2 class="mt-2 text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-              <%= link_to post.title, post_path(post.slug) %>
-            </h2>
-            <p class="mt-3 text-sm text-gray-500 leading-relaxed line-clamp-3">
-              <%= truncate(post.body.to_plain_text, length: 200) %>
-            </p>
-            <div class="mt-4 flex items-center justify-between">
-              <%= link_to "Read more &rarr;".html_safe, post_path(post.slug),
-                    class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
-              <% if post.user.present? %>
-                <span class="text-xs text-gray-400">by <%= post.user.display_identifier %></span>
-              <% end %>
-            </div>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 group-hover:text-indigo-600 transition leading-snug">
+            <%= link_to post.title, post_path(post.slug) %>
+          </h2>
+          <p class="mt-3 text-gray-500 leading-relaxed line-clamp-3">
+            <%= truncate(post.body.to_plain_text, length: 280) %>
+          </p>
+          <div class="mt-5 flex items-center justify-between">
+            <%= link_to "Read more &rarr;".html_safe, post_path(post.slug),
+                  class: "inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition" %>
+            <% if post.user.present? %>
+              <span class="text-sm text-gray-400">by <span class="font-medium text-gray-600"><%= post.user.display_identifier %></span></span>
+            <% end %>
           </div>
         </article>
       <% end %>

@@ -7,7 +7,7 @@ Rails.application.routes.draw do
   resources :passwords, param: :token
 
   resources :jobs, only: [:index, :show]
-  resources :posts, only: [:index, :show]
+  resources :posts, only: [:index, :show], path: "newsletter"
   resources :videos, only: [:index, :show]
   resources :subscribers, only: [:create]
 
