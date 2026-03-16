@@ -50,12 +50,12 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
     <div class="bg-white rounded-xl border border-gray-200 p-4">
       <h3 class="text-lg font-semibold text-gray-900 mb-1">Traditional SDET & Test Automation</h3>
-      <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles (last 30 days)</p>
+      <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles (from Mar 15)</p>
       <canvas id="autoChart" height="80"></canvas>
     </div>
     <div class="bg-white rounded-xl border border-gray-200 p-4">
       <h3 class="text-lg font-semibold text-gray-900 mb-1">AI-Enabled SDET & Test Automation</h3>
-      <p class="text-sm text-gray-500 mb-4">Roles requiring AI/ML testing skills (last 30 days)</p>
+      <p class="text-sm text-gray-500 mb-4">Roles requiring AI/ML testing skills (from Mar 15)</p>
       <canvas id="aiChart" height="80"></canvas>
     </div>
   </div>
@@ -70,8 +70,9 @@
 
       function trendInfo(data) {
         const total = data.reduce((a, b) => a + b, 0);
-        const firstHalf = data.slice(0, 15).reduce((a, b) => a + b, 0);
-        const secondHalf = data.slice(15).reduce((a, b) => a + b, 0);
+        const mid = Math.floor(data.length / 2);
+        const firstHalf = data.slice(0, mid).reduce((a, b) => a + b, 0);
+        const secondHalf = data.slice(mid).reduce((a, b) => a + b, 0);
         const trending = secondHalf > firstHalf ? "up" : secondHalf < firstHalf ? "down" : "flat";
         const pct = firstHalf > 0 ? Math.round(Math.abs(secondHalf - firstHalf) / firstHalf * 100) : 0;
         return { total, trending, pct };
