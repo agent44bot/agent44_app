@@ -7,9 +7,10 @@ class Job < ApplicationRecord
 
   scope :active, -> { where(active: true) }
   scope :by_category, ->(cat) { where(category: cat) if cat.present? }
+  scope :by_source, ->(src) { where(source: src) if src.present? }
   scope :recent, -> { order(posted_at: :desc) }
   scope :search, ->(q) {
-    where("title LIKE ? OR company LIKE ?", "%#{q}%", "%#{q}%") if q.present?
+    where("title LIKE ? OR company LIKE ? OR source LIKE ?", "%#{q}%", "%#{q}%", "%#{q}%") if q.present?
   }
   scope :posted_today, -> { where(posted_at: Time.current.beginning_of_day..Time.current.end_of_day) }
 

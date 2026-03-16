@@ -24,4 +24,34 @@ test.describe("Jobs page", () => {
     const href = await seeListingLink.getAttribute("href");
     expect(href).toMatch(/^https?:\/\//);
   });
+
+  test("Hovering on a job title shows a description tooltip", async ({
+    page,
+  }) => {
+    await page.goto("/jobs");
+
+    // Find the first job title wrapper div that has a tooltip
+    const titleWrapper = page.locator("div:has(> .job-tooltip)").first();
+    const jobTitle = titleWrapper.locator("h2");
+    await expect(jobTitle).toBeVisible();
+
+    // Tooltip should be hidden initially
+    const tooltip = titleWrapper.locator(".job-tooltip");
+    await expect(tooltip).toBeHidden();
+
+    // Hover over the job title
+    await jobTitle.hover();
+
+    // Tooltip should now be visible with description text
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).not.toBeEmpty();
+
+    // Pause so you can see the tooltip in headed mode
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(3000);
+
+    // Move mouse away to dismiss
+    await page.mouse.move(0, 0);
+    await expect(tooltip).toBeHidden();
+  });
 });

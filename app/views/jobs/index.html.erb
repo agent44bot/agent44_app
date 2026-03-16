@@ -14,8 +14,15 @@
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input type="text" name="q" value="<%= params[:q] %>" placeholder="Search by title, company, or keyword..."
-               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+        <input type="text" name="q" id="search-input" value="<%= params[:q] %>" placeholder="Search by title, company, or keyword..."
+               class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+               oninput="document.getElementById('search-clear').style.display = this.value ? 'block' : 'none'">
+        <a href="<%= jobs_path(category: params[:category], source: params[:source]) %>"
+           id="search-clear"
+           class="text-gray-400 hover:text-gray-600 transition"
+           style="position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:10; <%= params[:q].present? ? '' : 'display:none;' %>">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </a>
       </div>
       <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
         Search
@@ -38,13 +45,50 @@
     <% categories.each do |label, value| %>
       <% active = params[:category] == value || (value.nil? && params[:category].blank?) %>
       <% count = value.nil? ? @total_count : (value == "new_today" ? @new_today_count : (@category_counts[value] || 0)) %>
-      <%= link_to jobs_path(category: value, q: params[:q]),
+      <%= link_to jobs_path(category: value, q: params[:q], source: params[:source]),
             class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
             data: { turbo_frame: "jobs_list" } do %>
         <%= label %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
       <% end %>
     <% end %>
   </div>
+
+  <!-- Source / Job Board Tabs -->
+  <% if @source_counts.any? %>
+    <div class="flex flex-wrap gap-2 mb-8">
+      <span class="px-2 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Job Board:</span>
+      <%
+        source_labels = {
+          "remoteok" => "RemoteOK",
+          "arbeitnow" => "Arbeitnow",
+          "jobicy" => "Jobicy",
+          "welcometothejungle" => "WTTJ",
+          "linkedin" => "LinkedIn",
+          "indeed" => "Indeed",
+          "glassdoor" => "Glassdoor",
+          "google_jobs" => "Google Jobs",
+          "jsearch" => "JSearch",
+          "devitjobs" => "DevITjobs"
+        }
+      %>
+      <% active_source = params[:source] %>
+      <% source_active = active_source.blank? %>
+      <%= link_to jobs_path(category: params[:category], q: params[:q]),
+            class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{source_active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+            data: { turbo_frame: "jobs_list" } do %>
+        All <span class="<%= source_active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= @source_counts.values.sum %>)</span>
+      <% end %>
+      <% @source_counts.sort_by { |_, c| -c }.each do |src, count| %>
+        <% next if src.blank? %>
+        <% active = active_source == src %>
+        <%= link_to jobs_path(category: params[:category], q: params[:q], source: src),
+              class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              data: { turbo_frame: "jobs_list" } do %>
+          <%= source_labels[src] || src.titleize %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
 
   <!-- Trend Charts -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -127,6 +171,20 @@
     });
   </script>
 
+  <style>
+    .job-tooltip { pointer-events: none; }
+  </style>
+  <script>
+    function showJobTooltip(el) {
+      const tooltip = el.querySelector('.job-tooltip');
+      if (tooltip) tooltip.classList.remove('hidden');
+    }
+    function hideJobTooltip(el) {
+      const tooltip = el.querySelector('.job-tooltip');
+      if (tooltip) tooltip.classList.add('hidden');
+    }
+  </script>
+
   <!-- Job List -->
   <%= turbo_frame_tag "jobs_list" do %>
     <% if @jobs.present? %>
@@ -135,10 +193,16 @@
           <div class="<%= job.posted_today? ? 'bg-green-50 rounded-xl border border-green-300 p-6 hover:shadow-md hover:border-green-400 transition group' : 'bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group' %>">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-3 mb-1">
-                  <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate">
+                <div class="flex items-center gap-3 mb-1 relative">
+                  <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate"
+                      onmouseenter="showJobTooltip(this.parentElement)" onmouseleave="hideJobTooltip(this.parentElement)">
                     <%= link_to job.title, job_path(job), data: { turbo_frame: "_top" } %>
                   </h2>
+                  <% if job.description.present? %>
+                    <div class="job-tooltip hidden absolute left-0 top-full mt-2 z-50 w-[32rem] max-h-96 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl p-4 text-sm text-gray-700 font-normal whitespace-normal">
+                      <%= simple_format(job.description) %>
+                    </div>
+                  <% end %>
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 whitespace-nowrap">
                     <%= job.category&.titleize || "General" %>
                   </span>
@@ -166,7 +230,11 @@
                     <% end %>
                   <% end %>
                   <% if job.source.present? %>
-                    <span>via <%= job.source %></span>
+                    <%= link_to jobs_path(source: job.source),
+                          class: "hover:text-indigo-600 transition",
+                          data: { turbo_frame: "_top" } do %>
+                      via <%= job.source %>
+                    <% end %>
                   <% end %>
                   <span><%= days_ago_in_words(job.posted_at) %></span>
                 </div>

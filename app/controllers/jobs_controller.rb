@@ -16,6 +16,9 @@ class JobsController < ApplicationController
     else
       @jobs = base
     end
+
+    @source_counts = @jobs.group(:source).count
+    @jobs = @jobs.by_source(params[:source])
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
     # Trend data: daily job counts from March 15 forward (cached 6 hours)
