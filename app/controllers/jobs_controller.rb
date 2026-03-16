@@ -2,7 +2,7 @@ class JobsController < ApplicationController
   allow_unauthenticated_access only: :index
 
   def index
-    base = Job.active.recent
+    base = Job.active
     base = base.search(params[:q]) if params[:q].present?
 
     @category_counts = base.group(:category).count
@@ -19,6 +19,16 @@ class JobsController < ApplicationController
 
     @source_counts = @jobs.group(:source).count
     @jobs = @jobs.by_source(params[:source])
+
+    case params[:sort]
+    when "salary_desc"
+      @jobs = @jobs.by_salary_desc
+    when "salary_asc"
+      @jobs = @jobs.by_salary_asc
+    else
+      @jobs = @jobs.recent
+    end
+
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
     # Trend data: daily job counts from March 15 forward (cached 6 hours)
