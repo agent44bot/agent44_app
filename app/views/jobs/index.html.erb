@@ -30,17 +30,30 @@
     <% end %>
   </div>
 
-  <!-- Sort -->
-  <div class="flex items-center gap-2 mb-6">
-    <span class="text-sm text-gray-500">Sort by:</span>
-    <% sort_options = [["Newest", nil], ["Salary: High to Low", "salary_desc"], ["Salary: Low to High", "salary_asc"]] %>
-    <% sort_options.each do |label, value| %>
-      <% active = params[:sort] == value || (value.nil? && params[:sort].blank?) %>
-      <%= link_to jobs_path(sort: value, category: params[:category], q: params[:q], source: params[:source]),
-            class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
-            data: { turbo_frame: "jobs_list" } do %>
-        <%= label %>
+  <!-- Sort & Saved Filter -->
+  <div class="flex items-center gap-4 mb-6">
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-gray-500">Sort by:</span>
+      <% sort_options = [["Newest", nil], ["Salary: High to Low", "salary_desc"], ["Salary: Low to High", "salary_asc"]] %>
+      <% sort_options.each do |label, value| %>
+        <% active = params[:sort] == value || (value.nil? && params[:sort].blank?) %>
+        <%= link_to jobs_path(sort: value, category: params[:category], q: params[:q], source: params[:source], saved: params[:saved]),
+              class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              data: { turbo_frame: "jobs_list" } do %>
+          <%= label %>
+        <% end %>
       <% end %>
+    </div>
+    <% if authenticated? %>
+      <div class="flex items-center gap-2 ml-auto">
+        <% saved_active = params[:saved] == "1" %>
+        <%= link_to jobs_path(saved: saved_active ? nil : "1", sort: params[:sort], category: params[:category], q: params[:q], source: params[:source]),
+              class: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition #{saved_active ? 'bg-red-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              data: { turbo_frame: "jobs_list" } do %>
+          <svg class="w-3.5 h-3.5" fill="<%= saved_active ? 'currentColor' : 'none' %>" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
+          Saved (<%= @saved_job_ids.size %>)
+        <% end %>
+      </div>
     <% end %>
   </div>
 
@@ -59,7 +72,7 @@
     <% categories.each do |label, value| %>
       <% active = params[:category] == value || (value.nil? && params[:category].blank?) %>
       <% count = value.nil? ? @total_count : (value == "new_today" ? @new_today_count : (@category_counts[value] || 0)) %>
-      <%= link_to jobs_path(category: value, q: params[:q], source: params[:source], sort: params[:sort]),
+      <%= link_to jobs_path(category: value, q: params[:q], source: params[:source], sort: params[:sort], saved: params[:saved]),
             class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
             data: { turbo_frame: "jobs_list" } do %>
         <%= label %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
@@ -87,7 +100,7 @@
       %>
       <% active_source = params[:source] %>
       <% source_active = active_source.blank? %>
-      <%= link_to jobs_path(category: params[:category], q: params[:q], sort: params[:sort]),
+      <%= link_to jobs_path(category: params[:category], q: params[:q], sort: params[:sort], saved: params[:saved]),
             class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{source_active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
             data: { turbo_frame: "jobs_list" } do %>
         All <span class="<%= source_active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= @source_counts.values.sum %>)</span>
@@ -95,7 +108,7 @@
       <% @source_counts.sort_by { |_, c| -c }.each do |src, count| %>
         <% next if src.blank? %>
         <% active = active_source == src %>
-        <%= link_to jobs_path(category: params[:category], q: params[:q], source: src, sort: params[:sort]),
+        <%= link_to jobs_path(category: params[:category], q: params[:q], source: src, sort: params[:sort], saved: params[:saved]),
               class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
               data: { turbo_frame: "jobs_list" } do %>
           <%= source_labels[src] || src.titleize %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>

@@ -37,6 +37,10 @@ class JobsController < ApplicationController
       Set.new
     end
 
+    if params[:saved] == "1" && @saved_job_ids.any?
+      @jobs = @jobs.where(id: @saved_job_ids)
+    end
+
     # Trend data: daily job counts from March 15 forward (cached 6 hours)
     start_date = Date.new(2026, 3, 15)
     end_date = Date.current
