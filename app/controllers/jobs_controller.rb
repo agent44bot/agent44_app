@@ -31,6 +31,12 @@ class JobsController < ApplicationController
 
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
+    @saved_job_ids = if authenticated?
+      Current.session.user.saved_jobs.pluck(:job_id).to_set
+    else
+      Set.new
+    end
+
     # Trend data: daily job counts from March 15 forward (cached 6 hours)
     start_date = Date.new(2026, 3, 15)
     end_date = Date.current

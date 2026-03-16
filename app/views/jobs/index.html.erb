@@ -205,7 +205,7 @@
       <div class="space-y-4">
         <% @jobs.each do |job| %>
           <div class="<%= job.posted_today? ? 'bg-green-50 rounded-xl border border-green-300 p-6 hover:shadow-md hover:border-green-400 transition group' : 'bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group' %>">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-start gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-1 relative">
                   <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate"
@@ -253,6 +253,18 @@
                   <span><%= days_ago_in_words(job.posted_at) %></span>
                 </div>
               </div>
+              <% if authenticated? %>
+                <% saved = @saved_job_ids.include?(job.id) %>
+                <% if saved %>
+                  <%= button_to job_saved_job_path(job), method: :delete, class: "flex-shrink-0 p-2 rounded-lg hover:bg-red-50 transition", title: "Unsave job", data: { turbo_frame: "_top" } do %>
+                    <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
+                  <% end %>
+                <% else %>
+                  <%= button_to job_saved_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-indigo-50 transition", title: "Save job", data: { turbo_frame: "_top" } do %>
+                    <svg class="w-5 h-5 text-gray-300 hover:text-indigo-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
+                  <% end %>
+                <% end %>
+              <% end %>
             </div>
           </div>
         <% end %>

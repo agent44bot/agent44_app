@@ -7,7 +7,10 @@ Rails.application.routes.draw do
   resource :registration, only: [:new, :create]
   resources :passwords, param: :token
 
-  resources :jobs, only: [:index, :show]
+  resources :jobs, only: [:index, :show] do
+    resource :saved_job, only: [:create, :destroy]
+  end
+  resources :saved_jobs, only: [:index]
   resources :posts, only: [:index, :show], path: "newsletter"
   resources :videos, only: [:index, :show]
   resources :subscribers, only: [:create]

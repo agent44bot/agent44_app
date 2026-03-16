@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_15_170405) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_16_210824) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -112,6 +112,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_15_170405) do
     t.index ["user_id"], name: "index_posts_on_user_id"
   end
 
+  create_table "saved_jobs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "job_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["job_id"], name: "index_saved_jobs_on_job_id"
+    t.index ["user_id", "job_id"], name: "index_saved_jobs_on_user_id_and_job_id", unique: true
+    t.index ["user_id"], name: "index_saved_jobs_on_user_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -159,5 +169,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_15_170405) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
+  add_foreign_key "saved_jobs", "jobs"
+  add_foreign_key "saved_jobs", "users"
   add_foreign_key "sessions", "users"
 end

@@ -44,6 +44,10 @@
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
+            <%= link_to saved_jobs_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition flex items-center gap-1", title: "Saved Jobs" do %>
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
+              Saved
+            <% end %>
             <% if Current.session.user.admin? %>
               <%= link_to "Dashboard", admin_dashboard_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
             <% end %>
@@ -77,6 +81,7 @@
         <%= link_to "Videos", videos_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
         <div class="border-t border-gray-200 pt-2">
           <% if authenticated? %>
+            <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
             <% if Current.session.user.admin? %>
               <%= link_to "Dashboard", admin_dashboard_path, class: "block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-gray-100" %>
             <% end %>
