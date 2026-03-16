@@ -18,20 +18,26 @@ class JobsController < ApplicationController
     end
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
-    # Trend data: daily job counts from March 15 forward
+    # Trend data: daily job counts from March 15 forward (cached 6 hours)
     start_date = Date.new(2026, 3, 15)
     end_date = Date.current
     @trend_labels = (start_date..end_date).to_a
 
-    # All test automation jobs (non-AI categories)
-    auto_base = Job.active.where("posted_at >= ?", start_date.beginning_of_day).where.not(category: "ai")
-    auto_counts = auto_base.group("date(posted_at)").count
-    @trend_data_auto = @trend_labels.map { |d| auto_counts[d.to_s] || 0 }
+    trend_cache = Rails.cache.fetch("job_trends/#{end_date}", expires_in: 6.hours) do
+      auto_base = Job.active.where("posted_at >= ?", start_date.beginning_of_day).where.not(category: "ai")
+      auto_counts = auto_base.group("date(posted_at)").count
 
-    # AI jobs only
-    ai_base = Job.active.where("posted_at >= ?", start_date.beginning_of_day).where(category: "ai")
-    ai_counts = ai_base.group("date(posted_at)").count
-    @trend_data_ai = @trend_labels.map { |d| ai_counts[d.to_s] || 0 }
+      ai_base = Job.active.where("posted_at >= ?", start_date.beginning_of_day).where(category: "ai")
+      ai_counts = ai_base.group("date(posted_at)").count
+
+      {
+        auto: @trend_labels.map { |d| auto_counts[d.to_s] || 0 },
+        ai: @trend_labels.map { |d| ai_counts[d.to_s] || 0 }
+      }
+    end
+
+    @trend_data_auto = trend_cache[:auto]
+    @trend_data_ai = trend_cache[:ai]
   end
 
   def show

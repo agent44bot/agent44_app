@@ -61,7 +61,7 @@
   </div>
 
   <% content_for(:head) do %>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <%= javascript_include_tag "chart.umd.min" %>
   <% end %>
 
   <script>
