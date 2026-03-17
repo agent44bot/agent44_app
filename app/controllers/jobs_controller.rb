@@ -68,5 +68,6 @@ class JobsController < ApplicationController
 
   def show
     @job = Job.find(params[:id])
+    @saved = authenticated? && Current.session.user.saved_jobs.exists?(job: @job)
   end
 end
