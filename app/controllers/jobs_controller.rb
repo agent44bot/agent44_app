@@ -31,10 +31,13 @@ class JobsController < ApplicationController
 
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
-    @saved_job_ids = if authenticated?
-      Current.session.user.saved_jobs.pluck(:job_id).to_set
+    if authenticated?
+      saved = Current.session.user.saved_jobs.index_by(&:job_id)
+      @saved_job_ids = saved.keys.to_set
+      @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
     else
-      Set.new
+      @saved_job_ids = Set.new
+      @applied_jobs = {}
     end
 
     if params[:saved] == "1" && @saved_job_ids.any?
@@ -68,6 +71,10 @@ class JobsController < ApplicationController
 
   def show
     @job = Job.find(params[:id])
-    @saved = authenticated? && Current.session.user.saved_jobs.exists?(job: @job)
+    if authenticated?
+      @saved_job = Current.session.user.saved_jobs.find_by(job: @job)
+      @saved = @saved_job.present?
+      @applied = @saved_job&.applied?
+    end
   end
 end

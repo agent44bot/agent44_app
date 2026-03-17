@@ -255,6 +255,16 @@
                       New
                     </span>
                   <% end %>
+                  <% if @saved_job_ids.include?(job.id) %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 whitespace-nowrap">
+                      Saved
+                    </span>
+                  <% end %>
+                  <% if @applied_jobs[job.id] %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 whitespace-nowrap">
+                      Applied <%= @applied_jobs[job.id].in_time_zone("Eastern Time (US & Canada)").strftime("%-m/%-d") %>
+                    </span>
+                  <% end %>
                 </div>
                 <p class="text-sm text-gray-600"><%= job.company %></p>
                 <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">

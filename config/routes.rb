@@ -10,7 +10,9 @@ Rails.application.routes.draw do
   post "email_verification/resend", to: "email_verifications#resend", as: :resend_email_verification
 
   resources :jobs, only: [:index, :show] do
-    resource :saved_job, only: [:create, :destroy]
+    resource :saved_job, only: [:create, :destroy] do
+      post :toggle_applied, on: :member
+    end
   end
   resources :saved_jobs, only: [:index]
   resources :posts, only: [:index, :show], path: "newsletter"
