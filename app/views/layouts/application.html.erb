@@ -97,6 +97,16 @@
     </div>
   </nav>
 
+  <!-- Email verification banner -->
+  <% if authenticated? && Current.session.user.email_address.present? && !Current.session.user.email_verified? %>
+    <div class="bg-amber-50 border-b border-amber-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+        <p class="text-sm text-amber-800">Please verify your email address. Check your inbox for a verification link.</p>
+        <%= button_to "Resend email", resend_email_verification_path, method: :post, class: "text-sm font-medium text-amber-700 hover:text-amber-900 underline" %>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Flash messages -->
   <% if notice.present? %>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">

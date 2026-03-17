@@ -16,9 +16,28 @@ class User < ApplicationRecord
   validate :has_auth_method
 
   before_validation :derive_npub_from_pubkey, if: -> { pubkey_hex.present? && npub.blank? }
+  before_create :generate_email_verification_token, if: -> { email_address.present? }
 
   def admin?
     role == "admin"
+  end
+
+  def email_verified?
+    email_verified_at.present?
+  end
+
+  def verify_email!
+    update!(email_verified_at: Time.current, email_verification_token: nil)
+  end
+
+  def generate_email_verification_token
+    self.email_verification_token = SecureRandom.urlsafe_base64(32)
+  end
+
+  def send_verification_email
+    generate_email_verification_token
+    save!
+    UserMailer.email_verification(self).deliver_later
   end
 
   def display_identifier
