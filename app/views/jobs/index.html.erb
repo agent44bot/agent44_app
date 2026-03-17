@@ -7,6 +7,87 @@
     <p class="mt-2 text-gray-500">Curated positions from across the web, updated daily.</p>
   </div>
 
+  <!-- Trend Charts -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <h3 class="text-lg font-semibold text-gray-900 mb-1">Traditional SDET & Test Automation</h3>
+      <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles (from Mar 15)</p>
+      <canvas id="autoChart" height="80"></canvas>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <h3 class="text-lg font-semibold text-gray-900 mb-1">AI-Enabled SDET & Test Automation</h3>
+      <p class="text-sm text-gray-500 mb-4">Roles requiring AI/ML testing skills (from Mar 15)</p>
+      <canvas id="aiChart" height="80"></canvas>
+    </div>
+  </div>
+
+  <% content_for(:head) do %>
+    <%= javascript_include_tag "chart.umd.min" %>
+  <% end %>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const labels = <%= raw @trend_labels.map { |d| d.strftime("%-b %-d") }.to_json %>;
+
+      function trendInfo(data) {
+        const total = data.reduce((a, b) => a + b, 0);
+        const mid = Math.floor(data.length / 2);
+        const firstHalf = data.slice(0, mid).reduce((a, b) => a + b, 0);
+        const secondHalf = data.slice(mid).reduce((a, b) => a + b, 0);
+        const trending = secondHalf > firstHalf ? "up" : secondHalf < firstHalf ? "down" : "flat";
+        const pct = firstHalf > 0 ? Math.round(Math.abs(secondHalf - firstHalf) / firstHalf * 100) : 0;
+        return { total, trending, pct };
+      }
+
+      function buildChart(canvasId, data, accentColor, yMax) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        const info = trendInfo(data);
+        const color = info.trending === "up" ? "rgb(34,197,94)" : info.trending === "down" ? "rgb(239,68,68)" : accentColor;
+
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Jobs posted",
+              data: data,
+              borderColor: color,
+              backgroundColor: color.replace("rgb", "rgba").replace(")", ",0.1)"),
+              fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: function(item) { return item.raw + " jobs posted"; } } }
+            },
+            scales: {
+              y: { beginAtZero: true, max: yMax, ticks: { precision: 0 } },
+              x: { ticks: { maxTicksLimit: 8 } }
+            }
+          }
+        });
+
+        const arrow = info.trending === "up" ? "&#9650;" : info.trending === "down" ? "&#9660;" : "&#9654;";
+        const cls = info.trending === "up" ? "text-green-600" : info.trending === "down" ? "text-red-500" : "text-gray-500";
+        const word = info.trending === "up" ? "increase" : info.trending === "down" ? "decrease" : "no change";
+        const el = document.createElement("div");
+        el.className = "mt-3 flex items-center gap-2 text-sm";
+        el.innerHTML = `<span class="font-semibold ${cls}">${arrow} ${info.pct}% ${word}</span><span class="text-gray-400">vs prev 15 days (${info.total} total)</span>`;
+        ctx.parentNode.appendChild(el);
+      }
+
+      const autoData = <%= raw @trend_data_auto.to_json %>;
+      const aiData = <%= raw @trend_data_ai.to_json %>;
+      const sharedMax = Math.max(...autoData, ...aiData);
+
+      buildChart("autoChart", autoData, "rgb(99,102,241)", sharedMax);
+      buildChart("aiChart", aiData, "rgb(139,92,246)", sharedMax);
+    });
+  </script>
+
   <!-- Search -->
   <div class="mb-6">
     <%= form_with url: jobs_path, method: :get, class: "flex gap-3", data: { turbo_frame: "jobs_list" } do |f| %>
@@ -116,87 +197,6 @@
       <% end %>
     </div>
   <% end %>
-
-  <!-- Trend Charts -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-      <h3 class="text-lg font-semibold text-gray-900 mb-1">Traditional SDET & Test Automation</h3>
-      <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles (from Mar 15)</p>
-      <canvas id="autoChart" height="80"></canvas>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-      <h3 class="text-lg font-semibold text-gray-900 mb-1">AI-Enabled SDET & Test Automation</h3>
-      <p class="text-sm text-gray-500 mb-4">Roles requiring AI/ML testing skills (from Mar 15)</p>
-      <canvas id="aiChart" height="80"></canvas>
-    </div>
-  </div>
-
-  <% content_for(:head) do %>
-    <%= javascript_include_tag "chart.umd.min" %>
-  <% end %>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const labels = <%= raw @trend_labels.map { |d| d.strftime("%-b %-d") }.to_json %>;
-
-      function trendInfo(data) {
-        const total = data.reduce((a, b) => a + b, 0);
-        const mid = Math.floor(data.length / 2);
-        const firstHalf = data.slice(0, mid).reduce((a, b) => a + b, 0);
-        const secondHalf = data.slice(mid).reduce((a, b) => a + b, 0);
-        const trending = secondHalf > firstHalf ? "up" : secondHalf < firstHalf ? "down" : "flat";
-        const pct = firstHalf > 0 ? Math.round(Math.abs(secondHalf - firstHalf) / firstHalf * 100) : 0;
-        return { total, trending, pct };
-      }
-
-      function buildChart(canvasId, data, accentColor, yMax) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-        const info = trendInfo(data);
-        const color = info.trending === "up" ? "rgb(34,197,94)" : info.trending === "down" ? "rgb(239,68,68)" : accentColor;
-
-        new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Jobs posted",
-              data: data,
-              borderColor: color,
-              backgroundColor: color.replace("rgb", "rgba").replace(")", ",0.1)"),
-              fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: function(item) { return item.raw + " jobs posted"; } } }
-            },
-            scales: {
-              y: { beginAtZero: true, max: yMax, ticks: { precision: 0 } },
-              x: { ticks: { maxTicksLimit: 8 } }
-            }
-          }
-        });
-
-        const arrow = info.trending === "up" ? "&#9650;" : info.trending === "down" ? "&#9660;" : "&#9654;";
-        const cls = info.trending === "up" ? "text-green-600" : info.trending === "down" ? "text-red-500" : "text-gray-500";
-        const word = info.trending === "up" ? "increase" : info.trending === "down" ? "decrease" : "no change";
-        const el = document.createElement("div");
-        el.className = "mt-3 flex items-center gap-2 text-sm";
-        el.innerHTML = `<span class="font-semibold ${cls}">${arrow} ${info.pct}% ${word}</span><span class="text-gray-400">vs prev 15 days (${info.total} total)</span>`;
-        ctx.parentNode.appendChild(el);
-      }
-
-      const autoData = <%= raw @trend_data_auto.to_json %>;
-      const aiData = <%= raw @trend_data_ai.to_json %>;
-      const sharedMax = Math.max(...autoData, ...aiData);
-
-      buildChart("autoChart", autoData, "rgb(99,102,241)", sharedMax);
-      buildChart("aiChart", aiData, "rgb(139,92,246)", sharedMax);
-    });
-  </script>
 
   <style>
     .job-tooltip { pointer-events: none; }
