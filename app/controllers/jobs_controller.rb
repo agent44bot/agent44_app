@@ -43,15 +43,18 @@ class JobsController < ApplicationController
 
     # Trend data: daily job counts from March 15 forward (cached 6 hours)
     start_date = Date.new(2026, 3, 15)
-    end_date = Date.current
+    end_date = Time.current.to_date
     @trend_labels = (start_date..end_date).to_a
 
-    trend_cache = Rails.cache.fetch("job_trends/#{end_date}", expires_in: 6.hours) do
-      auto_base = Job.active.where("posted_at >= ?", start_date.beginning_of_day).where.not(category: "ai")
-      auto_counts = auto_base.group("date(posted_at)").count
+    utc_offset = Time.current.utc_offset / 3600
+    offset_str = format("%+d hours", utc_offset)
 
-      ai_base = Job.active.where("posted_at >= ?", start_date.beginning_of_day).where(category: "ai")
-      ai_counts = ai_base.group("date(posted_at)").count
+    trend_cache = Rails.cache.fetch("job_trends/#{end_date}", expires_in: 6.hours) do
+      auto_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day).where.not(category: "ai")
+      auto_counts = auto_base.group("date(posted_at, '#{offset_str}')").count
+
+      ai_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day).where(category: "ai")
+      ai_counts = ai_base.group("date(posted_at, '#{offset_str}')").count
 
       {
         auto: @trend_labels.map { |d| auto_counts[d.to_s] || 0 },
