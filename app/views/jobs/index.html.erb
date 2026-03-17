@@ -264,6 +264,7 @@
                     <% end %>
                   <% end %>
                   <span><%= days_ago_in_words(job.posted_at) %></span>
+                  <span>Added <%= job.created_at.strftime("%-m/%-d/%Y %-I:%M%P") %></span>
                 </div>
               </div>
               <% if authenticated? %>
