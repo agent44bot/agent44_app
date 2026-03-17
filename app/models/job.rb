@@ -20,7 +20,13 @@ class Job < ApplicationRecord
     order(Arel.sql("CASE WHEN salary IS NOT NULL AND salary != '' THEN 0 ELSE 1 END, CAST(REPLACE(REPLACE(SUBSTR(salary, 1, INSTR(salary || ' ', ' ') - 1), '$', ''), ',', '') AS REAL) ASC"))
   }
 
+  BITCOIN_SOURCES = %w[bitcoinjobs bitcoinerjobs bitcoin_bamboohr].freeze
+
   def posted_today?
     posted_at&.to_date == Time.current.to_date
+  end
+
+  def bitcoin_job?
+    BITCOIN_SOURCES.include?(source)
   end
 end
