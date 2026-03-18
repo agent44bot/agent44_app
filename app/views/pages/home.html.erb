@@ -43,7 +43,7 @@
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
               <%= job.category&.titleize || "General" %>
             </span>
-            <span class="text-xs text-gray-400"><%= days_ago_in_words(job.posted_at) %></span>
+            <span class="text-xs text-gray-400"><%= days_ago_in_words(job.created_at) %></span>
           </div>
           <h3 class="font-semibold text-gray-900 group-hover:text-indigo-600 transition">
             <%= link_to job.title, job_path(job) %>

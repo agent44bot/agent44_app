@@ -12,7 +12,7 @@ class Job < ApplicationRecord
   scope :search, ->(q) {
     where("title LIKE ? OR company LIKE ? OR source LIKE ?", "%#{q}%", "%#{q}%", "%#{q}%") if q.present?
   }
-  scope :posted_today, -> { where(posted_at: Time.current.beginning_of_day..Time.current.end_of_day) }
+  scope :posted_today, -> { where(created_at: Time.current.beginning_of_day..Time.current.end_of_day) }
   scope :by_salary_desc, -> {
     order(Arel.sql("CASE WHEN salary IS NOT NULL AND salary != '' THEN 0 ELSE 1 END, CAST(REPLACE(REPLACE(SUBSTR(salary, 1, INSTR(salary || ' ', ' ') - 1), '$', ''), ',', '') AS REAL) DESC"))
   }
@@ -23,7 +23,7 @@ class Job < ApplicationRecord
   BITCOIN_SOURCES = %w[bitcoinjobs bitcoinerjobs bitcoin_bamboohr].freeze
 
   def posted_today?
-    posted_at&.to_date == Time.current.to_date
+    created_at&.to_date == Time.current.to_date
   end
 
   def bitcoin_job?
