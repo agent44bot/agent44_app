@@ -35,13 +35,19 @@ class JobsController < ApplicationController
       saved = Current.session.user.saved_jobs.index_by(&:job_id)
       @saved_job_ids = saved.keys.to_set
       @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
+      @hidden_job_ids = Current.session.user.hidden_jobs.pluck(:job_id).to_set
     else
       @saved_job_ids = Set.new
       @applied_jobs = {}
+      @hidden_job_ids = Set.new
     end
 
     if params[:saved] == "1" && @saved_job_ids.any?
       @jobs = @jobs.where(id: @saved_job_ids)
+    end
+
+    if authenticated? && params[:show_hidden] != "1" && @hidden_job_ids.any?
+      @jobs = @jobs.where.not(id: @hidden_job_ids)
     end
 
     # Trend data: daily job counts from March 15 forward (cached 6 hours)

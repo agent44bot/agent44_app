@@ -13,6 +13,7 @@ Rails.application.routes.draw do
     resource :saved_job, only: [:create, :destroy] do
       post :toggle_applied, on: :member
     end
+    resource :hidden_job, only: [:create, :destroy]
   end
   resources :saved_jobs, only: [:index]
   resources :posts, only: [:index, :show], path: "newsletter"
