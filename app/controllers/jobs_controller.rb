@@ -5,9 +5,25 @@ class JobsController < ApplicationController
     base = Job.active
     base = base.search(params[:q]) if params[:q].present?
 
-    @category_counts = base.group(:category).count
+    # Load user data early so counts can reflect hidden jobs
+    if authenticated?
+      saved = Current.session.user.saved_jobs.index_by(&:job_id)
+      @saved_job_ids = saved.keys.to_set
+      @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
+      @hidden_job_ids = Current.session.user.hidden_jobs.pluck(:job_id).to_set
+    else
+      @saved_job_ids = Set.new
+      @applied_jobs = {}
+      @hidden_job_ids = Set.new
+    end
+
+    # Compute counts excluding hidden jobs for authenticated users
+    hide_filter = @hidden_job_ids.any? && params[:show_hidden] != "1"
+    visible_base = hide_filter ? base.where.not(id: @hidden_job_ids) : base
+
+    @category_counts = visible_base.group(:category).count
     @total_count = @category_counts.values.sum
-    @new_today_count = base.posted_today.count
+    @new_today_count = visible_base.posted_today.count
 
     if params[:category] == "new_today"
       @jobs = base.posted_today
@@ -17,7 +33,7 @@ class JobsController < ApplicationController
       @jobs = base
     end
 
-    @source_counts = @jobs.group(:source).count
+    @source_counts = hide_filter ? @jobs.where.not(id: @hidden_job_ids).group(:source).count : @jobs.group(:source).count
     @jobs = @jobs.by_source(params[:source])
 
     case params[:sort]
@@ -31,22 +47,11 @@ class JobsController < ApplicationController
 
     @jobs = @jobs.page(params[:page]) if @jobs.respond_to?(:page)
 
-    if authenticated?
-      saved = Current.session.user.saved_jobs.index_by(&:job_id)
-      @saved_job_ids = saved.keys.to_set
-      @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
-      @hidden_job_ids = Current.session.user.hidden_jobs.pluck(:job_id).to_set
-    else
-      @saved_job_ids = Set.new
-      @applied_jobs = {}
-      @hidden_job_ids = Set.new
-    end
-
     if params[:saved] == "1" && @saved_job_ids.any?
       @jobs = @jobs.where(id: @saved_job_ids)
     end
 
-    if authenticated? && params[:show_hidden] != "1" && @hidden_job_ids.any?
+    if hide_filter
       @jobs = @jobs.where.not(id: @hidden_job_ids)
     end
 

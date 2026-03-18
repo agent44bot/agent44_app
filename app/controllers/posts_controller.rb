@@ -6,6 +6,7 @@ class PostsController < ApplicationController
   end
 
   def show
-    @post = Post.published.find_by!(slug: params[:id])
+    scope = authenticated? && Current.session.user.admin? ? Post.all : Post.published
+    @post = scope.find_by!(slug: params[:id])
   end
 end
