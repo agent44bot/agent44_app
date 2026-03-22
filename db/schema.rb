@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_18_120325) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_22_170843) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -59,6 +59,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_18_120325) do
     t.index ["user_id"], name: "index_hidden_jobs_on_user_id"
   end
 
+  create_table "job_sources", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "external_id"
+    t.integer "job_id", null: false
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["job_id", "source"], name: "index_job_sources_on_job_id_and_source", unique: true
+    t.index ["job_id"], name: "index_job_sources_on_job_id"
+    t.index ["source", "url"], name: "index_job_sources_on_source_and_url", unique: true
+  end
+
   create_table "jobs", force: :cascade do |t|
     t.boolean "active", default: true
     t.string "category", null: false
@@ -67,6 +79,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_18_120325) do
     t.text "description"
     t.string "external_id"
     t.string "location"
+    t.string "normalized_company"
+    t.string "normalized_title"
     t.datetime "posted_at"
     t.string "salary"
     t.string "source"
@@ -74,6 +88,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_18_120325) do
     t.datetime "updated_at", null: false
     t.string "url", null: false
     t.index ["category"], name: "index_jobs_on_category"
+    t.index ["normalized_company", "normalized_title"], name: "index_jobs_on_normalized_company_and_normalized_title"
     t.index ["posted_at"], name: "index_jobs_on_posted_at"
     t.index ["source", "url"], name: "index_jobs_on_source_and_url", unique: true
   end
@@ -183,6 +198,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_18_120325) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"
+  add_foreign_key "job_sources", "jobs"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
   add_foreign_key "saved_jobs", "jobs"

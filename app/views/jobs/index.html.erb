@@ -200,23 +200,7 @@
         <% end %>
       </summary>
       <div class="flex flex-wrap gap-2 px-4 pb-4 pt-2">
-        <%
-          source_labels = {
-            "remoteok" => "RemoteOK",
-            "arbeitnow" => "Arbeitnow",
-            "jobicy" => "Jobicy",
-            "welcometothejungle" => "WTTJ",
-            "linkedin" => "LinkedIn",
-            "indeed" => "Indeed",
-            "glassdoor" => "Glassdoor",
-            "google_jobs" => "Google Jobs",
-            "jsearch" => "JSearch",
-            "devitjobs" => "DevITjobs",
-            "bitcoinjobs" => "BitcoinJobs",
-            "bitcoinerjobs" => "BitcoinerJobs",
-            "bitcoin_bamboohr" => "Bitcoin.com"
-          }
-        %>
+        <% # Source labels now in ApplicationHelper %>
         <% active_source = params[:source] %>
         <% source_active = active_source.blank? %>
         <%= link_to jobs_path(category: params[:category], q: params[:q], sort: params[:sort], saved: params[:saved], show_hidden: params[:show_hidden]),
@@ -230,7 +214,7 @@
           <%= link_to jobs_path(category: params[:category], q: params[:q], source: src, sort: params[:sort], saved: params[:saved], show_hidden: params[:show_hidden]),
                 class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
                 data: { turbo_frame: "jobs_list" } do %>
-            <%= source_labels[src] || src.titleize %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
+            <%= source_label(src) %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
           <% end %>
         <% end %>
       </div>
@@ -314,11 +298,21 @@
                       See listing
                     <% end %>
                   <% end %>
-                  <% if job.source.present? %>
+                  <% if job.job_sources.any? %>
+                    <span class="flex items-center gap-1 flex-wrap">
+                      <% job.job_sources.each_with_index do |js, i| %>
+                        <%= link_to jobs_path(source: js.source),
+                              class: "hover:text-indigo-600 transition",
+                              data: { turbo_frame: "_top" } do %>
+                          <%= source_label(js.source) %><% if i < job.job_sources.size - 1 %><span class="text-gray-300">&middot;</span><% end %>
+                        <% end %>
+                      <% end %>
+                    </span>
+                  <% elsif job.source.present? %>
                     <%= link_to jobs_path(source: job.source),
                           class: "hover:text-indigo-600 transition",
                           data: { turbo_frame: "_top" } do %>
-                      via <%= job.source %>
+                      via <%= source_label(job.source) %>
                     <% end %>
                   <% end %>
                   <span><%= days_ago_in_words(job.created_at) %></span>

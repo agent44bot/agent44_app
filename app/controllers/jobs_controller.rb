@@ -33,7 +33,8 @@ class JobsController < ApplicationController
       @jobs = base
     end
 
-    @source_counts = hide_filter ? @jobs.where.not(id: @hidden_job_ids).group(:source).count : @jobs.group(:source).count
+    source_scope = hide_filter ? @jobs.where.not(id: @hidden_job_ids) : @jobs
+    @source_counts = JobSource.where(job_id: source_scope.select(:id)).group(:source).count
     @jobs = @jobs.by_source(params[:source])
 
     case params[:sort]
@@ -54,6 +55,8 @@ class JobsController < ApplicationController
     if hide_filter
       @jobs = @jobs.where.not(id: @hidden_job_ids)
     end
+
+    @jobs = @jobs.includes(:job_sources)
 
     # Trend data: daily job counts from March 15 forward (cached 6 hours)
     start_date = Date.new(2026, 3, 15)
@@ -81,7 +84,7 @@ class JobsController < ApplicationController
   end
 
   def show
-    @job = Job.find(params[:id])
+    @job = Job.includes(:job_sources).find(params[:id])
     if authenticated?
       @saved_job = Current.session.user.saved_jobs.find_by(job: @job)
       @saved = @saved_job.present?
