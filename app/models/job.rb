@@ -52,7 +52,12 @@ class Job < ApplicationRecord
 
   def self.normalize_title(t)
     return nil if t.blank?
-    t.downcase.strip.gsub(/\s+/, " ").gsub(/[.,!\-]+\z/, "").strip
+    t.downcase.strip
+      .gsub(/\s*\/\s*/, "/")          # normalize " / " to "/"
+      .gsub(/\s*-\s*/, " - ")         # normalize dash spacing
+      .gsub(/\s+/, " ")               # collapse whitespace
+      .gsub(/[.,!\-]+\z/, "")         # strip trailing punctuation
+      .strip
   end
 
   def self.normalize_company(c)

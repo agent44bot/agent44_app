@@ -26,67 +26,131 @@ namespace :jobs do
     end
     puts "  Done"
 
-    puts "\nStep 3: Finding and merging duplicate groups..."
-    groups = Job.where.not(normalized_title: nil)
-               .group(:normalized_title, :normalized_company)
-               .having("COUNT(*) > 1")
-               .count
+    puts "\nStep 3: Finding and merging exact duplicate groups..."
+    merged_count = merge_duplicate_groups
+    puts "  Merged #{merged_count} records"
 
-    puts "  Found #{groups.size} duplicate groups"
+    puts "\nStep 4: Fuzzy title matching (strip company/location from titles)..."
+    fuzzy_merged = merge_fuzzy_title_groups
+    puts "  Merged #{fuzzy_merged} records"
 
-    merged_count = 0
-    groups.each do |(norm_title, norm_company), count|
-      dupes = Job.where(normalized_title: norm_title, normalized_company: norm_company)
-                 .order(:created_at)
-                 .to_a
+    puts "\nDone. Total jobs now: #{Job.count}"
+  end
+end
 
-      primary = dupes.first
-      dupes_to_merge = dupes[1..]
+def merge_duplicate_groups
+  groups = Job.where.not(normalized_title: nil)
+             .group(:normalized_title, :normalized_company)
+             .having("COUNT(*) > 1")
+             .count
 
-      dupes_to_merge.each do |dupe|
-        # Move source records to primary job
-        dupe.job_sources.each do |js|
-          if JobSource.exists?(job_id: primary.id, source: js.source)
-            js.destroy
-          else
-            js.update!(job_id: primary.id)
-          end
-        end
+  puts "  Found #{groups.size} exact duplicate groups"
+  merged_count = 0
 
-        # Reassign saved_jobs
-        SavedJob.where(job_id: dupe.id).find_each do |sj|
-          existing = SavedJob.find_by(user_id: sj.user_id, job_id: primary.id)
-          if existing
-            existing.update!(applied_at: sj.applied_at) if sj.applied_at && !existing.applied_at
-            sj.destroy
-          else
-            sj.update!(job_id: primary.id)
-          end
-        end
+  groups.each do |(norm_title, norm_company), count|
+    dupes = Job.where(normalized_title: norm_title, normalized_company: norm_company)
+               .order(:created_at)
+               .to_a
 
-        # Reassign hidden_jobs
-        HiddenJob.where(job_id: dupe.id).find_each do |hj|
-          if HiddenJob.exists?(user_id: hj.user_id, job_id: primary.id)
-            hj.destroy
-          else
-            hj.update!(job_id: primary.id)
-          end
-        end
+    merged_count += merge_jobs(dupes)
+  end
 
-        # Enrich primary with data from dupe
-        primary.update!(description: dupe.description) if primary.description.blank? && dupe.description.present?
-        primary.update!(salary: dupe.salary) if primary.salary.blank? && dupe.salary.present?
-        primary.update!(location: dupe.location) if primary.location.blank? && dupe.location.present?
+  merged_count
+end
 
-        dupe.reload.destroy!
-        merged_count += 1
+def merge_fuzzy_title_groups
+  # Extract the core job title (before first " - ") for looser matching
+  # This catches cases like "Senior SDET - Eccalon LLC - Detroit, MI" vs "Senior SDET - Eccalon - Hanover, MD"
+  jobs_by_core = {}
+  Job.active.includes(:job_sources).find_each do |job|
+    core_title = extract_core_title(job.normalized_title)
+    next if core_title.blank? || core_title.length < 10
+
+    key = core_title
+    jobs_by_core[key] ||= []
+    jobs_by_core[key] << job
+  end
+
+  merged_count = 0
+  jobs_by_core.each do |core_title, jobs|
+    next if jobs.size < 2
+
+    # Group by similar company (strip suffixes and compare)
+    company_groups = jobs.group_by { |j| normalize_company_loose(j.company) }
+    company_groups.each do |company, group|
+      next if group.size < 2
+      puts "  Fuzzy match: \"#{core_title}\" @ #{company} (#{group.size} jobs)"
+      merged_count += merge_jobs(group.sort_by(&:created_at))
+    end
+  end
+
+  merged_count
+end
+
+def extract_core_title(normalized_title)
+  return nil if normalized_title.blank?
+  # Take the part before the first " - " (which is usually where company/location starts)
+  parts = normalized_title.split(" - ")
+  core = parts.first&.strip
+  # If the core is too short or is the whole title, return nil
+  core.present? && core != normalized_title ? core : nil
+end
+
+def normalize_company_loose(company)
+  return "" if company.blank?
+  company.downcase.strip
+    .gsub(/,?\s*(inc\.?|llc\.?|corp\.?|ltd\.?|co\.?|company|corporation|incorporated)\s*$/i, "")
+    .gsub(/[^a-z0-9]/, "") # strip all non-alphanumeric for loose matching
+end
+
+def merge_jobs(sorted_jobs)
+  return 0 if sorted_jobs.size < 2
+
+  primary = sorted_jobs.first
+  dupes_to_merge = sorted_jobs[1..]
+  merged = 0
+
+  dupes_to_merge.each do |dupe|
+    # Move source records to primary job
+    dupe.job_sources.each do |js|
+      if JobSource.exists?(job_id: primary.id, source: js.source)
+        js.destroy
+      else
+        js.update!(job_id: primary.id)
       end
-
-      sources = primary.job_sources.reload.pluck(:source).join(", ")
-      puts "  Merged #{count} → 1: #{primary.title} @ #{primary.company} [#{sources}]"
     end
 
-    puts "\nDone. Merged #{merged_count} duplicate records across #{groups.size} groups."
-    puts "Total jobs now: #{Job.count}"
+    # Reassign saved_jobs
+    SavedJob.where(job_id: dupe.id).find_each do |sj|
+      existing = SavedJob.find_by(user_id: sj.user_id, job_id: primary.id)
+      if existing
+        existing.update!(applied_at: sj.applied_at) if sj.applied_at && !existing.applied_at
+        sj.destroy
+      else
+        sj.update!(job_id: primary.id)
+      end
+    end
+
+    # Reassign hidden_jobs
+    HiddenJob.where(job_id: dupe.id).find_each do |hj|
+      if HiddenJob.exists?(user_id: hj.user_id, job_id: primary.id)
+        hj.destroy
+      else
+        hj.update!(job_id: primary.id)
+      end
+    end
+
+    # Enrich primary with data from dupe
+    primary.update!(description: dupe.description) if primary.description.blank? && dupe.description.present?
+    primary.update!(salary: dupe.salary) if primary.salary.blank? && dupe.salary.present?
+    primary.update!(location: dupe.location) if primary.location.blank? && dupe.location.present?
+
+    dupe.reload.destroy!
+    merged += 1
   end
+
+  sources = primary.job_sources.reload.pluck(:source).join(", ")
+  puts "    → #{primary.title} @ #{primary.company} [#{sources}]"
+
+  merged
 end
