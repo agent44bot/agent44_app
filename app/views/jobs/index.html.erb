@@ -170,6 +170,7 @@
         categories = [
           ["All", nil],
           ["New Today", "new_today"],
+          ["Remote", "remote"],
           ["Full-Time", "full_time"],
           ["Part-Time", "part_time"],
           ["Contract", "contract"],
@@ -178,7 +179,12 @@
       %>
       <% categories.each do |label, value| %>
         <% active = params[:category] == value || (value.nil? && params[:category].blank?) %>
-        <% count = value.nil? ? @total_count : (value == "new_today" ? @new_today_count : (@category_counts[value] || 0)) %>
+        <% count = case value
+           when nil then @total_count
+           when "new_today" then @new_today_count
+           when "remote" then @remote_count
+           else @category_counts[value] || 0
+           end %>
         <%= link_to jobs_path(category: value, q: params[:q], source: params[:source], sort: params[:sort], saved: params[:saved], show_hidden: params[:show_hidden]),
               class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
               data: { turbo_frame: "jobs_list" } do %>

@@ -24,9 +24,12 @@ class JobsController < ApplicationController
     @category_counts = visible_base.group(:category).count
     @total_count = @category_counts.values.sum
     @new_today_count = visible_base.posted_today.count
+    @remote_count = visible_base.remote.count
 
     if params[:category] == "new_today"
       @jobs = base.posted_today
+    elsif params[:category] == "remote"
+      @jobs = base.remote
     elsif params[:category].present?
       @jobs = base.by_category(params[:category])
     else
