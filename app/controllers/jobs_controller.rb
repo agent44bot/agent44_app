@@ -1,5 +1,5 @@
 class JobsController < ApplicationController
-  allow_unauthenticated_access
+  allow_unauthenticated_access only: :index
 
   def index
     base = Job.active
