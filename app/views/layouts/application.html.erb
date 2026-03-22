@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="Agent44">
+  <meta name="application-name" content="Agent 44 Labs">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="description" content="Agent44 — AI-Augmented Test Automation consulting and SDET placement">
-  <title><%= content_for?(:title) ? "#{yield(:title)} | Agent44" : "Agent44 — AI-Augmented Test Automation" %></title>
+  <meta name="description" content="Agent 44 Labs — AI agents, test automation, iOS & web apps">
+  <title><%= content_for?(:title) ? "#{yield(:title)} | Agent 44 Labs" : "Agent 44 Labs — AI Agents & Test Automation" %></title>
 
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -21,49 +21,49 @@
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
 </head>
-<body class="h-full flex flex-col bg-gray-50 text-gray-900 antialiased">
+<body class="h-full flex flex-col bg-white text-gray-900 antialiased">
 
   <!-- Navigation -->
-  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50" data-controller="nav">
+  <nav class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50" data-controller="nav">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <!-- Left: Logo + Links -->
         <div class="flex items-center space-x-8">
-          <%= link_to root_path, class: "flex items-center space-x-2 text-indigo-600 font-bold text-xl tracking-tight" do %>
-            <span>Agent44</span>
+          <%= link_to root_path, class: "flex items-center space-x-2 font-black text-xl tracking-tight" do %>
+            <span class="text-gray-900">Agent 44 <span class="bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">Labs</span></span>
           <% end %>
 
           <div class="hidden md:flex items-center space-x-6">
-            <%= link_to "Home", root_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
-            <%= link_to "Jobs", jobs_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
-            <%= link_to "Newsletter", posts_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
-            <%= link_to "Videos", videos_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
+            <%= link_to "Home", root_path, class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition" %>
+            <%= link_to "Jobs", jobs_path, class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition" %>
+            <%= link_to "Newsletter", posts_path, class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition" %>
+            <%= link_to "Videos", videos_path, class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition" %>
           </div>
         </div>
 
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
-            <%= link_to saved_jobs_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition flex items-center gap-1", title: "Saved Jobs" do %>
+            <%= link_to saved_jobs_path, class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition flex items-center gap-1", title: "Saved Jobs" do %>
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
               Saved
             <% end %>
             <% if Current.session.user.admin? %>
               <%= link_to "Dashboard", admin_dashboard_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
             <% end %>
-            <span class="text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
+            <span class="text-sm text-gray-400"><%= Current.session.user.display_identifier %></span>
             <%= button_to "Sign Out", session_path, method: :delete,
-                  class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
+                  class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition" %>
           <% else %>
-            <%= link_to "Sign In", new_session_path, class: "text-sm font-medium text-gray-700 hover:text-indigo-600 transition" %>
-            <%= link_to "Sign Up", new_registration_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition" %>
+            <%= link_to "Sign In", new_session_path, class: "text-sm font-medium text-gray-500 hover:text-gray-900 transition" %>
+            <%= link_to "Sign Up", new_registration_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-full hover:bg-gray-800 transition" %>
           <% end %>
         </div>
 
         <!-- Mobile menu button -->
         <div class="flex items-center md:hidden">
           <button data-action="click->nav#toggle" data-nav-target="menuBtn"
-                  class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition">
+                  class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -74,23 +74,23 @@
 
     <!-- Mobile menu -->
     <div class="hidden md:hidden" data-nav-target="menu">
-      <div class="px-4 pt-2 pb-4 space-y-1 border-t border-gray-200">
-        <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
-        <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
-        <%= link_to "Newsletter", posts_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
-        <%= link_to "Videos", videos_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
-        <div class="border-t border-gray-200 pt-2">
+      <div class="px-4 pt-2 pb-4 space-y-1 border-t border-gray-100">
+        <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "Newsletter", posts_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "Videos", videos_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
+        <div class="border-t border-gray-100 pt-2">
           <% if authenticated? %>
-            <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
+            <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
             <% if Current.session.user.admin? %>
-              <%= link_to "Dashboard", admin_dashboard_path, class: "block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-gray-100" %>
+              <%= link_to "Dashboard", admin_dashboard_path, class: "block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-gray-50" %>
             <% end %>
-            <span class="block px-3 py-2 text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
+            <span class="block px-3 py-2 text-sm text-gray-400"><%= Current.session.user.display_identifier %></span>
             <%= button_to "Sign Out", session_path, method: :delete,
-                  class: "block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
+                  class: "block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
           <% else %>
-            <%= link_to "Sign In", new_session_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100" %>
-            <%= link_to "Sign Up", new_registration_path, class: "block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-gray-100" %>
+            <%= link_to "Sign In", new_session_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50" %>
+            <%= link_to "Sign Up", new_registration_path, class: "block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-gray-50" %>
           <% end %>
         </div>
       </div>
@@ -129,20 +129,20 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-gray-900 text-gray-300 mt-16">
+  <footer class="bg-gray-950 text-gray-400 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- About -->
         <div>
-          <h3 class="text-white font-semibold text-lg mb-3">Agent44</h3>
-          <p class="text-sm text-gray-400 leading-relaxed">
-            AI-augmented test automation consulting and SDET placement. Helping teams ship reliable software faster.
+          <h3 class="text-white font-black text-lg mb-3">Agent 44 Labs</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">
+            AI agents. Test automation. iOS &amp; web apps. Rochester, NY.
           </p>
         </div>
 
         <!-- Links -->
         <div>
-          <h3 class="text-white font-semibold text-lg mb-3">Quick Links</h3>
+          <h3 class="text-white font-semibold text-lg mb-3">Links</h3>
           <ul class="space-y-2 text-sm">
             <li><%= link_to "Jobs", jobs_path, class: "hover:text-white transition" %></li>
             <li><%= link_to "Newsletter", posts_path, class: "hover:text-white transition" %></li>
@@ -152,16 +152,16 @@
 
         <!-- Newsletter -->
         <div>
-          <h3 class="text-white font-semibold text-lg mb-3">Stay Updated</h3>
-          <p class="text-sm text-gray-400 mb-4">Get the latest jobs and articles delivered to your inbox.</p>
+          <h3 class="text-white font-semibold text-lg mb-3">Subscribe</h3>
+          <p class="text-sm text-gray-500 mb-4">Jobs, articles, and engineering insights.</p>
           <div id="newsletter-form">
             <%= render "subscribers/form" %>
           </div>
         </div>
       </div>
 
-      <div class="border-t border-gray-800 mt-10 pt-6 text-center text-sm text-gray-500">
-        &copy; <%= Date.current.year %> Agent44. All rights reserved.
+      <div class="border-t border-gray-800 mt-10 pt-6 text-center text-sm text-gray-600">
+        &copy; <%= Date.current.year %> Agent 44 Labs. All rights reserved.
       </div>
     </div>
   </footer>

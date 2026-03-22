@@ -1,113 +1,182 @@
 <% content_for(:title, "Home") %>
 
 <!-- Hero Section -->
-<section class="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 overflow-hidden">
-  <div class="absolute inset-0 opacity-10">
-    <svg class="w-full h-full" viewBox="0 0 800 600" fill="none">
-      <circle cx="400" cy="300" r="250" stroke="white" stroke-width="0.5" fill="none"/>
-      <circle cx="400" cy="300" r="180" stroke="white" stroke-width="0.5" fill="none"/>
-      <circle cx="400" cy="300" r="110" stroke="white" stroke-width="0.5" fill="none"/>
+<section class="relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-cyan-50"></div>
+  <div class="absolute inset-0 opacity-[0.03]">
+    <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1" fill="currentColor"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#dots)" class="text-gray-900"/>
     </svg>
   </div>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 relative">
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36 relative">
     <div class="text-center max-w-3xl mx-auto">
-      <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight">
-        Agent44 &mdash; AI-Augmented<br>Test Automation
+      <h1 class="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight leading-[1.05]">
+        Agent 44<br><span class="bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">Labs</span>
       </h1>
-      <p class="mt-6 text-lg md:text-xl text-indigo-100 leading-relaxed">
-        Expert consulting and SDET placement for teams that need reliable software delivered faster.
-        We pair deep QA expertise with AI tooling to accelerate your testing pipeline.
+      <p class="mt-6 text-lg md:text-xl text-gray-500 leading-relaxed max-w-xl mx-auto">
+        AI agents. Test automation. iOS &amp; web apps.<br class="hidden sm:block"> Built by an engineer, not a committee.
       </p>
       <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+        <a href="#services" class="inline-flex items-center justify-center px-8 py-3.5 text-sm font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition shadow-lg shadow-gray-900/10">
+          What we build
+          <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </a>
         <%= link_to "Browse Jobs", jobs_path,
-              class: "inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-indigo-700 bg-white rounded-lg shadow hover:bg-indigo-50 transition" %>
-        <%= link_to "Read the Newsletter", posts_path,
-              class: "inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white border-2 border-white/30 rounded-lg hover:bg-white/10 transition" %>
+              class: "inline-flex items-center justify-center px-8 py-3.5 text-sm font-semibold text-gray-700 bg-white rounded-full border border-gray-200 hover:border-gray-300 hover:shadow-md transition" %>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Latest Jobs -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-  <div class="flex items-center justify-between mb-8">
-    <h2 class="text-2xl font-bold text-gray-900">Latest Jobs</h2>
-    <%= link_to "View all jobs &rarr;".html_safe, jobs_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
-  </div>
-
-  <% if @recent_jobs.present? %>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <% @recent_jobs.each do |job| %>
-        <div class="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-indigo-200 transition group">
-          <div class="flex items-start justify-between mb-3">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
-              <%= job.category&.titleize || "General" %>
-            </span>
-            <span class="text-xs text-gray-400"><%= days_ago_in_words(job.created_at) %></span>
-          </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-            <%= link_to job.title, job_path(job) %>
-          </h3>
-          <p class="text-sm text-gray-500 mt-1"><%= job.company %></p>
-          <div class="mt-4 flex items-center gap-3 text-xs text-gray-400">
-            <% if job.location.present? %>
-              <span class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <%= job.location %>
-              </span>
-            <% end %>
-            <% if job.salary.present? %>
-              <span class="text-green-600 font-medium"><%= job.salary %></span>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
+<!-- Services -->
+<section id="services" class="border-t border-gray-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-900">What we do</h2>
+      <p class="mt-3 text-gray-500">Engineering services for teams that ship.</p>
     </div>
-  <% else %>
-    <p class="text-gray-500 text-center py-12">No jobs posted yet. Check back soon!</p>
-  <% end %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <!-- AI Agents -->
+      <div class="text-center group">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center mx-auto mb-5 group-hover:bg-indigo-200 transition">
+          <svg class="w-7 h-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">AI Agents</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          Custom agents built with Claude, LangChain, and open-source models. POC to production.
+        </p>
+      </div>
+
+      <!-- Test Automation -->
+      <div class="text-center group">
+        <div class="w-14 h-14 rounded-2xl bg-cyan-100 flex items-center justify-center mx-auto mb-5 group-hover:bg-cyan-200 transition">
+          <svg class="w-7 h-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Test Automation</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          Contract SDET services. Playwright, Cypress, API testing. CI/CD integration.
+        </p>
+      </div>
+
+      <!-- iOS Apps -->
+      <div class="text-center group">
+        <div class="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center mx-auto mb-5 group-hover:bg-violet-200 transition">
+          <svg class="w-7 h-7 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">iOS Apps</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          Native Swift and SwiftUI. From idea to App Store. Clean, tested, shipped.
+        </p>
+      </div>
+
+      <!-- Web Apps -->
+      <div class="text-center group">
+        <div class="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5 group-hover:bg-amber-200 transition">
+          <svg class="w-7 h-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Web Apps</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          Full-stack with Rails, React, Tailwind. Built fast, built right.
+        </p>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Latest Blog Posts -->
-<section class="bg-white border-t border-gray-100">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="flex items-center justify-between mb-8">
-      <h2 class="text-2xl font-bold text-gray-900">Latest from the Newsletter</h2>
-      <%= link_to "All posts &rarr;".html_safe, posts_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+<!-- Products -->
+<section class="bg-gray-50 border-t border-gray-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-900">What we ship</h2>
+      <p class="mt-3 text-gray-500">Products you can use right now.</p>
     </div>
 
-    <% if @recent_posts.present? %>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <% @recent_posts.each do |post| %>
-          <article class="group">
-            <div class="bg-gray-50 rounded-xl p-6 hover:bg-indigo-50 transition">
-              <time class="text-xs text-gray-400 uppercase tracking-wide">
-                <%= post.published_at&.strftime("%B %d, %Y") %>
-              </time>
-              <h3 class="mt-2 text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                <%= link_to post.title, post_path(post.slug) %>
-              </h3>
-              <p class="mt-2 text-sm text-gray-500 line-clamp-3">
-                <%= truncate(post.body.to_plain_text, length: 160) %>
-              </p>
-              <%= link_to "Read more &rarr;".html_safe, post_path(post.slug),
-                    class: "inline-block mt-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
-            </div>
-          </article>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Job Board -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">Job Board</h3>
+        </div>
+        <p class="text-sm text-gray-500 leading-relaxed mb-6">
+          Curated SDET and test automation roles. Updated daily.
+        </p>
+        <% if @recent_jobs.present? %>
+          <div class="space-y-0 divide-y divide-gray-100 mb-6">
+            <% @recent_jobs.first(3).each do |job| %>
+              <div class="flex items-center justify-between py-3">
+                <div class="min-w-0 flex-1 mr-4">
+                  <p class="text-sm font-medium text-gray-900 truncate"><%= link_to job.title, job_path(job), class: "hover:text-indigo-600 transition" %></p>
+                  <p class="text-xs text-gray-400 mt-0.5"><%= job.company %></p>
+                </div>
+                <span class="text-xs text-gray-400 whitespace-nowrap"><%= days_ago_in_words(job.created_at) %></span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <%= link_to jobs_path, class: "inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition" do %>
+          View all jobs
+          <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         <% end %>
       </div>
-    <% else %>
-      <p class="text-gray-500 text-center py-12">No posts yet. Stay tuned!</p>
-    <% end %>
+
+      <!-- Newsletter -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">Newsletter</h3>
+        </div>
+        <p class="text-sm text-gray-500 leading-relaxed mb-6">
+          AI testing insights, industry trends, and practical engineering takes.
+        </p>
+        <% if @recent_posts.present? %>
+          <div class="space-y-0 divide-y divide-gray-100 mb-6">
+            <% @recent_posts.each do |post| %>
+              <div class="flex items-center justify-between py-3">
+                <p class="text-sm font-medium text-gray-900 truncate flex-1 mr-4"><%= link_to post.title, post_path(post.slug), class: "hover:text-indigo-600 transition" %></p>
+                <span class="text-xs text-gray-400 whitespace-nowrap"><%= post.published_at&.strftime("%b %d") %></span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <%= link_to posts_path, class: "inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition" do %>
+          Read the newsletter
+          <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <% end %>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- Newsletter CTA -->
-<section class="bg-indigo-600">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-    <h2 class="text-2xl md:text-3xl font-bold text-white">Stay in the Loop</h2>
-    <p class="mt-3 text-indigo-100 max-w-xl mx-auto">
-      Get new SDET job listings, newsletter posts, and AI testing insights delivered straight to your inbox. No spam.
+<section class="border-t border-gray-100">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Stay in the loop</h2>
+    <p class="mt-3 text-gray-500 max-w-md mx-auto">
+      Jobs, articles, and AI engineering insights. No spam, ever.
     </p>
     <div class="mt-8 max-w-md mx-auto" id="home-newsletter-form">
       <%= render "subscribers/form" %>
