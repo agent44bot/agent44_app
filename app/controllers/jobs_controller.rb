@@ -1,5 +1,5 @@
 class JobsController < ApplicationController
-  allow_unauthenticated_access only: :index
+  allow_unauthenticated_access only: [:index, :globe]
 
   def index
     base = Job.active
@@ -93,5 +93,13 @@ class JobsController < ApplicationController
       @saved = @saved_job.present?
       @applied = @saved_job&.applied?
     end
+  end
+
+  def globe
+    @globe_data = Job.active
+      .where.not(latitude: nil, longitude: nil)
+      .group(:latitude, :longitude, :location)
+      .count
+      .map { |(lat, lng, location), count| { lat: lat, lng: lng, location: location, count: count } }
   end
 end
