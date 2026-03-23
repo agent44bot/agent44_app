@@ -1,7 +1,4 @@
 <% content_for(:title, "Job Globe") %>
-<% content_for(:head) do %>
-  <script src="https://unpkg.com/globe.gl@2.35.2"></script>
-<% end %>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="flex items-center justify-between mb-6">
@@ -19,60 +16,71 @@
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const data = <%= raw @globe_data.to_json %>;
-  const container = document.getElementById("globe-container");
+(function() {
+  var data = <%= raw @globe_data.to_json %>;
 
-  if (data.length === 0) {
-    container.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400 text-sm">No geocoded jobs yet. Run the geocode task first.</div>';
-    return;
+  function initGlobe() {
+    var container = document.getElementById("globe-container");
+    if (!container) return;
+
+    if (data.length === 0) {
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">No geocoded jobs yet.</div>';
+      return;
+    }
+
+    var maxCount = Math.max.apply(null, data.map(function(d) { return d.count; }));
+    var width = container.offsetWidth;
+    var height = 650;
+
+    var globe = Globe()
+      .globeImageUrl("//unpkg.com/three-globe/example/img/earth-night.jpg")
+      .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
+      .backgroundImageUrl("//unpkg.com/three-globe/example/img/night-sky.png")
+      .pointsData(data)
+      .pointLat(function(d) { return d.lat; })
+      .pointLng(function(d) { return d.lng; })
+      .pointAltitude(function(d) { return (d.count / maxCount) * 0.4 + 0.01; })
+      .pointRadius(function(d) { return Math.max(Math.sqrt(d.count) * 0.35, 0.15); })
+      .pointColor(function(d) {
+        var intensity = d.count / maxCount;
+        if (intensity > 0.5) return "rgba(239, 68, 68, 0.95)";
+        if (intensity > 0.2) return "rgba(245, 158, 11, 0.9)";
+        return "rgba(99, 102, 241, 0.85)";
+      })
+      .pointLabel(function(d) {
+        return '<div style="background:rgba(0,0,0,0.85);color:white;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4;border:1px solid rgba(255,255,255,0.1);">' +
+          '<div style="font-weight:600;">' + d.location + '</div>' +
+          '<div style="color:rgba(255,255,255,0.7);">' + d.count + ' job' + (d.count > 1 ? 's' : '') + '</div>' +
+          '</div>';
+      })
+      .onPointClick(function(d) {
+        window.location.href = "/jobs?q=" + encodeURIComponent(d.location);
+      })
+      .atmosphereColor("rgba(99, 102, 241, 0.3)")
+      .atmosphereAltitude(0.25)
+      .width(width)
+      .height(height)
+      (container);
+
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.4;
+    globe.controls().enableDamping = true;
+
+    globe.pointOfView({ lat: 38, lng: -97, altitude: 2.2 }, 1000);
+
+    window.addEventListener("resize", function() {
+      globe.width(container.offsetWidth);
+    });
   }
 
-  const maxCount = Math.max(...data.map(d => d.count));
-  const width = container.offsetWidth;
-  const height = 650;
-
-  const globe = Globe()
-    .globeImageUrl("//unpkg.com/three-globe/example/img/earth-night.jpg")
-    .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
-    .backgroundImageUrl("//unpkg.com/three-globe/example/img/night-sky.png")
-    .pointsData(data)
-    .pointLat(d => d.lat)
-    .pointLng(d => d.lng)
-    .pointAltitude(d => (d.count / maxCount) * 0.4 + 0.01)
-    .pointRadius(d => Math.max(Math.sqrt(d.count) * 0.35, 0.15))
-    .pointColor(d => {
-      const intensity = d.count / maxCount;
-      if (intensity > 0.5) return "rgba(239, 68, 68, 0.95)";
-      if (intensity > 0.2) return "rgba(245, 158, 11, 0.9)";
-      return "rgba(99, 102, 241, 0.85)";
-    })
-    .pointLabel(d => {
-      return '<div style="background: rgba(0,0,0,0.85); color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.1);">' +
-        '<div style="font-weight: 600;">' + d.location + '</div>' +
-        '<div style="color: rgba(255,255,255,0.7);">' + d.count + ' job' + (d.count > 1 ? 's' : '') + '</div>' +
-        '</div>';
-    })
-    .onPointClick(d => {
-      window.location.href = "/jobs?q=" + encodeURIComponent(d.location);
-    })
-    .atmosphereColor("rgba(99, 102, 241, 0.3)")
-    .atmosphereAltitude(0.25)
-    .width(width)
-    .height(height)
-    (container);
-
-  // Auto-rotate
-  globe.controls().autoRotate = true;
-  globe.controls().autoRotateSpeed = 0.4;
-  globe.controls().enableDamping = true;
-
-  // Start with a view of North America
-  globe.pointOfView({ lat: 38, lng: -97, altitude: 2.2 }, 1000);
-
-  // Responsive
-  window.addEventListener("resize", function() {
-    globe.width(container.offsetWidth);
-  });
-});
+  // Load globe.gl dynamically to avoid Turbo issues
+  if (typeof Globe !== "undefined") {
+    initGlobe();
+  } else {
+    var script = document.createElement("script");
+    script.src = "https://unpkg.com/globe.gl@2.35.2";
+    script.onload = initGlobe;
+    document.head.appendChild(script);
+  }
+})();
 </script>
