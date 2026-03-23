@@ -62,8 +62,7 @@
       .height(height)
       (container);
 
-    globe.controls().autoRotate = true;
-    globe.controls().autoRotateSpeed = 0.4;
+    globe.controls().autoRotate = false;
     globe.controls().enableDamping = true;
 
     globe.pointOfView({ lat: 38, lng: -97, altitude: 2.2 }, 1000);
