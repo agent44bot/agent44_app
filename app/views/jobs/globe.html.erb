@@ -78,8 +78,14 @@
     initGlobe();
   } else {
     var script = document.createElement("script");
-    script.src = "https://unpkg.com/globe.gl@2.35.2";
-    script.onload = initGlobe;
+    script.src = "https://unpkg.com/globe.gl@2.27.2/dist/globe.gl.min.js";
+    script.onload = function() {
+      console.log("globe.gl loaded, Globe:", typeof Globe);
+      initGlobe();
+    };
+    script.onerror = function() {
+      console.error("Failed to load globe.gl");
+    };
     document.head.appendChild(script);
   }
 })();
