@@ -18,7 +18,7 @@ class Job < ApplicationRecord
   scope :recent, -> { order(created_at: :desc) }
   scope :search, ->(q) {
     left_joins(:job_sources)
-      .where("jobs.title LIKE ? OR jobs.company LIKE ? OR job_sources.source LIKE ?", "%#{q}%", "%#{q}%", "%#{q}%")
+      .where("jobs.title LIKE ? OR jobs.company LIKE ? OR jobs.location LIKE ? OR job_sources.source LIKE ?", "%#{q}%", "%#{q}%", "%#{q}%", "%#{q}%")
       .distinct if q.present?
   }
   scope :posted_today, -> { where(created_at: Time.current.beginning_of_day..Time.current.end_of_day) }
