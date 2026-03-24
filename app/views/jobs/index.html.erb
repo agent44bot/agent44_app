@@ -344,11 +344,11 @@
                     <% end %>
                   <% end %>
                   <% if hidden %>
-                    <%= button_to job_hidden_job_path(job), method: :delete, class: "flex-shrink-0 px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-lg hover:bg-yellow-200 transition", title: "Unhide job" do %>
+                    <%= button_to job_hidden_job_path(job), method: :delete, class: "flex-shrink-0 px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-lg hover:bg-yellow-200 transition", title: "Unhide job", data: { turbo_frame: "_top" } do %>
                       Unhide
                     <% end %>
                   <% else %>
-                    <%= button_to job_hidden_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 transition", title: "Hide job" do %>
+                    <%= button_to job_hidden_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 transition", title: "Hide job", data: { turbo_frame: "_top" } do %>
                       <svg class="w-4 h-4 text-gray-300 hover:text-gray-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     <% end %>
                   <% end %>
