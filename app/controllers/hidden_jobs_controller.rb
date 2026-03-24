@@ -1,4 +1,5 @@
 class HiddenJobsController < ApplicationController
+  include ActionView::RecordIdentifier
   before_action :set_job
 
   def create
