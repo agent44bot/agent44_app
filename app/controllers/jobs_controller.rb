@@ -21,10 +21,20 @@ class JobsController < ApplicationController
     hide_filter = @hidden_job_ids.any? && params[:show_hidden] != "1"
     visible_base = hide_filter ? base.where.not(id: @hidden_job_ids) : base
 
-    @category_counts = visible_base.group(:category).count
+    # Cache counts for 5 minutes (keyed by search/user/hidden state)
+    counts_key = "job_counts/#{params[:q]}/#{hide_filter ? @hidden_job_ids.hash : 'all'}/#{Job.active.maximum(:updated_at).to_i}"
+    counts = Rails.cache.fetch(counts_key, expires_in: 5.minutes) do
+      {
+        category: visible_base.group(:category).count,
+        new_today: visible_base.posted_today.count,
+        remote: visible_base.remote.count
+      }
+    end
+
+    @category_counts = counts[:category]
     @total_count = @category_counts.values.sum
-    @new_today_count = visible_base.posted_today.count
-    @remote_count = visible_base.remote.count
+    @new_today_count = counts[:new_today]
+    @remote_count = counts[:remote]
 
     if params[:category] == "new_today"
       @jobs = base.posted_today
@@ -37,7 +47,9 @@ class JobsController < ApplicationController
     end
 
     source_scope = hide_filter ? @jobs.where.not(id: @hidden_job_ids) : @jobs
-    @source_counts = JobSource.where(job_id: source_scope.select(:id)).group(:source).count
+    @source_counts = Rails.cache.fetch("source_counts/#{params[:category]}/#{params[:q]}/#{hide_filter ? @hidden_job_ids.hash : 'all'}/#{Job.active.maximum(:updated_at).to_i}", expires_in: 5.minutes) do
+      JobSource.where(job_id: source_scope.select(:id)).group(:source).count
+    end
     @jobs = @jobs.by_source(params[:source])
 
     case params[:sort]
