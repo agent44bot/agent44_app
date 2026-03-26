@@ -20,8 +20,16 @@
         <% end %>
 
         <div>
+          <label for="display_name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <input type="text" name="user[display_name]" id="display_name" autocomplete="name" autofocus
+                 value="<%= @user&.display_name %>"
+                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                 placeholder="Your name">
+        </div>
+
+        <div>
           <label for="email_address" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-          <input type="email" name="user[email_address]" id="email_address" required autocomplete="email" autofocus
+          <input type="email" name="user[email_address]" id="email_address" required autocomplete="email"
                  value="<%= @user&.email_address %>"
                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                  placeholder="you@example.com">

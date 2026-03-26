@@ -88,6 +88,10 @@ class JobsController < ApplicationController
 
   def show
     @job = Job.includes(:job_sources).find(params[:id])
+    if authenticated? && !Current.session.user.email_verified?
+      redirect_to jobs_path, alert: "Please verify your email to view job details. Check your inbox for a verification link."
+      return
+    end
     if authenticated?
       @saved_job = Current.session.user.saved_jobs.find_by(job: @job)
       @saved = @saved_job.present?

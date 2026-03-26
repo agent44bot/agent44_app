@@ -8,7 +8,8 @@ namespace :newsletter do
       abort "ANTHROPIC_API_KEY is not set. Set it in your environment to generate newsletter posts."
     end
 
-    slack_webhook_url = ENV["SLACK_NEWSLETTER_WEBHOOK_URL"]
+    telegram_bot_token = ENV["TELEGRAM_BOT_TOKEN"]
+    telegram_chat_id = ENV["TELEGRAM_CHAT_ID"]
 
     # Gather context from recent jobs
     recent_jobs = Job.where("posted_at > ?", 30.days.ago).order(posted_at: :desc).limit(20)
@@ -90,47 +91,28 @@ namespace :newsletter do
     puts "Published: \"#{post.title}\" (slug: #{post.slug})"
     puts "URL: /newsletter/#{post.slug}"
 
-    # Send Slack notification
-    if slack_webhook_url.present?
-      slack_message = {
-        text: "New Agent44 Newsletter Published",
-        blocks: [
-          {
-            type: "header",
-            text: { type: "plain_text", text: "New Newsletter Post Published", emoji: true }
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "*#{post.title}*\n\n#{post.body.to_plain_text.truncate(200)}"
-            }
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "<#{ENV.fetch("APP_URL", "https://agent44.com")}/newsletter/#{post.slug}|Read the full post>"
-            }
-          }
-        ]
-      }
+    # Send Telegram notification
+    if telegram_bot_token.present? && telegram_chat_id.present?
+      app_url = ENV.fetch("APP_URL", "https://agent44.com")
+      post_url = "#{app_url}/newsletter/#{post.slug}"
+      preview = post.body.to_plain_text.truncate(200)
+      telegram_text = "📰 *New Newsletter Published*\n\n*#{post.title}*\n\n#{preview}\n\n[Read the full post](#{post_url})"
 
-      slack_uri = URI(slack_webhook_url)
-      slack_http = Net::HTTP.new(slack_uri.host, slack_uri.port)
-      slack_http.use_ssl = true
-      slack_req = Net::HTTP::Post.new(slack_uri)
-      slack_req["content-type"] = "application/json"
-      slack_req.body = slack_message.to_json
+      tg_uri = URI("https://api.telegram.org/bot#{telegram_bot_token}/sendMessage")
+      tg_http = Net::HTTP.new(tg_uri.host, tg_uri.port)
+      tg_http.use_ssl = true
+      tg_req = Net::HTTP::Post.new(tg_uri)
+      tg_req["content-type"] = "application/json"
+      tg_req.body = { chat_id: telegram_chat_id, text: telegram_text, parse_mode: "Markdown" }.to_json
 
-      slack_response = slack_http.request(slack_req)
-      if slack_response.is_a?(Net::HTTPSuccess)
-        puts "Slack notification sent!"
+      tg_response = tg_http.request(tg_req)
+      if tg_response.is_a?(Net::HTTPSuccess)
+        puts "Telegram notification sent!"
       else
-        puts "Slack notification failed (#{slack_response.code}): #{slack_response.body}"
+        puts "Telegram notification failed (#{tg_response.code}): #{tg_response.body}"
       end
     else
-      puts "SLACK_NEWSLETTER_WEBHOOK_URL not set — skipping Slack notification"
+      puts "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram notification"
     end
   end
 end

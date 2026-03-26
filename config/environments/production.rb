@@ -61,14 +61,14 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "agent44-app.fly.dev"), protocol: "https" }
 
-  # Resend SMTP settings
+  # Brevo SMTP settings
   config.action_mailer.smtp_settings = {
-    address: "smtp.resend.com",
-    port: 465,
-    user_name: "resend",
-    password: ENV["RESEND_API_KEY"],
+    address: "smtp-relay.brevo.com",
+    port: 587,
+    user_name: ENV.fetch("BREVO_SMTP_LOGIN", "a5ec98001@smtp-brevo.com"),
+    password: ENV["BREVO_SMTP_KEY"],
     authentication: :plain,
-    tls: true
+    enable_starttls_auto: true
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to

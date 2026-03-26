@@ -13,7 +13,7 @@ module Admin
           unique_ips: scope.distinct.count(:ip_address),
           registered_users: User.where(role: "member").count,
           new_users: User.where(role: "member").where(created_at: date_range).count,
-          trend_data: PageView.where(created_at: 30.days.ago..Time.current)
+          trend_data: exclude_admins(PageView.where(created_at: 30.days.ago..Time.current))
                               .group("DATE(created_at)")
                               .order(Arel.sql("DATE(created_at)"))
                               .count,
@@ -39,11 +39,17 @@ module Admin
     private
 
     def page_views_for_period
-      case params[:period]
-      when "week" then PageView.this_week
-      when "month" then PageView.this_month
-      else PageView.today
-      end
+      scope = case params[:period]
+              when "week" then PageView.this_week
+              when "month" then PageView.this_month
+              else PageView.today
+              end
+      exclude_admins(scope)
+    end
+
+    def exclude_admins(scope)
+      admin_ids = User.where(role: "admin").pluck(:id)
+      scope.where(user_id: nil).or(scope.where.not(user_id: admin_ids))
     end
 
     def date_range
