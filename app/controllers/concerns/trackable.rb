@@ -43,7 +43,13 @@ module Trackable
     nexus\s5x|mediapartners
   /ix
 
+  # Known Google crawler IPs that rotate user agents
+  BLOCKED_IPS = %w[
+    66.241.125.168
+  ].to_set.freeze
+
   def bot_request?
+    return true if BLOCKED_IPS.include?(request.remote_ip)
     ua = request.user_agent.to_s
     ua.blank? || ua.match?(BOT_PATTERNS)
   end
