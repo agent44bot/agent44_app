@@ -3,16 +3,16 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Job Globe</h1>
+      <h1 class="text-2xl font-bold text-white">Job Globe</h1>
       <p class="mt-1 text-sm text-gray-500">
         <%= @globe_data.sum { |d| d[:count] } %> jobs across
         <%= @globe_data.size %> locations worldwide
       </p>
     </div>
-    <%= link_to "&larr; Back to Jobs".html_safe, jobs_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+    <%= link_to "&larr; Back to Jobs".html_safe, jobs_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
   </div>
 
-  <div id="globe-container" class="rounded-2xl border border-gray-200 overflow-hidden shadow-lg" style="height: 650px; background: #070B1A;"></div>
+  <div id="globe-container" class="rounded-2xl border border-gray-800 overflow-hidden shadow-lg" style="height: 650px; background: #070B1A;"></div>
 </div>
 
 <script>
@@ -56,7 +56,7 @@
       .onPointClick(function(d) {
         window.location.href = "/jobs?q=" + encodeURIComponent(d.location);
       })
-      .atmosphereColor("#6366f1")
+      .atmosphereColor("#f97316")
       .atmosphereAltitude(0.25)
       .width(width)
       .height(height)

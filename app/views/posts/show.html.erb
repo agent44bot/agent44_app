@@ -3,19 +3,19 @@
 <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
   <!-- Back link -->
   <div class="mb-8">
-    <%= link_to "&larr; Back to Newsletter".html_safe, posts_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+    <%= link_to "&larr; Back to Newsletter".html_safe, posts_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
   </div>
 
   <!-- Header -->
-  <header class="mb-12 border-b border-gray-200 pb-8">
-    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight"><%= @post.title %></h1>
+  <header class="mb-12 border-b border-gray-800 pb-8">
+    <h1 class="text-3xl md:text-4xl font-extrabold text-white leading-tight"><%= @post.title %></h1>
     <div class="mt-4 flex items-center gap-3 text-sm text-gray-500">
       <% if @post.published_at.present? %>
         <time class="text-gray-400"><%= @post.published_at.strftime("%B %d, %Y") %></time>
       <% end %>
       <% if @post.user.present? %>
         <span class="text-gray-300">&middot;</span>
-        <span>by <span class="font-medium text-gray-700"><%= @post.user.display_identifier %></span></span>
+        <span>by <span class="font-medium text-gray-300"><%= @post.user.display_identifier %></span></span>
       <% end %>
     </div>
   </header>
@@ -26,9 +26,9 @@
   </div>
 
   <!-- Footer -->
-  <footer class="mt-16 pt-8 border-t border-gray-200">
+  <footer class="mt-16 pt-8 border-t border-gray-800">
     <div class="flex items-center justify-between">
-      <%= link_to "&larr; Back to Newsletter".html_safe, posts_path, class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 transition" %>
+      <%= link_to "&larr; Back to Newsletter".html_safe, posts_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
       <p class="text-sm text-gray-400">Agent44 Newsletter</p>
     </div>
   </footer>

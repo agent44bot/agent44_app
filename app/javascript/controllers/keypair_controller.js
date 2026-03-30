@@ -101,7 +101,7 @@ export default class extends Controller {
 
   #updateTabActive(index) {
     const tabs = this.element.querySelectorAll("[data-tab]")
-    tabs.forEach((t, i) => t.classList.toggle("bg-indigo-600", i === index))
+    tabs.forEach((t, i) => t.classList.toggle("bg-orange-600", i === index))
     tabs.forEach((t, i) => t.classList.toggle("text-white", i === index))
     tabs.forEach((t, i) => t.classList.toggle("bg-gray-200", i !== index))
     tabs.forEach((t, i) => t.classList.toggle("text-gray-700", i !== index))

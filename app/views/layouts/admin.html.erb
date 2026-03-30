@@ -15,7 +15,7 @@
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
 </head>
-<body class="h-full flex flex-col bg-gray-100 text-gray-900 antialiased">
+<body class="h-full flex flex-col bg-gray-800 text-white antialiased">
 
   <!-- Admin Navigation -->
   <nav class="bg-gray-900 text-white sticky top-0 z-50">
@@ -23,31 +23,31 @@
       <div class="flex justify-between h-14">
         <div class="flex items-center space-x-6">
           <%= link_to admin_dashboard_path, class: "flex items-center space-x-2 font-bold text-lg tracking-tight" do %>
-            <span class="text-indigo-400">Agent44</span>
-            <span class="text-xs font-medium bg-indigo-600 px-2 py-0.5 rounded text-white">Admin</span>
+            <span class="text-orange-400">Agent44</span>
+            <span class="text-xs font-medium bg-orange-600 px-2 py-0.5 rounded text-white">Admin</span>
           <% end %>
 
           <div class="hidden md:flex items-center space-x-4">
             <%= link_to "Dashboard", admin_dashboard_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == admin_dashboard_path ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'} transition" %>
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == admin_dashboard_path ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Posts", admin_posts_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/posts') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'} transition" %>
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/posts') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Videos", admin_videos_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/videos') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'} transition" %>
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/videos') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Users", admin_users_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/users') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'} transition" %>
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/users') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Visitor Map", admin_visitors_map_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == '/admin/visitors/map' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'} transition" %>
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == '/admin/visitors/map' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
-          <%= link_to "Home", root_path, class: "text-sm text-gray-400 hover:text-white transition" %>
-          <%= link_to "Jobs", jobs_path, class: "text-sm text-gray-400 hover:text-white transition" %>
-          <span class="text-gray-600">|</span>
+          <%= link_to "Home", root_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
+          <%= link_to "Jobs", jobs_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
+          <span class="text-gray-400">|</span>
           <span class="text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
           <%= button_to "Sign Out", session_path, method: :delete,
-                class: "text-sm text-gray-400 hover:text-white transition" %>
+                class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
         </div>
       </div>
     </div>

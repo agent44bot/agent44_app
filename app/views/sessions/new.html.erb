@@ -3,19 +3,19 @@
 <div class="min-h-[70vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
   <div class="w-full max-w-md">
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Sign In</h1>
+      <h1 class="text-3xl font-bold text-white">Sign In</h1>
       <p class="mt-2 text-sm text-gray-500">Choose your preferred authentication method</p>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" data-controller="tabs">
+    <div class="bg-gray-900 rounded-xl border border-gray-800 shadow-sm overflow-hidden" data-controller="tabs">
       <!-- Tab Headers -->
-      <div class="flex border-b border-gray-200">
+      <div class="flex border-b border-gray-800">
         <button data-action="click->tabs#select" data-tabs-target="tab" data-tab-index="0"
-                class="flex-1 px-4 py-3 text-sm font-medium text-center text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50 transition">
+                class="flex-1 px-4 py-3 text-sm font-medium text-center text-orange-600 border-b-2 border-orange-600 bg-orange-50/50 transition">
           Email
         </button>
         <button data-action="click->tabs#select" data-tabs-target="tab" data-tab-index="1"
-                class="flex-1 px-4 py-3 text-sm font-medium text-center text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">
+                class="flex-1 px-4 py-3 text-sm font-medium text-center text-gray-500 border-b-2 border-transparent hover:text-gray-300 transition">
           Nostr Key
         </button>
       </div>
@@ -25,24 +25,24 @@
         <div data-tabs-target="panel" data-tab-index="0">
           <%= form_with url: session_path, class: "space-y-5" do |f| %>
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+              <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email address</label>
               <input type="email" name="email_address" id="email" required autocomplete="username" autofocus
-                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                     class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                      placeholder="you@example.com">
             </div>
             <div>
-              <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
               <input type="password" name="password" id="password" required autocomplete="current-password"
-                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                     class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                      placeholder="Your password">
             </div>
             <button type="submit"
-                    class="w-full px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm">
+                    class="w-full px-4 py-2.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition shadow-sm">
               Sign In
             </button>
             <div class="text-center space-y-2">
-              <%= link_to "Forgot password?", new_password_path, class: "text-sm text-gray-500 hover:text-indigo-600 transition" %>
-              <p class="text-sm text-gray-500">Don't have an account? <%= link_to "Sign up", new_registration_path, class: "text-indigo-600 hover:text-indigo-800 font-medium" %></p>
+              <%= link_to "Forgot password?", new_password_path, class: "text-sm text-gray-500 hover:text-orange-600 transition" %>
+              <p class="text-sm text-gray-500">Don't have an account? <%= link_to "Sign up", new_registration_path, class: "text-orange-600 hover:text-orange-300 font-medium" %></p>
             </div>
           <% end %>
         </div>
@@ -57,25 +57,25 @@
                       style="display:none;"
                       data-nostr-target="extensionBtn"
                       data-action="click->nostr#signInWithExtension"
-                      class="w-full px-4 py-2.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition shadow-sm text-sm">
+                      class="w-full px-4 py-2.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition shadow-sm text-sm">
                 Sign in with Nostr Extension
               </button>
               <p style="display:none;" data-nostr-target="extensionStatus" class="text-xs text-gray-400 text-center mt-2"></p>
             </div>
 
             <div style="display:none;" data-nostr-target="divider" class="relative mb-4">
-              <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
-              <div class="relative flex justify-center text-xs"><span class="bg-white px-2 text-gray-400">or enter your key manually</span></div>
+              <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-800"></div></div>
+              <div class="relative flex justify-center text-xs"><span class="bg-gray-900 px-2 text-gray-400">or enter your key manually</span></div>
             </div>
 
             <!-- Keypair Tabs -->
             <div class="flex rounded-lg overflow-hidden mb-4">
               <button type="button" data-tab data-action="click->keypair#showGenerate"
-                      class="flex-1 px-3 py-2 text-xs font-medium bg-indigo-600 text-white transition">
+                      class="flex-1 px-3 py-2 text-xs font-medium bg-orange-600 text-white transition">
                 New Keypair
               </button>
               <button type="button" data-tab data-action="click->keypair#showExisting"
-                      class="flex-1 px-3 py-2 text-xs font-medium bg-gray-200 text-gray-700 transition">
+                      class="flex-1 px-3 py-2 text-xs font-medium bg-gray-700 text-gray-300 transition">
                 I Have a Key
               </button>
             </div>
@@ -85,7 +85,7 @@
               <p class="text-xs text-gray-500 mb-3">Generate a new keypair to create your account. Save your private key — it's your only way to sign in.</p>
 
               <button type="button" data-action="click->keypair#generate"
-                      class="w-full px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition text-sm">
+                      class="w-full px-4 py-2.5 bg-gray-800 text-gray-300 font-medium rounded-lg hover:bg-gray-700 transition text-sm">
                 Generate Keypair
               </button>
 
@@ -93,18 +93,18 @@
                 <div>
                   <label class="block text-xs font-medium text-gray-500 mb-1">Your Public Key (npub)</label>
                   <input type="text" readonly data-keypair-target="npubField"
-                         class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono">
+                         class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs font-mono">
                 </div>
                 <div>
                   <label class="block text-xs font-medium text-gray-500 mb-1">Your Private Key (nsec)</label>
-                  <div class="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded p-2 mb-1">
+                  <div class="text-xs text-yellow-400 bg-yellow-50 border border-yellow-200 rounded p-2 mb-1">
                     Save this key now! It cannot be recovered.
                   </div>
                   <input type="text" readonly data-keypair-target="nsecField"
                          class="w-full px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs font-mono">
                 </div>
                 <button type="button" data-action="click->auth#signIn"
-                        class="w-full px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition text-sm">
+                        class="w-full px-4 py-2.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition text-sm">
                   Sign In
                 </button>
               </div>
@@ -119,18 +119,18 @@
                 <input type="password"
                        data-keypair-target="nsecInput"
                        data-action="input->keypair#deriveFromNsec paste->keypair#deriveFromNsecAfterPaste"
-                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                       class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 font-mono focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                        placeholder="nsec1... or 64-char hex">
               </div>
 
               <div data-keypair-target="derivedDisplay" style="display:none;" class="mb-3">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Derived Public Key</label>
                 <input type="text" readonly data-keypair-target="derivedNpub"
-                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono">
+                       class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs font-mono">
               </div>
 
               <button type="button" data-action="click->keypair#deriveAndSignIn"
-                      class="w-full px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition text-sm">
+                      class="w-full px-4 py-2.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition text-sm">
                 Sign In
               </button>
             </div>

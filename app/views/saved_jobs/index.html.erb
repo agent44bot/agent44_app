@@ -2,25 +2,25 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
   <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900">Saved Jobs</h1>
+    <h1 class="text-3xl font-bold text-white">Saved Jobs</h1>
     <p class="mt-2 text-gray-500">Jobs you've bookmarked for later.</p>
   </div>
 
   <% if @saved_jobs.present? %>
     <div class="space-y-4">
       <% @saved_jobs.each do |job| %>
-        <div class="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group">
+        <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 hover:shadow-md hover:border-orange-500/30 transition group">
           <div class="flex items-start gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-1">
-                <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate">
+                <h2 class="text-lg font-semibold text-white group-hover:text-orange-600 transition truncate">
                   <%= link_to job.title, job_path(job) %>
                 </h2>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-900/50 text-orange-400 whitespace-nowrap">
                   <%= job.category&.titleize || "General" %>
                 </span>
               </div>
-              <p class="text-sm text-gray-600"><%= job.company %></p>
+              <p class="text-sm text-gray-400"><%= job.company %></p>
               <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
                 <% if job.location.present? %>
                   <span class="flex items-center gap-1">
@@ -32,7 +32,7 @@
                   <span class="text-green-600 font-medium"><%= job.salary %></span>
                 <% end %>
                 <% if job.url.present? %>
-                  <%= link_to job.url, target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-1 text-indigo-500 hover:text-indigo-700 transition" do %>
+                  <%= link_to job.url, target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-1 text-orange-500 hover:text-orange-700 transition" do %>
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                     See listing
                   <% end %>
@@ -55,9 +55,9 @@
       <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/>
       </svg>
-      <h3 class="mt-4 text-lg font-medium text-gray-900">No saved jobs yet</h3>
+      <h3 class="mt-4 text-lg font-medium text-white">No saved jobs yet</h3>
       <p class="mt-1 text-sm text-gray-500">Click the bookmark icon on any job to save it here.</p>
-      <%= link_to "Browse Jobs", jobs_path, class: "mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition" %>
+      <%= link_to "Browse Jobs", jobs_path, class: "mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition" %>
     </div>
   <% end %>
 </div>

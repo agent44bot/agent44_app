@@ -1,6 +1,6 @@
 <%= form_with model: Subscriber.new, url: subscribers_path, id: "subscriber-form", class: "flex gap-2" do |f| %>
   <%= f.email_field :email, required: true, placeholder: "your@email.com",
-        class: "flex-1 px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" %>
+        class: "flex-1 px-3 py-2.5 bg-gray-800 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition" %>
   <%= f.submit "Subscribe",
-        class: "px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition cursor-pointer whitespace-nowrap" %>
+        class: "px-4 py-2.5 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition cursor-pointer whitespace-nowrap" %>
 <% end %>

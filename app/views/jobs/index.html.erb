@@ -4,10 +4,10 @@
   <!-- Header -->
   <div class="flex items-start justify-between mb-8">
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">SDET & Test Automation Jobs</h1>
+      <h1 class="text-3xl font-bold text-white">SDET & Test Automation Jobs</h1>
       <p class="mt-2 text-gray-500">Curated positions from across the web, updated daily.</p>
     </div>
-    <%= link_to globe_jobs_path, class: "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-full hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm" do %>
+    <%= link_to globe_jobs_path, class: "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-900 border border-gray-800 rounded-full hover:border-orange-300 hover:text-orange-600 transition shadow-sm" do %>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 003 12c0-1.605.42-3.113 1.157-4.418"/></svg>
       Globe
     <% end %>
@@ -15,13 +15,13 @@
 
   <!-- Trend Charts -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-      <h3 class="text-lg font-semibold text-gray-900 mb-1">Traditional SDET & Test Automation</h3>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+      <h3 class="text-lg font-semibold text-white mb-1">Traditional SDET & Test Automation</h3>
       <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles (from Mar 15)</p>
       <canvas id="autoChart" height="80"></canvas>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-      <h3 class="text-lg font-semibold text-gray-900 mb-1">AI-Enabled SDET & Test Automation</h3>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+      <h3 class="text-lg font-semibold text-white mb-1">AI-Enabled SDET & Test Automation</h3>
       <p class="text-sm text-gray-500 mb-4">Roles requiring AI/ML testing skills (from Mar 15)</p>
       <canvas id="aiChart" height="80"></canvas>
     </div>
@@ -76,8 +76,8 @@
                 tooltip: { callbacks: { label: function(item) { return item.raw + " jobs posted"; } } }
               },
               scales: {
-                y: { beginAtZero: true, max: yMax, ticks: { precision: 0 } },
-                x: { ticks: { maxTicksLimit: 8 } }
+                y: { beginAtZero: true, max: yMax, ticks: { precision: 0, color: '#9ca3af' }, grid: { color: '#1f2937' } },
+                x: { ticks: { maxTicksLimit: 8, color: '#9ca3af' }, grid: { color: '#1f2937' } }
               }
             }
           });
@@ -95,8 +95,8 @@
         const aiData = <%= raw @trend_data_ai.to_json %>;
         const sharedMax = Math.max(...autoData, ...aiData);
 
-        buildChart("autoChart", autoData, "rgb(99,102,241)", sharedMax);
-        buildChart("aiChart", aiData, "rgb(139,92,246)", sharedMax);
+        buildChart("autoChart", autoData, "rgb(249,115,22)", sharedMax);
+        buildChart("aiChart", aiData, "rgb(245,158,11)", sharedMax);
       }
 
       document.addEventListener("turbo:load", initCharts);
@@ -113,16 +113,16 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
         <input type="text" name="q" id="search-input" value="<%= params[:q] %>" placeholder="Search by title, company, or keyword..."
-               class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+               class="w-full pl-10 pr-10 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                oninput="document.getElementById('search-clear').style.display = this.value ? 'block' : 'none'">
         <a href="<%= jobs_path(category: params[:category], source: params[:source]) %>"
            id="search-clear"
-           class="text-gray-400 hover:text-gray-600 transition"
+           class="text-gray-400 hover:text-gray-400 transition"
            style="position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:10; <%= params[:q].present? ? '' : 'display:none;' %>">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </a>
       </div>
-      <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
+      <button type="submit" class="px-5 py-2.5 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition">
         Search
       </button>
     <% end %>
@@ -136,7 +136,7 @@
       <% sort_options.each do |label, value| %>
         <% active = params[:sort] == value || (value.nil? && params[:sort].blank?) %>
         <%= link_to jobs_path(sort: value, category: params[:category], q: params[:q], source: params[:source], saved: params[:saved], show_hidden: params[:show_hidden]),
-              class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}",
               data: { turbo_frame: "jobs_list" } do %>
           <%= label %>
         <% end %>
@@ -146,14 +146,14 @@
       <div class="flex items-center gap-2 ml-auto">
         <% saved_active = params[:saved] == "1" %>
         <%= link_to jobs_path(saved: saved_active ? nil : "1", sort: params[:sort], category: params[:category], q: params[:q], source: params[:source], show_hidden: params[:show_hidden]),
-              class: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition #{saved_active ? 'bg-red-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              class: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition #{saved_active ? 'bg-red-500 text-white shadow-sm' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}",
               data: { turbo_frame: "jobs_list" } do %>
           <svg class="w-3.5 h-3.5" fill="<%= saved_active ? 'currentColor' : 'none' %>" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
           Saved (<%= @saved_job_ids.size %>)
         <% end %>
         <% hidden_active = params[:show_hidden] == "1" %>
         <%= link_to jobs_path(show_hidden: hidden_active ? nil : "1", sort: params[:sort], category: params[:category], q: params[:q], source: params[:source], saved: params[:saved]),
-              class: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition #{hidden_active ? 'bg-yellow-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              class: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition #{hidden_active ? 'bg-yellow-500 text-white shadow-sm' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}",
               data: { turbo_frame: "jobs_list" } do %>
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/></svg>
           Hidden (<%= @hidden_job_ids.size %>)
@@ -163,12 +163,12 @@
   </div>
 
   <!-- Category Tabs (Collapsible, open by default) -->
-  <details open class="mb-8 bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-gray-50 transition">
+  <details open class="mb-8 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+    <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-gray-800 transition">
       <svg class="w-4 h-4 text-gray-400 transition-transform details-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</span>
       <% if params[:category].present? %>
-        <span class="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700"><%= params[:category].titleize %></span>
+        <span class="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-900/50 text-orange-400"><%= params[:category].titleize %></span>
       <% end %>
     </summary>
     <div class="flex flex-wrap gap-2 px-4 pb-4 pt-2">
@@ -192,9 +192,9 @@
            else @category_counts[value] || 0
            end %>
         <%= link_to jobs_path(category: value, q: params[:q], source: params[:source], sort: params[:sort], saved: params[:saved], show_hidden: params[:show_hidden]),
-              class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              class: "px-4 py-2 text-sm font-medium rounded-full transition #{active ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}",
               data: { turbo_frame: "jobs_list" } do %>
-          <%= label %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
+          <%= label %> <span class="<%= active ? 'text-orange-200' : 'text-gray-400' %>">(<%= count %>)</span>
         <% end %>
       <% end %>
     </div>
@@ -202,13 +202,13 @@
 
   <!-- Source / Job Board Tabs (Collapsible) -->
   <% if @source_counts.any? %>
-    <details class="mb-8 bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-gray-50 transition">
+    <details class="mb-8 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+      <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-gray-800 transition">
         <svg class="w-4 h-4 text-gray-400 transition-transform details-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Job Board</span>
         <span class="text-xs text-gray-400">(<%= @source_counts.size %> sources)</span>
         <% if params[:source].present? %>
-          <span class="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700"><%= params[:source].titleize %></span>
+          <span class="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-900/50 text-orange-400"><%= params[:source].titleize %></span>
         <% end %>
       </summary>
       <div class="flex flex-wrap gap-2 px-4 pb-4 pt-2">
@@ -216,17 +216,17 @@
         <% active_source = params[:source] %>
         <% source_active = active_source.blank? %>
         <%= link_to jobs_path(category: params[:category], q: params[:q], sort: params[:sort], saved: params[:saved], show_hidden: params[:show_hidden]),
-              class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{source_active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+              class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{source_active ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}",
               data: { turbo_frame: "jobs_list" } do %>
-          All <span class="<%= source_active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= @source_counts.values.sum %>)</span>
+          All <span class="<%= source_active ? 'text-orange-200' : 'text-gray-400' %>">(<%= @source_counts.values.sum %>)</span>
         <% end %>
         <% @source_counts.sort_by { |_, c| -c }.each do |src, count| %>
           <% next if src.blank? %>
           <% active = active_source == src %>
           <%= link_to jobs_path(category: params[:category], q: params[:q], source: src, sort: params[:sort], saved: params[:saved], show_hidden: params[:show_hidden]),
-                class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}",
+                class: "px-3 py-1.5 text-xs font-medium rounded-full transition #{active ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}",
                 data: { turbo_frame: "jobs_list" } do %>
-            <%= source_label(src) %> <span class="<%= active ? 'text-indigo-200' : 'text-gray-400' %>">(<%= count %>)</span>
+            <%= source_label(src) %> <span class="<%= active ? 'text-orange-200' : 'text-gray-400' %>">(<%= count %>)</span>
           <% end %>
         <% end %>
       </div>
@@ -258,11 +258,11 @@
       <div class="space-y-4">
         <% @jobs.each do |job| %>
           <% hidden = @hidden_job_ids.include?(job.id) %>
-          <div id="<%= dom_id(job) %>" class="<%= hidden ? 'bg-gray-50 rounded-xl border border-gray-300 p-6 opacity-60 transition group' : job.posted_today? ? 'bg-green-50 rounded-xl border border-green-300 p-6 hover:shadow-md hover:border-green-400 transition group' : 'bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition group' %>">
+          <div id="<%= dom_id(job) %>" class="<%= hidden ? 'bg-gray-900 rounded-xl border border-gray-700 p-6 opacity-60 transition group' : job.posted_today? ? 'bg-green-950/30 rounded-xl border border-green-800 p-6 hover:shadow-md hover:border-green-600 transition group' : 'bg-gray-900 rounded-xl border border-gray-800 p-6 hover:shadow-md hover:border-orange-500/30 transition group' %>">
             <div class="flex items-start gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-1 relative">
-                  <h2 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition truncate"
+                  <h2 class="text-lg font-semibold text-white group-hover:text-orange-600 transition truncate"
                       onmouseenter="showJobTooltip(this.parentElement)" onmouseleave="hideJobTooltip(this.parentElement)">
                     <% if job.bitcoin_job? %>
                       <svg class="inline-block w-5 h-5 align-middle mr-1 text-orange-500" viewBox="0 0 24 24" fill="currentColor" title="Bitcoin job"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1.5 14.9V18h-1v-1.1c-1.3-.1-2.5-.6-3.1-1.2l.8-1.4c.6.5 1.5.9 2.3.9.9 0 1.4-.4 1.4-1s-.5-.9-1.7-1.3c-1.6-.5-2.8-1.1-2.8-2.6 0-1.3.9-2.2 2.3-2.5V7h1v1.1c1 .1 1.9.4 2.5.9l-.7 1.4c-.5-.4-1.2-.7-2-.7-.8 0-1.2.4-1.2.9 0 .6.5.8 1.8 1.3 1.7.5 2.7 1.2 2.7 2.6 0 1.3-1 2.3-2.3 2.4z"/></svg>
@@ -270,30 +270,30 @@
                     <%= link_to job.title, job_path(job), data: { turbo_frame: "_top" } %>
                   </h2>
                   <% if job.description.present? %>
-                    <div class="job-tooltip hidden absolute left-0 top-full mt-2 z-50 w-[32rem] max-h-96 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl p-4 text-sm text-gray-700 font-normal whitespace-normal">
+                    <div class="job-tooltip hidden absolute left-0 top-full mt-2 z-50 w-[32rem] max-h-96 overflow-y-auto bg-gray-900 border border-gray-800 rounded-lg shadow-xl p-4 text-sm text-gray-300 font-normal whitespace-normal">
                       <%= simple_format(job.description) %>
                     </div>
                   <% end %>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-900/50 text-orange-400 whitespace-nowrap">
                     <%= job.category&.titleize || "General" %>
                   </span>
                   <% if job.posted_today? %>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400 whitespace-nowrap">
                       New
                     </span>
                   <% end %>
                   <% if @saved_job_ids.include?(job.id) %>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/50 text-red-400 whitespace-nowrap">
                       Saved
                     </span>
                   <% end %>
                   <% if @applied_jobs[job.id] %>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400 whitespace-nowrap">
                       Applied <%= @applied_jobs[job.id].in_time_zone("Eastern Time (US & Canada)").strftime("%-m/%-d") %>
                     </span>
                   <% end %>
                 </div>
-                <p class="text-sm text-gray-600"><%= job.company %></p>
+                <p class="text-sm text-gray-400"><%= job.company %></p>
                 <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
                   <% if job.location.present? %>
                     <span class="flex items-center gap-1">
@@ -305,7 +305,7 @@
                     <span class="text-green-600 font-medium"><%= job.salary %></span>
                   <% end %>
                   <% if job.url.present? %>
-                    <%= link_to job.url, target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-1 text-indigo-500 hover:text-indigo-700 transition" do %>
+                    <%= link_to job.url, target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-1 text-orange-500 hover:text-orange-700 transition" do %>
                       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                       See listing
                     <% end %>
@@ -314,7 +314,7 @@
                     <span class="flex items-center gap-1 flex-wrap">
                       <% job.job_sources.each_with_index do |js, i| %>
                         <%= link_to jobs_path(source: js.source),
-                              class: "hover:text-indigo-600 transition",
+                              class: "hover:text-orange-600 transition",
                               data: { turbo_frame: "_top" } do %>
                           <%= source_label(js.source) %><% if i < job.job_sources.size - 1 %><span class="text-gray-300">&middot;</span><% end %>
                         <% end %>
@@ -322,7 +322,7 @@
                     </span>
                   <% elsif job.source.present? %>
                     <%= link_to jobs_path(source: job.source),
-                          class: "hover:text-indigo-600 transition",
+                          class: "hover:text-orange-600 transition",
                           data: { turbo_frame: "_top" } do %>
                       via <%= source_label(job.source) %>
                     <% end %>
@@ -339,16 +339,16 @@
                       <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
                     <% end %>
                   <% else %>
-                    <%= button_to job_saved_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-indigo-50 transition", title: "Save job", data: { turbo_frame: "_top" } do %>
-                      <svg class="w-5 h-5 text-gray-300 hover:text-indigo-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
+                    <%= button_to job_saved_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-orange-900/30 transition", title: "Save job", data: { turbo_frame: "_top" } do %>
+                      <svg class="w-5 h-5 text-gray-300 hover:text-orange-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
                     <% end %>
                   <% end %>
                   <% if hidden %>
-                    <%= button_to job_hidden_job_path(job), method: :delete, class: "flex-shrink-0 px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-lg hover:bg-yellow-200 transition", title: "Unhide job", data: { turbo_frame: "_top" } do %>
+                    <%= button_to job_hidden_job_path(job), method: :delete, class: "flex-shrink-0 px-3 py-1.5 text-xs font-medium text-yellow-400 bg-yellow-900/50 rounded-lg hover:bg-yellow-900/70 transition", title: "Unhide job", data: { turbo_frame: "_top" } do %>
                       Unhide
                     <% end %>
                   <% else %>
-                    <%= button_to job_hidden_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 transition", title: "Hide job", data: { turbo_frame: "_top" } do %>
+                    <%= button_to job_hidden_job_path(job), method: :post, class: "flex-shrink-0 p-2 rounded-lg hover:bg-gray-800 transition", title: "Hide job", data: { turbo_frame: "_top" } do %>
                       <svg class="w-4 h-4 text-gray-300 hover:text-gray-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     <% end %>
                   <% end %>
@@ -369,7 +369,7 @@
         <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">No jobs found</h3>
+        <h3 class="mt-4 text-lg font-medium text-white">No jobs found</h3>
         <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filters.</p>
       </div>
     <% end %>

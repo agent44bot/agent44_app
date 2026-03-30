@@ -3,14 +3,14 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Manage Users</h1>
+      <h1 class="text-2xl font-bold text-white">Manage Users</h1>
       <p class="mt-1 text-sm text-gray-500"><%= @users.size %> registered user(s)</p>
     </div>
   </div>
 
-  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
+  <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-800">
+      <thead class="bg-gray-900">
         <tr>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auth Method</th>
@@ -20,11 +20,11 @@
           <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sessions</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-200">
+      <tbody class="divide-y divide-gray-800">
         <% @users.each do |user| %>
-          <tr class="hover:bg-gray-50 transition">
+          <tr class="hover:bg-gray-800 transition">
             <td class="px-6 py-4">
-              <div class="text-sm font-medium text-gray-900"><%= user.display_identifier %></div>
+              <div class="text-sm font-medium text-white"><%= user.display_identifier %></div>
               <% if user.email_address.present? && user.display_name.present? %>
                 <div class="text-xs text-gray-400"><%= user.email_address %></div>
               <% end %>
@@ -37,11 +37,11 @@
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Email</span>
               <% end %>
               <% if user.pubkey_hex.present? %>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Nostr</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-900/50 text-orange-400">Nostr</span>
               <% end %>
             </td>
             <td class="px-6 py-4">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= user.admin? ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800' %>">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= user.admin? ? 'bg-orange-900/50 text-orange-400' : 'bg-gray-800 text-gray-200' %>">
                 <%= user.role %>
               </span>
             </td>
@@ -52,7 +52,7 @@
               <% last_session = user.sessions.max_by(&:updated_at) %>
               <%= last_session&.updated_at&.strftime("%b %d, %Y %H:%M") || "Never" %>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-900 text-right font-semibold">
+            <td class="px-6 py-4 text-sm text-white text-right font-semibold">
               <%= user.sessions.size %>
             </td>
           </tr>
