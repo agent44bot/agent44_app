@@ -1,6 +1,9 @@
 class ScraperSource < ApplicationRecord
   SCHEDULES = %w[every_6h twice_daily daily].freeze
 
+  attribute :search_terms_text, :string
+  attribute :config_text, :string
+
   validates :name, :slug, presence: true
   validates :slug, uniqueness: true, format: { with: /\A[a-z0-9_]+\z/, message: "only lowercase letters, numbers, and underscores" }
   validates :schedule, inclusion: { in: SCHEDULES }

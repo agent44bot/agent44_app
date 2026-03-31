@@ -1,3 +1,7 @@
+require "net/http"
+require "json"
+require "uri"
+
 module Scrapers
   class Base
     DEFAULT_SEARCH_TERMS = %w[sdet test\ automation qa\ automation quality\ engineer test\ engineer software\ test qa\ engineer].freeze

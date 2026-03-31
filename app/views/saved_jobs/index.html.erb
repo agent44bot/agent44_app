@@ -40,7 +40,7 @@
                 <% if job.source.present? %>
                   <span>via <%= job.source %></span>
                 <% end %>
-                <span><%= time_ago_in_words(job.posted_at) %> ago</span>
+                <span><%= job.posted_at ? "#{time_ago_in_words(job.posted_at)} ago" : "Recently posted" %></span>
               </div>
             </div>
             <%= button_to job_saved_job_path(job), method: :delete, class: "flex-shrink-0 p-2 rounded-lg hover:bg-red-50 transition", title: "Unsave job" do %>
