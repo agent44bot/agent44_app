@@ -42,14 +42,7 @@ scrapers = [
     schedule: "every_6h",
     search_terms: default_terms
   },
-  {
-    name: "JSearch (LinkedIn, Indeed, Glassdoor)",
-    slug: "jsearch",
-    api_key_name: "RAPIDAPI_KEY",
-    schedule: "twice_daily",
-    search_terms: ["SDET", "test automation engineer", "QA automation engineer"]
-  },
-  {
+{
     name: "Google Jobs (SerpAPI)",
     slug: "google_jobs",
     api_key_name: "SERPAPI_KEY",

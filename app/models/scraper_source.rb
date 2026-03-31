@@ -37,6 +37,10 @@ class ScraperSource < ApplicationRecord
     end
   end
 
+  def cost_label
+    api_key_name.present? ? "Free tier" : "Free"
+  end
+
   def status_color
     case last_run_status
     when "success" then "green"
