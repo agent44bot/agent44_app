@@ -22,3 +22,6 @@ if jobs_file.exist?
 else
   puts "No jobs seed file found at db/seeds/jobs.json"
 end
+
+# Seed scraper sources
+load Rails.root.join("db/seeds/scrapers.rb")

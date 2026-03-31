@@ -34,6 +34,11 @@ Rails.application.routes.draw do
     get "dashboard", to: "dashboard#index"
     resources :posts
     resources :videos
+    resources :scrapers do
+      member do
+        post :run
+      end
+    end
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
   end

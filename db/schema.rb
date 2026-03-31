@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_23_185859) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_31_175243) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -148,6 +148,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_23_185859) do
     t.index ["job_id"], name: "index_saved_jobs_on_job_id"
     t.index ["user_id", "job_id"], name: "index_saved_jobs_on_user_id_and_job_id", unique: true
     t.index ["user_id"], name: "index_saved_jobs_on_user_id"
+  end
+
+  create_table "scraper_sources", force: :cascade do |t|
+    t.string "api_key_name"
+    t.json "config", default: {}
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "last_run_at"
+    t.text "last_run_error"
+    t.integer "last_run_jobs_found", default: 0
+    t.string "last_run_status"
+    t.string "name", null: false
+    t.string "schedule", default: "every_6h", null: false
+    t.json "search_terms", default: []
+    t.string "slug", null: false
+    t.string "source_url"
+    t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_scraper_sources_on_enabled"
+    t.index ["slug"], name: "index_scraper_sources_on_slug", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|

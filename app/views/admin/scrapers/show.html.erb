@@ -1,0 +1,117 @@
+<% content_for(:title, "Admin: #{@scraper.name}") %>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center gap-3">
+      <% if @scraper.enabled? %>
+        <span class="h-3 w-3 rounded-full bg-green-400"></span>
+      <% else %>
+        <span class="h-3 w-3 rounded-full bg-gray-600"></span>
+      <% end %>
+      <div>
+        <h1 class="text-2xl font-bold text-white"><%= @scraper.name %></h1>
+        <p class="text-sm text-gray-500 font-mono"><%= @scraper.slug %></p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <%= button_to "Run Now", run_admin_scraper_path(@scraper), method: :post,
+            data: { turbo_confirm: "Run #{@scraper.name} now?" },
+            class: "px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition shadow-sm" %>
+      <%= link_to "Edit", edit_admin_scraper_path(@scraper),
+            class: "px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition shadow-sm" %>
+      <%= link_to "Back", admin_scrapers_path,
+            class: "px-4 py-2 text-sm font-medium text-gray-300 hover:text-orange-400 transition" %>
+    </div>
+  </div>
+
+  <!-- Status Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</div>
+      <div class="text-lg font-semibold <%= @scraper.enabled? ? 'text-green-400' : 'text-gray-500' %>">
+        <%= @scraper.enabled? ? "Enabled" : "Disabled" %>
+      </div>
+    </div>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Schedule</div>
+      <div class="text-lg font-semibold text-white"><%= @scraper.schedule_label %></div>
+    </div>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Last Run</div>
+      <div class="text-lg font-semibold text-white">
+        <%= @scraper.last_run_at ? time_ago_in_words(@scraper.last_run_at) + " ago" : "Never" %>
+      </div>
+    </div>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Jobs Found</div>
+      <div class="text-lg font-semibold text-white"><%= @scraper.last_run_jobs_found %></div>
+    </div>
+  </div>
+
+  <!-- Last Run Status -->
+  <% if @scraper.last_run_status.present? %>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+      <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Last Run Result</h2>
+      <% color = @scraper.status_color %>
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+        <%= color == 'green' ? 'bg-green-900/50 text-green-400' : color == 'red' ? 'bg-red-900/50 text-red-400' : 'bg-yellow-900/50 text-yellow-400' %>">
+        <%= @scraper.last_run_status %>
+      </span>
+      <% if @scraper.last_run_error.present? %>
+        <div class="mt-3 p-3 bg-red-900/20 border border-red-800 rounded-lg">
+          <pre class="text-sm text-red-400 whitespace-pre-wrap font-mono"><%= @scraper.last_run_error %></pre>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Configuration -->
+  <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Configuration</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <div class="text-xs text-gray-500 mb-1">Source URL</div>
+        <div class="text-sm text-white font-mono break-all"><%= @scraper.source_url.presence || "—" %></div>
+      </div>
+      <div>
+        <div class="text-xs text-gray-500 mb-1">API Key</div>
+        <% if @scraper.api_key_name.present? %>
+          <div class="flex items-center gap-2">
+            <code class="text-sm text-white font-mono"><%= @scraper.api_key_name %></code>
+            <% if @scraper.api_key_set? %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900/50 text-green-400">Set</span>
+            <% else %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-900/50 text-red-400">Missing</span>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-sm text-gray-500">Not required</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Terms -->
+  <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Search Terms</h2>
+    <% terms = @scraper.search_terms.presence || Scrapers::Base::DEFAULT_SEARCH_TERMS %>
+    <div class="flex flex-wrap gap-2">
+      <% terms.each do |term| %>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-800 text-orange-400 border border-gray-700"><%= term %></span>
+      <% end %>
+    </div>
+    <% if @scraper.search_terms.blank? %>
+      <p class="text-xs text-gray-600 mt-2">Using default search terms</p>
+    <% end %>
+  </div>
+
+  <!-- Extra Config -->
+  <% if @scraper.config.present? && @scraper.config != {} %>
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6">
+      <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Extra Config</h2>
+      <pre class="text-sm text-gray-300 bg-gray-800 rounded-lg p-4 font-mono overflow-x-auto"><%= JSON.pretty_generate(@scraper.config) %></pre>
+    </div>
+  <% end %>
+</div>
