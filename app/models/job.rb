@@ -22,7 +22,7 @@ class Job < ApplicationRecord
       .distinct if q.present?
   }
   scope :posted_today, -> { where(created_at: Time.current.beginning_of_day..Time.current.end_of_day) }
-  scope :remote, -> { where("location LIKE ? OR location LIKE ?", "%Remote%", "%Anywhere%") }
+  scope :remote, -> { where("location LIKE ? OR location LIKE ? OR title LIKE ?", "%Remote%", "%Anywhere%", "%Remote%") }
   scope :by_salary_desc, -> {
     order(Arel.sql("CASE WHEN salary IS NOT NULL AND salary != '' THEN 0 ELSE 1 END, CAST(REPLACE(REPLACE(SUBSTR(salary, 1, INSTR(salary || ' ', ' ') - 1), '$', ''), ',', '') AS REAL) DESC"))
   }
