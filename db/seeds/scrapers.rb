@@ -5,14 +5,14 @@ scrapers = [
     name: "RemoteOK",
     slug: "remoteok",
     source_url: "https://remoteok.com/api?tag=testing",
-    schedule: "every_6h",
+    schedule: "daily",
     search_terms: default_terms
   },
   {
     name: "Arbeitnow",
     slug: "arbeitnow",
     source_url: "https://www.arbeitnow.com/api/job-board-api",
-    schedule: "every_6h",
+    schedule: "daily",
     search_terms: default_terms,
     config: { "max_pages" => 3 }
   },
@@ -20,7 +20,7 @@ scrapers = [
     name: "Jobicy",
     slug: "jobicy",
     source_url: "https://jobicy.com/api/v2/remote-jobs",
-    schedule: "every_6h",
+    schedule: "daily",
     search_terms: default_terms,
     config: { "tags" => %w[testing automation] }
   },
@@ -28,7 +28,7 @@ scrapers = [
     name: "Welcome to the Jungle",
     slug: "welcometothejungle",
     source_url: "https://CSEKHVMS53-dsn.algolia.net/1/indexes/wttj_jobs_production_en/query",
-    schedule: "every_6h",
+    schedule: "daily",
     search_terms: ["SDET", "QA engineer", "test automation", "quality engineer"],
     config: {
       "algolia_app_id" => "CSEKHVMS53",
@@ -39,7 +39,7 @@ scrapers = [
     name: "DevITjobs",
     slug: "devitjobs",
     source_url: "https://devitjobs.com/api/jobsLight?search=QA",
-    schedule: "every_6h",
+    schedule: "daily",
     search_terms: default_terms
   },
 {
