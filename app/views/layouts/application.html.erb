@@ -7,7 +7,9 @@
   <meta name="application-name" content="Agent 44 Labs">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="description" content="Agent 44 Labs — AI agents, test automation, iOS & web apps">
-  <title><%= content_for?(:title) ? "#{yield(:title)} | Agent 44 Labs" : "Agent 44 Labs — AI Agents & Test Automation" %></title>
+  <title><%= content_for?(:title) ? "#{yield(:title)} | Agent 44 Labs" : "Agent 44 Labs" %></title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
