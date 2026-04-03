@@ -70,6 +70,7 @@ namespace :jobs do
         if jobs.empty?
           puts " 0 found"
           source.update(last_run_at: Time.current, last_run_status: "success", last_run_jobs_found: 0, last_run_error: nil)
+          sync_scraper_status(production_url, api_token, source.slug, "success", 0)
           next
         end
 
@@ -94,9 +95,11 @@ namespace :jobs do
         total_updated += updated
 
         source.update(last_run_at: Time.current, last_run_status: "success", last_run_jobs_found: jobs.size, last_run_error: nil)
+        sync_scraper_status(production_url, api_token, source.slug, "success", jobs.size)
         puts " #{created} created, #{updated} updated (#{jobs.size} found)"
       rescue StandardError => e
         source.update(last_run_at: Time.current, last_run_status: "error", last_run_jobs_found: 0, last_run_error: e.message)
+        sync_scraper_status(production_url, api_token, source.slug, "error", 0, e.message)
         puts " ERROR: #{e.message}"
       end
     end
@@ -117,5 +120,27 @@ namespace :jobs do
     else
       puts "#{source.name}: #{result[:created]} created, #{result[:updated]} updated (#{result[:total]} found)"
     end
+  end
+
+  def sync_scraper_status(production_url, api_token, slug, status, jobs_found, error = nil)
+    uri = URI("#{production_url}/api/v1/scrapers/#{slug}")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 10
+    http.read_timeout = 10
+
+    request = Net::HTTP::Patch.new(uri)
+    request["Authorization"] = "Bearer #{api_token}"
+    request["Content-Type"] = "application/json"
+    request.body = {
+      last_run_at: Time.current.iso8601,
+      last_run_status: status,
+      last_run_jobs_found: jobs_found,
+      last_run_error: error
+    }.to_json
+
+    http.request(request)
+  rescue => e
+    puts " (sync warning: #{e.message})"
   end
 end
