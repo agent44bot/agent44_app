@@ -2,7 +2,9 @@ class JobsController < ApplicationController
   allow_unauthenticated_access only: [:index, :globe]
 
   def index
+    @tab = params[:tab].presence || "traditional"
     base = Job.active
+    base = @tab == "ai" ? base.ai_augmented : base.traditional
     base = base.search(params[:q]) if params[:q].present?
 
     # Load user data early so counts can reflect hidden jobs
@@ -69,12 +71,11 @@ class JobsController < ApplicationController
     utc_offset = Time.current.utc_offset / 3600
     offset_str = format("%+d hours", utc_offset)
 
-    trend_cache = Rails.cache.fetch("job_trends/#{end_date}", expires_in: 6.hours) do
-      auto_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day).where.not(category: "ai")
-      auto_counts = auto_base.group("date(posted_at, '#{offset_str}')").count
+    trend_cache = Rails.cache.fetch("job_trends/v2/#{end_date}", expires_in: 6.hours) do
+      trend_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day)
 
-      ai_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day).where(category: "ai")
-      ai_counts = ai_base.group("date(posted_at, '#{offset_str}')").count
+      auto_counts = trend_base.traditional.group("date(posted_at, '#{offset_str}')").count
+      ai_counts = trend_base.ai_augmented.group("date(posted_at, '#{offset_str}')").count
 
       {
         auto: @trend_labels.map { |d| auto_counts[d.to_s] || 0 },

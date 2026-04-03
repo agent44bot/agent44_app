@@ -76,15 +76,18 @@ module Scrapers
 
     def categorize(title, tags = [])
       combined = "#{title} #{flatten_tags(tags).join(' ')}".downcase
-      if combined.match?(/\b(ai|machine learning|ml |llm|artificial intelligence)\b/i)
-        "ai"
-      elsif combined.match?(/\b(contract|freelance|contractor)\b/i)
+      if combined.match?(/\b(contract|freelance|contractor)\b/i)
         "contract"
       elsif combined.match?(/\b(part.?time)\b/i)
         "part_time"
       else
         "full_time"
       end
+    end
+
+    def ai_augmented?(title, tags = [])
+      combined = "#{title} #{flatten_tags(tags).join(' ')}".downcase
+      combined.match?(/\b(ai|machine learning|ml |llm|artificial intelligence)\b/i)
     end
 
     def flatten_tags(tags)

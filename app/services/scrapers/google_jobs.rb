@@ -67,6 +67,7 @@ module Scrapers
             salary: highlights["salary"].to_s,
             source: detected_source,
             category: categorize(title),
+            ai_augmented: ai_augmented?(title),
             description: (item["description"] || "").truncate(2000, omission: ""),
             posted_at: highlights["posted_at"].to_s,
             external_id: job_id.present? ? "google-jobs-#{job_id}" : ""

@@ -37,6 +37,7 @@ class JobImporter
           salary: jp[:salary],
           description: jp[:description],
           category: jp[:category],
+          ai_augmented: jp[:ai_augmented] || false,
           source: jp[:source],
           url: jp[:url],
           external_id: jp[:external_id],

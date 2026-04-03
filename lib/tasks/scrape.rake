@@ -126,8 +126,8 @@ namespace :jobs do
     uri = URI("#{production_url}/api/v1/scrapers/#{slug}")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == "https"
-    http.open_timeout = 10
-    http.read_timeout = 10
+    http.open_timeout = 30
+    http.read_timeout = 30
 
     request = Net::HTTP::Patch.new(uri)
     request["Authorization"] = "Bearer #{api_token}"

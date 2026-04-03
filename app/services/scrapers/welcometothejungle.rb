@@ -66,6 +66,7 @@ module Scrapers
             salary: salary,
             source: "welcometothejungle",
             category: categorize(name),
+            ai_augmented: ai_augmented?(name),
             description: hit["summary"].to_s,
             posted_at: hit["published_at"].to_s,
             external_id: "wttj-#{obj_id}"

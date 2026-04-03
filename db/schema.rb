@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_31_175243) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_03_151815) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -73,6 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_31_175243) do
 
   create_table "jobs", force: :cascade do |t|
     t.boolean "active", default: true
+    t.boolean "ai_augmented", default: false, null: false
     t.string "category", null: false
     t.string "company"
     t.datetime "created_at", null: false

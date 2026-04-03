@@ -1,5 +1,5 @@
 class Job < ApplicationRecord
-  CATEGORIES = %w[full_time part_time contract ai].freeze
+  CATEGORIES = %w[full_time part_time contract].freeze
   BITCOIN_SOURCES = %w[bitcoinjobs bitcoinerjobs bitcoin_bamboohr].freeze
 
   has_many :job_sources, dependent: :destroy
@@ -12,6 +12,8 @@ class Job < ApplicationRecord
 
   scope :active, -> { where(active: true) }
   scope :by_category, ->(cat) { where(category: cat) if cat.present? }
+  scope :ai_augmented, -> { where(ai_augmented: true) }
+  scope :traditional, -> { where(ai_augmented: false) }
   scope :by_source, ->(src) {
     joins(:job_sources).where(job_sources: { source: src }).distinct if src.present?
   }

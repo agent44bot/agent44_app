@@ -21,6 +21,7 @@ module Scrapers
             salary: "",
             source: "arbeitnow",
             category: categorize(item["title"], item["tags"]),
+            ai_augmented: ai_augmented?(item["title"], item["tags"]),
             description: item["description"].to_s,
             posted_at: posted_at,
             external_id: "arbeitnow-#{item['slug']}"

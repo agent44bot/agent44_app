@@ -16,6 +16,7 @@ module Scrapers
           salary: format_salary(item["salary_min"], item["salary_max"]),
           source: "remoteok",
           category: categorize(item["position"], item["tags"]),
+          ai_augmented: ai_augmented?(item["position"], item["tags"]),
           description: item["description"].to_s,
           posted_at: item["date"].to_s,
           external_id: "remoteok-#{item['id']}"

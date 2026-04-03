@@ -28,6 +28,7 @@ module Scrapers
           salary: format_salary(item["annualSalaryFrom"], item["annualSalaryTo"]),
           source: "devitjobs",
           category: categorize(name, item["filterTags"]),
+          ai_augmented: ai_augmented?(name, item["filterTags"]),
           description: "",
           posted_at: item["activeFrom"].to_s,
           external_id: "devitjobs-#{obj_id}"

@@ -30,6 +30,7 @@ module Scrapers
           salary: format_salary(item["annualSalaryMin"], item["annualSalaryMax"]),
           source: "jobicy",
           category: categorize(item["jobTitle"], [ item["jobType"].to_s ]),
+          ai_augmented: ai_augmented?(item["jobTitle"], [ item["jobType"].to_s ]),
           description: item["jobDescription"].to_s,
           posted_at: item["pubDate"].to_s,
           external_id: "jobicy-#{item['id']}"
