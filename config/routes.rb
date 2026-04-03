@@ -20,7 +20,7 @@ Rails.application.routes.draw do
   end
   resources :saved_jobs, only: [:index]
   resources :posts, only: [:index, :show], path: "newsletter"
-  resources :videos, only: [:index, :show]
+  # resources :videos, only: [:index, :show]
   resources :subscribers, only: [:create]
 
   namespace :api do

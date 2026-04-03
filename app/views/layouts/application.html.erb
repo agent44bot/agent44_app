@@ -42,7 +42,6 @@
               Map
             <% end %>
             <%= link_to "Newsletter", posts_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
-            <%= link_to "Videos", videos_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
           </div>
         </div>
 
@@ -84,7 +83,6 @@
         <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <%= link_to "Map", globe_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <%= link_to "Newsletter", posts_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
-        <%= link_to "Videos", videos_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <div class="border-t border-gray-800 pt-2">
           <% if authenticated? %>
             <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
@@ -152,7 +150,6 @@
           <ul class="space-y-2 text-sm">
             <li><%= link_to "Jobs", jobs_path, class: "hover:text-orange-400 transition" %></li>
             <li><%= link_to "Newsletter", posts_path, class: "hover:text-orange-400 transition" %></li>
-            <li><%= link_to "Videos", videos_path, class: "hover:text-orange-400 transition" %></li>
           </ul>
         </div>
 
