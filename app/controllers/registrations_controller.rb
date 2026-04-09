@@ -9,6 +9,13 @@ class RegistrationsController < ApplicationController
     @user = User.new(registration_params)
     if @user.save
       UserMailer.email_verification(@user).deliver_later
+      source = session.delete(:soft_gate_source)
+      Notification.notify!(
+        level: "info",
+        source: "signup",
+        title: "New user signed up",
+        body: "#{@user.email_address}#{source.present? ? " (via #{source})" : ""}"
+      )
       start_new_session_for @user
       redirect_to root_path, notice: "Welcome! Check your email to verify your account."
     else

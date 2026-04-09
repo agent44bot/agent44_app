@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root "pages#home"
+  get "lab", to: "pages#lab"
 
   resource :session do
     post :challenge, on: :collection
@@ -12,6 +13,7 @@ Rails.application.routes.draw do
   resources :jobs, only: [:index, :show] do
     collection do
       get :globe
+      get :today
     end
     resource :saved_job, only: [:create, :destroy] do
       post :toggle_applied, on: :member
@@ -19,9 +21,14 @@ Rails.application.routes.draw do
     resource :hidden_job, only: [:create, :destroy]
   end
   resources :saved_jobs, only: [:index]
-  resources :posts, only: [:index, :show], path: "newsletter"
+  resources :news_articles, only: [:index], path: "news"
+  resources :posts, only: [:index, :show], path: "pulse"
+  # Permanent redirects from old /newsletter URLs to /pulse
+  get "/newsletter", to: redirect("/pulse", status: 301)
+  get "/newsletter/*slug", to: redirect("/pulse/%{slug}", status: 301)
   # resources :videos, only: [:index, :show]
   resources :subscribers, only: [:create]
+  get "soft_gate", to: "soft_gates#show", as: :soft_gate
 
   namespace :api do
     namespace :v1 do
@@ -42,6 +49,11 @@ Rails.application.routes.draw do
     end
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
+    resources :notifications, only: [:index, :update, :destroy] do
+      collection do
+        post :mark_all_read
+      end
+    end
   end
 
   get "up" => "rails/health#show", as: :rails_health_check

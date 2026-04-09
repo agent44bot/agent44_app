@@ -1,11 +1,18 @@
 class JobsController < ApplicationController
-  allow_unauthenticated_access only: [:index, :globe]
+  allow_unauthenticated_access only: [:index, :globe, :today, :show]
+
+  FREE_JOB_VIEWS = 5
 
   def index
     @tab = params[:tab].presence || "traditional"
     base = Job.active
-    base = @tab == "ai" ? base.ai_augmented : base.traditional
+    base = case @tab
+           when "ai"       then base.ai_augmented_only
+           when "director" then base.agent_director
+           else                 base.traditional
+           end
     base = base.search(params[:q]) if params[:q].present?
+    base = base.by_skill(params[:skill]) if params[:skill].present?
 
     # Load user data early so counts can reflect hidden jobs
     if authenticated?
@@ -85,19 +92,41 @@ class JobsController < ApplicationController
 
     @trend_data_auto = trend_cache[:auto]
     @trend_data_ai = trend_cache[:ai]
+
+    @top_skills = Job.top_skills(limit: 10)
+    @ai_demand_meter = Job.ai_demand_meter
   end
 
   def show
     @job = Job.includes(:job_sources).find(params[:id])
-    if authenticated? && !Current.session.user.email_verified?
-      redirect_to jobs_path, alert: "Please verify your email to view job details. Check your inbox for a verification link."
-      return
-    end
+
     if authenticated?
+      if !Current.session.user.email_verified?
+        redirect_to jobs_path, alert: "Please verify your email to view job details. Check your inbox for a verification link."
+        return
+      end
       @saved_job = Current.session.user.saved_jobs.find_by(job: @job)
       @saved = @saved_job.present?
       @applied = @saved_job&.applied?
+    else
+      # Soft gate: allow N free job views for unauthenticated visitors,
+      # then prompt for signup. Bots are exempt so SEO is unaffected.
+      unless bot_request?
+        viewed = (session[:viewed_job_ids] ||= [])
+        viewed << @job.id unless viewed.include?(@job.id)
+        viewed.shift while viewed.length > 50  # cap session size
+        session[:viewed_job_ids] = viewed
+
+        if viewed.length > FREE_JOB_VIEWS
+          redirect_to soft_gate_path(next: request.fullpath, source: "job_view_limit")
+          return
+        end
+      end
     end
+  end
+
+  def today
+    redirect_to jobs_path(category: "new_today")
   end
 
   def globe

@@ -1,0 +1,46 @@
+<% content_for :title, "Sign up to keep browsing" %>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+  <div class="text-center mb-10">
+    <img src="/agent44_logo.svg" alt="Agent 44 Labs" class="w-16 h-16 mx-auto mb-6">
+    <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-4">
+      You've checked out a few jobs.
+    </h1>
+    <p class="text-lg text-gray-400">
+      Sign up free to keep browsing — and unlock the stuff that actually helps you land the role.
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-gray-800 bg-gray-900/50 p-8 mb-8">
+    <h2 class="text-sm font-semibold text-orange-400 uppercase tracking-wide mb-4">Free with sign up</h2>
+    <ul class="space-y-3 text-gray-300">
+      <li class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <span><strong class="text-white">Unlimited job views</strong> — full descriptions, salary, source links</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <span><strong class="text-white">Save jobs</strong> across devices and track which ones you've applied to</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <span><strong class="text-white">Hide companies and recruiters</strong> you're not interested in</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <span><strong class="text-white">Daily AI testing digest</strong> on the home page — what's actually changing in QA</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3 justify-center">
+    <%= link_to "Sign up free", new_registration_path,
+          class: "inline-flex items-center justify-center px-6 py-3 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold transition" %>
+    <%= link_to "I already have an account", new_session_path,
+          class: "inline-flex items-center justify-center px-6 py-3 rounded-lg border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white font-medium transition" %>
+  </div>
+
+  <p class="text-center text-xs text-gray-500 mt-6">
+    No spam. Unsubscribe any time. We don't share your email.
+  </p>
+</div>

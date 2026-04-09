@@ -3,6 +3,7 @@ class PostsController < ApplicationController
 
   def index
     @posts = Post.published
+    @top_skills = Job.top_skills(limit: 6)
   end
 
   def show

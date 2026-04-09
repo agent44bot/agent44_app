@@ -1,0 +1,43 @@
+<%#
+  Locals:
+    meter:  hash from Job.ai_demand_meter — { traditional:, ai:, total:, ai_pct:, trad_pct:, delta_pts: }
+    size:   :sm | :md (default :md)
+    label:  optional override label, e.g. "AI vs Traditional demand (last 30 days)"
+%>
+<% size ||= :md %>
+<% label ||= "Market demand · last 30 days" %>
+<% return if meter.blank? || meter[:total].to_i.zero? %>
+
+<% bar_h = size == :sm ? "h-2" : "h-3" %>
+<% text_main = size == :sm ? "text-xs" : "text-sm" %>
+<% text_label = size == :sm ? "text-[10px]" : "text-xs" %>
+
+<div class="<%= size == :sm ? '' : 'rounded-xl border border-gray-800 bg-gray-900 p-4' %>">
+  <div class="flex items-center justify-between mb-2">
+    <span class="<%= text_label %> font-semibold uppercase tracking-wide text-gray-500"><%= label %></span>
+    <% if meter[:prev_ai_pct].present? && meter[:delta_pts].present? && meter[:delta_pts] != 0 %>
+      <% up = meter[:delta_pts] > 0 %>
+      <span class="<%= text_label %> font-medium <%= up ? 'text-green-400' : 'text-gray-500' %>">
+        <%= up ? "▲" : "▼" %> AI: <%= meter[:prev_ai_pct] %>% → <%= meter[:ai_pct] %>% (last 30 days)
+      </span>
+    <% end %>
+  </div>
+  <div class="flex w-full overflow-hidden rounded-full <%= bar_h %> bg-gray-800">
+    <div class="bg-orange-500" style="width: <%= meter[:trad_pct] %>%;"></div>
+    <div class="bg-green-500" style="width: <%= meter[:ai_pct] %>%;"></div>
+  </div>
+  <div class="flex items-center justify-between mt-2 <%= text_main %>">
+    <div class="flex items-center gap-1.5">
+      <span class="inline-block w-2 h-2 rounded-full bg-orange-500"></span>
+      <span class="font-semibold text-white"><%= meter[:trad_pct] %>%</span>
+      <span class="text-gray-500">Traditional</span>
+      <span class="text-gray-600">(<%= meter[:traditional] %>)</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="text-gray-600">(<%= meter[:ai] %>)</span>
+      <span class="text-gray-500">AI-Augmented</span>
+      <span class="font-semibold text-white"><%= meter[:ai_pct] %>%</span>
+      <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+    </div>
+  </div>
+</div>

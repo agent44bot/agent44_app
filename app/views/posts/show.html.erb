@@ -3,7 +3,7 @@
 <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
   <!-- Back link -->
   <div class="mb-8">
-    <%= link_to "&larr; Back to Newsletter".html_safe, posts_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
+    <%= link_to "&larr; Back to Pulse".html_safe, posts_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
   </div>
 
   <!-- Header -->
@@ -15,7 +15,7 @@
       <% end %>
       <% if @post.user.present? %>
         <span class="text-gray-300">&middot;</span>
-        <span>by <span class="font-medium text-gray-300"><%= @post.user.display_identifier %></span></span>
+        <span>by <span class="font-medium text-gray-300">Agent44</span></span>
       <% end %>
     </div>
   </header>
@@ -28,8 +28,8 @@
   <!-- Footer -->
   <footer class="mt-16 pt-8 border-t border-gray-800">
     <div class="flex items-center justify-between">
-      <%= link_to "&larr; Back to Newsletter".html_safe, posts_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
-      <p class="text-sm text-gray-400">Agent44 Newsletter</p>
+      <%= link_to "&larr; Back to Pulse".html_safe, posts_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
+      <p class="text-sm text-gray-400 inline-flex items-center gap-1">Agent44 Pulse <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg></p>
     </div>
   </footer>
 </article>

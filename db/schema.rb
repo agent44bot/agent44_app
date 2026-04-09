@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_03_151815) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_09_120000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -85,6 +85,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_03_151815) do
     t.string "normalized_company"
     t.string "normalized_title"
     t.datetime "posted_at"
+    t.string "role_class", default: "traditional", null: false
     t.string "salary"
     t.string "source"
     t.string "title", null: false
@@ -93,6 +94,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_03_151815) do
     t.index ["category"], name: "index_jobs_on_category"
     t.index ["normalized_company", "normalized_title"], name: "index_jobs_on_normalized_company_and_normalized_title"
     t.index ["posted_at"], name: "index_jobs_on_posted_at"
+    t.index ["role_class"], name: "index_jobs_on_role_class"
     t.index ["source", "url"], name: "index_jobs_on_source_and_url", unique: true
   end
 
@@ -103,6 +105,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_03_151815) do
     t.datetime "expires_at"
     t.string "pubkey_hex"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "news_articles", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "published_at"
+    t.string "source", null: false
+    t.text "summary"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.datetime "used_at"
+    t.index ["source"], name: "index_news_articles_on_source"
+    t.index ["url"], name: "index_news_articles_on_url", unique: true
+    t.index ["used_at"], name: "index_news_articles_on_used_at"
+  end
+
+  create_table "news_digests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.text "summary", null: false
+    t.datetime "updated_at", null: false
+    t.index ["date"], name: "index_news_digests_on_date", unique: true
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "level", default: "info", null: false
+    t.datetime "read_at"
+    t.string "source", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_notifications_on_created_at"
+    t.index ["level"], name: "index_notifications_on_level"
+    t.index ["read_at"], name: "index_notifications_on_read_at"
   end
 
   create_table "page_views", force: :cascade do |t|

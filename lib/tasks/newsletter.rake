@@ -15,8 +15,16 @@ namespace :newsletter do
     recent_jobs = Job.where("posted_at > ?", 30.days.ago).order(posted_at: :desc).limit(20)
     job_summary = recent_jobs.map { |j| "- #{j.title} at #{j.company} (#{j.category})" }.join("\n")
 
-    ai_job_count = recent_jobs.where(category: "ai").count
-    traditional_count = recent_jobs.where.not(category: "ai").count
+    ai_job_count = recent_jobs.ai_augmented.count
+    traditional_count = recent_jobs.traditional.count
+
+    # Gather unused news articles for context
+    news_articles = NewsArticle.unused.recent.limit(15)
+    news_summary = news_articles.map { |a|
+      line = "- [#{a.source}] #{a.title}"
+      line += " — #{a.summary.truncate(200)}" if a.summary.present?
+      line
+    }.join("\n")
 
     prompt = <<~PROMPT
       You are a newsletter writer for Agent44, an AI-augmented test automation consulting and SDET placement platform.
@@ -25,9 +33,10 @@ namespace :newsletter do
 
       Here is context from our job board (last 30 days):
       - Total recent postings: #{recent_jobs.count}
-      - AI/ML-related QA roles: #{ai_job_count}
+      - AI-augmented QA roles: #{ai_job_count}
       - Traditional test automation roles: #{traditional_count}
       #{job_summary.present? ? "\nRecent job titles:\n#{job_summary}" : ""}
+      #{news_summary.present? ? "\nRecent AI testing industry news and articles:\n#{news_summary}\n\nUse the most interesting news items above to inform your writing. Reference specific tools, trends, or developments mentioned in the articles where relevant. Do not just list the articles — weave them into your narrative." : ""}
 
       Requirements:
       - Write in HTML (h2 for section headings, p tags for paragraphs, ul/ol for lists, strong/em for emphasis)
@@ -88,15 +97,21 @@ namespace :newsletter do
       published_at: Time.current
     )
 
+    # Mark news articles as used
+    if news_articles.any?
+      news_articles.each(&:mark_as_used!)
+      puts "Marked #{news_articles.count} news articles as used"
+    end
+
     puts "Published: \"#{post.title}\" (slug: #{post.slug})"
-    puts "URL: /newsletter/#{post.slug}"
+    puts "URL: /pulse/#{post.slug}"
 
     # Send Telegram notification
     if telegram_bot_token.present? && telegram_chat_id.present?
       app_url = ENV.fetch("APP_URL", "https://agent44.com")
-      post_url = "#{app_url}/newsletter/#{post.slug}"
+      post_url = "#{app_url}/pulse/#{post.slug}"
       preview = post.body.to_plain_text.truncate(200)
-      telegram_text = "📰 *New Newsletter Published*\n\n*#{post.title}*\n\n#{preview}\n\n[Read the full post](#{post_url})"
+      telegram_text = "💓 *New Pulse Published*\n\n*#{post.title}*\n\n#{preview}\n\n[Read the full post](#{post_url})"
 
       tg_uri = URI("https://api.telegram.org/bot#{telegram_bot_token}/sendMessage")
       tg_http = Net::HTTP.new(tg_uri.host, tg_uri.port)

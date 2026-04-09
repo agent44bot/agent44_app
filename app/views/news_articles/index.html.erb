@@ -1,0 +1,102 @@
+<% content_for(:title, "AI Testing News") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl md:text-4xl font-bold text-white">AI Testing News</h1>
+    <p class="mt-2 text-gray-500">Daily digest of what's happening in AI testing, tools, and automation.</p>
+  </div>
+
+  <!-- Date Navigation -->
+  <div class="flex items-center justify-between mb-8 bg-gray-900 rounded-xl border border-gray-800 px-4 py-3">
+    <% if @prev_date %>
+      <%= link_to news_articles_path(date: @prev_date), class: "text-sm font-medium text-gray-400 hover:text-orange-400 transition flex items-center gap-1" do %>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <%= @prev_date.strftime("%b %d") %>
+      <% end %>
+    <% else %>
+      <span></span>
+    <% end %>
+
+    <span class="text-sm font-semibold text-white"><%= @date.strftime("%A, %B %d, %Y") %></span>
+
+    <% if @next_date %>
+      <%= link_to news_articles_path(date: @next_date), class: "text-sm font-medium text-gray-400 hover:text-orange-400 transition flex items-center gap-1" do %>
+        <%= @next_date.strftime("%b %d") %>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      <% end %>
+    <% else %>
+      <span></span>
+    <% end %>
+  </div>
+
+  <!-- Daily Digest -->
+  <% if @digest.present? %>
+    <details open class="mb-8 bg-gradient-to-br from-gray-900 to-gray-900/80 rounded-xl border border-orange-900/40 overflow-hidden">
+      <summary class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-800/30 transition select-none">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-orange-900/50 flex items-center justify-center">
+            <svg class="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold text-white">Today's AI Testing Digest</span>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </summary>
+      <div class="px-5 pb-5">
+        <%= raw(markdown_to_html(@digest.summary)) %>
+      </div>
+    </details>
+  <% end %>
+
+  <% if @articles.empty? %>
+    <div class="text-center py-16">
+      <p class="text-gray-500">No articles found for this date.</p>
+    </div>
+  <% else %>
+    <p class="text-sm text-gray-500 mb-6"><%= @articles.count %> articles</p>
+
+    <% source_labels = { "google_news" => "Google News", "devto" => "Dev.to", "hackernews" => "Hacker News" } %>
+    <% source_colors = { "google_news" => "blue", "devto" => "green", "hackernews" => "orange" } %>
+
+    <% %w[google_news devto hackernews].each do |source| %>
+      <% articles = @grouped[source] %>
+      <% next unless articles.present? %>
+
+      <div class="mb-8">
+        <div class="flex items-center gap-2 mb-4">
+          <% color = source_colors[source] %>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            <%= color == 'blue' ? 'bg-blue-900/50 text-blue-300' : color == 'green' ? 'bg-green-900/50 text-green-300' : 'bg-orange-900/50 text-orange-300' %>">
+            <%= source_labels[source] || source %>
+          </span>
+          <span class="text-xs text-gray-500"><%= articles.count %> articles</span>
+        </div>
+
+        <div class="space-y-1">
+          <% articles.each do |article| %>
+            <a href="<%= article.url %>" target="_blank" rel="noopener noreferrer"
+               class="block bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 hover:border-gray-700 hover:bg-gray-800/50 transition group">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-white group-hover:text-orange-400 transition leading-snug">
+                    <%= article.title %>
+                  </p>
+                  <% if article.summary.present? %>
+                    <p class="text-xs text-gray-500 mt-1 line-clamp-2"><%= article.summary.truncate(200) %></p>
+                  <% end %>
+                </div>
+                <svg class="w-4 h-4 text-gray-600 group-hover:text-orange-400 transition flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+              </div>
+            </a>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

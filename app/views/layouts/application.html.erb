@@ -8,7 +8,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="description" content="Agent 44 Labs — AI agents, test automation, iOS & web apps">
   <title><%= content_for?(:title) ? "#{yield(:title)} | Agent 44 Labs" : "Agent 44 Labs" %></title>
-  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/agent44_logo.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
   <%= csrf_meta_tags %>
@@ -16,8 +17,7 @@
 
   <%= yield :head %>
 
-  <link rel="icon" href="/icon.png" type="image/png">
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/agent44_logo.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.png">
 
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
@@ -32,18 +32,22 @@
         <!-- Left: Logo + Links -->
         <div class="flex items-center space-x-8">
           <%= link_to root_path, class: "flex items-center space-x-2 font-black text-xl tracking-tight" do %>
-            <img src="/icon.png" alt="Agent 44 Labs" width="40" height="40" class="w-10 h-10 rounded-lg">
+            <img src="/agent44_logo.svg" alt="Agent 44 Labs" width="40" height="40" class="w-10 h-10">
             <span class="text-white">Agent 44 <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Labs</span></span>
           <% end %>
 
           <div class="hidden md:flex items-center space-x-6">
             <%= link_to "Home", root_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
             <%= link_to "Jobs", jobs_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
+            <%= link_to "AI News", news_articles_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
+            <%= link_to posts_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition flex items-center gap-1" do %>
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+              Pulse
+            <% end %>
             <%= link_to globe_jobs_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition flex items-center gap-1" do %>
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 003 12c0-1.605.42-3.113 1.157-4.418"/></svg>
               Map
             <% end %>
-            <%= link_to "Newsletter", posts_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
           </div>
         </div>
 
@@ -83,8 +87,12 @@
       <div class="px-4 pt-2 pb-4 space-y-1 border-t border-gray-800">
         <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+        <%= link_to "AI News", news_articles_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+        <%= link_to posts_path, class: "flex items-center gap-1 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-orange-400" do %>
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+          Pulse
+        <% end %>
         <%= link_to "Map", globe_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
-        <%= link_to "Newsletter", posts_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <div class="border-t border-gray-800 pt-2">
           <% if authenticated? %>
             <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
@@ -142,7 +150,7 @@
         <div>
           <h3 class="text-white font-black text-lg mb-3">Agent 44 Labs</h3>
           <p class="text-sm text-gray-500 leading-relaxed">
-            AI agents. Test automation. iOS &amp; web apps. Rochester, NY.
+            One human. One Mac mini. A team of Claude agents. Orchestrating the agents that build and test this site, in public. Rochester, NY.
           </p>
         </div>
 
@@ -151,7 +159,8 @@
           <h3 class="text-white font-semibold text-lg mb-3">Links</h3>
           <ul class="space-y-2 text-sm">
             <li><%= link_to "Jobs", jobs_path, class: "hover:text-orange-400 transition" %></li>
-            <li><%= link_to "Newsletter", posts_path, class: "hover:text-orange-400 transition" %></li>
+            <li><%= link_to "AI News", news_articles_path, class: "hover:text-orange-400 transition" %></li>
+            <li><%= link_to posts_path, class: "hover:text-orange-400 transition inline-flex items-center gap-1" do %><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg> Pulse<% end %></li>
           </ul>
         </div>
 

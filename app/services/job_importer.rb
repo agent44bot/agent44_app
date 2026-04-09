@@ -30,6 +30,11 @@ class JobImporter
         existing_job.update(location: jp[:location]) if existing_job.location.blank? && jp[:location].present?
         @updated += 1
       else
+        role_class = RoleClassifier.classify(
+          title: jp[:title],
+          tags: jp[:tags],
+          description: jp[:description]
+        )
         job = Job.new(
           title: jp[:title],
           company: jp[:company],
@@ -37,7 +42,8 @@ class JobImporter
           salary: jp[:salary],
           description: jp[:description],
           category: jp[:category],
-          ai_augmented: jp[:ai_augmented] || false,
+          role_class: role_class,
+          ai_augmented: RoleClassifier.ai_flavored?(role_class),
           source: jp[:source],
           url: jp[:url],
           external_id: jp[:external_id],

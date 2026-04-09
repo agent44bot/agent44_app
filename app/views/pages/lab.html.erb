@@ -1,0 +1,208 @@
+<% content_for(:title, "The Lab") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+
+  <!-- Header -->
+  <div class="mb-12">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-900/30 border border-orange-800/50 mb-6">
+      <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+      <span class="text-xs font-semibold text-orange-400 uppercase tracking-wide">Day One · Live Experiment</span>
+    </div>
+    <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">The Lab</h1>
+    <p class="mt-4 text-lg text-gray-400 leading-relaxed max-w-2xl">
+      A live experiment in human-directed agent teams. This site is the experiment &mdash; built, tested,
+      and secured by AI agents under human direction. Watch how it works.
+    </p>
+  </div>
+
+  <!-- The Premise -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-bold text-white mb-4">The premise</h2>
+    <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed space-y-4">
+      <p>
+        The line between building software and testing it is dissolving. Soon &mdash; sooner than most
+        people think &mdash; the durable skill won't be writing code or writing tests. It will be
+        <em class="text-gray-200 not-italic font-semibold">orchestrating the agents that do both</em>,
+        and having the judgment to know when they got it right.
+      </p>
+      <p>
+        I've spent 25 years in test automation, training my pattern-recognition on what software gets
+        wrong. That judgment is the moat. Anyone can spin up Claude. Very few people have spent two
+        decades watching code break in production.
+      </p>
+      <p>
+        Agent44 Labs is the public version of me figuring this out. Instead of theorizing about agent
+        orchestration, I'm running it on a system you're currently looking at. Every commit, every test
+        run, every security scan, every bug an agent catches &mdash; that's the demo. Don't trust. Verify.
+      </p>
+    </div>
+  </section>
+
+  <!-- The Setup -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-bold text-white mb-6">The setup</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+        <div class="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-2">Hardware</div>
+        <p class="text-white font-semibold">One Mac mini</p>
+        <p class="text-sm text-gray-500 mt-1">Dedicated to running the agent team. Named <span class="text-gray-300">agent44</span>.</p>
+      </div>
+      <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+        <div class="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-2">Stack</div>
+        <p class="text-white font-semibold">Claude + Claude Code</p>
+        <p class="text-sm text-gray-500 mt-1">Anthropic's agent-native CLI. The team will grow from here.</p>
+      </div>
+      <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+        <div class="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-2">Codebase</div>
+        <p class="text-white font-semibold">This Rails app</p>
+        <p class="text-sm text-gray-500 mt-1">agent44labs.com is the test subject. Dogfood, all the way down.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Where We Are -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-bold text-white mb-6">Where we are right now</h2>
+    <div class="rounded-2xl border border-gray-800 bg-gray-900 p-8">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-orange-900/50 border border-orange-800 flex items-center justify-center">
+          <span class="text-orange-400 font-bold">1</span>
+        </div>
+        <div>
+          <h3 class="text-white font-semibold">Day One</h3>
+          <p class="text-xs text-gray-500"><%= Date.current.strftime("%B %-d, %Y") %></p>
+        </div>
+      </div>
+      <p class="text-gray-400 leading-relaxed">
+        Hardware is set up. The Mac mini is running. Claude Code is installed. The agent team has not
+        yet shipped a single line of code to this site.
+      </p>
+      <p class="text-gray-400 leading-relaxed mt-3">
+        That changes from here. Every commit an agent authors will be tagged. Every test it writes
+        will be tracked. Every time it gets something wrong, that goes in Pulse with my notes on why.
+        This page will fill up with real activity as the experiment runs.
+      </p>
+      <p class="text-gray-300 leading-relaxed mt-4 font-medium">
+        You are reading this on the very codebase the agents are about to start working on. Bookmark it
+        and check back.
+      </p>
+    </div>
+  </section>
+
+  <!-- The Plan -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-bold text-white mb-6">The plan</h2>
+    <ol class="space-y-4">
+      <% [
+        ["Tag every commit", "Human-authored, agent-authored, or co-authored. From day one. No retroactive cleanup."],
+        ["Start tiny", "Agents open PRs against the smallest possible scope first &mdash; copy edits, dependency bumps, test additions. Build the loop before expanding the surface area."],
+        ["Wire in security scanners", "Brakeman, bundler-audit, secrets scanning. An agent runs them on a schedule, opens issues for findings, and writes the first-pass fix."],
+        ["Let agents write their own tests", "Cassandra (the test agent, when she exists) writes Playwright coverage for what the human and other agents ship."],
+        ["Publish everything in Pulse", "What worked. What didn't. What I had to step in for. The lab notes are the product."],
+        ["Expand the loop", "Once the small scope is bulletproof, give agents more surface area. Eventually: features. Eventually: deploys with human approval. Eventually: deploys without."]
+      ].each_with_index do |(title, body), i| %>
+        <li class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center mt-0.5">
+            <span class="text-xs font-bold text-gray-400"><%= i + 1 %></span>
+          </div>
+          <div>
+            <h3 class="text-white font-semibold"><%= title %></h3>
+            <p class="text-sm text-gray-500 leading-relaxed mt-0.5"><%= body.html_safe %></p>
+          </div>
+        </li>
+      <% end %>
+    </ol>
+  </section>
+
+  <!-- Agent Director Salary Tally -->
+  <section class="mb-16">
+    <div class="flex items-baseline justify-between mb-2">
+      <h2 class="text-2xl font-bold text-white">What the next role pays</h2>
+      <span class="text-xs uppercase tracking-wide text-orange-400">Live · last 90d</span>
+    </div>
+    <p class="text-sm text-gray-500 mb-6">
+      The scraper now hunts for "Agent Director"-class roles &mdash; titles like
+      <em>AI engineer, agent engineer, AI orchestrator, applied AI engineer, LLM engineer,
+      forward-deployed AI engineer</em>. People paid to direct teams of agents.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <% [
+        ["Agent Director", @director_salary, "orange"],
+        ["AI-Augmented",   @ai_salary,       "purple"],
+        ["Traditional",    @trad_salary,     "gray"]
+      ].each do |label, stats, accent| %>
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+          <div class="text-xs font-semibold text-<%= accent %>-400 uppercase tracking-wide mb-2"><%= label %></div>
+          <% if stats[:with_salary].to_i > 0 %>
+            <p class="text-3xl font-black text-white">$<%= number_with_delimiter(stats[:median]) %></p>
+            <p class="text-xs text-gray-500 mt-1">median &middot; <%= stats[:with_salary] %> of <%= stats[:total] %> postings list pay</p>
+            <div class="mt-3 text-xs text-gray-400 space-y-0.5">
+              <div>p25: $<%= number_with_delimiter(stats[:p25]) %></div>
+              <div>p75: $<%= number_with_delimiter(stats[:p75]) %></div>
+              <div>max: $<%= number_with_delimiter(stats[:max]) %></div>
+            </div>
+          <% else %>
+            <p class="text-2xl font-black text-gray-600">&mdash;</p>
+            <p class="text-xs text-gray-500 mt-1">
+              <%= stats[:total].to_i.zero? ? "No postings yet" : "#{stats[:total]} postings, none with salary data" %>
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @recent_director_jobs.any? %>
+      <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Recent agent-director postings</h3>
+      <div class="rounded-xl border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+        <% @recent_director_jobs.each do |job| %>
+          <div class="flex items-center justify-between p-4">
+            <div class="min-w-0 flex-1 mr-4">
+              <p class="text-sm font-medium text-white truncate"><%= link_to job.title, job_path(job), class: "hover:text-orange-400 transition" %></p>
+              <p class="text-xs text-gray-500 mt-0.5"><%= job.company %> &middot; <%= job.location.presence || "Remote" %></p>
+            </div>
+            <% if job.salary.present? %>
+              <span class="text-xs text-gray-400 whitespace-nowrap"><%= job.salary %></span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="rounded-xl border border-dashed border-gray-800 bg-gray-900/50 p-6 text-center">
+        <p class="text-sm text-gray-500">No agent-director roles in the index yet. The classifier just shipped &mdash; check back after the next scrape run.</p>
+      </div>
+    <% end %>
+  </section>
+
+  <!-- Market Context -->
+  <% if @ai_demand_meter.present? && @ai_demand_meter[:total].to_i > 0 %>
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-white mb-2">Why now</h2>
+      <p class="text-sm text-gray-500 mb-6">
+        The job market is still asking for what worked yesterday. The lab is for what's coming next.
+      </p>
+      <%= render "shared/ai_demand_meter", meter: @ai_demand_meter, label: "AI-augmented vs traditional roles · last 30 days" %>
+      <p class="mt-4 text-sm text-gray-500 leading-relaxed">
+        Look at that split. Most postings still describe the old world. The interesting question
+        isn't <em>"what skills does the market want?"</em> &mdash; it's <em>"who's going to build the thing the
+        market doesn't yet know how to ask for?"</em>
+      </p>
+    </section>
+  <% end %>
+
+  <!-- CTA -->
+  <section class="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-8 text-center">
+    <h2 class="text-2xl font-bold text-white">Follow along</h2>
+    <p class="mt-3 text-gray-400 max-w-md mx-auto">
+      The lab notes go out in Pulse. Field reports from a 25-year tester learning to direct agents.
+      In public. In real time.
+    </p>
+    <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+      <%= link_to "Read Pulse →", posts_path,
+            class: "inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-orange-600 rounded-full hover:bg-orange-700 transition" %>
+      <%= link_to "See the job market data", jobs_path,
+            class: "inline-flex items-center px-6 py-3 text-sm font-semibold text-gray-300 border border-gray-700 rounded-full hover:border-orange-500 hover:text-orange-400 transition" %>
+    </div>
+  </section>
+
+</div>
