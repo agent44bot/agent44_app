@@ -78,20 +78,23 @@ class JobsController < ApplicationController
     utc_offset = Time.current.utc_offset / 3600
     offset_str = format("%+d hours", utc_offset)
 
-    trend_cache = Rails.cache.fetch("job_trends/v2/#{end_date}", expires_in: 6.hours) do
+    trend_cache = Rails.cache.fetch("job_trends/v3/#{end_date}", expires_in: 6.hours) do
       trend_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day)
 
       auto_counts = trend_base.traditional.group("date(posted_at, '#{offset_str}')").count
-      ai_counts = trend_base.ai_augmented.group("date(posted_at, '#{offset_str}')").count
+      ai_counts = trend_base.ai_augmented_only.group("date(posted_at, '#{offset_str}')").count
+      director_counts = trend_base.agent_director.group("date(posted_at, '#{offset_str}')").count
 
       {
         auto: @trend_labels.map { |d| auto_counts[d.to_s] || 0 },
-        ai: @trend_labels.map { |d| ai_counts[d.to_s] || 0 }
+        ai: @trend_labels.map { |d| ai_counts[d.to_s] || 0 },
+        director: @trend_labels.map { |d| director_counts[d.to_s] || 0 }
       }
     end
 
     @trend_data_auto = trend_cache[:auto]
     @trend_data_ai = trend_cache[:ai]
+    @trend_data_director = trend_cache[:director]
 
     @top_skills = Job.top_skills(limit: 10)
     @ai_demand_meter = Job.ai_demand_meter

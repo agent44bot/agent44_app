@@ -1,10 +1,10 @@
-<% content_for(:title, "Jobs") %>
+<% content_for(:title, "Jobs — Test Automation, AI, and Agent Engineer Roles") %>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
   <!-- Header -->
   <div class="flex items-start justify-between mb-8">
     <div>
-      <h1 class="text-3xl font-bold text-white">Test Automation Jobs</h1>
+      <h1 class="text-3xl font-bold text-white">Jobs</h1>
       <p class="mt-2 text-gray-500">Curated positions from across the web, updated daily.</p>
     </div>
     <%= link_to globe_jobs_path, class: "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-900 border border-gray-800 rounded-full hover:border-orange-300 hover:text-orange-600 transition shadow-sm" do %>
@@ -21,19 +21,19 @@
   <!-- Chart Tabs -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <%= link_to jobs_path(tab: "traditional", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'traditional' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
-      <h3 class="text-lg font-semibold text-white mb-1">Traditional</h3>
+      <h3 class="text-lg font-semibold text-white mb-1">Traditional Automation</h3>
       <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles</p>
       <canvas id="autoChart" height="80"></canvas>
     <% end %>
     <%= link_to jobs_path(tab: "ai", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'ai' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
-      <h3 class="text-lg font-semibold text-white mb-1">AI-Augmented</h3>
-      <p class="text-sm text-gray-500 mb-4">Roles mentioning AI, ML, or LLM</p>
+      <h3 class="text-lg font-semibold text-white mb-1">AI-Augmented Automation</h3>
+      <p class="text-sm text-gray-500 mb-4">Automation roles mentioning AI, ML, or LLM</p>
       <canvas id="aiChart" height="80"></canvas>
     <% end %>
-    <%= link_to jobs_path(tab: "director", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'director' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
-      <h3 class="text-lg font-semibold text-white mb-1">Agent Director <span class="ml-1 text-[10px] uppercase tracking-wide text-orange-400">New</span></h3>
-      <p class="text-sm text-gray-500 mb-4">Humans who direct teams of AI agents</p>
-      <p class="text-2xl font-bold text-white"><%= @ai_demand_meter[:director] %><span class="text-sm text-gray-500 font-normal"> roles · last 30d</span></p>
+    <%= link_to jobs_path(tab: "director", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'director' ? 'bg-gray-900 border-blue-500 shadow-lg shadow-blue-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
+      <h3 class="text-lg font-semibold text-white mb-1">AI Agent Engineer <span class="ml-1 text-[10px] uppercase tracking-wide text-blue-400">New</span></h3>
+      <p class="text-sm text-gray-500 mb-4">Building and directing teams of AI agents</p>
+      <canvas id="directorChart" height="80"></canvas>
     <% end %>
   </div>
 
@@ -103,10 +103,12 @@
 
         const autoData = <%= raw @trend_data_auto.to_json %>;
         const aiData = <%= raw @trend_data_ai.to_json %>;
-        const sharedMax = Math.max(...autoData, ...aiData);
+        const directorData = <%= raw @trend_data_director.to_json %>;
+        const sharedMax = Math.max(...autoData, ...aiData, ...directorData);
 
         buildChart("autoChart", autoData, "rgb(249,115,22)", sharedMax);
         buildChart("aiChart", aiData, "rgb(34,197,94)", sharedMax);
+        buildChart("directorChart", directorData, "rgb(59,130,246)", sharedMax);
       }
 
       document.addEventListener("turbo:load", initCharts);

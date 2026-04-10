@@ -25,7 +25,8 @@ namespace :jobs do
 
     puts
     puts "Reclassified #{changed} of #{total} jobs (#{promoted_director} new agent_director)."
-    Rails.cache.delete_matched("jobs/ai_demand_meter/*") rescue nil
-    Rails.cache.delete_matched("jobs/salary_stats/*") rescue nil
+    # SolidCache (used in production) doesn't implement delete_matched, so
+    # just clear the whole cache. The keys we care about all auto-rebuild.
+    Rails.cache.clear
   end
 end

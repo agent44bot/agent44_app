@@ -114,23 +114,23 @@
     </ol>
   </section>
 
-  <!-- Agent Director Salary Tally -->
+  <!-- AI Agent Engineer Salary Tally -->
   <section class="mb-16">
     <div class="flex items-baseline justify-between mb-2">
       <h2 class="text-2xl font-bold text-white">What the next role pays</h2>
-      <span class="text-xs uppercase tracking-wide text-orange-400">Live · last 90d</span>
+      <span class="text-xs uppercase tracking-wide text-blue-400">Live · last 90d</span>
     </div>
     <p class="text-sm text-gray-500 mb-6">
-      The scraper now hunts for "Agent Director"-class roles &mdash; titles like
-      <em>AI engineer, agent engineer, AI orchestrator, applied AI engineer, LLM engineer,
-      forward-deployed AI engineer</em>. People paid to direct teams of agents.
+      The scraper hunts for "AI Agent Engineer"-class roles &mdash; titles like
+      <em>AI agent engineer, applied AI engineer, LLM engineer, agent architect,
+      forward-deployed AI engineer</em>. People paid to build and direct teams of agents.
     </p>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       <% [
-        ["Agent Director", @director_salary, "orange"],
-        ["AI-Augmented",   @ai_salary,       "purple"],
-        ["Traditional",    @trad_salary,     "gray"]
+        ["AI Agent Engineer",       @director_salary, "blue"],
+        ["AI-Augmented Automation", @ai_salary,       "purple"],
+        ["Traditional Automation",  @trad_salary,     "gray"]
       ].each do |label, stats, accent| %>
         <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
           <div class="text-xs font-semibold text-<%= accent %>-400 uppercase tracking-wide mb-2"><%= label %></div>
@@ -153,7 +153,7 @@
     </div>
 
     <% if @recent_director_jobs.any? %>
-      <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Recent agent-director postings</h3>
+      <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Recent AI agent engineer postings</h3>
       <div class="rounded-xl border border-gray-800 bg-gray-900 divide-y divide-gray-800">
         <% @recent_director_jobs.each do |job| %>
           <div class="flex items-center justify-between p-4">
@@ -169,7 +169,7 @@
       </div>
     <% else %>
       <div class="rounded-xl border border-dashed border-gray-800 bg-gray-900/50 p-6 text-center">
-        <p class="text-sm text-gray-500">No agent-director roles in the index yet. The classifier just shipped &mdash; check back after the next scrape run.</p>
+        <p class="text-sm text-gray-500">No AI agent engineer roles in the index yet. The classifier just shipped &mdash; check back after the next scrape run.</p>
       </div>
     <% end %>
   </section>
