@@ -13,6 +13,15 @@
     <% end %>
   </div>
 
+  <!-- Time Range -->
+  <div class="flex items-center gap-2 mb-6">
+    <span class="text-xs text-gray-500 uppercase tracking-wide mr-1">Range</span>
+    <% [["1d", "1D"], ["5d", "5D"], ["1w", "1W"], ["3w", "3W"], ["1m", "1M"], ["3m", "3M"], ["6m", "6M"]].each do |value, label| %>
+      <%= link_to label, jobs_path(range: value, tab: params[:tab], q: params[:q], sort: params[:sort], skill: params[:skill], source: params[:source]),
+            class: "px-3 py-1 text-xs font-semibold rounded-full transition #{@range == value ? 'bg-orange-600 text-white' : 'bg-gray-900 text-gray-400 border border-gray-800 hover:border-orange-500 hover:text-orange-400'}" %>
+    <% end %>
+  </div>
+
   <!-- AI Demand Meter -->
   <div class="mb-6">
     <%= render "shared/ai_demand_meter", meter: @ai_demand_meter %>
@@ -20,17 +29,17 @@
 
   <!-- Chart Tabs -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <%= link_to jobs_path(tab: "traditional", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'traditional' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
+    <%= link_to jobs_path(tab: "traditional", q: params[:q], sort: params[:sort], range: params[:range]), class: "block rounded-xl border p-4 transition #{@tab == 'traditional' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
       <h3 class="text-lg font-semibold text-white mb-1">Traditional Automation</h3>
       <p class="text-sm text-gray-500 mb-4">Standard QA, SDET, and test engineer roles</p>
       <canvas id="autoChart" height="80"></canvas>
     <% end %>
-    <%= link_to jobs_path(tab: "ai", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'ai' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
+    <%= link_to jobs_path(tab: "ai", q: params[:q], sort: params[:sort], range: params[:range]), class: "block rounded-xl border p-4 transition #{@tab == 'ai' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
       <h3 class="text-lg font-semibold text-white mb-1">AI-Augmented Automation</h3>
       <p class="text-sm text-gray-500 mb-4">Automation roles mentioning AI, ML, or LLM</p>
       <canvas id="aiChart" height="80"></canvas>
     <% end %>
-    <%= link_to jobs_path(tab: "director", q: params[:q], sort: params[:sort]), class: "block rounded-xl border p-4 transition #{@tab == 'director' ? 'bg-gray-900 border-blue-500 shadow-lg shadow-blue-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
+    <%= link_to jobs_path(tab: "director", q: params[:q], sort: params[:sort], range: params[:range]), class: "block rounded-xl border p-4 transition #{@tab == 'director' ? 'bg-gray-900 border-blue-500 shadow-lg shadow-blue-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
       <h3 class="text-lg font-semibold text-white mb-1">AI Agent Engineer <span class="ml-1 text-[10px] uppercase tracking-wide text-blue-400">New</span></h3>
       <p class="text-sm text-gray-500 mb-4">Building and directing teams of AI agents</p>
       <canvas id="directorChart" height="80"></canvas>

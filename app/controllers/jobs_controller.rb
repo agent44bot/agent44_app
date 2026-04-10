@@ -3,9 +3,15 @@ class JobsController < ApplicationController
 
   FREE_JOB_VIEWS = 5
 
+  RANGE_MAP = { "1d" => 1, "5d" => 5, "1w" => 7, "3w" => 21, "1m" => 30, "3m" => 90, "6m" => 180 }.freeze
+  DEFAULT_RANGE = "1m"
+
   def index
+    @range = RANGE_MAP.key?(params[:range]) ? params[:range] : DEFAULT_RANGE
+    @range_days = RANGE_MAP[@range]
+
     @tab = params[:tab].presence || "traditional"
-    base = Job.active
+    base = Job.active.where(posted_at: @range_days.days.ago..Time.current)
     base = case @tab
            when "ai"       then base.ai_augmented_only
            when "director" then base.agent_director
@@ -70,15 +76,15 @@ class JobsController < ApplicationController
 
     @jobs = @jobs.includes(:job_sources)
 
-    # Trend data: daily job counts from March 15 forward (cached 6 hours)
-    start_date = Date.new(2026, 3, 15)
+    # Trend data: daily job counts scoped to selected range (cached 1 hour)
     end_date = Time.current.to_date
+    start_date = end_date - @range_days.days
     @trend_labels = (start_date..end_date).to_a
 
     utc_offset = Time.current.utc_offset / 3600
     offset_str = format("%+d hours", utc_offset)
 
-    trend_cache = Rails.cache.fetch("job_trends/v3/#{end_date}", expires_in: 6.hours) do
+    trend_cache = Rails.cache.fetch("job_trends/v4/#{@range}/#{end_date}", expires_in: 1.hour) do
       trend_base = Job.active.where("posted_at >= ?", start_date.in_time_zone.beginning_of_day)
 
       auto_counts = trend_base.traditional.group("date(posted_at, '#{offset_str}')").count
@@ -97,7 +103,7 @@ class JobsController < ApplicationController
     @trend_data_director = trend_cache[:director]
 
     @top_skills = Job.top_skills(limit: 10)
-    @ai_demand_meter = Job.ai_demand_meter
+    @ai_demand_meter = Job.ai_demand_meter(window_days: @range_days)
   end
 
   def show
