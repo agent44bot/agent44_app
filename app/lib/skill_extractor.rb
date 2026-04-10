@@ -51,7 +51,22 @@ class SkillExtractor
     "Cursor"       => ["cursor\\b"],
     "Copilot"      => ["copilot"],
     "LLM"          => ["llm", "large language model"],
-    "Machine Learning" => ["machine learning", "\\bml\\b"]
+    "Machine Learning" => ["machine learning", "\\bml\\b"],
+    "LangChain"    => ["langchain", "langgraph"],
+    "CrewAI"       => ["crewai", "crew ai"],
+    "AutoGen"      => ["autogen"],
+    "OpenAI API"   => ["openai", "gpt-4", "gpt-3", "chatgpt"],
+    "Anthropic"    => ["anthropic"],
+    "RAG"          => ["\\brag\\b", "retrieval.augmented"],
+    "Vector DB"    => ["pinecone", "weaviate", "chromadb", "chroma", "vector database", "vector db", "pgvector", "qdrant"],
+    "Prompt Engineering" => ["prompt engineering", "prompt design"],
+    "Multi-Agent"  => ["multi.agent", "multi agent", "agentic"],
+    "Function Calling" => ["function calling", "tool use", "tool calling"],
+    "MCP"          => ["model context protocol", "\\bmcp\\b"],
+    "Agent SDK"    => ["agent sdk", "agents sdk"],
+    "Hugging Face" => ["hugging face", "huggingface", "transformers"],
+    "PyTorch"      => ["pytorch"],
+    "TensorFlow"   => ["tensorflow"]
   }.freeze
 
   # Compile patterns once at load.
