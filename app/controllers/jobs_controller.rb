@@ -104,6 +104,9 @@ class JobsController < ApplicationController
 
     @top_skills = Job.top_skills(limit: 10)
     @ai_demand_meter = Job.ai_demand_meter(window_days: @range_days)
+    @salary_trad = Job.salary_stats(role_class: "traditional", window_days: @range_days)
+    @salary_ai = Job.salary_stats(role_class: "ai_augmented", window_days: @range_days)
+    @salary_director = Job.salary_stats(role_class: "agent_director", window_days: @range_days)
   end
 
   def show
