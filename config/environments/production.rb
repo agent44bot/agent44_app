@@ -25,13 +25,17 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  # config.assume_ssl = true
+  config.assume_ssl = true
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  # config.force_ssl = true
+  config.force_ssl = true
 
   # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # HSTS with 1 year max-age and preload for browser-level enforcement.
+  config.ssl_options = {
+    hsts: { max_age: 31_536_000, preload: true },
+    redirect: { exclude: ->(request) { request.path == "/up" } }
+  }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -80,6 +84,15 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
+
+  # Security headers
+  config.action_dispatch.default_headers = {
+    "X-Frame-Options" => "DENY",
+    "X-Content-Type-Options" => "nosniff",
+    "X-XSS-Protection" => "0",
+    "Referrer-Policy" => "strict-origin-when-cross-origin",
+    "Permissions-Policy" => "camera=(), microphone=(), geolocation=()"
+  }
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
