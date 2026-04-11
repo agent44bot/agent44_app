@@ -1,13 +1,18 @@
 module Scrapers
   class Welcometothejungle < Base
-    DEFAULT_ALGOLIA_URL = "https://CSEKHVMS53-dsn.algolia.net/1/indexes/wttj_jobs_production_en/query"
-    DEFAULT_APP_ID = "CSEKHVMS53"
-    DEFAULT_API_KEY = "4bd8f6215d0cc52b26430765769e65a0"
+    DEFAULT_ALGOLIA_URL = "https://%{app_id}-dsn.algolia.net/1/indexes/wttj_jobs_production_en/query"
 
     def call
-      algolia_url = config["algolia_url"] || DEFAULT_ALGOLIA_URL
-      app_id = config["algolia_app_id"] || DEFAULT_APP_ID
-      api_key = config["algolia_api_key"] || DEFAULT_API_KEY
+      algolia_creds = Rails.application.credentials.algolia || {}
+      app_id = config["algolia_app_id"] || algolia_creds[:app_id] || ENV["ALGOLIA_APP_ID"]
+      api_key = config["algolia_api_key"] || algolia_creds[:api_key] || ENV["ALGOLIA_API_KEY"]
+      algolia_url = config["algolia_url"] || (DEFAULT_ALGOLIA_URL % { app_id: app_id })
+
+      unless app_id.present? && api_key.present?
+        Rails.logger.warn("[Scraper:welcometothejungle] Missing Algolia credentials. Set in Rails credentials or scraper config.")
+        return []
+      end
+
       queries = search_terms.presence || %w[SDET QA\ engineer test\ automation quality\ engineer]
 
       headers = {
