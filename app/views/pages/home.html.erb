@@ -14,9 +14,14 @@
     </svg>
   </div>
 
-  <%# Agent status — pinned top-left, absolute so it doesn't push content %>
+  <%# Agent status — mobile: horizontal bar above hero, desktop: pinned top-left %>
   <% if @agents.present? %>
-    <div class="absolute top-12 left-0 z-10 px-8 sm:px-12 lg:px-24">
+    <%# Mobile: compact horizontal row %>
+    <div class="relative z-10 px-4 pt-3 md:hidden">
+      <%= render "shared/agent_profiles_mobile", agents: @agents %>
+    </div>
+    <%# Desktop: absolute positioned top-left %>
+    <div class="absolute top-12 left-0 z-10 px-8 sm:px-12 lg:px-24 hidden md:block">
       <%= render "shared/agent_profiles", agents: @agents %>
     </div>
   <% end %>

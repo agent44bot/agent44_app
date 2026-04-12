@@ -1,0 +1,12 @@
+<%# Locals: agents (collection of Agent records) %>
+<% return if agents.blank? %>
+
+<div class="font-mono flex items-center gap-3 overflow-x-auto">
+  <span class="text-[9px] font-semibold uppercase tracking-wider text-green-400 shrink-0">agents</span>
+  <% agents.each do |agent| %>
+    <div class="flex items-center gap-1 shrink-0">
+      <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></span>
+      <span class="text-[10px] text-green-400"><%= agent.name %></span>
+    </div>
+  <% end %>
+</div>
