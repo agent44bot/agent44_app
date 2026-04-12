@@ -14,14 +14,14 @@
     </svg>
   </div>
 
-  <%# Agent status — pinned top-left %>
+  <%# Agent status — pinned top-left, absolute so it doesn't push content %>
   <% if @agents.present? %>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div class="absolute top-12 left-0 z-10 px-8 sm:px-12 lg:px-24">
       <%= render "shared/agent_profiles", agents: @agents %>
     </div>
   <% end %>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-28 relative">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36 relative">
 
     <div class="text-center max-w-3xl mx-auto">
       <h1 class="text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.05]">
