@@ -49,6 +49,7 @@ Rails.application.routes.draw do
     end
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
+    resources :agents, except: [:show]
     resources :notifications, only: [:index, :update, :destroy] do
       collection do
         post :mark_all_read

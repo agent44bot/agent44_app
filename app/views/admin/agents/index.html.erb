@@ -1,0 +1,50 @@
+<% content_for(:title, "Agents") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-bold text-white">Agent Profiles</h1>
+    <%= link_to "New Agent", new_admin_agent_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition" %>
+  </div>
+
+  <div class="space-y-3">
+    <% @agents.each do |agent| %>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <%# Avatar %>
+          <div class="relative">
+            <div class="w-12 h-12 rounded-full <%= agent.avatar_bg_class %> flex items-center justify-center">
+              <span class="text-base font-bold <%= agent.avatar_text_class %>"><%= agent.initials %></span>
+            </div>
+            <span class="absolute -bottom-0.5 -right-0.5 block h-3.5 w-3.5 rounded-full border-2 border-gray-900
+              <% if agent.online? %>bg-green-400<% elsif agent.busy? %>bg-amber-400<% else %>bg-gray-600<% end %>
+            "></span>
+          </div>
+
+          <div>
+            <p class="text-base font-semibold text-white"><%= agent.name %></p>
+            <p class="text-sm text-gray-500"><%= agent.role %></p>
+            <% if agent.description.present? %>
+              <p class="text-xs text-gray-600 mt-0.5"><%= agent.description %></p>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-medium px-2 py-1 rounded-full
+            <% if agent.online? %>bg-green-900/50 text-green-400
+            <% elsif agent.busy? %>bg-amber-900/50 text-amber-400
+            <% else %>bg-gray-800 text-gray-500<% end %>
+          "><%= agent.status.capitalize %></span>
+          <%= link_to "Edit", edit_admin_agent_path(agent), class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
+          <%= button_to "Delete", admin_agent_path(agent), method: :delete,
+                data: { turbo_confirm: "Remove #{agent.name}?" },
+                class: "text-sm text-gray-600 hover:text-red-400 transition" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @agents.empty? %>
+    <p class="text-center text-gray-500 py-12">No agents yet. Add your first one.</p>
+  <% end %>
+</div>

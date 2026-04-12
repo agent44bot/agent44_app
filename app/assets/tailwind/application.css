@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Agent terminal flicker */
+@keyframes agent-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.6; }
+  97% { opacity: 1; }
+}
+
+.agent-flicker {
+  animation: agent-flicker 4s ease-in-out infinite;
+}
+
+.agent-flicker:nth-child(1) { animation-delay: 0s; }
+.agent-flicker:nth-child(2) { animation-delay: 0.8s; }
+.agent-flicker:nth-child(3) { animation-delay: 1.6s; }
+.agent-flicker:nth-child(4) { animation-delay: 2.4s; }
+.agent-flicker:nth-child(5) { animation-delay: 3.2s; }
+
 /* Newsletter post typography */
 .newsletter-content {
   font-size: 1.125rem;

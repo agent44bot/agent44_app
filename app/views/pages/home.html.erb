@@ -14,7 +14,15 @@
     </svg>
   </div>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36 relative">
+  <%# Agent status — pinned top-left %>
+  <% if @agents.present? %>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <%= render "shared/agent_profiles", agents: @agents %>
+    </div>
+  <% end %>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-28 relative">
+
     <div class="text-center max-w-3xl mx-auto">
       <h1 class="text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.05]">
         Agent 44 <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Labs</span>

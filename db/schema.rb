@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_12_161916) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -47,6 +47,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_09_120000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agents", force: :cascade do |t|
+    t.string "avatar_color", default: "orange", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.datetime "last_active_at"
+    t.string "llm_model"
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.string "role", null: false
+    t.string "schedule"
+    t.string "status", default: "offline", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_agents_on_name", unique: true
+    t.index ["position"], name: "index_agents_on_position"
   end
 
   create_table "hidden_jobs", force: :cascade do |t|

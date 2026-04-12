@@ -38,6 +38,8 @@
                   class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/scrapers') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Users", admin_users_path,
                   class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/users') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
+            <%= link_to "Agents", admin_agents_path,
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/agents') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Visitor Map", admin_visitors_map_path,
                   class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == '/admin/visitors/map' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Lab", "/lab",

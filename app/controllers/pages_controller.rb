@@ -8,6 +8,7 @@ class PagesController < ApplicationController
     @recent_news = NewsArticle.recent.limit(3)
     @recent_posts = Post.published.limit(3)
     @ai_demand_meter = Job.ai_demand_meter
+    @agents = Agent.ordered
   end
 
   def lab
