@@ -4,11 +4,11 @@ class PagesController < ApplicationController
   def home
     @recent_jobs = Job.active.recent.limit(6)
     @todays_jobs = Job.active.posted_today.recent.limit(5)
-    @digest = NewsDigest.order(date: :desc).first
+    @digest = NewsDigest.order(date: :desc).limit(1).first
     @recent_news = NewsArticle.recent.limit(3)
     @recent_posts = Post.published.limit(3)
     @ai_demand_meter = Job.ai_demand_meter
-    @agents = Agent.ordered
+    @agents = Rails.cache.fetch("agents/ordered", expires_in: 5.minutes) { Agent.ordered.to_a }
   end
 
   def lab

@@ -102,13 +102,15 @@ class JobsController < ApplicationController
     @trend_data_ai = trend_cache[:ai]
     @trend_data_director = trend_cache[:director]
 
-    skills_scope = Job.active.where(posted_at: @range_days.days.ago..Time.current)
-    skills_scope = case @tab
-                   when "ai"       then skills_scope.ai_augmented_only
-                   when "director" then skills_scope.agent_director
-                   else                 skills_scope.traditional
-                   end
-    @top_skills = SkillExtractor.top_skills(skills_scope, limit: 10)
+    @top_skills = Rails.cache.fetch("jobs/top_skills/#{@tab}/#{@range}/#{Date.current}", expires_in: 1.hour) do
+      skills_scope = Job.active.where(posted_at: @range_days.days.ago..Time.current)
+      skills_scope = case @tab
+                     when "ai"       then skills_scope.ai_augmented_only
+                     when "director" then skills_scope.agent_director
+                     else                 skills_scope.traditional
+                     end
+      SkillExtractor.top_skills(skills_scope, limit: 10)
+    end
     @ai_demand_meter = Job.ai_demand_meter(window_days: @range_days)
     @salary_trad = Job.salary_stats(role_class: "traditional", window_days: @range_days)
     @salary_ai = Job.salary_stats(role_class: "ai_augmented", window_days: @range_days)
