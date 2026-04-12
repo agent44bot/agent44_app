@@ -61,14 +61,15 @@
     <% end %>
   </div>
 
-  <% content_for(:head) do %>
-    <%= javascript_include_tag "chart.umd.min", "data-turbo-track": "reload" %>
-  <% end %>
+  <%= javascript_include_tag "chart.umd.min", "data-turbo-track": "reload" %>
 
   <script>
     (function() {
       function initCharts() {
-        if (typeof Chart === "undefined") return;
+        if (typeof Chart === "undefined") {
+          setTimeout(initCharts, 100);
+          return;
+        }
         var autoCanvas = document.getElementById("autoChart");
         if (!autoCanvas || autoCanvas.dataset.rendered) return;
         autoCanvas.dataset.rendered = "true";
@@ -136,6 +137,7 @@
       }
 
       document.addEventListener("turbo:load", initCharts);
+      document.addEventListener("turbo:render", initCharts);
       document.addEventListener("DOMContentLoaded", initCharts);
       initCharts();
     })();
