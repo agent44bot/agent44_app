@@ -23,6 +23,9 @@
           <div>
             <p class="text-base font-semibold text-white"><%= agent.name %></p>
             <p class="text-sm text-gray-500"><%= agent.role %></p>
+            <% if agent.llm_model.present? %>
+              <p class="text-xs text-gray-500 mt-0.5 font-mono"><%= agent.llm_model %></p>
+            <% end %>
             <% if agent.description.present? %>
               <p class="text-xs text-gray-600 mt-0.5"><%= agent.description %></p>
             <% end %>
