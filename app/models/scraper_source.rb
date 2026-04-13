@@ -18,8 +18,18 @@ class ScraperSource < ApplicationRecord
     api_key_name.blank? || ENV[api_key_name].present?
   end
 
+  # Maps slug prefixes to their parent scraper class.
+  # e.g. google_jobs_crypto -> Scrapers::GoogleJobs
+  SLUG_ALIASES = {
+    "google_jobs_security" => "Scrapers::GoogleJobs",
+    "google_jobs_crypto"   => "Scrapers::GoogleJobs",
+    "google_jobs_devsecops" => "Scrapers::GoogleJobs",
+    "google_jobs_ai"       => "Scrapers::GoogleJobs"
+  }.freeze
+
   def scraper_class
-    "Scrapers::#{slug.camelize}".constantize
+    class_name = SLUG_ALIASES[slug] || "Scrapers::#{slug.camelize}"
+    class_name.constantize
   rescue NameError
     nil
   end
