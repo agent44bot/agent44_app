@@ -17,12 +17,18 @@ class CryptoController < ApplicationController
     @crypto_count = base.crypto_trustless.count
     @secfirst_count = base.security_first.count
 
+    # User data for save/hide
+    saved = Current.session.user.saved_jobs.index_by(&:job_id)
+    @saved_job_ids = saved.keys.to_set
+    @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
+    @hidden_job_ids = Current.session.user.hidden_jobs.pluck(:job_id).to_set
+
     # Current tab's jobs
     @jobs = case @tab
             when "crypto"   then base.crypto_trustless
             when "secfirst" then base.security_first
             else                 base.security_engineer
-            end.recent.limit(50)
+            end.recent.includes(:job_sources).limit(50)
 
     # Trend data (cached)
     end_date = Time.current.to_date
