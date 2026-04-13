@@ -3,6 +3,21 @@ class Job < ApplicationRecord
   ROLE_CLASSES = %w[traditional ai_augmented agent_director].freeze
   BITCOIN_SOURCES = %w[bitcoinjobs bitcoinerjobs bitcoin_bamboohr].freeze
 
+  # Security/crypto silo keyword patterns (used on /crypto page)
+  SECURITY_ENGINEER_PATTERN = /\b(security engineer|appsec|application security|pentesting|penetration testing|cryptograph|zero trust|smart contract audit|blockchain security|web3 security|identity engineer|security architect|infosec|vulnerability|threat model|security testing)\b/i
+  CRYPTO_TRUSTLESS_PATTERN  = /\b(bitcoin|lightning network|nostr|blockchain|decentralized|web3|smart contract|solidity|cryptographic|key management|zero knowledge|zk-proof|trustless|consensus|distributed ledger|wallet|signing|schnorr|elliptic curve)\b/i
+  SECURITY_FIRST_PATTERN    = /\b(devsecops|shift.left security|sast|dast|sbom|supply chain security|compliance.as.code|security automation|passkey|webauthn|fido2|oauth|oidc|identity.access|iam|secrets management|vault|security scan|dependency audit)\b/i
+
+  scope :security_engineer, -> {
+    where("title LIKE '%security%' OR title LIKE '%appsec%' OR title LIKE '%pentest%' OR title LIKE '%cryptograph%' OR title LIKE '%infosec%' OR title LIKE '%zero trust%'")
+  }
+  scope :crypto_trustless, -> {
+    where("title LIKE '%bitcoin%' OR title LIKE '%blockchain%' OR title LIKE '%web3%' OR title LIKE '%crypto%' OR title LIKE '%nostr%' OR title LIKE '%decentralized%' OR description LIKE '%smart contract%' OR description LIKE '%zero knowledge%'")
+  }
+  scope :security_first, -> {
+    where("title LIKE '%devsecops%' OR title LIKE '%security automation%' OR title LIKE '%appsec%' OR description LIKE '%shift left%' OR description LIKE '%sast%' OR description LIKE '%dast%' OR description LIKE '%passkey%' OR description LIKE '%webauthn%' OR description LIKE '%supply chain security%'")
+  }
+
   has_many :job_sources, dependent: :destroy
 
   validates :title, :url, :category, presence: true

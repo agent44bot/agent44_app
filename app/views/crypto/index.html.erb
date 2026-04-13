@@ -1,0 +1,183 @@
+<% content_for(:title, "Crypto & Security Testing") %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <h1 class="text-3xl font-bold text-white">Crypto & Security</h1>
+      <span class="px-2 py-0.5 text-xs font-medium bg-orange-900/50 text-orange-400 rounded-full">Admin Only</span>
+    </div>
+    <p class="text-gray-500">Tracking the shift from passwords to keys, from trust to verification.</p>
+  </div>
+
+  <!-- Time Range -->
+  <div class="flex items-center gap-2 mb-6">
+    <span class="text-xs text-gray-500 uppercase tracking-wide mr-1">Range</span>
+    <% [["1d", "1D"], ["5d", "5D"], ["1w", "1W"], ["3w", "3W"], ["1m", "1M"], ["3m", "3M"], ["6m", "6M"]].each do |value, label| %>
+      <%= link_to label, crypto_path(range: value, tab: params[:tab]),
+            class: "px-3 py-1 text-xs font-semibold rounded-full transition #{@range == value ? 'bg-orange-600 text-white' : 'bg-gray-900 text-gray-400 border border-gray-800 hover:border-orange-500 hover:text-orange-400'}" %>
+    <% end %>
+  </div>
+
+  <!-- Three Silo Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Security Engineer -->
+    <%= link_to crypto_path(tab: "security", range: @range), class: "block bg-gray-900 rounded-2xl border #{@tab == 'security' ? 'border-orange-600' : 'border-gray-800'} p-6 hover:border-orange-600 transition" do %>
+      <h3 class="text-lg font-bold text-white mb-1">Security Engineer</h3>
+      <p class="text-xs text-gray-500 mb-3">AppSec, pentesting, cryptography, zero trust</p>
+      <p class="text-2xl font-black text-white"><%= @security_count %> <span class="text-sm font-normal text-gray-500">jobs</span></p>
+    <% end %>
+
+    <!-- Crypto / Trustless QA -->
+    <%= link_to crypto_path(tab: "crypto", range: @range), class: "block bg-gray-900 rounded-2xl border #{@tab == 'crypto' ? 'border-orange-600' : 'border-gray-800'} p-6 hover:border-orange-600 transition" do %>
+      <h3 class="text-lg font-bold text-white mb-1">Crypto / Trustless QA</h3>
+      <p class="text-xs text-gray-500 mb-3">Bitcoin, blockchain, smart contracts, ZK proofs</p>
+      <p class="text-2xl font-black text-white"><%= @crypto_count %> <span class="text-sm font-normal text-gray-500">jobs</span></p>
+    <% end %>
+
+    <!-- Security-First Engineering -->
+    <%= link_to crypto_path(tab: "secfirst", range: @range), class: "block bg-gray-900 rounded-2xl border #{@tab == 'secfirst' ? 'border-orange-600' : 'border-gray-800'} p-6 hover:border-orange-600 transition" do %>
+      <h3 class="text-lg font-bold text-white mb-1">Security-First Engineering</h3>
+      <p class="text-xs text-gray-500 mb-3">DevSecOps, passkeys, compliance-as-code, SAST/DAST</p>
+      <p class="text-2xl font-black text-white"><%= @secfirst_count %> <span class="text-sm font-normal text-gray-500">jobs</span></p>
+    <% end %>
+  </div>
+
+  <!-- Trend Chart -->
+  <%= javascript_include_tag "chart.umd.min", "data-turbo-track": "reload" %>
+  <div class="bg-gray-900 rounded-2xl border border-gray-800 p-6 mb-8">
+    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Posting Trends</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <p class="text-xs text-gray-500 mb-2">Security Engineer</p>
+        <canvas id="securityChart" height="80"></canvas>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500 mb-2">Crypto / Trustless</p>
+        <canvas id="cryptoChart" height="80"></canvas>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500 mb-2">Security-First</p>
+        <canvas id="secfirstChart" height="80"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      function initCryptoCharts() {
+        if (typeof Chart === "undefined") { setTimeout(initCryptoCharts, 100); return; }
+        var canvas = document.getElementById("securityChart");
+        if (!canvas || canvas.dataset.rendered) return;
+        canvas.dataset.rendered = "true";
+
+        const labels = <%= raw @trend_labels.map { |d| d.strftime("%-b %-d") }.to_json %>;
+        const secData = <%= raw @trends[:security].to_json %>;
+        const cryptoData = <%= raw @trends[:crypto].to_json %>;
+        const secfirstData = <%= raw @trends[:secfirst].to_json %>;
+        const sharedMax = Math.max(...secData, ...cryptoData, ...secfirstData, 1);
+
+        function buildChart(id, data, color) {
+          new Chart(document.getElementById(id), {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [{ data: data, borderColor: color, backgroundColor: color.replace("rgb", "rgba").replace(")", ",0.1)"), fill: true, tension: 0.3, pointRadius: 2 }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, max: sharedMax, ticks: { precision: 0, color: '#9ca3af' }, grid: { color: '#1f2937' } },
+                x: { ticks: { maxTicksLimit: 6, color: '#9ca3af' }, grid: { color: '#1f2937' } }
+              }
+            }
+          });
+        }
+
+        buildChart("securityChart", secData, "rgb(249,115,22)");
+        buildChart("cryptoChart", cryptoData, "rgb(34,197,94)");
+        buildChart("secfirstChart", secfirstData, "rgb(59,130,246)");
+      }
+
+      document.addEventListener("turbo:load", initCryptoCharts);
+      document.addEventListener("turbo:render", initCryptoCharts);
+      document.addEventListener("DOMContentLoaded", initCryptoCharts);
+      initCryptoCharts();
+    })();
+  </script>
+
+  <!-- Skills + Salary for selected tab -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- Top Skills -->
+    <div class="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+      <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+        Top Skills — <%= { "security" => "Security Engineer", "crypto" => "Crypto / Trustless", "secfirst" => "Security-First" }[@tab] %>
+      </h3>
+      <% if @top_skills.present? %>
+        <div class="flex flex-wrap gap-2">
+          <% @top_skills.each do |name, _count, pct| %>
+            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700">
+              <%= name %> <span class="ml-1 text-orange-400"><%= pct %>%</span>
+            </span>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-600">Not enough data yet.</p>
+      <% end %>
+    </div>
+
+    <!-- Salary -->
+    <div class="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+      <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Salary Range</h3>
+      <% if @salary[:median] %>
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-500">Median</span>
+            <span class="text-lg font-bold text-orange-400">$<%= number_with_delimiter(@salary[:median]) %></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-500">25th percentile</span>
+            <span class="text-sm text-gray-300">$<%= number_with_delimiter(@salary[:p25]) %></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-500">75th percentile</span>
+            <span class="text-sm text-gray-300">$<%= number_with_delimiter(@salary[:p75]) %></span>
+          </div>
+          <p class="text-xs text-gray-600"><%= @salary[:with_salary] %>/<%= @salary[:total] %> jobs report salary</p>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-600">Not enough salary data yet.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Job Listings -->
+  <div class="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+      Latest — <%= { "security" => "Security Engineer", "crypto" => "Crypto / Trustless", "secfirst" => "Security-First" }[@tab] %>
+      <span class="text-gray-600">(<%= @jobs.size %>)</span>
+    </h3>
+    <% if @jobs.present? %>
+      <div class="space-y-0 divide-y divide-gray-800">
+        <% @jobs.each do |job| %>
+          <div class="flex items-center justify-between py-3">
+            <div class="min-w-0 flex-1 mr-4">
+              <p class="text-sm font-medium text-white truncate">
+                <%= link_to job.title, job_path(job), class: "hover:text-orange-600 transition", data: { turbo_frame: "_top" } %>
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                <%= job.company %>
+                <% if job.location.present? %> · <%= job.location %><% end %>
+                <% if job.salary.present? %> · <span class="text-orange-400"><%= job.salary %></span><% end %>
+              </p>
+            </div>
+            <span class="text-xs text-gray-600 whitespace-nowrap"><%= time_ago_in_words(job.created_at) %> ago</span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-gray-600 py-8 text-center">No jobs matching this silo yet. Scrapers will populate data over time.</p>
+    <% end %>
+  </div>
+</div>
