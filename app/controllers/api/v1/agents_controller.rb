@@ -8,9 +8,9 @@ module Api
 
       before_action :authenticate_api_token, only: :update_status
 
-      # GET /api/v1/agents/statuses
+      # GET /api/v1/agents/statuses (no cache — always fresh for live polling)
       def statuses
-        agents = Rails.cache.fetch("agents/ordered", expires_in: 30.seconds) { Agent.ordered.to_a }
+        agents = Agent.ordered
         render json: agents.map { |a|
           { name: a.name, status: a.status, task: a.status_label, role: a.role }
         }

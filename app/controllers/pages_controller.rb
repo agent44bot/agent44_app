@@ -8,7 +8,7 @@ class PagesController < ApplicationController
     @recent_news = NewsArticle.recent.limit(3)
     @recent_posts = Post.published.limit(3)
     @ai_demand_meter = Job.ai_demand_meter
-    @agents = Rails.cache.fetch("agents/ordered", expires_in: 30.seconds) { Agent.ordered.to_a }
+    @agents = Agent.ordered.to_a
   end
 
   def lab
