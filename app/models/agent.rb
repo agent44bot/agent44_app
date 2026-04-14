@@ -7,7 +7,13 @@ class Agent < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validates :avatar_color, inclusion: { in: COLORS }
 
-  scope :ordered, -> { order(:position, :name) }
+  scope :ordered, -> {
+    order(
+      Arel.sql("CASE status WHEN 'busy' THEN 0 WHEN 'error' THEN 1 ELSE 2 END"),
+      Arel.sql("COALESCE(last_active_at, '1970-01-01') DESC"),
+      :position, :name
+    )
+  }
   scope :active, -> { where.not(status: "offline") }
 
   def online?  = status == "online"

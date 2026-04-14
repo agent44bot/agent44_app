@@ -19,7 +19,25 @@ export default class extends Controller {
       if (!res.ok) return
       const agents = await res.json()
       agents.forEach(agent => this.updateAgent(agent))
+      this.reorderAgents(agents)
     } catch (_) { /* silent */ }
+  }
+
+  reorderAgents(agents) {
+    const container = this.agentTargets[0]?.parentElement
+    if (!container) return
+
+    // Build order from API response (already sorted server-side)
+    const order = agents.map(a => a.name)
+    const elements = [...this.agentTargets]
+
+    elements.sort((a, b) => {
+      const ai = order.indexOf(a.dataset.agentName)
+      const bi = order.indexOf(b.dataset.agentName)
+      return ai - bi
+    })
+
+    elements.forEach(el => container.appendChild(el))
   }
 
   updateAgent(agent) {
