@@ -38,6 +38,9 @@ Rails.application.routes.draw do
       patch "agents/:name/status", to: "agents#update_status", as: :agent_status
       get "agents/statuses", to: "agents#statuses"
       post "telegram/webhook", to: "telegram_webhook#create"
+      get "chat/pending", to: "chat#pending"
+      patch "chat/:id/ack", to: "chat#ack", as: :chat_ack
+      post "chat/reply", to: "chat#reply"
       get "stats/users", to: "stats#users"
     end
   end
@@ -54,6 +57,9 @@ Rails.application.routes.draw do
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [:show]
+    get "chat", to: "chat#index"
+    post "chat", to: "chat#create"
+    get "chat/messages", to: "chat#messages"
     resources :notifications, only: [:index, :update, :destroy] do
       collection do
         post :mark_all_read

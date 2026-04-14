@@ -1,0 +1,68 @@
+<% content_for(:title, "Agent Chat") %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col" style="height: calc(100vh - 80px);"
+     data-controller="chat"
+     data-chat-url-value="<%= admin_chat_messages_path(format: :json) %>">
+
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-bold text-white">Agent Chat</h1>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-500">Talking to:</span>
+      <select id="agent-select" class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+        <% @agents.each do |agent| %>
+          <option value="<%= agent.name.downcase.gsub(/[^\w]/, '') %>"
+                  <%= 'selected' if agent.name == 'Ripley' %>>
+            <%= agent.name %> — <%= agent.role %>
+          </option>
+        <% end %>
+      </select>
+    </div>
+  </div>
+
+  <%# Chat messages %>
+  <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3 mb-4 bg-gray-950 rounded-xl border border-gray-800 p-4"
+       data-chat-target="messages">
+    <% if @messages.empty? %>
+      <p class="text-center text-gray-600 py-12 text-sm">No messages yet. Send a task to get started.</p>
+    <% end %>
+    <% @messages.each do |msg| %>
+      <div class="flex <%= msg.user? ? 'justify-end' : 'justify-start' %>">
+        <div class="max-w-[80%] rounded-xl px-4 py-2.5
+          <%= msg.user? ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-200' %>">
+          <% if msg.assistant? %>
+            <p class="text-[10px] font-semibold text-orange-400 mb-1"><%= msg.agent %></p>
+          <% end %>
+          <p class="text-sm whitespace-pre-wrap"><%= msg.content %></p>
+          <div class="flex items-center justify-end gap-2 mt-1">
+            <% if msg.user? && msg.pending? %>
+              <span class="text-[9px] text-orange-200">pending</span>
+            <% elsif msg.user? && msg.status == "sent" %>
+              <span class="text-[9px] text-orange-200">sent</span>
+            <% end %>
+            <span class="text-[9px] <%= msg.user? ? 'text-orange-200' : 'text-gray-500' %>"><%= msg.created_at.strftime("%l:%M %p").strip %></span>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Input %>
+  <%= form_with url: admin_chat_path, method: :post, class: "flex gap-2", data: { chat_target: "form" } do %>
+    <input type="hidden" name="agent" id="agent-input" value="ripley">
+    <input type="text" name="content" placeholder="Send a task to Ripley..."
+           autofocus autocomplete="off"
+           class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+           data-chat-target="input">
+    <button type="submit"
+            class="px-5 py-3 bg-orange-600 text-white text-sm font-medium rounded-xl hover:bg-orange-700 transition">
+      Send
+    </button>
+  <% end %>
+</div>
+
+<script>
+  // Sync agent select with hidden input
+  document.getElementById('agent-select').addEventListener('change', function() {
+    document.getElementById('agent-input').value = this.value;
+  });
+</script>
