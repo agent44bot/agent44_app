@@ -16,7 +16,7 @@
               <span class="text-base font-bold <%= agent.avatar_text_class %>"><%= agent.initials %></span>
             </div>
             <span class="absolute -bottom-0.5 -right-0.5 block h-3.5 w-3.5 rounded-full border-2 border-gray-900
-              <% if agent.online? %>bg-green-400<% elsif agent.busy? %>bg-amber-400<% else %>bg-gray-600<% end %>
+              <% if agent.online? %>bg-green-400<% elsif agent.busy? %>bg-amber-400 animate-agent-pulse<% elsif agent.error? %>bg-red-500<% else %>bg-gray-600<% end %>
             "></span>
           </div>
 
@@ -33,11 +33,17 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <span class="text-xs font-medium px-2 py-1 rounded-full
-            <% if agent.online? %>bg-green-900/50 text-green-400
-            <% elsif agent.busy? %>bg-amber-900/50 text-amber-400
-            <% else %>bg-gray-800 text-gray-500<% end %>
-          "><%= agent.status.capitalize %></span>
+          <div class="text-right">
+            <span class="text-xs font-medium px-2 py-1 rounded-full
+              <% if agent.online? %>bg-green-900/50 text-green-400
+              <% elsif agent.busy? %>bg-amber-900/50 text-amber-400
+              <% elsif agent.error? %>bg-red-900/50 text-red-400
+              <% else %>bg-gray-800 text-gray-500<% end %>
+            "><%= agent.status.capitalize %></span>
+            <% if agent.current_task.present? && (agent.busy? || agent.error?) %>
+              <p class="text-[10px] mt-1 italic <%= agent.busy? ? 'text-amber-500' : 'text-red-500' %>"><%= agent.current_task %></p>
+            <% end %>
+          </div>
           <%= link_to "Edit", edit_admin_agent_path(agent), class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
           <%= button_to "Delete", admin_agent_path(agent), method: :delete,
                 data: { turbo_confirm: "Remove #{agent.name}?" },

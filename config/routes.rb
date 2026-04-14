@@ -35,6 +35,9 @@ Rails.application.routes.draw do
     namespace :v1 do
       resources :jobs, only: [:create]
       resources :scrapers, only: [:update]
+      patch "agents/:name/status", to: "agents#update_status", as: :agent_status
+      get "agents/statuses", to: "agents#statuses"
+      post "telegram/webhook", to: "telegram_webhook#create"
       get "stats/users", to: "stats#users"
     end
   end

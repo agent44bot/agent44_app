@@ -38,6 +38,12 @@
     </div>
   </div>
 
+  <div>
+    <label class="block text-sm font-medium text-gray-300 mb-1">Current Task</label>
+    <%= f.text_field :current_task, class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent", placeholder: "Security scanning FitCorn app" %>
+    <p class="text-xs text-gray-600 mt-1">Shown on homepage when agent is busy or has an error.</p>
+  </div>
+
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <div>
       <label class="block text-sm font-medium text-gray-300 mb-1">Status</label>

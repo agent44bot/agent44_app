@@ -13,6 +13,7 @@ module Admin
     def create
       @agent = Agent.new(agent_params)
       if @agent.save
+        Rails.cache.delete("agents/ordered")
         redirect_to admin_agents_path, notice: "#{@agent.name} created."
       else
         render :new, status: :unprocessable_entity
@@ -24,6 +25,7 @@ module Admin
 
     def update
       if @agent.update(agent_params)
+        Rails.cache.delete("agents/ordered")
         redirect_to admin_agents_path, notice: "#{@agent.name} updated."
       else
         render :edit, status: :unprocessable_entity
@@ -32,6 +34,7 @@ module Admin
 
     def destroy
       @agent.destroy
+      Rails.cache.delete("agents/ordered")
       redirect_to admin_agents_path, notice: "Agent deleted."
     end
 
@@ -42,7 +45,7 @@ module Admin
     end
 
     def agent_params
-      params.require(:agent).permit(:name, :role, :description, :status, :avatar_color, :position, :llm_model, :schedule)
+      params.require(:agent).permit(:name, :role, :description, :status, :avatar_color, :position, :llm_model, :schedule, :current_task)
     end
   end
 end

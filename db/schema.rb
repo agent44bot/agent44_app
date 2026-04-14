@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_12_161916) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_13_212354) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -52,6 +52,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_12_161916) do
   create_table "agents", force: :cascade do |t|
     t.string "avatar_color", default: "orange", null: false
     t.datetime "created_at", null: false
+    t.string "current_task"
     t.text "description"
     t.datetime "last_active_at"
     t.string "llm_model"

@@ -8,3 +8,11 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+@keyframes agent-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(0.6); filter: brightness(0.5); }
+}
+.animate-agent-pulse {
+  animation: agent-pulse 1.2s ease-in-out infinite;
+}

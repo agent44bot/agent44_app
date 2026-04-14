@@ -1,18 +1,32 @@
 <%# Locals: agents (collection of Agent records) %>
 <% return if agents.blank? %>
 
-<% agent_json = agents.map { |a| { name: a.name, role: a.role } } %>
+<% agent_json = agents.map { |a| { name: a.name, role: a.role, status: a.status, task: a.status_label } } %>
 
 <div class="font-mono"
-     data-controller="typewriter"
+     data-controller="typewriter agent-status"
      data-typewriter-agents-value="<%= agent_json.to_json %>">
   <p class="text-[10px] font-semibold uppercase tracking-wider text-green-400 mb-2">agents</p>
   <div class="space-y-1">
     <% agents.each do |agent| %>
-      <div class="flex items-center gap-2" data-typewriter-target="line">
-        <span class="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse opacity-0 transition-opacity" data-dot></span>
-        <span class="text-[11px] text-green-400" data-name></span>
-        <span class="text-[9px] text-green-700" data-role></span>
+      <div class="flex items-center gap-2 group"
+           data-typewriter-target="line"
+           data-agent-status-target="agent"
+           data-agent-name="<%= agent.name %>">
+        <% if agent.busy? %>
+          <span class="inline-block h-2 w-2 rounded-full bg-amber-400 animate-agent-pulse opacity-0 transition-opacity" data-dot></span>
+        <% elsif agent.error? %>
+          <span class="inline-block h-2 w-2 rounded-full bg-red-500 opacity-0 transition-opacity" data-dot></span>
+        <% elsif agent.online? %>
+          <span class="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse opacity-0 transition-opacity" data-dot></span>
+        <% else %>
+          <span class="inline-block h-2 w-2 rounded-full bg-gray-600 opacity-0 transition-opacity" data-dot></span>
+        <% end %>
+        <span class="text-[11px] <%= agent.busy? ? 'text-amber-400' : agent.error? ? 'text-red-400' : 'text-green-400' %>" data-name></span>
+        <span class="text-[9px] <%= agent.busy? ? 'text-amber-700' : agent.error? ? 'text-red-700' : 'text-green-700' %>" data-role></span>
+        <span class="text-[8px] <%= agent.busy? ? 'text-amber-500' : 'text-red-500' %> italic"
+              data-task
+              style="<%= (agent.busy? || agent.error?) ? '' : 'display:none' %>"><%= (agent.busy? || agent.error?) ? "(#{agent.status_label})" : '' %></span>
       </div>
     <% end %>
   </div>

@@ -1,5 +1,5 @@
 class Agent < ApplicationRecord
-  STATUSES = %w[online busy offline].freeze
+  STATUSES = %w[online busy error offline].freeze
   COLORS = %w[orange amber green blue purple red cyan].freeze
 
   validates :name, presence: true, uniqueness: true
@@ -12,6 +12,7 @@ class Agent < ApplicationRecord
 
   def online?  = status == "online"
   def busy?    = status == "busy"
+  def error?   = status == "error"
   def offline? = status == "offline"
 
   def initials
@@ -22,7 +23,16 @@ class Agent < ApplicationRecord
     case status
     when "online" then "green"
     when "busy"   then "amber"
+    when "error"  then "red"
     else "gray"
+    end
+  end
+
+  def status_label
+    case status
+    when "busy"  then current_task.presence || "Working on a task"
+    when "error" then current_task.presence || "Task failed"
+    else status.capitalize
     end
   end
 

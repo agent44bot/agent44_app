@@ -1,12 +1,34 @@
 <%# Locals: agents (collection of Agent records) %>
 <% return if agents.blank? %>
 
-<div class="font-mono flex items-center gap-3 overflow-x-auto">
+<div class="font-mono flex items-center gap-3 overflow-x-auto" data-controller="agent-status">
   <span class="text-[9px] font-semibold uppercase tracking-wider text-green-400 shrink-0">agents</span>
   <% agents.each do |agent| %>
-    <div class="flex items-center gap-1 shrink-0">
-      <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></span>
-      <span class="text-[10px] text-green-400"><%= agent.name %></span>
+    <div class="flex items-center gap-1 shrink-0 group relative"
+         data-agent-status-target="agent"
+         data-agent-name="<%= agent.name %>">
+      <% if agent.busy? %>
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-agent-pulse" data-dot></span>
+        <span class="text-[10px] text-amber-400" data-name><%= agent.name %></span>
+      <% elsif agent.error? %>
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-red-500" data-dot></span>
+        <span class="text-[10px] text-red-400" data-name><%= agent.name %></span>
+      <% elsif agent.online? %>
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" data-dot></span>
+        <span class="text-[10px] text-green-400" data-name><%= agent.name %></span>
+      <% else %>
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-gray-600" data-dot></span>
+        <span class="text-[10px] text-gray-500" data-name><%= agent.name %></span>
+      <% end %>
+      <span class="text-[9px]" data-role style="display:none"></span>
+      <span data-task style="display:none"></span>
+      <% if agent.busy? || agent.error? %>
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-20">
+          <div class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-[9px] whitespace-nowrap <%= agent.busy? ? 'text-amber-400' : 'text-red-400' %>">
+            <%= agent.status_label %>
+          </div>
+        </div>
+      <% end %>
     </div>
   <% end %>
 </div>

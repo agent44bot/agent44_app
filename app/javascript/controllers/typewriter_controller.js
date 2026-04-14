@@ -7,32 +7,15 @@ export default class extends Controller {
   connect() {
     this.agentData = this.agentsValue
     this.currentIndex = 0
-    this.startCycle()
+    this.typeNext()
   }
 
   disconnect() {
     clearTimeout(this._timeout)
   }
 
-  startCycle() {
-    this.currentIndex = 0
-    this.clearAll()
-    this.typeNext()
-  }
-
-  clearAll() {
-    this.lineTargets.forEach(line => {
-      line.querySelector("[data-name]").textContent = ""
-      line.querySelector("[data-role]").textContent = ""
-      line.querySelector("[data-dot]").style.opacity = "0"
-    })
-  }
-
   typeNext() {
-    if (this.currentIndex >= this.lineTargets.length) {
-      this._timeout = setTimeout(() => this.startCycle(), 1500)
-      return
-    }
+    if (this.currentIndex >= this.lineTargets.length) return
 
     const line = this.lineTargets[this.currentIndex]
     const nameEl = line.querySelector("[data-name]")
