@@ -56,7 +56,7 @@
   <!-- Tabs -->
   <div class="flex gap-1 mb-6 border-b border-gray-700">
     <button data-tabs-target="tab" data-tab-index="0" data-action="click->tabs#select"
-            class="px-4 py-2 text-sm font-semibold border-b-2 text-orange-400 border-orange-400 transition">
+            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
       List
     </button>
     <button data-tabs-target="tab" data-tab-index="1" data-action="click->tabs#select"
@@ -64,7 +64,7 @@
       Month
     </button>
     <button data-tabs-target="tab" data-tab-index="2" data-action="click->tabs#select"
-            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
+            class="px-4 py-2 text-sm font-semibold border-b-2 text-orange-400 border-orange-400 transition">
       Week
     </button>
   </div>
@@ -76,7 +76,7 @@
   <% else %>
 
     <!-- List View -->
-    <div data-tabs-target="panel">
+    <div data-tabs-target="panel" class="hidden">
       <!-- Today -->
       <section class="mb-8">
         <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
@@ -229,7 +229,7 @@
     </div>
 
     <!-- Week Agenda View -->
-    <div data-tabs-target="panel" class="hidden" data-controller="week-nav">
+    <div data-tabs-target="panel" data-controller="week-nav">
       <div class="flex items-center justify-between mb-4">
         <button data-week-nav-target="prev" data-action="click->week-nav#prev"
                 class="px-3 py-1 text-sm rounded bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
