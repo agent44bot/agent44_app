@@ -22,3 +22,6 @@ production:
   scrape_kitchen:
     class: ScrapeKitchenJob
     schedule: every day at 10am
+  scrape_kitchen_late:
+    class: ScrapeKitchenJob
+    schedule: every day at 11:55pm

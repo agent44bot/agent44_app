@@ -14,7 +14,13 @@
       </a>
     </div>
     <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
-      <% if event.spots_left %>
+      <% if event.sold_out? && event.last_known_capacity %>
+        <% sold = event.last_known_capacity - (event.last_known_spots_left || 0) %>
+        <span class="font-semibold text-red-400">
+          <%= "#{sold} of #{event.last_known_capacity} tickets sold" %>
+        </span>
+        <span>&middot;</span>
+      <% elsif event.spots_left %>
         <% color = event.spots_left <= 0 ? "text-red-400" : (event.spots_left <= 3 ? "text-amber-400" : "text-green-400") %>
         <span class="font-semibold <%= color %>">
           <%= event.capacity ? "#{event.spots_left} of #{event.capacity} left" : "#{event.spots_left} left" %>

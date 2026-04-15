@@ -12,6 +12,15 @@
   end
 
   def spots(e)
+    # For sold out / unavailable events, show tickets sold from last-known data
+    if NyKitchenDigestBuilder.sold_out?(e[:availability]) && e[:last_known_capacity]
+      cap = e[:last_known_capacity]
+      left = e[:last_known_spots_left] || 0
+      sold = cap - left
+      text = "#{sold} of #{cap} tickets sold"
+      return %Q(<span style="font-size:11px;color:#b00020;font-weight:600">#{text}</span>)
+    end
+
     return "" unless e[:spots_left]
     left = e[:spots_left]; cap = e[:capacity]
     color = left <= 0 ? "#b00020" : (left <= 3 ? "#b35900" : "#1b6e3a")

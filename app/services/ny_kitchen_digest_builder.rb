@@ -50,6 +50,8 @@ class NyKitchenDigestBuilder
         start_at: e.start_at,
         availability: e.availability,
         price: e.price,
+        last_known_spots_left: e.last_known_spots_left,
+        last_known_capacity: e.last_known_capacity,
       }
     end
   end

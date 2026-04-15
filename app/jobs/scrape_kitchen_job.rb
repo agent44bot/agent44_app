@@ -28,12 +28,27 @@ class ScrapeKitchenJob < ApplicationJob
 
     # Save snapshot (replace if already run today)
     previous = KitchenSnapshot.latest_before(today)
+    prev_events = previous ? previous.kitchen_events.index_by(&:url) : {}
     snapshot = KitchenSnapshot.find_or_initialize_by(taken_on: today)
     snapshot.kitchen_events.destroy_all if snapshot.persisted?
     snapshot.save!
 
     events.each do |e|
       next unless e[:url]
+
+      # Carry forward last-known ticket data from previous snapshot
+      prev = prev_events[e[:url]]
+      if e[:spots_left] && e[:capacity]
+        last_spots = e[:spots_left]
+        last_cap   = e[:capacity]
+      elsif prev
+        last_spots = prev.last_known_spots_left || prev.spots_left
+        last_cap   = prev.last_known_capacity || prev.capacity
+      end
+
+      e[:last_known_spots_left] = last_spots
+      e[:last_known_capacity]   = last_cap
+
       snapshot.kitchen_events.create!(
         url:          e[:url],
         name:         e[:name],
@@ -46,6 +61,8 @@ class ScrapeKitchenJob < ApplicationJob
         description:  e[:description],
         spots_left:   e[:spots_left],
         capacity:     e[:capacity],
+        last_known_spots_left: last_spots,
+        last_known_capacity:   last_cap,
       )
     end
 
