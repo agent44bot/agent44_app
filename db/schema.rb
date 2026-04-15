@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_14_004842) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_15_120001) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -133,6 +133,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_004842) do
     t.datetime "expires_at"
     t.string "pubkey_hex"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "kitchen_events", force: :cascade do |t|
+    t.string "availability"
+    t.integer "capacity"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.datetime "end_at"
+    t.string "instructor"
+    t.integer "kitchen_snapshot_id", null: false
+    t.string "name"
+    t.string "price"
+    t.integer "spots_left"
+    t.datetime "start_at"
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.string "venue"
+    t.index ["kitchen_snapshot_id", "url"], name: "index_kitchen_events_on_kitchen_snapshot_id_and_url", unique: true
+    t.index ["kitchen_snapshot_id"], name: "index_kitchen_events_on_kitchen_snapshot_id"
+  end
+
+  create_table "kitchen_snapshots", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "taken_on", null: false
+    t.datetime "updated_at", null: false
+    t.index ["taken_on"], name: "index_kitchen_snapshots_on_taken_on", unique: true
   end
 
   create_table "news_articles", force: :cascade do |t|
@@ -286,6 +312,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_004842) do
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "job_sources", "jobs"
+  add_foreign_key "kitchen_events", "kitchen_snapshots"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
   add_foreign_key "saved_jobs", "jobs"

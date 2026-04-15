@@ -1,0 +1,72 @@
+<% content_for(:title, "NY Kitchen Classes") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
+    <p class="text-gray-400 mt-1">
+      Cooking classes at NY Kitchen &middot;
+      <%= @total %> upcoming &middot;
+      <%= @sold_out %> sold out
+      <% if @last_updated %>
+        &middot; Updated <%= @last_updated.strftime("%b %-d") %>
+      <% end %>
+    </p>
+  </div>
+
+  <% if @events.empty? %>
+    <div class="bg-gray-900 rounded-xl p-8 text-center">
+      <p class="text-gray-400">No events scraped yet. The scraper runs daily at 10 AM.</p>
+    </div>
+  <% else %>
+
+    <!-- Today -->
+    <section class="mb-8">
+      <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+        Today <span class="text-gray-500 font-normal">(<%= @today_events.size %>)</span>
+      </h2>
+      <% if @today_events.empty? %>
+        <p class="text-gray-500 text-sm italic">No classes today.</p>
+      <% else %>
+        <div class="space-y-3">
+          <% @today_events.each do |e| %>
+            <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <!-- Tomorrow -->
+    <section class="mb-8">
+      <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+        Tomorrow <span class="text-gray-500 font-normal">(<%= @tomorrow_events.size %>)</span>
+      </h2>
+      <% if @tomorrow_events.empty? %>
+        <p class="text-gray-500 text-sm italic">No classes tomorrow.</p>
+      <% else %>
+        <div class="space-y-3">
+          <% @tomorrow_events.each do |e| %>
+            <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <!-- Next 14 days -->
+    <section class="mb-8">
+      <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+        Next 14 Days <span class="text-gray-500 font-normal">(<%= @week_events.size %>)</span>
+      </h2>
+      <% if @week_events.empty? %>
+        <p class="text-gray-500 text-sm italic">No classes in the next two weeks.</p>
+      <% else %>
+        <div class="space-y-3">
+          <% @week_events.each do |e| %>
+            <%= render partial: "kitchen/event_card", locals: { event: e, show_date: true } %>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+  <% end %>
+</div>

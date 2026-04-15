@@ -19,3 +19,6 @@ production:
   scrape_jobs:
     class: ScrapeJobsJob
     schedule: every day at 6am
+  scrape_kitchen:
+    class: ScrapeKitchenJob
+    schedule: every day at 10am

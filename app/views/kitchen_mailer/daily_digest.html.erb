@@ -1,0 +1,86 @@
+<%
+  def fmt(t); t.strftime("%-I:%M %p"); end
+
+  def label(av)
+    case av.to_s.downcase
+    when /soldout/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#b00020;font-size:11px;font-weight:600">SOLD OUT</span>'
+    when /limited/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#b35900;font-size:11px;font-weight:600">LIMITED</span>'
+    when /instock/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#e6f4ea;color:#1b6e3a;font-size:11px;font-weight:600">AVAILABLE</span>'
+    else %Q(<span style="font-size:11px;color:#888">#{av}</span>)
+    end
+  end
+
+  def spots(e)
+    return "" unless e[:spots_left]
+    left = e[:spots_left]; cap = e[:capacity]
+    color = left <= 0 ? "#b00020" : (left <= 3 ? "#b35900" : "#1b6e3a")
+    text = cap ? "#{left} of #{cap} left" : "#{left} left"
+    %Q(<span style="font-size:11px;color:#{color};font-weight:600">#{text}</span>)
+  end
+
+  def event_row(e)
+    meta = []
+    meta << spots(e) unless spots(e).empty?
+    meta << e[:instructor] if e[:instructor]
+    meta << "$#{e[:price]}" if e[:price]
+    meta_html = meta.empty? ? "" : %Q(<div style="font-size:12px;color:#666;margin-top:2px">#{meta.join(' &middot; ')}</div>)
+    %Q(<li style="padding:10px 0;border-bottom:1px solid #eee;list-style:none">
+         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+           <div><strong style="color:#111">#{fmt(e[:start_at])}</strong> &nbsp; <a href="#{e[:url]}" style="color:#0a58ca;text-decoration:none">#{e[:name]}</a></div>
+           <div>#{label(e[:availability])}</div>
+         </div>
+         #{meta_html}
+       </li>)
+  end
+%>
+<html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:auto;color:#222;background:#fafafa;padding:20px">
+<div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+
+<h2 style="margin:0 0 4px 0;font-size:22px;color:#111">NY Kitchen</h2>
+<div style="color:#666;font-size:13px;margin-bottom:18px"><%= @today.strftime("%A, %B %-d, %Y") %> &middot; <%= @total_upcoming %> upcoming &middot; <%= @total_sold_out %> sold out</div>
+
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:20px">Today (<%= @today_events.size %>)</h3>
+<% if @today_events.empty? %><p style="color:#888"><em>No classes today.</em></p><% else %>
+<ul style="padding:0;margin:0"><% @today_events.each do |e| %><%= event_row(e).html_safe %><% end %></ul>
+<% end %>
+
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px">Tomorrow (<%= @tomorrow_events.size %>)</h3>
+<% if @tomorrow_events.empty? %><p style="color:#888"><em>No classes tomorrow.</em></p><% else %>
+<ul style="padding:0;margin:0"><% @tomorrow_events.each do |e| %><%= event_row(e).html_safe %><% end %></ul>
+<% end %>
+
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px">Next 14 days (<%= @week_events.size %>)</h3>
+<ul style="padding:0;margin:0"><% @week_events.each do |e| %>
+  <li style="padding:8px 0;border-bottom:1px solid #eee;list-style:none">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+      <div><strong style="color:#111"><%= e[:start_at].strftime("%a %-m/%-d %-I:%M %p") %></strong> &nbsp; <a href="<%= e[:url] %>" style="color:#0a58ca;text-decoration:none"><%= e[:name] %></a></div>
+      <div><%= label(e[:availability]).html_safe %></div>
+    </div>
+    <div style="font-size:12px;color:#666;margin-top:2px">
+      <% parts = [] %>
+      <% parts << spots(e).html_safe if e[:spots_left] %>
+      <% parts << e[:instructor] if e[:instructor] %>
+      <% parts << "$#{e[:price]}" if e[:price] %>
+      <%= parts.join(" &middot; ").html_safe %>
+    </div>
+  </li>
+<% end %></ul>
+
+<% if @price_changes.any? %>
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px">Price changes</h3>
+<ul style="padding:0;margin:0"><% @price_changes.each do |e| %><li style="padding:6px 0;list-style:none"><%= e[:name] %> <span style="color:#666">&mdash; now $<%= e[:price] %></span></li><% end %></ul>
+<% end %>
+
+<% if @removed.any? %>
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px">Removed / cancelled</h3>
+<ul style="padding:0;margin:0"><% @removed.each do |e| %><li style="padding:6px 0;list-style:none;color:#666"><%= e[:name] %></li><% end %></ul>
+<% end %>
+
+<% if @newly_sold_out.any? %>
+<h3 style="font-size:15px;color:#b00020;border-bottom:2px solid #b00020;padding-bottom:6px;margin-top:28px">Just sold out</h3>
+<ul style="padding:0;margin:0"><% @newly_sold_out.each do |e| %><%= event_row(e).html_safe %><% end %></ul>
+<% end %>
+
+<p style="color:#aaa;font-size:11px;margin-top:28px;text-align:center">Sent by Agent44 Labs &middot; scraped from nykitchen.com/calendar</p>
+</div>
+</body></html>
