@@ -77,7 +77,7 @@ class ScrapeKitchenJob < ApplicationJob
       today: today
     )
 
-    KitchenMailer.daily_digest(digest, recipients: RECIPIENTS).deliver_now
+    # KitchenMailer.daily_digest(digest, recipients: RECIPIENTS).deliver_now
 
     Notification.notify!(
       level: "success",
