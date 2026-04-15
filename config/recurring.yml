@@ -21,7 +21,7 @@ production:
     schedule: every day at 6am
   scrape_kitchen:
     class: ScrapeKitchenJob
+    schedule: every 3 hours
+  kitchen_digest_email:
+    class: KitchenDigestEmailJob
     schedule: every day at 10am
-  scrape_kitchen_late:
-    class: ScrapeKitchenJob
-    schedule: every day at 11:55pm

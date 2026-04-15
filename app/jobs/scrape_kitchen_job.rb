@@ -1,8 +1,6 @@
 class ScrapeKitchenJob < ApplicationJob
   queue_as :default
 
-  RECIPIENTS = ENV.fetch("KITCHEN_MAIL_TO", "botwhisperer@hey.com")
-
   def perform
     today  = Date.today
     months = (0..2).map { |i| (today >> i).strftime("%Y-%m") }.uniq
@@ -70,20 +68,11 @@ class ScrapeKitchenJob < ApplicationJob
       )
     end
 
-    # Build digest and send email
-    digest = NyKitchenDigestBuilder.build(
-      current: events,
-      previous_snapshot: previous,
-      today: today
-    )
-
-    # KitchenMailer.daily_digest(digest, recipients: RECIPIENTS).deliver_now
-
     Notification.notify!(
       level: "success",
       source: "kitchen_scraper",
       title: "NY Kitchen scrape complete",
-      body: "#{events.size} events, #{digest[:today_events].size} today, #{digest[:tomorrow_events].size} tomorrow"
+      body: "#{events.size} events scraped"
     )
   rescue => e
     Notification.notify!(
