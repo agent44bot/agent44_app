@@ -31,7 +31,8 @@ class NyKitchenDigestBuilder
   end
 
   def self.sold_out?(av)
-    av.to_s.downcase.include?("soldout")
+    d = av.to_s.downcase
+    d.include?("soldout") || d.include?("closed")
   end
 
   def self.index(events)

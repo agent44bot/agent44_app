@@ -21,7 +21,7 @@ class ScrapeKitchenJob < ApplicationJob
       if info
         e[:spots_left] = info[:spots_left]
         e[:capacity]   = info[:capacity]
-        e[:availability] = "SoldOut" if info[:closed]
+        e[:availability] = "Closed" if info[:closed]
       end
       sleep 0.25
     end
