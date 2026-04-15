@@ -12,16 +12,20 @@ class ScrapeKitchenJob < ApplicationJob
     events  = scraper.fetch_events(months: months)
     Rails.logger.info("ScrapeKitchenJob: fetched #{events.size} events")
 
-    # Enrich non-sold-out events with live spot counts
+    # Enrich all events with live spot counts from detail pages
+    # (JSON-LD availability from the calendar can be stale/wrong)
     events.each do |e|
-      next if NyKitchenDigestBuilder.sold_out?(e[:availability])
       next unless e[:url]
 
       info = scraper.fetch_availability(e[:url])
       if info
         e[:spots_left] = info[:spots_left]
         e[:capacity]   = info[:capacity]
-        e[:availability] = "Closed" if info[:closed]
+        if info[:closed]
+          e[:availability] = "Closed"
+        elsif info[:spots_left] && info[:spots_left] > 0
+          e[:availability] = "InStock"
+        end
       end
       sleep 0.25
     end
