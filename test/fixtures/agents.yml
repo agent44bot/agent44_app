@@ -1,0 +1,48 @@
+ripley:
+  name: Ripley
+  role: Team Lead / Orchestrator
+  status: online
+  avatar_color: purple
+  position: 1
+
+neo:
+  name: "Neo 💻"
+  role: Senior Dev
+  status: online
+  avatar_color: orange
+  position: 2
+
+russ:
+  name: "Russ 🔒"
+  role: Security
+  status: online
+  avatar_color: red
+  position: 3
+
+vlad:
+  name: "Vlad ✅"
+  role: Testing
+  status: online
+  avatar_color: green
+  position: 4
+
+knox:
+  name: "Knox 🔒"
+  role: DevOps
+  status: online
+  avatar_color: cyan
+  position: 5
+
+jr:
+  name: "Jr 🐣"
+  role: Junior Dev
+  status: online
+  avatar_color: amber
+  position: 6
+
+scout:
+  name: "Scout 🔭"
+  role: Field Agent
+  status: online
+  avatar_color: blue
+  position: 7

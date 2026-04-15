@@ -38,6 +38,10 @@ module Api
       private
 
       def notify_status_change(agent, old_status)
+        # Skip Telegram for Ripley — she's the orchestrator, too noisy
+        # Dashboard still updates live, just no Telegram ping
+        send_telegram = agent.name != "Ripley"
+
         case agent.status
         when "busy"
           task = agent.current_task.presence || "a task"
@@ -46,7 +50,7 @@ module Api
             source: "agent_status",
             title: "#{agent.name} is now working",
             body: task,
-            telegram: true
+            telegram: send_telegram
           )
         when "error"
           task = agent.current_task.presence || "Unknown error"
@@ -63,7 +67,7 @@ module Api
               level: "success",
               source: "agent_status",
               title: "#{agent.name} finished task",
-              telegram: true
+              telegram: send_telegram
             )
           end
         end
