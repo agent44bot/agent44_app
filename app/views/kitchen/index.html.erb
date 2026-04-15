@@ -1,8 +1,47 @@
 <% content_for(:title, "NY Kitchen Classes") %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+<%
+  # Build calendar data: group events by date for the current and next two months
+  calendar_events = {}
+  @events.each do |e|
+    d = e.start_at.to_date
+    (calendar_events[d] ||= []) << e
+  end
+
+  # Generate months to display
+  today = Date.today
+  calendar_months = (0..2).map { |i| today >> i }.map { |d| Date.new(d.year, d.month, 1) }
+
+  # Generate weeks to display in the Week (agenda) view. Start from the Sunday
+  # of the current week and include any week that has at least one event, up to
+  # 8 weeks forward so navigation stays bounded.
+  week_start = today - today.wday
+  last_event_date = @events.map { |e| e.start_at.to_date }.max
+  weeks_needed = last_event_date ? ((last_event_date - week_start).to_i / 7) + 1 : 1
+  weeks_to_show = [[weeks_needed, 1].max, 8].min
+  agenda_weeks = (0...weeks_to_show).map { |i| week_start + i * 7 }
+%>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+     data-controller="tabs kitchen-tooltip"
+     data-tabs-active-classes-value="text-orange-400 border-orange-400"
+     data-tabs-inactive-classes-value="text-gray-500 border-transparent">
+
+  <!-- Shared hover tooltip (Month + Week) -->
+  <div data-kitchen-tooltip-target="tooltip"
+       class="hidden fixed z-50 w-64 bg-gray-950 border border-gray-700 rounded-lg shadow-2xl p-3 pointer-events-none">
+    <div class="flex items-start justify-between gap-2 mb-1">
+      <div data-kitchen-tooltip-target="name" class="text-sm font-semibold text-white leading-tight"></div>
+      <span data-kitchen-tooltip-target="badge" class="hidden"></span>
+    </div>
+    <div data-kitchen-tooltip-target="when" class="text-xs text-gray-400 mb-2"></div>
+    <div class="flex items-center gap-2">
+      <span data-kitchen-tooltip-target="status"></span>
+      <span data-kitchen-tooltip-target="price" class="text-xs text-gray-500"></span>
+    </div>
+  </div>
   <!-- Header -->
-  <div class="mb-8">
+  <div class="mb-6">
     <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
     <p class="text-gray-400 mt-1">
       Cooking classes at NY Kitchen &middot;
@@ -14,59 +53,311 @@
     </p>
   </div>
 
+  <!-- Tabs -->
+  <div class="flex gap-1 mb-6 border-b border-gray-700">
+    <button data-tabs-target="tab" data-tab-index="0" data-action="click->tabs#select"
+            class="px-4 py-2 text-sm font-semibold border-b-2 text-orange-400 border-orange-400 transition">
+      List
+    </button>
+    <button data-tabs-target="tab" data-tab-index="1" data-action="click->tabs#select"
+            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
+      Month
+    </button>
+    <button data-tabs-target="tab" data-tab-index="2" data-action="click->tabs#select"
+            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
+      Week
+    </button>
+  </div>
+
   <% if @events.empty? %>
     <div class="bg-gray-900 rounded-xl p-8 text-center">
-      <p class="text-gray-400">No events scraped yet. The scraper runs daily at 10 AM.</p>
+      <p class="text-gray-400">No events scraped yet. The scraper runs every 3 hours.</p>
     </div>
   <% else %>
 
-    <!-- Today -->
-    <section class="mb-8">
-      <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-        Today <span class="text-gray-500 font-normal">(<%= @today_events.size %>)</span>
-      </h2>
-      <% if @today_events.empty? %>
-        <p class="text-gray-500 text-sm italic">No classes today.</p>
-      <% else %>
-        <div class="space-y-3">
-          <% @today_events.each do |e| %>
-            <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
-          <% end %>
-        </div>
-      <% end %>
-    </section>
+    <!-- List View -->
+    <div data-tabs-target="panel">
+      <!-- Today -->
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+          Today <span class="text-gray-500 font-normal">(<%= @today_events.size %>)</span>
+        </h2>
+        <% if @today_events.empty? %>
+          <p class="text-gray-500 text-sm italic">No classes today.</p>
+        <% else %>
+          <div class="space-y-3">
+            <% @today_events.each do |e| %>
+              <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
 
-    <!-- Tomorrow -->
-    <section class="mb-8">
-      <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-        Tomorrow <span class="text-gray-500 font-normal">(<%= @tomorrow_events.size %>)</span>
-      </h2>
-      <% if @tomorrow_events.empty? %>
-        <p class="text-gray-500 text-sm italic">No classes tomorrow.</p>
-      <% else %>
-        <div class="space-y-3">
-          <% @tomorrow_events.each do |e| %>
-            <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
-          <% end %>
-        </div>
-      <% end %>
-    </section>
+      <!-- Tomorrow -->
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+          Tomorrow <span class="text-gray-500 font-normal">(<%= @tomorrow_events.size %>)</span>
+        </h2>
+        <% if @tomorrow_events.empty? %>
+          <p class="text-gray-500 text-sm italic">No classes tomorrow.</p>
+        <% else %>
+          <div class="space-y-3">
+            <% @tomorrow_events.each do |e| %>
+              <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
 
-    <!-- Next 14 days -->
-    <section class="mb-8">
-      <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-        Next 14 Days <span class="text-gray-500 font-normal">(<%= @week_events.size %>)</span>
-      </h2>
-      <% if @week_events.empty? %>
-        <p class="text-gray-500 text-sm italic">No classes in the next two weeks.</p>
-      <% else %>
-        <div class="space-y-3">
-          <% @week_events.each do |e| %>
-            <%= render partial: "kitchen/event_card", locals: { event: e, show_date: true } %>
+      <!-- Next 14 days -->
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+          Next 14 Days <span class="text-gray-500 font-normal">(<%= @week_events.size %>)</span>
+        </h2>
+        <% if @week_events.empty? %>
+          <p class="text-gray-500 text-sm italic">No classes in the next two weeks.</p>
+        <% else %>
+          <div class="space-y-3">
+            <% @week_events.each do |e| %>
+              <%= render partial: "kitchen/event_card", locals: { event: e, show_date: true } %>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
+    </div>
+
+    <!-- Calendar View -->
+    <div data-tabs-target="panel" class="hidden">
+      <% calendar_months.each do |month_start| %>
+        <% month_end = (month_start >> 1) - 1 %>
+        <section class="mb-10">
+          <h2 class="text-lg font-bold text-white mb-4"><%= month_start.strftime("%B %Y") %></h2>
+          <div class="grid grid-cols-7 gap-px bg-gray-800 rounded-lg overflow-hidden">
+            <!-- Day headers -->
+            <% %w[Sun Mon Tue Wed Thu Fri Sat].each do |day| %>
+              <div class="bg-gray-900 py-2 text-center text-xs font-semibold text-gray-500"><%= day %></div>
+            <% end %>
+
+            <!-- Leading blanks -->
+            <% month_start.wday.times do %>
+              <div class="bg-gray-900 min-h-[5rem]"></div>
+            <% end %>
+
+            <!-- Days -->
+            <% (month_start..month_end).each do |date| %>
+              <% day_events = calendar_events[date] || [] %>
+              <% is_today = date == today %>
+              <% is_past = date < today %>
+              <div class="bg-gray-900 min-h-[5rem] p-1.5 <%= 'opacity-40' if is_past %>">
+                <div class="text-xs font-semibold mb-1 <%= is_today ? 'text-orange-400' : 'text-gray-400' %>">
+                  <% if is_today %>
+                    <span class="bg-orange-400 text-gray-900 rounded-full w-5 h-5 inline-flex items-center justify-center"><%= date.day %></span>
+                  <% else %>
+                    <%= date.day %>
+                  <% end %>
+                </div>
+                <% day_events.first(3).each do |e| %>
+                  <%
+                    if e.sold_out?
+                      dot_color = "bg-red-500"
+                    elsif e.spots_left && e.spots_left <= 3
+                      dot_color = "bg-amber-500"
+                    else
+                      dot_color = "bg-green-500"
+                    end
+
+                    # Tooltip status text + color
+                    if e.sold_out? && e.last_known_capacity
+                      sold = e.last_known_capacity - (e.last_known_spots_left || 0)
+                      tip_status = "#{sold} of #{e.last_known_capacity} tickets sold"
+                      tip_status_color = "text-red-400"
+                    elsif e.spots_left
+                      tip_status = e.capacity ? "#{e.spots_left} of #{e.capacity} left" : "#{e.spots_left} left"
+                      tip_status_color = e.spots_left <= 0 ? "text-red-400" : (e.spots_left <= 3 ? "text-amber-400" : "text-green-400")
+                    else
+                      tip_status = ""
+                      tip_status_color = "text-gray-400"
+                    end
+
+                    # Tooltip availability badge
+                    case e.availability.to_s.downcase
+                    when /closed/
+                      tip_badge = "TICKETS NO LONGER AVAILABLE"
+                      tip_badge_color = "bg-red-900/50 text-red-400"
+                    when /soldout/
+                      tip_badge = "SOLD OUT"
+                      tip_badge_color = "bg-red-900/50 text-red-400"
+                    when /limited/
+                      tip_badge = "LIMITED"
+                      tip_badge_color = "bg-amber-900/50 text-amber-400"
+                    when /instock/
+                      tip_badge = "AVAILABLE"
+                      tip_badge_color = "bg-green-900/50 text-green-400"
+                    else
+                      tip_badge = ""
+                      tip_badge_color = ""
+                    end
+                  %>
+                  <a href="<%= e.url %>" target="_blank" rel="noopener"
+                     class="block truncate text-[10px] leading-tight mb-0.5 rounded px-1 py-0.5 hover:bg-gray-800 transition"
+                     data-action="mouseenter->kitchen-tooltip#show mouseleave->kitchen-tooltip#hide"
+                     data-tip-name="<%= e.name %>"
+                     data-tip-when="<%= e.start_at.strftime("%A, %B %-d · %-I:%M %p") %>"
+                     data-tip-status="<%= tip_status %>"
+                     data-tip-status-color="<%= tip_status_color %>"
+                     data-tip-price="<%= e.price %>"
+                     data-tip-badge="<%= tip_badge %>"
+                     data-tip-badge-color="<%= tip_badge_color %>">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full <%= dot_color %> mr-0.5 align-middle"></span>
+                    <span class="text-gray-300"><%= e.start_at.strftime("%-I%p").downcase %></span>
+                    <span class="text-gray-500 hidden sm:inline"> <%= e.name.truncate(20) %></span>
+                  </a>
+                <% end %>
+                <% if day_events.size > 3 %>
+                  <div class="text-[10px] text-gray-500 px-1">+<%= day_events.size - 3 %> more</div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- Trailing blanks -->
+            <% ((6 - month_end.wday) % 7).times do %>
+              <div class="bg-gray-900 min-h-[5rem]"></div>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+    </div>
+
+    <!-- Week Agenda View -->
+    <div data-tabs-target="panel" class="hidden" data-controller="week-nav">
+      <div class="flex items-center justify-between mb-4">
+        <button data-week-nav-target="prev" data-action="click->week-nav#prev"
+                class="px-3 py-1 text-sm rounded bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+          &larr; Prev
+        </button>
+        <h2 data-week-nav-target="label" class="text-lg font-bold text-white"></h2>
+        <button data-week-nav-target="next" data-action="click->week-nav#next"
+                class="px-3 py-1 text-sm rounded bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+          Next &rarr;
+        </button>
+      </div>
+
+      <% agenda_weeks.each do |wk_start| %>
+        <%
+          wk_end = wk_start + 6
+          wk_label = if wk_start.month == wk_end.month
+            "#{wk_start.strftime("%b %-d")} – #{wk_end.strftime("%-d, %Y")}"
+          else
+            "#{wk_start.strftime("%b %-d")} – #{wk_end.strftime("%b %-d, %Y")}"
+          end
+        %>
+        <div data-week-nav-target="week" data-week-label="Week of <%= wk_label %>"
+             class="hidden grid grid-cols-1 sm:grid-cols-7 gap-3">
+          <% (wk_start..wk_end).each do |date| %>
+            <% day_events = (calendar_events[date] || []).sort_by(&:start_at) %>
+            <% is_today = date == today %>
+            <% is_past = date < today %>
+            <div class="bg-gray-900 rounded-lg p-3 <%= 'opacity-50' if is_past %>">
+              <div class="flex items-baseline justify-between mb-2 pb-2 border-b border-gray-800">
+                <div class="text-xs font-semibold uppercase tracking-wide <%= is_today ? 'text-orange-400' : 'text-gray-400' %>">
+                  <%= date.strftime("%a") %>
+                </div>
+                <div class="text-sm font-bold <%= is_today ? 'text-orange-400' : 'text-gray-300' %>">
+                  <%= date.strftime("%-m/%-d") %>
+                </div>
+              </div>
+              <% if day_events.empty? %>
+                <p class="text-[11px] text-gray-600 italic">—</p>
+              <% else %>
+                <div class="space-y-2">
+                  <% day_events.each do |e| %>
+                    <%
+                      # Dot color
+                      if e.sold_out?
+                        dot_color = "bg-red-500"
+                      elsif e.spots_left && e.spots_left <= 3
+                        dot_color = "bg-amber-500"
+                      elsif e.spots_left && e.spots_left > 3
+                        dot_color = "bg-green-500"
+                      else
+                        dot_color = "bg-gray-600"
+                      end
+
+                      # Friendly status line + tooltip fields
+                      if e.sold_out? && e.last_known_capacity
+                        sold = e.last_known_capacity - (e.last_known_spots_left || 0)
+                        status_text = "Sold out · #{sold}/#{e.last_known_capacity}"
+                        status_color = "text-red-400"
+                        tip_status = "#{sold} of #{e.last_known_capacity} tickets sold"
+                        tip_status_color = "text-red-400"
+                      elsif e.sold_out?
+                        status_text = "Sold out"
+                        status_color = "text-red-400"
+                        tip_status = "Sold out"
+                        tip_status_color = "text-red-400"
+                      elsif e.spots_left
+                        status_text = e.capacity ? "#{e.spots_left} of #{e.capacity} left" : "#{e.spots_left} left"
+                        status_color = e.spots_left <= 0 ? "text-red-400" : (e.spots_left <= 3 ? "text-amber-400" : "text-green-400")
+                        tip_status = status_text
+                        tip_status_color = status_color
+                      else
+                        status_text = ""
+                        status_color = "text-gray-500"
+                        tip_status = ""
+                        tip_status_color = "text-gray-400"
+                      end
+
+                      # Availability badge
+                      case e.availability.to_s.downcase
+                      when /closed/
+                        avail_label = "TICKETS NO LONGER AVAILABLE"
+                        avail_color = "bg-red-900/50 text-red-400"
+                      when /soldout/
+                        avail_label = "SOLD OUT"
+                        avail_color = "bg-red-900/50 text-red-400"
+                      when /limited/
+                        avail_label = "LIMITED"
+                        avail_color = "bg-amber-900/50 text-amber-400"
+                      when /instock/
+                        avail_label = "AVAILABLE"
+                        avail_color = "bg-green-900/50 text-green-400"
+                      else
+                        avail_label = ""
+                        avail_color = ""
+                      end
+                    %>
+                    <a href="<%= e.url %>" target="_blank" rel="noopener"
+                       class="block rounded p-2 bg-gray-950 hover:bg-gray-800 transition"
+                       data-action="mouseenter->kitchen-tooltip#show mouseleave->kitchen-tooltip#hide"
+                       data-tip-name="<%= e.name %>"
+                       data-tip-when="<%= e.start_at.strftime("%A, %B %-d · %-I:%M %p") %>"
+                       data-tip-status="<%= tip_status %>"
+                       data-tip-status-color="<%= tip_status_color %>"
+                       data-tip-price="<%= e.price %>"
+                       data-tip-badge="<%= avail_label %>"
+                       data-tip-badge-color="<%= avail_color %>">
+                      <div class="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full <%= dot_color %>"></span>
+                        <span><%= e.start_at.strftime("%-I:%M %p") %></span>
+                      </div>
+                      <div class="text-xs font-medium text-orange-400 leading-tight mb-1"><%= e.name %></div>
+                      <% if status_text.present? %>
+                        <div class="text-[10px] <%= status_color %> font-semibold"><%= status_text %></div>
+                      <% end %>
+                      <% if avail_label.present? %>
+                        <div class="mt-1">
+                          <span class="inline-block px-1.5 py-0.5 rounded-full <%= avail_color %> text-[9px] font-semibold"><%= avail_label %></span>
+                        </div>
+                      <% end %>
+                    </a>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>
-    </section>
+    </div>
 
   <% end %>
 </div>
