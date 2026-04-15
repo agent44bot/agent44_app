@@ -9,6 +9,14 @@ module Api
       def create
         message_text = params.dig(:message, :text) || ""
         bot_reply = params.dig(:message, :from, :is_bot)
+        from_user = params.dig(:message, :from, :first_name)
+
+        # Check for deploy commands from human users
+        if !bot_reply && message_text.present? && deploy_request?(message_text)
+          handle_deploy_request(message_text, from_user)
+          head :ok
+          return
+        end
 
         # Only process bot messages (from our agent bot)
         if bot_reply && message_text.present?
@@ -88,6 +96,55 @@ module Api
         agent.update!(attrs)
         Rails.cache.delete("agents/ordered")
         Rails.logger.info("[TelegramWebhook] #{full_name} → #{status}#{task ? " (#{task})" : ""}")
+      end
+
+      DEPLOY_PATTERNS = [
+        /(?:knox|claude)[\s,]*deploy\s+(\S+)/i,
+        /deploy\s+(?:the\s+)?(\S+?)(?:\s+app)?(?:\s+for\s+me)?$/i,
+        /(?:push|ship|release)\s+(\S+)\s+(?:to\s+)?prod/i,
+      ].freeze
+
+      APP_ALIASES = {
+        "agent44" => "agent44-app",
+        "agent44_app" => "agent44-app",
+        "agent44-app" => "agent44-app",
+        "openclaw" => "agent44-app",
+        "app" => "agent44-app",
+      }.freeze
+
+      def deploy_request?(text)
+        DEPLOY_PATTERNS.any? { |p| text.match?(p) }
+      end
+
+      def handle_deploy_request(text, from_user)
+        app = "agent44-app"
+        DEPLOY_PATTERNS.each do |pattern|
+          if (match = text.match(pattern))
+            app = APP_ALIASES[match[1].downcase.strip] || match[1].strip
+            break
+          end
+        end
+
+        message = AgentMessage.create!(
+          role: "user",
+          agent: "Knox \u{1f512}",
+          content: "deploy:#{app}",
+          status: "pending"
+        )
+
+        knox = Agent.find_by(name: "Knox \u{1f512}")
+        knox&.update!(status: "busy", current_task: "Deploying #{app}", last_active_at: Time.current)
+        Rails.cache.delete("agents/ordered")
+
+        Notification.notify!(
+          level: "info",
+          source: "deploy",
+          title: "Deploy requested",
+          body: "#{from_user} requested deploy of #{app} via Telegram",
+          telegram: true
+        )
+
+        Rails.logger.info("[TelegramWebhook] Deploy queued: #{app} by #{from_user}")
       end
 
       def extract_task(text)

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#
+# Knox deploy handler — polls OpenClaw for pending deploy tasks and runs them.
+# Designed to run on the Mac Mini where `fly` CLI is installed.
+#
+# Usage:
+#   bin/knox-deploy              # poll once
+#   bin/knox-deploy --watch      # poll every 30s
+#
+# Required env vars:
+#   OPENCLAW_URL   — e.g. https://agent44.app
+#   API_TOKEN      — Bearer token for OpenClaw API
+#   APP_DIR        — path to the agent44_app repo (default: script's parent dir)
+
+set -euo pipefail
+
+OPENCLAW_URL="${OPENCLAW_URL:?Set OPENCLAW_URL}"
+API_TOKEN="${API_TOKEN:?Set API_TOKEN}"
+APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+POLL_INTERVAL="${POLL_INTERVAL:-30}"
+
+poll_once() {
+  # Fetch pending messages for Knox
+  local response
+  response=$(curl -sf -H "Authorization: Bearer $API_TOKEN" \
+    "$OPENCLAW_URL/api/v1/chat/pending" 2>/dev/null) || return 0
+
+  # Parse deploy tasks
+  echo "$response" | ruby -rjson -e '
+    msgs = JSON.parse(STDIN.read)
+    msgs.each do |m|
+      next unless m["content"].to_s.start_with?("deploy:")
+      puts "#{m["id"]}|#{m["content"]}"
+    end
+  ' | while IFS="|" read -r msg_id content; do
+    app="${content#deploy:}"
+    echo "[Knox] Deploy task #$msg_id: $app"
+
+    # Ack the message
+    curl -sf -X PATCH -H "Authorization: Bearer $API_TOKEN" \
+      "$OPENCLAW_URL/api/v1/chat/$msg_id/ack" >/dev/null 2>&1 || true
+
+    # Run the deploy
+    cd "$APP_DIR"
+    if deploy_output=$(fly deploy --app "$app" 2>&1); then
+      status="success"
+      reply="Deploy of $app completed successfully."
+      echo "[Knox] Deploy succeeded"
+    else
+      status="error"
+      reply="Deploy of $app failed: ${deploy_output:0:500}"
+      echo "[Knox] Deploy failed: $deploy_output"
+    fi
+
+    # Post reply
+    curl -sf -X POST -H "Authorization: Bearer $API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg id "$msg_id" --arg agent "Knox 🔒" --arg content "$reply" \
+        '{id: $id, agent: $agent, content: $content}')" \
+      "$OPENCLAW_URL/api/v1/chat/reply" >/dev/null 2>&1 || true
+
+    # Update Knox status
+    curl -sf -X PATCH -H "Authorization: Bearer $API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg status "online" --arg task "" \
+        '{status: $status, current_task: $task}')" \
+      "$OPENCLAW_URL/api/v1/agents/knox/status" >/dev/null 2>&1 || true
+
+    # Notify
+    curl -sf -X POST -H "Authorization: Bearer $API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg level "$status" --arg title "Deploy $status" --arg body "$reply" \
+        '{level: $level, source: "knox_deploy", title: $title, body: $body, telegram: true}')" \
+      "$OPENCLAW_URL/api/v1/notifications" >/dev/null 2>&1 || true
+  done
+}
+
+if [ "${1:-}" = "--watch" ]; then
+  echo "[Knox] Watching for deploy tasks every ${POLL_INTERVAL}s..."
+  while true; do
+    poll_once
+    sleep "$POLL_INTERVAL"
+  done
+else
+  poll_once
+fi

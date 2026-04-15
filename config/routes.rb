@@ -39,6 +39,7 @@ Rails.application.routes.draw do
       patch "agents/:name/status", to: "agents#update_status", as: :agent_status
       get "agents/statuses", to: "agents#statuses"
       post "telegram/webhook", to: "telegram_webhook#create"
+      post "deploy", to: "deploys#create"
       get "chat/pending", to: "chat#pending"
       patch "chat/:id/ack", to: "chat#ack", as: :chat_ack
       post "chat/reply", to: "chat#reply"
