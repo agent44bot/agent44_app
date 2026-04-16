@@ -23,6 +23,8 @@ class ScrapeKitchenJob < ApplicationJob
           e[:availability] = "Closed"
         elsif info[:spots_left] && info[:spots_left] > 0
           e[:availability] = "InStock"
+        elsif info[:spots_left] == 0
+          e[:availability] = "SoldOut"
         end
       end
       sleep 0.25
