@@ -1,6 +1,8 @@
 require "test_helper"
 require "fileutils"
 require "playwright"
+require "net/http"
+require "json"
 
 # Black-box smoke test for https://nykitchen.com/calendar/
 #
@@ -31,11 +33,15 @@ require "playwright"
 # On failure: writes .webm video, .png screenshot, Playwright trace to
 # tmp/smoke/, and renders a preview email to stdout (not sent).
 class NykCalendarNavTest < ActiveSupport::TestCase
-  TARGET_URL = "https://nykitchen.com/calendar/"
+  TARGET_URL = NykSmokeMailer::TARGET_URL
   ARTIFACT_DIR = Rails.root.join("tmp", "smoke")
   FORWARD_STEPS = 3 # clicks past initial load; total months visited = 4
   NAV_WAIT_MS   = Integer(ENV["NAV_WAIT_MS"]  || 2_500)
   STEP_PAUSE_MS = Integer(ENV["STEP_PAUSE_MS"] || 0)
+  TEST_NAME = "nyk_calendar_nav"
+  # Where to POST results. Defaults to prod so cron runs hit the live DB.
+  # Override with SMOKE_API_URL for local testing.
+  API_URL = ENV["SMOKE_API_URL"] || "https://agent44-app.fly.dev"
 
   def self.runnable_methods
     ENV["RUN_SMOKE"] == "true" ? super : []
@@ -48,9 +54,25 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     @screenshot_path = ARTIFACT_DIR.join("nyk-calendar-nav-#{@stamp}.png")
     @trace_path = ARTIFACT_DIR.join("nyk-calendar-nav-#{@stamp}.trace.zip")
     @failures = []
+    @started_at = Time.now
   end
 
   test "events round-trip: nav forward N months, back N months, event sets match" do
+    # Escape hatch for wiring/testing the failure email path — forces a fake
+    # failure after capturing a real video so we can verify end-to-end delivery.
+    if ENV["FORCE_FAIL"] == "true"
+      Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
+        browser = pw.chromium.launch(headless: true)
+        context = browser.new_context(record_video_dir: @video_dir.to_s)
+        context.tracing.start(screenshots: true, snapshots: true, sources: false)
+        page = context.new_page
+        page.goto(TARGET_URL, timeout: 30_000, waitUntil: "domcontentloaded")
+        page.wait_for_timeout(2_000)
+        fail_with_artifacts(page, context, "FORCE_FAIL=true — simulated failure to test the email-delivery pipeline")
+      end
+      return
+    end
+
     Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
       headful = %w[1 true yes t y].include?(ENV["HEADFUL"].to_s.downcase)
       browser = pw.chromium.launch(headless: !headful)
@@ -119,6 +141,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
           context.tracing.stop
           context.close
           browser.close
+          summary = forward.map { |m| m[:events].size }.join("/") + " events round-tripped"
+          post_result(status: "passed", summary: summary)
           assert_empty @failures
           puts "\n  ✅ NY Kitchen calendar nav: event sets survived a #{FORWARD_STEPS}-month round-trip."
         end
@@ -175,9 +199,17 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   end
 
   def click_nav(page, direction)
+    before_title = read_month_title(page)
     page.locator(nav_selector(direction)).first.click
+    # Wait until the month title actually updates (AJAX settled + DOM rerendered).
+    # Poll up to 10s; fall back to a timed wait if polling fails so we don't crash.
+    deadline = Time.now + 10
+    while Time.now < deadline
+      break if read_month_title(page) != before_title && !read_month_title(page).empty?
+      page.wait_for_timeout(200)
+    end
+    page.wait_for_load_state("networkidle", timeout: 5_000) rescue nil
     page.wait_for_timeout(NAV_WAIT_MS)
-    page.wait_for_load_state("networkidle", timeout: 10_000) rescue nil
   end
 
   # The Events Calendar page has an Elementor newsletter popup ("STAY IN
@@ -207,6 +239,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     video_path = Dir.glob(@video_dir.join("*.webm").to_s).first
 
+    post_result(status: "failed", error_message: message)
+
     preview_failure_email(
       message: message,
       video_path: video_path,
@@ -215,6 +249,48 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     )
 
     flunk message
+  end
+
+  # POST a row to /api/v1/smoke_runs so agent44labs.com/kitchen Tests tab
+  # shows this run. Fails silently (log-only) if the API is unreachable —
+  # we don't want to mask a legitimate test failure with an infra failure.
+  def post_result(status:, summary: nil, error_message: nil)
+    token = ENV["API_TOKEN"]
+    if token.to_s.empty?
+      puts "  ⚠  API_TOKEN not set; skipping smoke-run POST"
+      return
+    end
+
+    ended_at = Time.now
+    body = {
+      name: TEST_NAME,
+      status: status,
+      started_at: @started_at.iso8601,
+      ended_at: ended_at.iso8601,
+      duration_ms: ((ended_at - @started_at) * 1000).to_i,
+      summary: summary,
+      error_message: error_message
+    }.compact.to_json
+
+    uri = URI("#{API_URL}/api/v1/smoke_runs")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 5
+    http.read_timeout = 10
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{token}"
+    req["Content-Type"] = "application/json"
+    req.body = body
+
+    res = http.request(req)
+    if res.is_a?(Net::HTTPSuccess)
+      puts "  📬 smoke-run posted to #{API_URL} (#{status})"
+    else
+      puts "  ⚠  smoke-run POST → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
+    end
+  rescue => e
+    puts "  ⚠  smoke-run POST error: #{e.class}: #{e.message}"
   end
 
   def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:)
@@ -230,8 +306,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     html_path = ARTIFACT_DIR.join("nyk-smoke-preview-#{@stamp}.html")
     File.write(html_path, mail.html_part&.body&.to_s || mail.body.to_s)
 
+    deliver = ENV["NYK_SMOKE_DELIVER"] == "true"
+
     puts "\n" + "=" * 70
-    puts "📧 NY Kitchen smoke EMAIL PREVIEW (not sent)"
+    puts deliver ? "📧 NY Kitchen smoke EMAIL — DELIVERING" : "📧 NY Kitchen smoke EMAIL PREVIEW (not sent)"
     puts "=" * 70
     puts "SUBJECT: #{mail.subject}"
     puts "TO:      #{Array(mail.to).join(", ")}"
@@ -243,6 +321,28 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     puts "  trace:      #{trace_path}  (drag into https://trace.playwright.dev)"
     puts "  html body:  #{html_path}"
     puts "=" * 70
+
+    if deliver
+      if ENV["BREVO_SMTP_KEY"].to_s.empty?
+        puts "✗ BREVO_SMTP_KEY not set — cannot actually send (pull from Fly: fly ssh console -C 'printenv BREVO_SMTP_KEY')"
+      else
+        # Override test-env :test delivery with Brevo SMTP for this one call
+        ActionMailer::Base.delivery_method = :smtp
+        ActionMailer::Base.smtp_settings = {
+          address: "smtp-relay.brevo.com",
+          port: 587,
+          user_name: ENV.fetch("BREVO_SMTP_LOGIN", "a5ec98001@smtp-brevo.com"),
+          password: ENV["BREVO_SMTP_KEY"],
+          authentication: :plain,
+          enable_starttls_auto: true
+        }
+        ActionMailer::Base.raise_delivery_errors = true
+        mail.deliver_now
+        puts "✉️  Delivered via Brevo."
+      end
+    else
+      puts "(set NYK_SMOKE_DELIVER=true to actually send)"
+    end
     puts
   end
 end

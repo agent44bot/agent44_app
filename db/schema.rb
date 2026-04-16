@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_15_155417) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_16_195251) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -270,6 +270,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_15_155417) do
     t.string "user_agent"
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "smoke_test_runs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "duration_ms"
+    t.datetime "ended_at"
+    t.text "error_message"
+    t.string "name", null: false
+    t.datetime "started_at", null: false
+    t.string "status", null: false
+    t.text "summary"
+    t.datetime "updated_at", null: false
+    t.index ["name", "started_at"], name: "index_smoke_test_runs_on_name_and_started_at"
+    t.index ["started_at"], name: "index_smoke_test_runs_on_started_at"
   end
 
   create_table "subscribers", force: :cascade do |t|

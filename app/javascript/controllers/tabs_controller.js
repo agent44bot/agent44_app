@@ -25,5 +25,12 @@ export default class extends Controller {
     this.panelTargets.forEach((panel, i) => {
       panel.classList.toggle("hidden", i !== index)
     })
+
+    // Hide any chrome (e.g. filter chips) not relevant to the current tab.
+    // Mark with `data-tabs-chrome-for="0 1 2"` to show only on those indices.
+    this.element.querySelectorAll("[data-tabs-chrome-for]").forEach(el => {
+      const indices = el.dataset.tabsChromeFor.split(" ").map(s => s.trim())
+      el.classList.toggle("hidden", !indices.includes(String(index)))
+    })
   }
 }

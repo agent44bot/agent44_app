@@ -37,6 +37,22 @@ Rails.application.configure do
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 
+  # Opt-in Brevo SMTP for local testing (e.g. smoke-test failure emails).
+  # Set BREVO_SMTP_KEY in the shell env (pull from Fly: `fly ssh console -C 'printenv BREVO_SMTP_KEY'`)
+  # and set NYK_SMOKE_DELIVER=true in the test run.
+  if ENV["BREVO_SMTP_KEY"].present?
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      address: "smtp-relay.brevo.com",
+      port: 587,
+      user_name: ENV.fetch("BREVO_SMTP_LOGIN", "a5ec98001@smtp-brevo.com"),
+      password: ENV["BREVO_SMTP_KEY"],
+      authentication: :plain,
+      enable_starttls_auto: true
+    }
+    config.action_mailer.raise_delivery_errors = true
+  end
+
   # Set localhost to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 

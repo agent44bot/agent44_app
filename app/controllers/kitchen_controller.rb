@@ -30,5 +30,7 @@ class KitchenController < ApplicationController
       @sold_out = 0
       @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0 }
     end
+
+    @smoke_runs = SmokeTestRun.for_name("nyk_calendar_nav").recent.limit(20)
   end
 end
