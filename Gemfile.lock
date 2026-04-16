@@ -192,6 +192,10 @@ GEM
     matrix (0.4.3)
     mcp (0.12.0)
       json-schema (>= 4.1)
+    mime-types (3.7.0)
+      logger
+      mime-types-data (~> 3.2025, >= 3.2025.0507)
+    mime-types-data (3.2026.0414)
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
@@ -235,6 +239,10 @@ GEM
     parser (3.3.10.2)
       ast (~> 2.4.1)
       racc
+    playwright-ruby-client (1.59.0)
+      base64
+      concurrent-ruby (>= 1.1.6)
+      mime-types (>= 3.0)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -443,6 +451,7 @@ DEPENDENCIES
   jbuilder
   kamal
   minitest (~> 5.20)
+  playwright-ruby-client
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.2)

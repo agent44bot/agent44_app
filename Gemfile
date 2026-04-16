@@ -76,6 +76,10 @@ group :test do
   # Rails 8 test helpers (ActiveSupport::Testing::MethodCallAssertions)
   # still require minitest/mock, which was removed in Minitest 6.
   gem "minitest", "~> 5.20"
+
+  # Browser automation for NY Kitchen calendar smoke test
+  # (videos + traces for client-facing failure evidence)
+  gem "playwright-ruby-client"
 end
 
 gem "dockerfile-rails", ">= 1.7", :group => :development

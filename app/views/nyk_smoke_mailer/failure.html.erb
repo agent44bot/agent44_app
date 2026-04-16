@@ -1,0 +1,40 @@
+<html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:auto;color:#222;background:#fafafa;padding:20px">
+<div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+
+<h2 style="margin:0 0 8px 0;font-size:20px;color:#b00020">🚨 NY Kitchen calendar smoke failed</h2>
+<div style="color:#666;font-size:13px;margin-bottom:20px">
+  <%= @started_at.strftime("%A, %B %-d, %Y &middot; %-I:%M %p %Z").html_safe %>
+</div>
+
+<div style="background:#fff1f2;border:1px solid #fecaca;border-radius:8px;padding:14px;margin-bottom:20px">
+  <div style="font-size:13px;color:#7f1d1d;font-weight:600;margin-bottom:6px">What failed</div>
+  <pre style="font-size:12px;color:#450a0a;white-space:pre-wrap;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"><%= @failure_message %></pre>
+</div>
+
+<h3 style="font-size:14px;color:#111;margin:24px 0 8px 0">Test flow (failed somewhere in here)</h3>
+<ol style="font-size:13px;color:#333;padding-left:20px;margin:0 0 20px 0;line-height:1.6">
+  <li>Load <a href="<%= @target_url %>" style="color:#0a58ca"><%= @target_url %></a></li>
+  <li>Confirm calendar grid rendered</li>
+  <li>Click <strong>&larr; previous month</strong> &mdash; confirm month changed and grid still rendered</li>
+  <li>Click <strong>&rarr; next month</strong> (back to current) &mdash; same check</li>
+  <li>Click <strong>&rarr; next month</strong> (future) &mdash; same check</li>
+</ol>
+
+<h3 style="font-size:14px;color:#111;margin:24px 0 8px 0">Evidence attached</h3>
+<ul style="font-size:13px;color:#333;padding-left:20px;margin:0;line-height:1.6">
+  <% if @video_path && File.exist?(@video_path) %>
+    <li><strong>failure.webm</strong> &mdash; full screen recording of the test run (<%= (File.size(@video_path) / 1024).to_s %> KB)</li>
+  <% end %>
+  <% if @screenshot_path && File.exist?(@screenshot_path) %>
+    <li><strong>failure.png</strong> &mdash; full-page screenshot at the moment of failure</li>
+  <% end %>
+  <% if @trace_path && File.exist?(@trace_path) %>
+    <li><strong>trace.zip</strong> &mdash; Playwright trace (drop it at <a href="https://trace.playwright.dev" style="color:#0a58ca">trace.playwright.dev</a> for a step-by-step DOM + network replay)</li>
+  <% end %>
+</ul>
+
+<div style="margin-top:28px;padding-top:16px;border-top:1px solid #eee;color:#888;font-size:11px;text-align:center">
+  Sent by Agent44 Labs &middot; automated NY Kitchen calendar smoke test
+</div>
+</div>
+</body></html>
