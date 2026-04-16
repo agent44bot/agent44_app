@@ -2,11 +2,12 @@
   def fmt(t); t.strftime("%-I:%M %p"); end
 
   def label(av)
+    pill = "display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap"
     case av.to_s.downcase
-    when /closed/   then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#b00020;font-size:11px;font-weight:600">TICKETS NO LONGER AVAILABLE</span>'
-    when /soldout/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#b00020;font-size:11px;font-weight:600">SOLD OUT</span>'
-    when /limited/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#b35900;font-size:11px;font-weight:600">LIMITED</span>'
-    when /instock/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#e6f4ea;color:#1b6e3a;font-size:11px;font-weight:600">AVAILABLE</span>'
+    when /closed/   then %Q(<span style="#{pill};background:#fde8e8;color:#b00020">TICKETS NO LONGER AVAILABLE</span>)
+    when /soldout/  then %Q(<span style="#{pill};background:#fde8e8;color:#b00020">SOLD OUT</span>)
+    when /limited/  then %Q(<span style="#{pill};background:#fff3e0;color:#b35900">LIMITED</span>)
+    when /instock/  then %Q(<span style="#{pill};background:#e6f4ea;color:#1b6e3a">AVAILABLE</span>)
     else %Q(<span style="font-size:11px;color:#888">#{av}</span>)
     end
   end
@@ -29,17 +30,24 @@
   end
 
   def event_row(e)
-    meta = []
-    meta << spots(e) unless spots(e).empty?
-    meta << e[:instructor] if e[:instructor]
-    meta << "$#{e[:price]}" if e[:price]
-    meta_html = meta.empty? ? "" : %Q(<div style="font-size:12px;color:#666;margin-top:2px">#{meta.join(' &middot; ')}</div>)
+    left_meta = []
+    left_meta << e[:instructor] if e[:instructor]
+    left_meta << "$#{e[:price]}" if e[:price]
+    left_meta_html = left_meta.empty? ? "" : %Q(<div style="font-size:12px;color:#666;margin-top:2px">#{left_meta.join(' &middot; ')}</div>)
+    spots_html = spots(e).empty? ? "" : %Q(<div style="margin-top:4px">#{spots(e)}</div>)
     %Q(<li style="padding:10px 0;border-bottom:1px solid #eee;list-style:none">
-         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
-           <div><strong style="color:#111">#{fmt(e[:start_at])}</strong> &nbsp; <a href="#{e[:url]}" style="color:#0a58ca;text-decoration:none">#{e[:name]}</a></div>
-           <div>#{label(e[:availability])}</div>
+         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+           <div>
+             <strong style="color:#111">#{fmt(e[:start_at])}</strong>
+             &nbsp;
+             <a href="#{e[:url]}" style="color:#0a58ca;text-decoration:none">#{e[:name]}</a>
+             #{left_meta_html}
+           </div>
+           <div style="text-align:right;flex-shrink:0">
+             #{label(e[:availability])}
+             #{spots_html}
+           </div>
          </div>
-         #{meta_html}
        </li>)
   end
 %>
@@ -69,16 +77,25 @@
   <% else %>
     <ul style="padding:0;margin:0"><% events.each do |e| %>
       <li style="padding:8px 0;border-bottom:1px solid #eee;list-style:none">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
-          <div><strong style="color:#111"><%= e[:start_at].strftime("%a %-m/%-d %-I:%M %p") %></strong> &nbsp; <a href="<%= e[:url] %>" style="color:#0a58ca;text-decoration:none"><%= e[:name] %></a></div>
-          <div><%= label(e[:availability]).html_safe %></div>
-        </div>
-        <div style="font-size:12px;color:#666;margin-top:2px">
-          <% parts = [] %>
-          <% parts << spots(e).html_safe if e[:spots_left] %>
-          <% parts << e[:instructor] if e[:instructor] %>
-          <% parts << "$#{e[:price]}" if e[:price] %>
-          <%= parts.join(" &middot; ").html_safe %>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <strong style="color:#111"><%= e[:start_at].strftime("%a %-m/%-d %-I:%M %p") %></strong>
+            &nbsp;
+            <a href="<%= e[:url] %>" style="color:#0a58ca;text-decoration:none"><%= e[:name] %></a>
+            <% left_meta = [] %>
+            <% left_meta << e[:instructor] if e[:instructor] %>
+            <% left_meta << "$#{e[:price]}" if e[:price] %>
+            <% if left_meta.any? %>
+              <div style="font-size:12px;color:#666;margin-top:2px"><%= left_meta.join(" &middot; ").html_safe %></div>
+            <% end %>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <%= label(e[:availability]).html_safe %>
+            <% s = spots(e) %>
+            <% if s.present? %>
+              <div style="margin-top:4px"><%= s.html_safe %></div>
+            <% end %>
+          </div>
         </div>
       </li>
     <% end %></ul>
