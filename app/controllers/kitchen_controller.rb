@@ -13,11 +13,22 @@ class KitchenController < ApplicationController
       @total = @events.size
       @sold_out = @events.count(&:sold_out?)
       @last_updated = snapshot.taken_on
+
+      list_events = @week1_events + @week2_events + @week3_events + @week4_events
+      statuses = list_events.map(&:availability_status)
+      @filter_counts = {
+        "all"     => statuses.size,
+        "instock" => statuses.count("instock"),
+        "limited" => statuses.count("limited"),
+        "soldout" => statuses.count("soldout"),
+        "closed"  => statuses.count("closed")
+      }
     else
       @events = []
       @week1_events = @week2_events = @week3_events = @week4_events = []
       @total = 0
       @sold_out = 0
+      @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0 }
     end
   end
 end

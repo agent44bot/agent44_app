@@ -76,14 +76,41 @@
   <% else %>
 
     <!-- List View -->
-    <div data-tabs-target="panel">
+    <div data-tabs-target="panel" data-controller="kitchen-filter">
+
+      <%
+        inactive_chip = "bg-gray-800 text-gray-400 hover:bg-gray-700"
+        chips = [
+          ["all",     "All",                   "bg-orange-500 text-white"],
+          ["instock", "Available",             "bg-green-700 text-green-100"],
+          ["limited", "Limited",               "bg-amber-700 text-amber-100"],
+          ["soldout", "Sold Out",              "bg-red-800 text-red-100"],
+          ["closed",  "No Longer Available",   "bg-red-900 text-red-100"]
+        ]
+      %>
+      <div class="flex flex-wrap gap-2 mb-5">
+        <% chips.each do |status, text, active_cls| %>
+          <% count = @filter_counts[status] %>
+          <% next if count == 0 && status != "all" %>
+          <% start_cls = status == "all" ? active_cls : inactive_chip %>
+          <button data-kitchen-filter-target="chip"
+                  data-action="click->kitchen-filter#filter"
+                  data-filter-status="<%= status %>"
+                  data-active-classes="<%= active_cls %>"
+                  data-inactive-classes="<%= inactive_chip %>"
+                  class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
+            <%= text %> (<%= count %>)
+          </button>
+        <% end %>
+      </div>
+
       <% [
         ["Next Week",    @week1_events, "No classes next week."],
         ["In 2 Weeks",   @week2_events, "No classes in two weeks."],
         ["In 3 Weeks",   @week3_events, "No classes in three weeks."],
         ["In 4 Weeks",   @week4_events, "No classes in four weeks."]
       ].each do |title, events, empty_copy| %>
-        <section class="mb-8">
+        <section data-kitchen-filter-target="section" class="mb-8">
           <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
             <%= title %> <span class="text-gray-500 font-normal">(<%= events.size %>)</span>
           </h2>

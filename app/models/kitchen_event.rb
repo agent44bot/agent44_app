@@ -10,4 +10,16 @@ class KitchenEvent < ApplicationRecord
     av = availability.to_s.downcase
     av.include?("soldout") || av.include?("closed")
   end
+
+  # Canonical status bucket for filter chips + CSS targeting.
+  def availability_status
+    d = availability.to_s.downcase
+    case d
+    when /closed/   then "closed"
+    when /soldout/  then "soldout"
+    when /limited/  then "limited"
+    when /instock/  then "instock"
+    else                 "other"
+    end
+  end
 end
