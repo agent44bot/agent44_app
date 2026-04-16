@@ -28,16 +28,23 @@ ensure_token() {
   export API_TOKEN
 }
 
+KNOX_AGENT_NAME="Knox 🔒"
+KNOX_URL_SLUG="$(/usr/bin/python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$KNOX_AGENT_NAME")"
+
 patch_knox() {
   local status="$1" task="$2"
   local body
   body=$(printf '{"status":"%s","current_task":%s}' "$status" \
     "$(if [ -z "$task" ]; then echo "null"; else /usr/bin/python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$task"; fi)")
-  /usr/bin/curl -sf -X PATCH \
+  local http
+  http=$(/usr/bin/curl -s -o /dev/null -w "%{http_code}" -X PATCH \
     -H "Authorization: Bearer $API_TOKEN" \
     -H "Content-Type: application/json" \
     -d "$body" \
-    "$API_URL/api/v1/agents/Knox/status" >/dev/null 2>&1 || echo "(status patch failed: $status / $task)" >&2
+    "$API_URL/api/v1/agents/$KNOX_URL_SLUG/status")
+  if [ "$http" != "200" ]; then
+    echo "(status patch $status \"$task\" → HTTP $http)" >&2
+  fi
 }
 
 ship_live() {
