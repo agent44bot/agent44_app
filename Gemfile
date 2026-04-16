@@ -69,6 +69,13 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+
+  # HTTP client for out-of-process smoke tests (test/smoke/**)
+  gem "httparty"
+
+  # Rails 8 test helpers (ActiveSupport::Testing::MethodCallAssertions)
+  # still require minitest/mock, which was removed in Minitest 6.
+  gem "minitest", "~> 5.20"
 end
 
 gem "dockerfile-rails", ">= 1.7", :group => :development

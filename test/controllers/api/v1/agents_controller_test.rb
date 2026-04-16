@@ -1,6 +1,9 @@
 require "test_helper"
+require "active_support/testing/method_call_assertions"
 
 class Api::V1::AgentsControllerTest < ActionDispatch::IntegrationTest
+  include ActiveSupport::Testing::MethodCallAssertions
+
   setup do
     @token = Rails.application.credentials.api_token || ENV["API_TOKEN"]
     @headers = { "Authorization" => "Bearer #{@token}", "Content-Type" => "application/json" }
@@ -103,5 +106,47 @@ class Api::V1::AgentsControllerTest < ActionDispatch::IntegrationTest
     last_busy_idx = agents_list.index { |a| a["name"] == busy_names.last }
     first_online_idx = agents_list.index { |a| a["name"] == online_names.first }
     assert last_busy_idx < first_online_idx, "All busy agents should be above all online agents"
+  end
+
+  # --- Ripley unmute regression guard ---
+  # Commit 84122ba removed the Ripley-specific Telegram skip in notify_status_change.
+  # These tests ensure status transitions actually reach TelegramNotifier.
+
+  test "PATCH online → busy on Ripley fires Telegram alert" do
+    assert_called(TelegramNotifier, :send_alert, times: 1) do
+      patch "/api/v1/agents/Ripley/status",
+        params: { status: "busy", current_task: "Coordinating smoke test" }.to_json,
+        headers: @headers
+      assert_response :success
+    end
+
+    note = Notification.where(source: "agent_status").order(created_at: :desc).first
+    assert_equal "Ripley is now working",   note.title
+    assert_equal "Coordinating smoke test", note.body
+    assert_equal "info",                    note.level
+  end
+
+  test "PATCH busy → online on Ripley fires 'finished task' Telegram alert" do
+    agents(:ripley).update!(status: "busy", current_task: "Orchestrating")
+
+    assert_called(TelegramNotifier, :send_alert, times: 1) do
+      patch "/api/v1/agents/Ripley/status",
+        params: { status: "online", current_task: nil }.to_json,
+        headers: @headers
+      assert_response :success
+    end
+
+    note = Notification.where(source: "agent_status").order(created_at: :desc).first
+    assert_equal "Ripley finished task", note.title
+    assert_equal "success",              note.level
+  end
+
+  test "PATCH with unchanged status does not fire Telegram" do
+    assert_not_called(TelegramNotifier, :send_alert) do
+      patch "/api/v1/agents/Ripley/status",
+        params: { status: "online" }.to_json,
+        headers: @headers
+      assert_response :success
+    end
   end
 end

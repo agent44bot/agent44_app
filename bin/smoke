@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Smoke test runner — fetches API_TOKEN from Fly and runs test/smoke/**.
+#
+# Usage:
+#   bin/smoke                          # run every smoke test against prod
+#   bin/smoke ripley_telegram          # run a single file (partial name match)
+#   SMOKE_APP=agent44-staging bin/smoke # target a different Fly app
+#
+# Token lookup order:
+#   1. $API_TOKEN if already in env (escape hatch)
+#   2. `fly ssh console -C "printenv API_TOKEN" --app $SMOKE_APP`
+#
+# The token is never written to disk. It lives only in this process's env.
+
+set -euo pipefail
+
+APP="${SMOKE_APP:-agent44-app}"
+FILTER="${1:-}"
+
+if [ -z "${API_TOKEN:-}" ]; then
+  echo "→ Fetching API_TOKEN from Fly app '$APP'..."
+  API_TOKEN="$(fly ssh console -C 'printenv API_TOKEN' --app "$APP" 2>/dev/null | tr -d '\r\n')"
+  if [ -z "$API_TOKEN" ]; then
+    echo "✗ Could not fetch API_TOKEN from Fly. Is 'fly auth' current?" >&2
+    exit 1
+  fi
+fi
+export API_TOKEN
+export RUN_SMOKE=true
+
+cd "$(dirname "$0")/.."
+
+if [ -n "$FILTER" ]; then
+  matches=$(find test/smoke -name "*${FILTER}*.rb" -type f)
+  if [ -z "$matches" ]; then
+    echo "✗ No smoke test matches '$FILTER' under test/smoke/" >&2
+    exit 1
+  fi
+  exec bin/rails test $matches
+else
+  exec bin/rails test test/smoke/
+fi
