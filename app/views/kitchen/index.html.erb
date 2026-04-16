@@ -23,7 +23,7 @@
 %>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
-     data-controller="tabs kitchen-tooltip"
+     data-controller="tabs kitchen-tooltip kitchen-filter"
      data-tabs-active-classes-value="text-orange-400 border-orange-400"
      data-tabs-inactive-classes-value="text-gray-500 border-transparent">
 
@@ -75,35 +75,35 @@
     </div>
   <% else %>
 
+    <!-- Filter chips (apply to all three views) -->
+    <%
+      inactive_chip = "bg-gray-800 text-gray-400 hover:bg-gray-700"
+      chips = [
+        ["all",     "All",                   "bg-orange-500 text-white"],
+        ["instock", "Available",             "bg-green-700 text-green-100"],
+        ["limited", "Limited",               "bg-amber-700 text-amber-100"],
+        ["soldout", "Sold Out",              "bg-red-800 text-red-100"],
+        ["closed",  "No Longer Available",   "bg-red-900 text-red-100"]
+      ]
+    %>
+    <div class="flex flex-wrap gap-2 mb-5">
+      <% chips.each do |status, text, active_cls| %>
+        <% count = @filter_counts[status] %>
+        <% next if count == 0 && status != "all" %>
+        <% start_cls = status == "all" ? active_cls : inactive_chip %>
+        <button data-kitchen-filter-target="chip"
+                data-action="click->kitchen-filter#filter"
+                data-filter-status="<%= status %>"
+                data-active-classes="<%= active_cls %>"
+                data-inactive-classes="<%= inactive_chip %>"
+                class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
+          <%= text %> (<%= count %>)
+        </button>
+      <% end %>
+    </div>
+
     <!-- List View -->
-    <div data-tabs-target="panel" data-controller="kitchen-filter">
-
-      <%
-        inactive_chip = "bg-gray-800 text-gray-400 hover:bg-gray-700"
-        chips = [
-          ["all",     "All",                   "bg-orange-500 text-white"],
-          ["instock", "Available",             "bg-green-700 text-green-100"],
-          ["limited", "Limited",               "bg-amber-700 text-amber-100"],
-          ["soldout", "Sold Out",              "bg-red-800 text-red-100"],
-          ["closed",  "No Longer Available",   "bg-red-900 text-red-100"]
-        ]
-      %>
-      <div class="flex flex-wrap gap-2 mb-5">
-        <% chips.each do |status, text, active_cls| %>
-          <% count = @filter_counts[status] %>
-          <% next if count == 0 && status != "all" %>
-          <% start_cls = status == "all" ? active_cls : inactive_chip %>
-          <button data-kitchen-filter-target="chip"
-                  data-action="click->kitchen-filter#filter"
-                  data-filter-status="<%= status %>"
-                  data-active-classes="<%= active_cls %>"
-                  data-inactive-classes="<%= inactive_chip %>"
-                  class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
-            <%= text %> (<%= count %>)
-          </button>
-        <% end %>
-      </div>
-
+    <div data-tabs-target="panel">
       <% [
         ["Next Week",    @week1_events, "No classes next week."],
         ["In 2 Weeks",   @week2_events, "No classes in two weeks."],
@@ -201,6 +201,8 @@
                   %>
                   <a href="<%= e.url %>" target="_blank" rel="noopener"
                      class="block truncate text-[10px] leading-tight mb-0.5 rounded px-1 py-0.5 hover:bg-gray-800 transition"
+                     data-kitchen-filter-target="card"
+                     data-status="<%= e.availability_status %>"
                      data-action="mouseenter->kitchen-tooltip#show mouseleave->kitchen-tooltip#hide"
                      data-tip-name="<%= e.name %>"
                      data-tip-when="<%= e.start_at.strftime("%A, %B %-d · %-I:%M %p") %>"
@@ -329,6 +331,8 @@
                     %>
                     <a href="<%= e.url %>" target="_blank" rel="noopener"
                        class="block rounded p-2 bg-gray-950 hover:bg-gray-800 transition"
+                       data-kitchen-filter-target="card"
+                       data-status="<%= e.availability_status %>"
                        data-action="mouseenter->kitchen-tooltip#show mouseleave->kitchen-tooltip#hide"
                        data-tip-name="<%= e.name %>"
                        data-tip-when="<%= e.start_at.strftime("%A, %B %-d · %-I:%M %p") %>"
