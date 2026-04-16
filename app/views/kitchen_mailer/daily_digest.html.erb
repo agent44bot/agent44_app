@@ -3,7 +3,8 @@
 
   def label(av)
     case av.to_s.downcase
-    when /closed/, /soldout/ then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#b00020;font-size:11px;font-weight:600">TICKETS NO LONGER AVAILABLE</span>'
+    when /closed/   then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#b00020;font-size:11px;font-weight:600">TICKETS NO LONGER AVAILABLE</span>'
+    when /soldout/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#b00020;font-size:11px;font-weight:600">SOLD OUT</span>'
     when /limited/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#b35900;font-size:11px;font-weight:600">LIMITED</span>'
     when /instock/  then '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#e6f4ea;color:#1b6e3a;font-size:11px;font-weight:600">AVAILABLE</span>'
     else %Q(<span style="font-size:11px;color:#888">#{av}</span>)
