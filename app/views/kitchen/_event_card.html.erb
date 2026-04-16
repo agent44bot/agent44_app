@@ -14,24 +14,11 @@
       </a>
     </div>
     <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
-      <% if event.sold_out? && event.last_known_capacity %>
-        <% sold = event.last_known_capacity - (event.last_known_spots_left || 0) %>
-        <span class="font-semibold text-red-400">
-          <%= "#{sold} of #{event.last_known_capacity} tickets sold" %>
-        </span>
-        <span>&middot;</span>
-      <% elsif event.spots_left %>
-        <% color = event.spots_left <= 0 ? "text-red-400" : (event.spots_left <= 3 ? "text-amber-400" : "text-green-400") %>
-        <span class="font-semibold <%= color %>">
-          <%= event.capacity ? "#{event.spots_left} of #{event.capacity} left" : "#{event.spots_left} left" %>
-        </span>
-        <span>&middot;</span>
-      <% end %>
       <% if event.instructor %><span><%= event.instructor %></span><span>&middot;</span><% end %>
       <% if event.price.present? %><span>$<%= event.price %></span><% end %>
     </div>
   </div>
-  <div class="shrink-0">
+  <div class="shrink-0 flex flex-col items-end gap-1">
     <% case event.availability.to_s.downcase %>
     <% when /closed/ %>
       <span class="inline-block px-2 py-0.5 rounded-full bg-red-900/50 text-red-400 text-xs font-semibold">TICKETS NO LONGER AVAILABLE</span>
@@ -43,6 +30,17 @@
       <span class="inline-block px-2 py-0.5 rounded-full bg-green-900/50 text-green-400 text-xs font-semibold">AVAILABLE</span>
     <% else %>
       <span class="inline-block px-2 py-0.5 rounded-full bg-gray-800 text-gray-500 text-xs"><%= event.availability %></span>
+    <% end %>
+    <% if event.sold_out? && event.last_known_capacity %>
+      <% sold = event.last_known_capacity - (event.last_known_spots_left || 0) %>
+      <span class="text-xs font-semibold text-red-400">
+        <%= "#{sold} of #{event.last_known_capacity} tickets sold" %>
+      </span>
+    <% elsif event.spots_left %>
+      <% color = event.spots_left <= 0 ? "text-red-400" : (event.spots_left <= 3 ? "text-amber-400" : "text-green-400") %>
+      <span class="text-xs font-semibold <%= color %>">
+        <%= event.capacity ? "#{event.spots_left} of #{event.capacity} left" : "#{event.spots_left} left" %>
+      </span>
     <% end %>
   </div>
 </div>
