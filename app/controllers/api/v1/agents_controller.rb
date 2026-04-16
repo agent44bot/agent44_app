@@ -37,19 +37,20 @@ module Api
 
       private
 
+      NOTIFY_DEBOUNCE_SECONDS = 30
+
       def notify_status_change(agent, old_status)
         case agent.status
         when "busy"
           task = agent.current_task.presence || "a task"
-          Notification.notify!(
+          notify_once_per_window(agent, "busy",
             level: "info",
-            source: "agent_status",
             title: "#{agent.name} is now working",
-            body: task,
-            telegram: true
+            body: task
           )
         when "error"
           task = agent.current_task.presence || "Unknown error"
+          # Always notify on error — losing one of these is worse than a dupe.
           Notification.notify!(
             level: "error",
             source: "agent_status",
@@ -59,14 +60,29 @@ module Api
           )
         when "online"
           if old_status == "busy"
-            Notification.notify!(
+            notify_once_per_window(agent, "finished",
               level: "success",
-              source: "agent_status",
-              title: "#{agent.name} finished task",
-              telegram: true
+              title: "#{agent.name} finished task"
             )
           end
         end
+      end
+
+      # Debounce repeat notifications for the same agent + transition
+      # (OpenClaw flips an agent's status multiple times per turn, producing
+      # 3x duplicate Telegram pings). Key: agent_id + transition kind.
+      def notify_once_per_window(agent, kind, level:, title:, body: nil)
+        cache_key = "agent_status/#{agent.id}/#{kind}"
+        return if Rails.cache.read(cache_key)
+
+        Notification.notify!(
+          level: level,
+          source: "agent_status",
+          title: title,
+          body: body,
+          telegram: true
+        )
+        Rails.cache.write(cache_key, true, expires_in: NOTIFY_DEBOUNCE_SECONDS)
       end
     end
   end
