@@ -77,53 +77,27 @@
 
     <!-- List View -->
     <div data-tabs-target="panel" class="hidden">
-      <!-- Today -->
-      <section class="mb-8">
-        <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-          Today <span class="text-gray-500 font-normal">(<%= @today_events.size %>)</span>
-        </h2>
-        <% if @today_events.empty? %>
-          <p class="text-gray-500 text-sm italic">No classes today.</p>
-        <% else %>
-          <div class="space-y-3">
-            <% @today_events.each do |e| %>
-              <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
-            <% end %>
-          </div>
-        <% end %>
-      </section>
-
-      <!-- Tomorrow -->
-      <section class="mb-8">
-        <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-          Tomorrow <span class="text-gray-500 font-normal">(<%= @tomorrow_events.size %>)</span>
-        </h2>
-        <% if @tomorrow_events.empty? %>
-          <p class="text-gray-500 text-sm italic">No classes tomorrow.</p>
-        <% else %>
-          <div class="space-y-3">
-            <% @tomorrow_events.each do |e| %>
-              <%= render partial: "kitchen/event_card", locals: { event: e, show_date: false } %>
-            <% end %>
-          </div>
-        <% end %>
-      </section>
-
-      <!-- Next 14 days -->
-      <section class="mb-8">
-        <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-          Next 14 Days <span class="text-gray-500 font-normal">(<%= @week_events.size %>)</span>
-        </h2>
-        <% if @week_events.empty? %>
-          <p class="text-gray-500 text-sm italic">No classes in the next two weeks.</p>
-        <% else %>
-          <div class="space-y-3">
-            <% @week_events.each do |e| %>
-              <%= render partial: "kitchen/event_card", locals: { event: e, show_date: true } %>
-            <% end %>
-          </div>
-        <% end %>
-      </section>
+      <% [
+        ["Next Week",    @week1_events, "No classes next week."],
+        ["In 2 Weeks",   @week2_events, "No classes in two weeks."],
+        ["In 3 Weeks",   @week3_events, "No classes in three weeks."],
+        ["In 4 Weeks",   @week4_events, "No classes in four weeks."]
+      ].each do |title, events, empty_copy| %>
+        <section class="mb-8">
+          <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
+            <%= title %> <span class="text-gray-500 font-normal">(<%= events.size %>)</span>
+          </h2>
+          <% if events.empty? %>
+            <p class="text-gray-500 text-sm italic"><%= empty_copy %></p>
+          <% else %>
+            <div class="space-y-3">
+              <% events.each do |e| %>
+                <%= render partial: "kitchen/event_card", locals: { event: e, show_date: true } %>
+              <% end %>
+            </div>
+          <% end %>
+        </section>
+      <% end %>
     </div>
 
     <!-- Calendar View -->

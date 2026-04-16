@@ -5,17 +5,17 @@ class KitchenController < ApplicationController
     snapshot = KitchenSnapshot.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming
-      @today_events    = @events.select { |e| e.start_at.to_date == Date.today }
-      @tomorrow_events = @events.select { |e| e.start_at.to_date == Date.today + 1 }
-      @week_events     = @events.select { |e| (Date.today + 2..Date.today + 14).cover?(e.start_at.to_date) }
+      today = Date.today
+      @week1_events = @events.select { |e| (today..today + 6).cover?(e.start_at.to_date) }
+      @week2_events = @events.select { |e| (today + 7..today + 13).cover?(e.start_at.to_date) }
+      @week3_events = @events.select { |e| (today + 14..today + 20).cover?(e.start_at.to_date) }
+      @week4_events = @events.select { |e| (today + 21..today + 27).cover?(e.start_at.to_date) }
       @total = @events.size
       @sold_out = @events.count(&:sold_out?)
       @last_updated = snapshot.taken_on
     else
       @events = []
-      @today_events = []
-      @tomorrow_events = []
-      @week_events = []
+      @week1_events = @week2_events = @week3_events = @week4_events = []
       @total = 0
       @sold_out = 0
     end
