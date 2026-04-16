@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+#
+# Deploy helper for agent44_app.
+#
+# Usage:
+#   bin/deploy              # show the cheat sheet (no side effects)
+#   bin/deploy ship         # git pull + fly deploy — direct, $0 token cost
+#   bin/deploy with-knox    # route through the Knox OpenClaw agent (Haiku tokens)
+#
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+show_chart() {
+  cat <<'EOF'
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                    agent44_app deploy playbook                         ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+  Default (cheap):
+    bin/deploy ship
+    → git pull --ff-only && fly deploy
+    → ~$0 — no agent, no LLM, no OpenRouter tokens
+    → no homepage amber dot, no Telegram ping
+
+  Demo / test path (costs Haiku tokens):
+    bin/deploy with-knox
+    → openclaw agent --agent knox "..."
+    → Knox runs the deploy, posts status, lights up the homepage
+    → costs ~1–2¢ of OpenRouter Haiku per invocation
+
+  From a Claude Code session:
+    Say "commit and deploy"   → Claude uses the ship path  ($0)
+    Say "deploy with Knox"    → Claude routes through Knox (Haiku)
+
+  Rule is saved in Claude memory: feedback_deploy_default.md
+
+EOF
+}
+
+case "${1:-help}" in
+  ship)
+    echo "→ git pull --ff-only"
+    git pull --ff-only
+    echo "→ fly deploy"
+    exec fly deploy
+    ;;
+  with-knox|knox)
+    if ! command -v openclaw >/dev/null 2>&1; then
+      echo "✗ openclaw CLI not found on PATH" >&2
+      exit 1
+    fi
+    commit=$(git rev-parse --short HEAD)
+    echo "→ Routing deploy through Knox (will cost Haiku tokens)..."
+    exec openclaw agent --agent knox \
+      --message "Deploy agent44-app to prod (commit ${commit}). Run: cd /Users/agent44/apps/agent44_app && git pull --ff-only && fly deploy. Report stdout/exit code." \
+      --json --timeout 600
+    ;;
+  help|-h|--help|"")
+    show_chart
+    ;;
+  *)
+    echo "Unknown subcommand: $1" >&2
+    show_chart
+    exit 1
+    ;;
+esac
