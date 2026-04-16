@@ -4,9 +4,14 @@ task :deploy do
 end
 
 namespace :deploy do
-  desc "Direct deploy: git pull --ff-only && fly deploy ($0)"
+  desc "Direct deploy: git pull --ff-only && fly deploy ($0, silent)"
   task :ship do
     exec "bin/deploy ship"
+  end
+
+  desc "Direct deploy with live status narration on agent44labs.com homepage ($0)"
+  task :live do
+    exec "bin/deploy ship-live"
   end
 
   desc "Route deploy through the Knox OpenClaw agent (costs Haiku tokens)"

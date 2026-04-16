@@ -4,12 +4,72 @@
 #
 # Usage:
 #   bin/deploy              # show the cheat sheet (no side effects)
-#   bin/deploy ship         # git pull + fly deploy — direct, $0 token cost
+#   bin/deploy ship         # git pull + fly deploy — direct, $0 token cost, silent
+#   bin/deploy ship-live    # same as ship, but narrates progress via Knox status
+#                           #   (homepage dot goes amber, agent44labs.com shows
+#                           #   'Pulling...', 'Building image...', etc.)
+#                           #   Still $0 — no LLM turn, just HTTP PATCHes.
 #   bin/deploy with-knox    # route through the Knox OpenClaw agent (Haiku tokens)
 #
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+API_URL="${API_URL:-https://agent44-app.fly.dev}"
+
+ensure_token() {
+  if [ -n "${API_TOKEN:-}" ]; then return; fi
+  echo "→ Fetching API_TOKEN from Fly app 'agent44-app'..." >&2
+  API_TOKEN="$(fly ssh console --app agent44-app -C 'printenv API_TOKEN' 2>/dev/null | tr -d '\r\n')"
+  if [ -z "$API_TOKEN" ]; then
+    echo "✗ Could not fetch API_TOKEN from Fly" >&2
+    exit 1
+  fi
+  export API_TOKEN
+}
+
+patch_knox() {
+  local status="$1" task="$2"
+  local body
+  body=$(printf '{"status":"%s","current_task":%s}' "$status" \
+    "$(if [ -z "$task" ]; then echo "null"; else /usr/bin/python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$task"; fi)")
+  /usr/bin/curl -sf -X PATCH \
+    -H "Authorization: Bearer $API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$body" \
+    "$API_URL/api/v1/agents/Knox/status" >/dev/null 2>&1 || echo "(status patch failed: $status / $task)" >&2
+}
+
+ship_live() {
+  ensure_token
+
+  trap 'patch_knox error "Deploy aborted"' ERR
+  echo "→ git pull --ff-only"
+  patch_knox busy "Pulling latest from origin..."
+  git pull --ff-only
+
+  echo "→ fly deploy (with live status narration)"
+  patch_knox busy "Running fly deploy — building image..."
+  fly deploy 2>&1 | while IFS= read -r line; do
+    printf '%s\n' "$line"
+    case "$line" in
+      *"pushing manifest"*|*"Pushing image"*) patch_knox busy "Pushing image to registry..." ;;
+      *"Updating machine"*)                   patch_knox busy "Updating production machine..." ;;
+      *"Waiting for machine"*)                patch_knox busy "Waiting for machine to start..." ;;
+      *"reached started state"*)              patch_knox busy "Machine started, running health checks..." ;;
+      *"reached good state"*)                 patch_knox busy "Health checks passed, finalizing..." ;;
+    esac
+  done
+  local rc=${PIPESTATUS[0]}
+
+  if [ "$rc" -eq 0 ]; then
+    patch_knox online ""
+    echo "✓ Deploy complete"
+  else
+    patch_knox error "fly deploy exited $rc — see output above"
+    exit "$rc"
+  fi
+}
 
 show_chart() {
   cat <<'EOF'
@@ -18,16 +78,23 @@ show_chart() {
 ║                    agent44_app deploy playbook                         ║
 ╚════════════════════════════════════════════════════════════════════════╝
 
-  Default (cheap):
+  Default (cheap, silent):
     bin/deploy ship
     → git pull --ff-only && fly deploy
     → ~$0 — no agent, no LLM, no OpenRouter tokens
     → no homepage amber dot, no Telegram ping
 
+  Cheap + live narration (still $0):
+    bin/deploy ship-live
+    → same as ship, but PATCHes Knox status as it goes so the homepage
+      shows "Pulling...", "Building image...", "Rolling machine..."
+    → Telegram pings once at start, once at end (no spam)
+    → no LLM turn; pure HTTP PATCHes
+
   Demo / test path (costs Haiku tokens):
     bin/deploy with-knox
     → openclaw agent --agent knox "..."
-    → Knox runs the deploy, posts status, lights up the homepage
+    → Knox's real agent turn runs the deploy
     → costs ~1–2¢ of OpenRouter Haiku per invocation
 
   From a Claude Code session:
@@ -45,6 +112,9 @@ case "${1:-help}" in
     git pull --ff-only
     echo "→ fly deploy"
     exec fly deploy
+    ;;
+  ship-live|live)
+    ship_live
     ;;
   with-knox|knox)
     if ! command -v openclaw >/dev/null 2>&1; then
