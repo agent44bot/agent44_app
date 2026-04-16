@@ -60,6 +60,7 @@ Rails.application.routes.draw do
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [:show]
+    resources :smoke_runs, only: [ :destroy ]
     get "chat", to: "chat#index"
     post "chat", to: "chat#create"
     get "chat/messages", to: "chat#messages"

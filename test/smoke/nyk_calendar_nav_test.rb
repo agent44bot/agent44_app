@@ -43,7 +43,11 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   # Override with SMOKE_API_URL for local testing.
   API_URL = ENV["SMOKE_API_URL"] || "https://agent44-app.fly.dev"
 
+  # Paused 2026-04-16 to stop all NY Kitchen site hits; re-enable after this date.
+  PAUSED_UNTIL = Date.new(2026, 4, 18)
+
   def self.runnable_methods
+    return [] if Date.today < PAUSED_UNTIL
     ENV["RUN_SMOKE"] == "true" ? super : []
   end
 
@@ -56,6 +60,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     @failures = []
     @started_at = Time.now
   end
+
+  DEBUG_NAV = ENV["DEBUG_NAV"] == "true"
 
   test "events round-trip: nav forward N months, back N months, event sets match" do
     # Escape hatch for wiring/testing the failure email path — forces a fake
@@ -78,8 +84,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       browser = pw.chromium.launch(headless: !headful)
       context = browser.new_context(
         viewport: { width: 1280, height: 900 },
-        record_video_dir: @video_dir.to_s,
-        userAgent: "Agent44SmokeTest/1.0 (+https://agent44labs.com)"
+        record_video_dir: @video_dir.to_s
+        # Default Chromium UA — custom UAs can trigger bot-detection on some
+        # WordPress sites (The Events Calendar has returned empty AJAX for
+        # non-standard UAs in testing).
       )
       context.tracing.start(screenshots: true, snapshots: true, sources: false)
       page = context.new_page
@@ -87,7 +95,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       begin
         page.goto(TARGET_URL, timeout: 30_000, waitUntil: "domcontentloaded")
         page.wait_for_selector(event_selector, timeout: 15_000)
-        dismiss_newsletter_popup(page)
+        dismiss_newsletter_popup(page) unless ENV["NO_POPUP_KILL"] == "true"
         page.wait_for_timeout(STEP_PAUSE_MS)
 
         # --- Forward phase -------------------------------------------------
@@ -200,36 +208,62 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
   def click_nav(page, direction)
     before_title = read_month_title(page)
+    before_url = page.url
+    before_event_ids = capture_events(page).map { |e| e[:id] }.sort
     page.locator(nav_selector(direction)).first.click
-    # Wait until the month title actually updates (AJAX settled + DOM rerendered).
-    # Poll up to 10s; fall back to a timed wait if polling fails so we don't crash.
-    deadline = Time.now + 10
+
+    if DEBUG_NAV
+      page.wait_for_timeout(3000)
+      now_url = page.url
+      puts "    🔍 DEBUG click_nav(#{direction}):"
+      puts "       before url:   #{before_url}"
+      puts "       after url:    #{now_url}"
+      puts "       url changed?  #{now_url != before_url}"
+      puts "       before title: #{before_title.inspect}"
+      puts "       after title:  #{read_month_title(page).inspect}"
+      puts "       before events: #{before_event_ids.size}"
+      puts "       after events:  #{capture_events(page).map { |e| e[:id] }.sort.size}"
+      puts "       body classes: #{page.evaluate("document.body.className")}"
+    end
+
+    # Wait until BOTH: the month title updated AND the set of event IDs changed.
+    # NY Kitchen's calendar updates the title via JS immediately but events render
+    # after a separate AJAX round-trip; watching only title causes false-ready
+    # captures with empty event lists.
+    deadline = Time.now + 15
     while Time.now < deadline
-      break if read_month_title(page) != before_title && !read_month_title(page).empty?
-      page.wait_for_timeout(200)
+      title_changed = read_month_title(page) != before_title && !read_month_title(page).empty?
+      now_ids = capture_events(page).map { |e| e[:id] }.sort
+      events_changed = now_ids != before_event_ids
+      # Ready when title changed AND (events changed OR we've given it a fair chance)
+      # — months with 0 events are valid, so we can't require a strictly non-empty set.
+      break if title_changed && (events_changed || now_ids.any? || Time.now > deadline - 3)
+      page.wait_for_timeout(250)
     end
     page.wait_for_load_state("networkidle", timeout: 5_000) rescue nil
     page.wait_for_timeout(NAV_WAIT_MS)
   end
 
-  # The Events Calendar page has an Elementor newsletter popup ("STAY IN
-  # THE LOOP") that intercepts pointer events. Elementor reinjects it on a
-  # setTimeout, so use a MutationObserver to kill it every time it appears.
+  # Elementor's "Stay in the Loop" popup on nykitchen.com/calendar/ intercepts
+  # pointer events so the calendar nav arrows can't be clicked. Narrowly target
+  # only the elementor-popup-modal-<id> elements by their exact ID prefix so we
+  # don't disturb any other .dialog-widget that The Events Calendar's own AJAX
+  # might use (overreach with broader selectors broke AJAX event rendering
+  # entirely — March/April/May returned empty event lists).
   def dismiss_newsletter_popup(page)
     page.evaluate(<<~JS)
       (function() {
-        const kill = () => {
-          document.querySelectorAll(
-            '.elementor-popup-modal, .dialog-widget, .dialog-lightbox-widget, [id^="elementor-popup-modal-"]'
-          ).forEach(el => el.remove());
-          document.body.classList.remove('elementor-popup-modal-open');
-          document.body.style.overflow = '';
-        };
-        kill();
-        new MutationObserver(kill).observe(document.body, { childList: true, subtree: true });
+        const style = document.createElement('style');
+        style.textContent = `
+          [id^="elementor-popup-modal-"] {
+            display: none !important;
+            pointer-events: none !important;
+          }
+        `;
+        document.head.appendChild(style);
       })();
     JS
-    page.wait_for_timeout(800)
+    page.wait_for_timeout(400)
   end
 
   def fail_with_artifacts(page, context, message)

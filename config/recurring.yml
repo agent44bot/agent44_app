@@ -19,9 +19,10 @@ production:
   scrape_jobs:
     class: ScrapeJobsJob
     schedule: every day at 6am
-  scrape_kitchen:
-    class: ScrapeKitchenJob
-    schedule: every 3 hours
-  kitchen_digest_email:
-    class: KitchenDigestEmailJob
-    schedule: every day at 10am
+  # NY Kitchen scraping + digest paused 2026-04-16 — re-enable by uncommenting
+  # scrape_kitchen:
+  #   class: ScrapeKitchenJob
+  #   schedule: every 3 hours
+  # kitchen_digest_email:
+  #   class: KitchenDigestEmailJob
+  #   schedule: every day at 10am

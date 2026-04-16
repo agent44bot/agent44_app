@@ -67,10 +67,11 @@
             class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
       Week
     </button>
-    <button data-tabs-target="tab" data-tab-index="3" data-action="click->tabs#select"
-            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
-      Tests
-    </button>
+    <%# Tests tab hidden 2026-04-16 while NY Kitchen automation is paused %>
+    <%# <button data-tabs-target="tab" data-tab-index="3" data-action="click->tabs#select" %>
+    <%#         class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition"> %>
+    <%#   Tests %>
+    <%# </button> %>
   </div>
 
   <% if @events.empty? %>
@@ -405,11 +406,15 @@
         <div class="overflow-hidden rounded-lg border border-gray-800">
           <table class="min-w-full divide-y divide-gray-800">
             <thead class="bg-gray-900">
+              <% admin = authenticated? && Current.session&.user&.admin? %>
               <tr>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">When</th>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Duration</th>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
+                <% if admin %>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">&nbsp;</th>
+                <% end %>
               </tr>
             </thead>
             <tbody class="bg-gray-950 divide-y divide-gray-800">
@@ -440,6 +445,20 @@
                       <span class="text-red-400"><%= run.error_message.to_s.truncate(140) %></span>
                     <% end %>
                   </td>
+                  <% if admin %>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                      <%= button_to admin_smoke_run_path(run),
+                            method: :delete,
+                            data: { turbo_confirm: "Delete this test run?" },
+                            class: "text-gray-500 hover:text-red-400 transition p-1",
+                            aria: { label: "Delete run" },
+                            form: { class: "inline" } do %>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      <% end %>
+                    </td>
+                  <% end %>
                 </tr>
               <% end %>
             </tbody>
