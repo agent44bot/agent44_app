@@ -11,16 +11,18 @@ class NyKitchenDigestBuilder
     removed        = prev.values.reject { |e| cur.key?(e[:url]) }
     price_changes  = cur.values.select { |e| prev[e[:url]] && prev[e[:url]][:price] != e[:price] && prev[e[:url]][:price] }
 
-    upcoming = cur.values.sort_by { |e| e[:start_at] }
-    today_events    = upcoming.select { |e| e[:start_at].to_date == today }
-    tomorrow_events = upcoming.select { |e| e[:start_at].to_date == today + 1 }
-    week_events     = upcoming.select { |e| (today + 2..today + 14).cover?(e[:start_at].to_date) }
+    upcoming = cur.values.select { |e| e[:start_at] >= Time.current }.sort_by { |e| e[:start_at] }
+    week1 = upcoming.select { |e| (today..today + 6).cover?(e[:start_at].to_date) }
+    week2 = upcoming.select { |e| (today + 7..today + 13).cover?(e[:start_at].to_date) }
+    week3 = upcoming.select { |e| (today + 14..today + 20).cover?(e[:start_at].to_date) }
+    week4 = upcoming.select { |e| (today + 21..today + 27).cover?(e[:start_at].to_date) }
 
     {
       today: today,
-      today_events: today_events,
-      tomorrow_events: tomorrow_events,
-      week_events: week_events,
+      week1_events: week1,
+      week2_events: week2,
+      week3_events: week3,
+      week4_events: week4,
       newly_sold_out: newly_sold_out,
       newly_added: newly_added,
       removed: removed,
