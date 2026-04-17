@@ -3,6 +3,13 @@ class ScrapeKitchenJob < ApplicationJob
 
   def perform
     today  = Date.today
+
+    # Skip if Playwright already created today's snapshot (GHA runs at ~9:47 AM)
+    if KitchenSnapshot.exists?(taken_on: today)
+      Rails.logger.info("ScrapeKitchenJob: snapshot already exists for #{today}, skipping")
+      return
+    end
+
     months = (0..2).map { |i| (today >> i).strftime("%Y-%m") }.uniq
 
     # Scrape events from NY Kitchen calendar
