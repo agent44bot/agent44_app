@@ -1,6 +1,7 @@
 module Admin
   class KitchenController < BaseController
     def index
+      @admin = true
       snapshot = KitchenSnapshot.latest
       if snapshot
         @events = snapshot.kitchen_events.upcoming
