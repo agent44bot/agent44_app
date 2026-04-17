@@ -1,11 +1,11 @@
 name: NY Kitchen Smoke Test
 
 on:
-  schedule:
-    # Every 8 hours starting at 9 AM EDT (13 UTC, 21 UTC, 05 UTC)
-    - cron: "47 13 * * *"
-    - cron: "47 21 * * *"
-    - cron: "47 5 * * *"
+  # Cron disabled — runs locally on Mac Mini agent44 via crontab (3x/day)
+  # schedule:
+  #   - cron: "47 13 * * *"
+  #   - cron: "47 21 * * *"
+  #   - cron: "47 5 * * *"
   repository_dispatch:
     types: [smoke-nyk]
   workflow_dispatch:

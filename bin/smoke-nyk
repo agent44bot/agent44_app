@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Runs the NY Kitchen smoke test locally (Mac Mini cron).
+# On failure, delivers an email to NYK_SMOKE_RECIPIENTS via Brevo.
+# Secrets are loaded from ~/.agent44_smoke_env (not checked into git).
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# Load RVM so we get the right Ruby
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+
+# Load secrets from local env file
+if [[ -f "$HOME/.agent44_smoke_env" ]]; then
+  source "$HOME/.agent44_smoke_env"
+else
+  echo "ERROR: ~/.agent44_smoke_env not found. Create it with API_TOKEN, BREVO_SMTP_KEY, etc."
+  exit 1
+fi
+
+export RAILS_ENV=test
+export RUN_SMOKE=true
+export SMOKE_API_URL="https://agent44-app.fly.dev"
+export NYK_SMOKE_DELIVER=true
+
+bin/rails db:test:prepare 2>/dev/null
+bin/rails test test/smoke/nyk_calendar_nav_test.rb

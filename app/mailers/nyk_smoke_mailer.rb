@@ -20,7 +20,7 @@ class NykSmokeMailer < ApplicationMailer
 
     mail(
       to: recipients,
-      subject: "🚨 NY Kitchen calendar smoke FAILED — arrow nav may be broken again"
+      subject: "NY Kitchen calendar smoke FAILED - arrow nav may be broken again"
     )
   end
 end

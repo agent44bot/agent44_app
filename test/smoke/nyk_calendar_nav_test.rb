@@ -152,8 +152,18 @@ class NykCalendarNavTest < ActiveSupport::TestCase
           # --- Scraping phase (opt-out via SCRAPE_EVENTS=false) ---------------
           scraped_events = []
           if ENV["SCRAPE_EVENTS"] != "false"
-            unique_urls = all_event_urls.uniq
-            puts "\n  🔍 Scraping #{unique_urls.size} event detail pages..."
+            today = Date.today
+            unique_urls = all_event_urls.uniq.reject { |url|
+              # Skip URLs for dates already past (calendar URLs end with e.g. 4-17-26/)
+              if url =~ /(\d{1,2})-(\d{1,2})-(\d{2,4})\/?$/
+                m, d, y = $1.to_i, $2.to_i, $3.to_i
+                y += 2000 if y < 100
+                Date.new(y, m, d) < today rescue false
+              else
+                false
+              end
+            }
+            puts "\n  🔍 Scraping #{unique_urls.size} event detail pages (skipped past dates)..."
 
             unique_urls.each_with_index do |url, i|
               begin
@@ -395,6 +405,22 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   end
 
   def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:)
+    deliver = ENV["NYK_SMOKE_DELIVER"] == "true"
+
+    # Configure SMTP before building the mail object so delivery method is set
+    if deliver && ENV["BREVO_SMTP_KEY"].present?
+      ActionMailer::Base.delivery_method = :smtp
+      ActionMailer::Base.smtp_settings = {
+        address: "smtp-relay.brevo.com",
+        port: 587,
+        user_name: ENV.fetch("BREVO_SMTP_LOGIN", "a5ec98001@smtp-brevo.com"),
+        password: ENV["BREVO_SMTP_KEY"],
+        authentication: :plain,
+        enable_starttls_auto: true
+      }
+      ActionMailer::Base.raise_delivery_errors = true
+    end
+
     mail = NykSmokeMailer.failure(
       failure_message: message,
       video_path: video_path,
@@ -406,8 +432,6 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     html_path = ARTIFACT_DIR.join("nyk-smoke-preview-#{@stamp}.html")
     File.write(html_path, mail.html_part&.body&.to_s || mail.body.to_s)
-
-    deliver = ENV["NYK_SMOKE_DELIVER"] == "true"
 
     puts "\n" + "=" * 70
     puts deliver ? "📧 NY Kitchen smoke EMAIL — DELIVERING" : "📧 NY Kitchen smoke EMAIL PREVIEW (not sent)"
@@ -427,17 +451,6 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       if ENV["BREVO_SMTP_KEY"].to_s.empty?
         puts "✗ BREVO_SMTP_KEY not set — cannot actually send (pull from Fly: fly ssh console -C 'printenv BREVO_SMTP_KEY')"
       else
-        # Override test-env :test delivery with Brevo SMTP for this one call
-        ActionMailer::Base.delivery_method = :smtp
-        ActionMailer::Base.smtp_settings = {
-          address: "smtp-relay.brevo.com",
-          port: 587,
-          user_name: ENV.fetch("BREVO_SMTP_LOGIN", "a5ec98001@smtp-brevo.com"),
-          password: ENV["BREVO_SMTP_KEY"],
-          authentication: :plain,
-          enable_starttls_auto: true
-        }
-        ActionMailer::Base.raise_delivery_errors = true
         mail.deliver_now
         puts "✉️  Delivered via Brevo."
       end
