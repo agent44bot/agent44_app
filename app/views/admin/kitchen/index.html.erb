@@ -138,7 +138,7 @@
             </button>
             <div data-collapsible-target="body" class="space-y-3">
               <% events.each do |e| %>
-                <%= render partial: "kitchen/event_card", locals: { event: e, show_date: true } %>
+                <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
               <% end %>
             </div>
           <% end %>
@@ -410,7 +410,7 @@
         <div class="overflow-hidden rounded-lg border border-gray-800">
           <table class="min-w-full divide-y divide-gray-800">
             <thead class="bg-gray-900">
-              <% admin = authenticated? && Current.session&.user&.admin? %>
+              <% admin = true %>
               <tr>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">When</th>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>

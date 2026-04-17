@@ -40,6 +40,8 @@
                   class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/users') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Agents", admin_agents_path,
                   class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/agents') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
+            <%= link_to "Kitchen", admin_kitchen_path,
+                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/kitchen') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Chat", admin_chat_path,
                   class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/chat') ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
             <%= link_to "Visitor Map", admin_visitors_map_path,

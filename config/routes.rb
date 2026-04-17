@@ -21,7 +21,7 @@ Rails.application.routes.draw do
     resource :hidden_job, only: [:create, :destroy]
   end
   resources :saved_jobs, only: [:index]
-  get "kitchen", to: "kitchen#index"
+  # Kitchen moved to admin — see namespace :admin below
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [:index], path: "news"
   resources :posts, only: [:index, :show], path: "pulse"
@@ -60,6 +60,7 @@ Rails.application.routes.draw do
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [:show]
+    get "kitchen", to: "kitchen#index"
     resources :smoke_runs, only: [ :destroy ]
     get "chat", to: "chat#index"
     post "chat", to: "chat#create"
