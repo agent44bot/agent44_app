@@ -21,7 +21,7 @@ Rails.application.routes.draw do
     resource :hidden_job, only: [:create, :destroy]
   end
   resources :saved_jobs, only: [:index]
-  get "kitchen", to: "kitchen#index"
+  get "nykitchen", to: "kitchen#index"
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [:index], path: "news"
   resources :posts, only: [:index, :show], path: "pulse"
