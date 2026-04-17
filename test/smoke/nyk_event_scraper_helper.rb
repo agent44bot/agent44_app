@@ -1,7 +1,7 @@
 require "cgi"
 
 module NykEventScraperHelper
-  DETAIL_PAGE_PAUSE_MS = Integer(ENV["DETAIL_PAUSE_MS"] || 500)
+  DETAIL_PAGE_PAUSE_MS = Integer(ENV["DETAIL_PAUSE_MS"] || 2_000)
 
   # Collect all unique event detail URLs from the current month grid.
   def collect_event_urls(page)
