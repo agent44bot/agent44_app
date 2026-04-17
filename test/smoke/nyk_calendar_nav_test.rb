@@ -50,6 +50,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     ENV["RUN_SMOKE"] == "true" ? super : []
   end
 
+  VLAD_AGENT = "Vlad ✅"
+
   setup do
     FileUtils.mkdir_p(ARTIFACT_DIR)
     @stamp = Time.now.strftime("%Y%m%d-%H%M%S")
@@ -58,6 +60,11 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     @trace_path = ARTIFACT_DIR.join("nyk-calendar-nav-#{@stamp}.trace.zip")
     @failures = []
     @started_at = Time.now
+    update_vlad_status("busy", "NY Kitchen smoke test")
+  end
+
+  teardown do
+    update_vlad_status("online")
   end
 
   DEBUG_NAV = ENV["DEBUG_NAV"] == "true"
@@ -194,7 +201,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
           browser.close
           scrape_note = scraped_events.any? ? ", #{scraped_events.size} events scraped" : ""
           summary = forward.map { |m| m[:events].size }.join("/") + " events round-tripped#{scrape_note}"
-          post_result(status: "passed", summary: summary)
+          run_id = post_result(status: "passed", summary: summary)
+          upload_video(run_id) if run_id
           assert_empty @failures
         end
       rescue => e
@@ -206,6 +214,32 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   end
 
   private
+
+  def update_vlad_status(status, task = nil)
+    token = ENV["API_TOKEN"]
+    return if token.to_s.empty?
+
+    name = URI.encode_uri_component(VLAD_AGENT)
+    uri = URI("#{API_URL}/api/v1/agents/#{name}/status")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 5
+    http.read_timeout = 5
+
+    req = Net::HTTP::Patch.new(uri)
+    req["Authorization"] = "Bearer #{token}"
+    req["Content-Type"] = "application/json"
+    req.body = { status: status, current_task: task }.compact.to_json
+
+    res = http.request(req)
+    if res.is_a?(Net::HTTPSuccess)
+      puts "  🤖 Vlad → #{status}#{task ? " (#{task})" : ""}"
+    else
+      puts "  ⚠  Vlad status update → HTTP #{res.code}"
+    end
+  rescue => e
+    puts "  ⚠  Vlad status update error: #{e.class}: #{e.message}"
+  end
 
   def playwright_cli
     path = Rails.root.join("node_modules", ".bin", "playwright")
@@ -362,12 +396,16 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     res = http.request(req)
     if res.is_a?(Net::HTTPSuccess)
+      data = JSON.parse(res.body) rescue {}
       puts "  📬 smoke-run posted to #{API_URL} (#{status})"
+      return data["id"]
     else
       puts "  ⚠  smoke-run POST → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
     end
+    nil
   rescue => e
     puts "  ⚠  smoke-run POST error: #{e.class}: #{e.message}"
+    nil
   end
 
   def post_kitchen_snapshot(events)
@@ -402,6 +440,67 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     end
   rescue => e
     puts "  ⚠  kitchen snapshot POST error: #{e.class}: #{e.message}"
+  end
+
+  def upload_video(run_id)
+    video_path = Dir.glob(@video_dir.join("*.webm").to_s).first
+    return unless video_path && File.exist?(video_path)
+
+    # Compress video with ffmpeg (target ~3-5 MB instead of 40+ MB)
+    compressed_path = ARTIFACT_DIR.join("smoke-#{@stamp}-compressed.webm").to_s
+    system("ffmpeg", "-y", "-i", video_path,
+           "-c:v", "libvpx-vp9", "-crf", "40", "-b:v", "200k",
+           "-vf", "scale=960:-1", "-an",
+           compressed_path,
+           out: File::NULL, err: File::NULL)
+    video_path = File.exist?(compressed_path) ? compressed_path : video_path
+
+    # Generate thumbnail with ffmpeg (grab a frame 5 seconds in)
+    thumb_path = ARTIFACT_DIR.join("thumb-#{@stamp}.jpg").to_s
+    system("ffmpeg", "-y", "-i", video_path, "-ss", "00:00:05",
+           "-vframes", "1", "-q:v", "2", thumb_path,
+           out: File::NULL, err: File::NULL)
+
+    token = ENV["API_TOKEN"]
+    return if token.to_s.empty?
+
+    uri = URI("#{API_URL}/api/v1/smoke_runs/#{run_id}/video")
+    boundary = "----SmokeUpload#{SecureRandom.hex(8)}"
+
+    parts = []
+    parts << multipart_file_part("video", video_path, "video/webm", boundary)
+    if File.exist?(thumb_path)
+      parts << multipart_file_part("thumbnail", thumb_path, "image/jpeg", boundary)
+    end
+    body = parts.join + "--#{boundary}--\r\n"
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 10
+    http.read_timeout = 30
+
+    req = Net::HTTP::Put.new(uri)
+    req["Authorization"] = "Bearer #{token}"
+    req["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
+    req.body = body
+
+    res = http.request(req)
+    if res.is_a?(Net::HTTPSuccess)
+      size_mb = (File.size(video_path) / 1_048_576.0).round(1)
+      puts "  🎬 video uploaded (#{size_mb} MB)"
+    else
+      puts "  ⚠  video upload → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
+    end
+  rescue => e
+    puts "  ⚠  video upload error: #{e.class}: #{e.message}"
+  end
+
+  def multipart_file_part(field, path, content_type, boundary)
+    filename = File.basename(path)
+    "--#{boundary}\r\n" \
+    "Content-Disposition: form-data; name=\"#{field}\"; filename=\"#{filename}\"\r\n" \
+    "Content-Type: #{content_type}\r\n\r\n" \
+    "#{File.binread(path)}\r\n"
   end
 
   def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:)

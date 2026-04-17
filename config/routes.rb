@@ -44,7 +44,11 @@ Rails.application.routes.draw do
       patch "chat/:id/ack", to: "chat#ack", as: :chat_ack
       post "chat/reply", to: "chat#reply"
       get "stats/users", to: "stats#users"
-      resources :smoke_runs, only: [ :create ]
+      resources :smoke_runs, only: [ :create ] do
+        member do
+          put :video
+        end
+      end
       resources :kitchen_snapshots, only: [ :create ]
     end
   end

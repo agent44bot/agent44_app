@@ -1,6 +1,9 @@
 class SmokeTestRun < ApplicationRecord
   STATUSES = %w[passed failed].freeze
-  COST_PER_MINUTE = 0.000688 # ~$0.0044 per 6.4 min run
+  COST_PER_MINUTE = 0.00044 # $0.00044/min
+
+  has_one_attached :video
+  has_one_attached :thumbnail
 
   validates :name, :status, :started_at, presence: true
   validates :status, inclusion: { in: STATUSES }

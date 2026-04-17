@@ -406,10 +406,40 @@
         This is a passive, read-only test &mdash; it simply visits the public calendar in a normal browser, just like any user would, and captures event data. Nothing is submitted, modified, or stressed.
         On failure, a video of the run will be emailed to admins.
       </p>
+      <% latest_with_video = @smoke_runs.find { |r| r.video.attached? } %>
+      <% if latest_with_video %>
+        <div class="bg-gray-900 rounded-lg p-4 mb-6" data-controller="video-modal">
+          <h3 class="text-sm font-semibold text-gray-400 mb-3">Latest Run Recording</h3>
+          <% if latest_with_video.thumbnail.attached? %>
+            <img src="<%= url_for(latest_with_video.thumbnail) %>"
+                 class="rounded w-40 hover:opacity-80 transition border border-gray-700 cursor-pointer"
+                 data-action="click->video-modal#open"
+                 alt="Smoke test recording thumbnail">
+          <% else %>
+            <button data-action="click->video-modal#open"
+                    class="text-orange-400 text-sm hover:text-orange-300">Watch recording</button>
+          <% end %>
+          <dialog data-video-modal-target="dialog"
+                  data-action="click->video-modal#backdropClose"
+                  class="bg-transparent backdrop:bg-black/80 p-0 max-w-4xl w-full">
+            <div class="bg-gray-900 rounded-xl p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-gray-400">Smoke Test Recording</h3>
+                <button data-action="click->video-modal#close"
+                        class="text-gray-500 hover:text-white text-lg">&times;</button>
+              </div>
+              <video data-video-modal-target="video" controls class="rounded-lg w-full" preload="metadata">
+                <source src="<%= url_for(latest_with_video.video) %>" type="video/webm">
+              </video>
+            </div>
+          </dialog>
+        </div>
+      <% end %>
+
       <% total_cost = @smoke_runs.sum(:cost_dollars) %>
       <p class="text-sm text-gray-500 mb-6">
         Total cost: <span class="text-white font-semibold">$<%= "%.4f" % total_cost %></span>
-        (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %> &middot; $0.000688/min)
+        (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %> &middot; $0.00044/min)
       </p>
 
       <% if @smoke_runs.empty? %>

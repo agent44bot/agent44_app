@@ -25,6 +25,22 @@ module Api
         render json: { error: e.message }, status: :unprocessable_entity
       end
 
+      # PUT /api/v1/smoke_runs/:id/video
+      def video
+        run = SmokeTestRun.find(params[:id])
+
+        run.video.attach(params[:video]) if params[:video]
+        run.thumbnail.attach(params[:thumbnail]) if params[:thumbnail]
+
+        # Keep only the latest video — purge from all other runs
+        SmokeTestRun.where.not(id: run.id).find_each do |old_run|
+          old_run.video.purge if old_run.video.attached?
+          old_run.thumbnail.purge if old_run.thumbnail.attached?
+        end
+
+        render json: { status: "ok", video_attached: run.video.attached? }
+      end
+
       private
 
       def run_params
