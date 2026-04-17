@@ -91,6 +91,8 @@ module NykEventScraperHelper
         if (body.includes('Tickets are no longer available')) {
           return { spots_left: 0, capacity: null, closed: true };
         }
+
+        // Strategy 1: data attributes on ticket items (some events use these)
         const items = document.querySelectorAll('[class*="tribe-tickets__tickets-item"]');
         let totalAvail = 0, totalCap = 0, capKnown = true, found = false;
         const seenPools = new Set();
@@ -111,8 +113,25 @@ module NykEventScraperHelper
             if (!isNaN(cap)) { totalCap += cap; } else { capKnown = false; }
           }
         });
-        if (!found) return null;
-        return { spots_left: totalAvail, capacity: capKnown ? totalCap : null, closed: false };
+        if (found) {
+          return { spots_left: totalAvail, capacity: capKnown ? totalCap : null, closed: false };
+        }
+
+        // Strategy 2: parse "X available" text from ticket section
+        const ticketSection = document.querySelector('.tribe-tickets, .tribe-tickets__tickets-wrapper');
+        if (ticketSection) {
+          const text = ticketSection.textContent;
+          const availMatch = text.match(/(\\d+)\\s+available/i);
+          if (availMatch) {
+            return { spots_left: parseInt(availMatch[1]), capacity: null, closed: false };
+          }
+          // Has a ticket section but no availability text — likely sold out or free
+          if (text.includes('Sold Out') || text.includes('sold out')) {
+            return { spots_left: 0, capacity: null, closed: false };
+          }
+        }
+
+        return null;
       })()
     JS
   end
