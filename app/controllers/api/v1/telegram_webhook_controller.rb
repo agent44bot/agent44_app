@@ -18,6 +18,13 @@ module Api
           return
         end
 
+        # Check for smoke test trigger from human users
+        if !bot_reply && message_text.present? && smoke_test_request?(message_text)
+          trigger_smoke_test(from_user)
+          head :ok
+          return
+        end
+
         # Only process bot messages (from our agent bot)
         if bot_reply && message_text.present?
           detect_agent_status(message_text)
@@ -160,6 +167,47 @@ module Api
         else
           text.truncate(80)
         end
+      end
+
+      SMOKE_PATTERNS = [
+        /(?:run|trigger|start)\s+(?:the\s+)?smoke\s*test/i,
+        /smoke\s*test\s+(?:the\s+)?(?:kitchen|nyk|calendar)/i,
+        /test\s+(?:the\s+)?(?:kitchen|nyk)\s*(?:calendar)?/i,
+      ].freeze
+
+      def smoke_test_request?(text)
+        SMOKE_PATTERNS.any? { |p| text.match?(p) }
+      end
+
+      def trigger_smoke_test(from_user)
+        token = ENV["GITHUB_DISPATCH_TOKEN"]
+        repo = "agent44bot/agent44_app"
+
+        if token.present?
+          uri = URI("https://api.github.com/repos/#{repo}/dispatches")
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.use_ssl = true
+          http.open_timeout = 5
+          http.read_timeout = 10
+
+          req = Net::HTTP::Post.new(uri)
+          req["Authorization"] = "Bearer #{token}"
+          req["Accept"] = "application/vnd.github+json"
+          req.body = { event_type: "smoke-nyk" }.to_json
+
+          res = http.request(req)
+          Rails.logger.info("[TelegramWebhook] Smoke test dispatch → HTTP #{res.code}")
+        else
+          Rails.logger.warn("[TelegramWebhook] GITHUB_DISPATCH_TOKEN not set, cannot trigger smoke test")
+        end
+
+        Notification.notify!(
+          level: "info",
+          source: "smoke_test",
+          title: "Smoke test triggered",
+          body: "#{from_user} requested NY Kitchen smoke test via Telegram",
+          telegram: true
+        )
       end
     end
   end

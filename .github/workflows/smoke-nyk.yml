@@ -1,0 +1,56 @@
+name: NY Kitchen Smoke Test
+
+on:
+  schedule:
+    # 9:47 AM EDT = 13:47 UTC (EDT is UTC-4)
+    - cron: "47 13 * * *"
+  repository_dispatch:
+    types: [smoke-nyk]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install npm packages
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Prepare test database
+        env:
+          RAILS_ENV: test
+        run: bin/rails db:test:prepare
+
+      - name: Run NY Kitchen smoke test
+        env:
+          RAILS_ENV: test
+          RUN_SMOKE: "true"
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          SMOKE_API_URL: "https://agent44-app.fly.dev"
+        run: bin/rails test test/smoke/nyk_calendar_nav_test.rb
+
+      - name: Upload smoke artifacts on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-artifacts
+          path: tmp/smoke/
+          if-no-files-found: ignore
