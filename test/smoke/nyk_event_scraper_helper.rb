@@ -12,35 +12,74 @@ module NykEventScraperHelper
     JS
   end
 
-  # Visit a detail page and extract full event data.
+  # Visit a detail page and extract full event data from DOM + ticket widget.
   def scrape_detail_page(page, url)
     page.goto(url, timeout: 30_000, waitUntil: "domcontentloaded")
     page.wait_for_timeout(1_000)
 
-    jsonld = extract_jsonld(page)
+    event_data = extract_event_from_dom(page)
     avail = extract_availability(page)
 
-    normalize_detail(url, jsonld, avail)
+    normalize_detail(url, event_data, avail)
   end
 
   private
 
-  def extract_jsonld(page)
+  # Scrape event fields directly from the detail page DOM.
+  # The Events Calendar plugin uses consistent class names across event pages.
+  def extract_event_from_dom(page)
     page.evaluate(<<~JS)
       (() => {
-        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-        for (const s of scripts) {
-          try {
-            const data = JSON.parse(s.textContent);
-            const items = Array.isArray(data) ? data : [data];
-            const event = items.find(i =>
-              i['@type'] === 'Event' ||
-              (Array.isArray(i['@type']) && i['@type'].includes('Event'))
-            );
-            if (event) return event;
-          } catch(e) {}
+        const text = (sel) => {
+          const el = document.querySelector(sel);
+          return el ? el.textContent.trim() : null;
+        };
+
+        // Title
+        const name = text('h1.tribe-events-single-event-title');
+
+        // Date string: "Sunday May 31 @ 11:00 am - 1:00 pm"
+        const dateText = text('.tribe-events-schedule');
+
+        // Start date from abbr title attribute (YYYY-MM-DD)
+        const startAbbr = document.querySelector('.tribe-events-abbr');
+        const startDate = startAbbr ? startAbbr.getAttribute('title') : null;
+
+        // Parse start/end times from dateText to build full ISO timestamps
+        let startAt = startDate;
+        let endAt = null;
+        if (dateText && startDate) {
+          const timeMatch = dateText.match(/(\\d{1,2}:\\d{2}\\s*[ap]m)\\s*-\\s*(\\d{1,2}:\\d{2}\\s*[ap]m)/i);
+          if (timeMatch) {
+            const parseTime = (t) => {
+              const m = t.trim().match(/(\\d{1,2}):(\\d{2})\\s*([ap]m)/i);
+              if (!m) return null;
+              let h = parseInt(m[1]);
+              const min = m[2];
+              const ampm = m[3].toLowerCase();
+              if (ampm === 'pm' && h !== 12) h += 12;
+              if (ampm === 'am' && h === 12) h = 0;
+              return String(h).padStart(2, '0') + ':' + min + ':00';
+            };
+            const st = parseTime(timeMatch[1]);
+            const et = parseTime(timeMatch[2]);
+            if (st) startAt = startDate + 'T' + st;
+            if (et) endAt = startDate + 'T' + et;
+          }
         }
-        return null;
+
+        // Price from ticket widget
+        const priceEl = document.querySelector('.tribe-amount');
+        const price = priceEl ? priceEl.textContent.trim().replace(/[^0-9.]/g, '') : null;
+
+        // Venue
+        const venue = text('.tribe-venue a') || text('.tribe-venue');
+
+        // Description (just the content paragraphs, skip headings)
+        const descEl = document.querySelector('.tribe-events-content');
+        const description = descEl ? descEl.textContent.trim().substring(0, 500) : null;
+
+        return { name, startAt, endAt, price, venue, description };
       })()
     JS
   end
@@ -78,26 +117,16 @@ module NykEventScraperHelper
     JS
   end
 
-  def normalize_detail(url, jsonld, avail)
+  def normalize_detail(url, dom_data, avail)
     event = { url: url }
 
-    if jsonld
-      offers = Array(jsonld["offers"]).first || {}
-      location = jsonld["location"]
-      location = location.first if location.is_a?(Array)
-      venue = location.is_a?(Hash) ? location["name"] : nil
-      performer = Array(jsonld["performer"]).first
-      instructor = performer.is_a?(Hash) ? performer["name"] : nil
-
-      event[:name]         = html_unescape(jsonld["name"])
-      event[:start_at]     = jsonld["startDate"]
-      event[:end_at]       = jsonld["endDate"]
-      event[:price]        = offers["price"]&.to_s
-      event[:availability] = (offers["availability"] || "")
-                               .to_s.sub("https://schema.org/", "").sub("http://schema.org/", "")
-      event[:venue]        = html_unescape(venue)
-      event[:instructor]   = html_unescape(instructor)
-      event[:description]  = html_unescape(jsonld["description"])
+    if dom_data
+      event[:name]        = html_unescape(dom_data["name"])
+      event[:start_at]    = dom_data["startAt"]
+      event[:end_at]      = dom_data["endAt"]
+      event[:price]       = dom_data["price"]
+      event[:venue]       = html_unescape(dom_data["venue"])
+      event[:description] = html_unescape(dom_data["description"])
     end
 
     if avail
