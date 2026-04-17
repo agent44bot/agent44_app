@@ -35,6 +35,9 @@ module NykEventScraperHelper
           return el ? el.textContent.trim() : null;
         };
 
+        // Check if the event has passed (banner at top of past events)
+        const passed = !!document.body.innerText.match(/this event has passed/i);
+
         // Title
         const name = text('h1.tribe-events-single-event-title');
 
@@ -79,7 +82,7 @@ module NykEventScraperHelper
         const descEl = document.querySelector('.tribe-events-content');
         const description = descEl ? descEl.textContent.trim().substring(0, 500) : null;
 
-        return { name, startAt, endAt, price, venue, description };
+        return { name, startAt, endAt, price, venue, description, passed };
       })()
     JS
   end
@@ -146,6 +149,7 @@ module NykEventScraperHelper
       event[:price]       = dom_data["price"]
       event[:venue]       = html_unescape(dom_data["venue"])
       event[:description] = html_unescape(dom_data["description"])
+      event[:passed]      = dom_data["passed"]
     end
 
     if avail

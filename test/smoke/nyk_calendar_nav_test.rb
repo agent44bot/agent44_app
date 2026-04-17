@@ -169,7 +169,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
             # Filter out past events — only future classes should be stored
             today = Date.today.to_s
             before = scraped_events.size
-            scraped_events.reject! { |e| e[:start_at].present? && e[:start_at].to_s < today }
+            scraped_events.reject! { |e|
+              e[:passed] ||                                          # page says "This event has passed"
+              (e[:start_at].present? && e[:start_at].to_s < today)   # start date is in the past
+            }
             skipped = before - scraped_events.size
             puts "    Filtered: #{skipped} past event(s) removed, #{scraped_events.size} upcoming kept" if skipped > 0
 
