@@ -3,11 +3,11 @@
 # On failure, delivers an email to NYK_SMOKE_RECIPIENTS via Brevo.
 # Secrets are loaded from ~/.agent44_smoke_env (not checked into git).
 
-set -euo pipefail
+set -eo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Load RVM so we get the right Ruby
+# Load RVM (disable strict unbound-var checking — RVM scripts use unset vars)
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
 # Load secrets from local env file
