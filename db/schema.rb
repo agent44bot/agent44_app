@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_16_195251) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_17_135142) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -273,6 +273,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_16_195251) do
   end
 
   create_table "smoke_test_runs", force: :cascade do |t|
+    t.integer "cost_cents", default: 1, null: false
     t.datetime "created_at", null: false
     t.integer "duration_ms"
     t.datetime "ended_at"
