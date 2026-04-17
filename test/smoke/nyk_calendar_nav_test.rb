@@ -166,6 +166,13 @@ class NykCalendarNavTest < ActiveSupport::TestCase
               page.wait_for_timeout(DETAIL_PAGE_PAUSE_MS) if i < unique_urls.size - 1
             end
 
+            # Filter out past events — only future classes should be stored
+            today = Date.today.to_s
+            before = scraped_events.size
+            scraped_events.reject! { |e| e[:start_at].present? && e[:start_at].to_s < today }
+            skipped = before - scraped_events.size
+            puts "    Filtered: #{skipped} past event(s) removed, #{scraped_events.size} upcoming kept" if skipped > 0
+
             post_kitchen_snapshot(scraped_events) if scraped_events.any?
           end
 
