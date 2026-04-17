@@ -43,11 +43,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   # Override with SMOKE_API_URL for local testing.
   API_URL = ENV["SMOKE_API_URL"] || "https://agent44-app.fly.dev"
 
-  # Paused 2026-04-16 to stop all NY Kitchen site hits; re-enable after this date.
-  PAUSED_UNTIL = Date.new(2026, 4, 18)
-
   def self.runnable_methods
-    return [] if Date.today < PAUSED_UNTIL
     ENV["RUN_SMOKE"] == "true" ? super : []
   end
 
