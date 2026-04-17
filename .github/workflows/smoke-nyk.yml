@@ -2,8 +2,10 @@ name: NY Kitchen Smoke Test
 
 on:
   schedule:
-    # 9:47 AM EDT = 13:47 UTC (EDT is UTC-4)
+    # Every 8 hours starting at 9 AM EDT (13 UTC, 21 UTC, 05 UTC)
     - cron: "47 13 * * *"
+    - cron: "47 21 * * *"
+    - cron: "47 5 * * *"
   repository_dispatch:
     types: [smoke-nyk]
   workflow_dispatch:

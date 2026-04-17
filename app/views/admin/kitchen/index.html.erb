@@ -42,7 +42,17 @@
   </div>
   <!-- Header -->
   <div class="mb-6">
-    <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
+    <div class="flex items-center justify-between">
+      <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
+      <button data-controller="clipboard" data-action="click->clipboard#copy"
+              data-clipboard-url-value="<%= nykitchen_url %>"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+        </svg>
+        <span data-clipboard-target="label">Share</span>
+      </button>
+    </div>
     <p class="text-gray-400 mt-1">
       Cooking classes at NY Kitchen &middot;
       <%= @total %> upcoming &middot;
@@ -392,13 +402,14 @@
         Automated browser test that clicks the <code class="text-orange-400">&lt;</code> /
         <code class="text-orange-400">&gt;</code> month-nav arrows on
         <a href="https://nykitchen.com/calendar/" class="text-orange-400 hover:text-orange-300 underline" target="_blank" rel="noopener">nykitchen.com/calendar/</a>
-        and verifies that events round-trip across 3 months of navigation. Scheduled to run daily at 9 AM EDT.
-        On failure, a video of the run will be emailed to admins (not yet wired — preview-only today).
+        and verifies that events round-trip across 3 months of navigation. Runs 3 times daily starting at 9 AM EDT.
+        This is a passive, read-only test &mdash; it simply visits the public calendar in a normal browser, just like any user would, and captures event data. Nothing is submitted, modified, or stressed.
+        On failure, a video of the run will be emailed to admins.
       </p>
-      <% total_cost_cents = @smoke_runs.sum(:cost_cents) %>
+      <% total_cost = @smoke_runs.sum(:cost_dollars) %>
       <p class="text-sm text-gray-500 mb-6">
-        Total cost: <span class="text-white font-semibold">$<%= "%.2f" % (total_cost_cents / 100.0) %></span>
-        (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %>)
+        Total cost: <span class="text-white font-semibold">$<%= "%.4f" % total_cost %></span>
+        (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %> &middot; $0.000688/min)
       </p>
 
       <% if @smoke_runs.empty? %>
@@ -451,7 +462,7 @@
                     <% end %>
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-500 text-right whitespace-nowrap">
-                    $<%= "%.2f" % (run.cost_cents / 100.0) %>
+                    $<%= "%.4f" % run.cost_dollars %>
                   </td>
                   <% if admin %>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
