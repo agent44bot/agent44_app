@@ -3,6 +3,7 @@ require "fileutils"
 require "playwright"
 require "net/http"
 require "json"
+require_relative "nyk_event_scraper_helper"
 
 # Black-box smoke test for https://nykitchen.com/calendar/
 #
@@ -33,6 +34,8 @@ require "json"
 # On failure: writes .webm video, .png screenshot, Playwright trace to
 # tmp/smoke/, and renders a preview email to stdout (not sent).
 class NykCalendarNavTest < ActiveSupport::TestCase
+  include NykEventScraperHelper
+
   TARGET_URL = NykSmokeMailer::TARGET_URL
   ARTIFACT_DIR = Rails.root.join("tmp", "smoke")
   FORWARD_STEPS = 3 # clicks past initial load; total months visited = 4
@@ -96,9 +99,11 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
         # --- Forward phase -------------------------------------------------
         forward = [] # [{ title: "April 2026", events: [{id:, title:}, ...] }, ...]
+        all_event_urls = []
         (FORWARD_STEPS + 1).times do |i|
           capture = { title: read_month_title(page), events: capture_events(page) }
           forward << capture
+          all_event_urls.concat(collect_event_urls(page))
           puts "  ➡  [#{i}] #{capture[:title]} — #{capture[:events].size} events"
 
           if i < FORWARD_STEPS
@@ -142,13 +147,45 @@ class NykCalendarNavTest < ActiveSupport::TestCase
         if @failures.any?
           fail_with_artifacts(page, context, "Round-trip failed:\n  - " + @failures.join("\n  - "))
         else
+          puts "\n  ✅ NY Kitchen calendar nav: event sets survived a #{FORWARD_STEPS}-month round-trip."
+
+          # --- Scraping phase (opt-out via SCRAPE_EVENTS=false) ---------------
+          scraped_events = []
+          if ENV["SCRAPE_EVENTS"] != "false"
+            unique_urls = all_event_urls.uniq
+            puts "\n  🔍 Scraping #{unique_urls.size} event detail pages..."
+
+            unique_urls.each_with_index do |url, i|
+              begin
+                event = scrape_detail_page(page, url)
+                scraped_events << event if event
+                puts "    [#{i + 1}/#{unique_urls.size}] #{event[:name]&.to_s&.truncate(50) || url}"
+              rescue => e
+                puts "    [#{i + 1}/#{unique_urls.size}] FAILED: #{e.message}"
+              end
+              page.wait_for_timeout(DETAIL_PAGE_PAUSE_MS) if i < unique_urls.size - 1
+            end
+
+            # Filter out past events — only future classes should be stored
+            today = Date.today.to_s
+            before = scraped_events.size
+            scraped_events.reject! { |e|
+              e[:passed] ||                                          # page says "This event has passed"
+              (e[:start_at].present? && e[:start_at].to_s < today)   # start date is in the past
+            }
+            skipped = before - scraped_events.size
+            puts "    Filtered: #{skipped} past event(s) removed, #{scraped_events.size} upcoming kept" if skipped > 0
+
+            post_kitchen_snapshot(scraped_events) if scraped_events.any?
+          end
+
           context.tracing.stop
           context.close
           browser.close
-          summary = forward.map { |m| m[:events].size }.join("/") + " events round-tripped"
+          scrape_note = scraped_events.any? ? ", #{scraped_events.size} events scraped" : ""
+          summary = forward.map { |m| m[:events].size }.join("/") + " events round-tripped#{scrape_note}"
           post_result(status: "passed", summary: summary)
           assert_empty @failures
-          puts "\n  ✅ NY Kitchen calendar nav: event sets survived a #{FORWARD_STEPS}-month round-trip."
         end
       rescue => e
         fail_with_artifacts(page, context, "#{e.class}: #{e.message}")
@@ -321,6 +358,40 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     end
   rescue => e
     puts "  ⚠  smoke-run POST error: #{e.class}: #{e.message}"
+  end
+
+  def post_kitchen_snapshot(events)
+    token = ENV["API_TOKEN"]
+    if token.to_s.empty?
+      puts "  ⚠  API_TOKEN not set; skipping kitchen snapshot POST"
+      return
+    end
+
+    body = {
+      taken_on: Date.today.to_s,
+      events: events
+    }.to_json
+
+    uri = URI("#{API_URL}/api/v1/kitchen_snapshots")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 10
+    http.read_timeout = 30
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{token}"
+    req["Content-Type"] = "application/json"
+    req.body = body
+
+    res = http.request(req)
+    if res.is_a?(Net::HTTPSuccess)
+      data = JSON.parse(res.body) rescue {}
+      puts "  📬 kitchen snapshot posted: #{data['events_created']} events (snapshot ##{data['snapshot_id']})"
+    else
+      puts "  ⚠  kitchen snapshot POST → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
+    end
+  rescue => e
+    puts "  ⚠  kitchen snapshot POST error: #{e.class}: #{e.message}"
   end
 
   def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:)

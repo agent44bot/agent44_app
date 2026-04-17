@@ -45,6 +45,7 @@ Rails.application.routes.draw do
       post "chat/reply", to: "chat#reply"
       get "stats/users", to: "stats#users"
       resources :smoke_runs, only: [ :create ]
+      resources :kitchen_snapshots, only: [ :create ]
     end
   end
 
