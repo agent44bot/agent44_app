@@ -10,6 +10,10 @@ cd "$(dirname "$0")/.."
 # Load RVM (disable strict unbound-var checking — RVM scripts use unset vars)
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
+# Load NVM so Playwright can find Node
+export NVM_DIR="$HOME/.nvm"
+[[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+
 # Load secrets from local env file
 if [[ -f "$HOME/.agent44_smoke_env" ]]; then
   source "$HOME/.agent44_smoke_env"
