@@ -154,7 +154,7 @@ module Api
       end
 
       def smoke_request?(text)
-        text.match?(/\b(?:smoke|smoke[-\s]?test|run\s+smoke)\b/i)
+        text.match?(%r{^/smoke\b}i)
       end
 
       def handle_smoke_request(from_user)
