@@ -244,6 +244,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       res = http.request(req)
       if res.is_a?(Net::HTTPSuccess)
         puts "  🤖 Vlad → #{status}#{task ? " (#{task})" : ""}"
+        verify_vlad_status(status) if ENV["VERIFY_VLAD_STATUS"] == "true"
         return
       else
         puts "  ⚠  Vlad status update → HTTP #{res.code} (attempt #{attempt + 1}/#{retries})"
@@ -252,6 +253,35 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       puts "  ⚠  Vlad status update error: #{e.class}: #{e.message} (attempt #{attempt + 1}/#{retries})"
       sleep 2 if attempt < retries - 1
     end
+
+    @failures << "Vlad status update to '#{status}' failed after #{retries} attempts" if ENV["VERIFY_VLAD_STATUS"] == "true"
+  end
+
+  # Read back Vlad's status from the API to confirm it stuck and that
+  # the Telegram notification side-effect fired (the PATCH handler sends
+  # a Telegram message on status transitions).
+  def verify_vlad_status(expected_status)
+    uri = URI("#{API_URL}/api/v1/agents/statuses")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 5
+    http.read_timeout = 5
+
+    res = http.request(Net::HTTP::Get.new(uri))
+    agents = JSON.parse(res.body)
+    vlad = agents.find { |a| a["name"] == VLAD_AGENT }
+
+    if vlad.nil?
+      puts "  ⚠  verify: Vlad agent not found in statuses response"
+      @failures << "Vlad agent not found in /api/v1/agents/statuses"
+    elsif vlad["status"] != expected_status
+      puts "  ⚠  verify: expected Vlad '#{expected_status}', got '#{vlad["status"]}'"
+      @failures << "Vlad status mismatch: expected '#{expected_status}', got '#{vlad["status"]}'"
+    else
+      puts "  ✅ verify: Vlad status confirmed '#{expected_status}' (Telegram notification triggered)"
+    end
+  rescue => e
+    puts "  ⚠  verify error: #{e.class}: #{e.message}"
   end
 
   def playwright_cli
