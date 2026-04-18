@@ -36,10 +36,14 @@ module Admin
       if snapshot
         @events = snapshot.kitchen_events.upcoming
         today = Date.today
-        @week1_events = @events.select { |e| (today..today + 6).cover?(e.start_at.to_date) }
-        @week2_events = @events.select { |e| (today + 7..today + 13).cover?(e.start_at.to_date) }
-        @week3_events = @events.select { |e| (today + 14..today + 20).cover?(e.start_at.to_date) }
-        @week4_events = @events.select { |e| (today + 21..today + 27).cover?(e.start_at.to_date) }
+        # Calendar weeks: Mon–Sun. "This Week" = today through this Sunday.
+        days_until_sunday = (7 - today.cwday) % 7  # cwday: Mon=1..Sun=7
+        this_sunday = today + days_until_sunday
+        next_monday = this_sunday + 1
+        @week1_events = @events.select { |e| (today..this_sunday).cover?(e.start_at.to_date) }
+        @week2_events = @events.select { |e| (next_monday..next_monday + 6).cover?(e.start_at.to_date) }
+        @week3_events = @events.select { |e| (next_monday + 7..next_monday + 13).cover?(e.start_at.to_date) }
+        @week4_events = @events.select { |e| (next_monday + 14..next_monday + 20).cover?(e.start_at.to_date) }
         @total = @events.size
         @sold_out = @events.count(&:sold_out?)
         @last_updated = snapshot.taken_on
