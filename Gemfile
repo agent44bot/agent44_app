@@ -75,7 +75,7 @@ group :test do
 
   # Rails 8 test helpers (ActiveSupport::Testing::MethodCallAssertions)
   # still require minitest/mock, which was removed in Minitest 6.
-  gem "minitest", "~> 5.20"
+  gem "minitest", "~> 6.0"
 
   # Browser automation for NY Kitchen calendar smoke test
   # (videos + traces for client-facing failure evidence)
