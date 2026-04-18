@@ -172,6 +172,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
             }
             puts "\n  🔍 Scraping #{unique_urls.size} event detail pages (skipped past dates)..."
 
+            last_pct = -1
             unique_urls.each_with_index do |url, i|
               begin
                 event = scrape_detail_page(page, url)
@@ -179,6 +180,12 @@ class NykCalendarNavTest < ActiveSupport::TestCase
                 puts "    [#{i + 1}/#{unique_urls.size}] #{event[:name]&.to_s&.truncate(50) || url}"
               rescue => e
                 puts "    [#{i + 1}/#{unique_urls.size}] FAILED: #{e.message}"
+              end
+              # Update Vlad's progress every ~10%
+              pct = ((i + 1) * 100 / unique_urls.size / 10) * 10
+              if pct > last_pct
+                update_vlad_status("busy", "Scraping #{pct}%")
+                last_pct = pct
               end
               page.wait_for_timeout(DETAIL_PAGE_PAUSE_MS) if i < unique_urls.size - 1
             end
