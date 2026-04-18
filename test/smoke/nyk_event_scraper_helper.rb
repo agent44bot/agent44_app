@@ -18,8 +18,10 @@ module NykEventScraperHelper
     page.wait_for_timeout(1_000)
 
     # Scroll ticket section into view so video captures availability info
-    page.evaluate("(document.querySelector('.tribe-tickets') || document.querySelector('.tribe-events-content') || document.body).scrollIntoView({behavior: 'smooth', block: 'end'})")
-    page.wait_for_timeout(800)
+    page.evaluate("(document.querySelector('.tribe-tickets') || document.querySelector('.tribe-events-content') || document.body).scrollIntoView({behavior: 'smooth', block: 'center'})")
+    page.wait_for_timeout(400)
+    page.evaluate("window.scrollBy({top: Math.round(window.innerHeight * 0.3), behavior: 'smooth'})")
+    page.wait_for_timeout(600)
 
     event_data = extract_event_from_dom(page)
     avail = extract_availability(page)
