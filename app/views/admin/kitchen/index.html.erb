@@ -12,10 +12,10 @@
   today = Date.today
   calendar_months = (0..2).map { |i| today >> i }.map { |d| Date.new(d.year, d.month, 1) }
 
-  # Generate weeks to display in the Week (agenda) view. Start from the Sunday
+  # Generate weeks to display in the Week (agenda) view. Start from Monday
   # of the current week and include any week that has at least one event, up to
   # 8 weeks forward so navigation stays bounded.
-  week_start = today - today.wday
+  week_start = today - ((today.cwday - 1) % 7)
   last_event_date = @events.map { |e| e.start_at.to_date }.max
   weeks_needed = last_event_date ? ((last_event_date - week_start).to_i / 7) + 1 : 1
   weeks_to_show = [[weeks_needed, 1].max, 8].min
@@ -163,13 +163,13 @@
         <section class="mb-10">
           <h2 class="text-lg font-bold text-white mb-4"><%= month_start.strftime("%B %Y") %></h2>
           <div class="grid grid-cols-7 gap-px bg-gray-800 rounded-lg overflow-hidden">
-            <!-- Day headers -->
-            <% %w[Sun Mon Tue Wed Thu Fri Sat].each do |day| %>
+            <!-- Day headers (Mon–Sun) -->
+            <% %w[Mon Tue Wed Thu Fri Sat Sun].each do |day| %>
               <div class="bg-gray-900 py-2 text-center text-xs font-semibold text-gray-500"><%= day %></div>
             <% end %>
 
-            <!-- Leading blanks -->
-            <% month_start.wday.times do %>
+            <!-- Leading blanks (Mon=0 .. Sun=6) -->
+            <% ((month_start.cwday - 1) % 7).times do %>
               <div class="bg-gray-900 min-h-[5rem]"></div>
             <% end %>
 
@@ -251,8 +251,8 @@
               </div>
             <% end %>
 
-            <!-- Trailing blanks -->
-            <% ((6 - month_end.wday) % 7).times do %>
+            <!-- Trailing blanks (fill to Sunday) -->
+            <% (month_end.cwday < 7 ? (7 - month_end.cwday) : 0).times do %>
               <div class="bg-gray-900 min-h-[5rem]"></div>
             <% end %>
           </div>
