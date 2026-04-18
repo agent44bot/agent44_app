@@ -447,6 +447,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     return unless video_path && File.exist?(video_path)
 
     # Compress video with ffmpeg (target ~3-5 MB instead of 40+ MB)
+    update_vlad_status("busy", "Compressing video")
     compressed_path = ARTIFACT_DIR.join("smoke-#{@stamp}-compressed.webm").to_s
     system("ffmpeg", "-y", "-i", video_path,
            "-c:v", "libvpx-vp9", "-crf", "40", "-b:v", "200k",
