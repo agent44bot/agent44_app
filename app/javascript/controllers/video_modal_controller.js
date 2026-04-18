@@ -3,7 +3,11 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["dialog", "video"]
 
-  open() {
+  open(event) {
+    const src = event.params.src
+    if (src) {
+      this.videoTarget.src = src
+    }
     this.dialogTarget.showModal()
   }
 

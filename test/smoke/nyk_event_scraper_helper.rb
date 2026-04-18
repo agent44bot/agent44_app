@@ -17,6 +17,12 @@ module NykEventScraperHelper
     page.goto(url, timeout: 30_000, waitUntil: "domcontentloaded")
     page.wait_for_timeout(1_000)
 
+    # Scroll down the page so the video captures ticket/availability info
+    3.times do
+      page.evaluate("window.scrollBy({top: window.innerHeight, behavior: 'smooth'})")
+      page.wait_for_timeout(300)
+    end
+
     event_data = extract_event_from_dom(page)
     avail = extract_availability(page)
 

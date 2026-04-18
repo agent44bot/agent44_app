@@ -406,36 +406,6 @@
         This is a passive, read-only test &mdash; it simply visits the public calendar in a normal browser, just like any user would, and captures event data. Nothing is submitted, modified, or stressed.
         On failure, a video of the run will be emailed to admins.
       </p>
-      <% latest_with_video = @smoke_runs.find { |r| r.video.attached? } %>
-      <% if latest_with_video %>
-        <div class="bg-gray-900 rounded-lg p-4 mb-6" data-controller="video-modal">
-          <h3 class="text-sm font-semibold text-gray-400 mb-3">Latest Run Recording</h3>
-          <% if latest_with_video.thumbnail.attached? %>
-            <img src="<%= url_for(latest_with_video.thumbnail) %>"
-                 class="rounded w-40 hover:opacity-80 transition border border-gray-700 cursor-pointer"
-                 data-action="click->video-modal#open"
-                 alt="Smoke test recording thumbnail">
-          <% else %>
-            <button data-action="click->video-modal#open"
-                    class="text-orange-400 text-sm hover:text-orange-300">Watch recording</button>
-          <% end %>
-          <dialog data-video-modal-target="dialog"
-                  data-action="click->video-modal#backdropClose"
-                  class="bg-transparent backdrop:bg-black/80 p-0 max-w-4xl w-full">
-            <div class="bg-gray-900 rounded-xl p-4">
-              <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-semibold text-gray-400">Smoke Test Recording</h3>
-                <button data-action="click->video-modal#close"
-                        class="text-gray-500 hover:text-white text-lg">&times;</button>
-              </div>
-              <video data-video-modal-target="video" controls class="rounded-lg w-full" preload="metadata">
-                <source src="<%= url_for(latest_with_video.video) %>" type="video/webm">
-              </video>
-            </div>
-          </dialog>
-        </div>
-      <% end %>
-
       <% total_cost = @smoke_runs.sum(:cost_dollars) %>
       <p class="text-sm text-gray-500 mb-6">
         Total cost: <span class="text-white font-semibold">$<%= "%.4f" % total_cost %></span>
@@ -448,7 +418,7 @@
           <p class="text-gray-500 text-xs mt-1">First scheduled run is tomorrow at 9 AM EDT.</p>
         </div>
       <% else %>
-        <div class="overflow-hidden rounded-lg border border-gray-800">
+        <div class="overflow-hidden rounded-lg border border-gray-800" data-controller="video-modal">
           <table class="min-w-full divide-y divide-gray-800">
             <thead class="bg-gray-900">
               <% admin = @admin %>
@@ -457,6 +427,7 @@
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Duration</th>
                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
+                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Video</th>
                 <th class="px-4 py-2 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Cost</th>
                 <% if admin %>
                   <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">&nbsp;</th>
@@ -491,6 +462,21 @@
                       <span class="text-red-400"><%= run.error_message.to_s.truncate(140) %></span>
                     <% end %>
                   </td>
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <% if run.video.attached? && run.thumbnail.attached? %>
+                      <img src="<%= url_for(run.thumbnail) %>"
+                           class="rounded w-16 h-10 object-cover hover:opacity-80 transition border border-gray-700 cursor-pointer inline-block"
+                           data-action="click->video-modal#open"
+                           data-video-modal-src-param="<%= url_for(run.video) %>"
+                           alt="Test recording">
+                    <% elsif run.video.attached? %>
+                      <button data-action="click->video-modal#open"
+                              data-video-modal-src-param="<%= url_for(run.video) %>"
+                              class="text-orange-400 text-xs hover:text-orange-300">▶</button>
+                    <% else %>
+                      <span class="text-gray-600 text-xs">—</span>
+                    <% end %>
+                  </td>
                   <td class="px-4 py-3 text-sm text-gray-500 text-right whitespace-nowrap">
                     $<%= "%.4f" % run.cost_dollars %>
                   </td>
@@ -512,6 +498,19 @@
               <% end %>
             </tbody>
           </table>
+          <dialog data-video-modal-target="dialog"
+                  data-action="click->video-modal#backdropClose"
+                  class="bg-transparent backdrop:bg-black/80 p-0 max-w-4xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
+            <div class="bg-gray-900 rounded-xl p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-gray-400">Smoke Test Recording</h3>
+                <button data-action="click->video-modal#close"
+                        class="text-gray-500 hover:text-white text-lg">&times;</button>
+              </div>
+              <video data-video-modal-target="video" controls class="rounded-lg w-full" preload="metadata">
+              </video>
+            </div>
+          </dialog>
         </div>
       <% end %>
     </div>
