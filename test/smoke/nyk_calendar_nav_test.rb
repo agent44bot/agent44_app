@@ -215,30 +215,36 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
   private
 
-  def update_vlad_status(status, task = nil)
+  def update_vlad_status(status, task = nil, retries: 3)
     token = ENV["API_TOKEN"]
     return if token.to_s.empty?
 
     name = URI.encode_uri_component(VLAD_AGENT)
     uri = URI("#{API_URL}/api/v1/agents/#{name}/status")
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme == "https"
-    http.open_timeout = 5
-    http.read_timeout = 5
+    body = { status: status, current_task: task }.compact.to_json
 
-    req = Net::HTTP::Patch.new(uri)
-    req["Authorization"] = "Bearer #{token}"
-    req["Content-Type"] = "application/json"
-    req.body = { status: status, current_task: task }.compact.to_json
+    retries.times do |attempt|
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = uri.scheme == "https"
+      http.open_timeout = 10
+      http.read_timeout = 10
 
-    res = http.request(req)
-    if res.is_a?(Net::HTTPSuccess)
-      puts "  🤖 Vlad → #{status}#{task ? " (#{task})" : ""}"
-    else
-      puts "  ⚠  Vlad status update → HTTP #{res.code}"
+      req = Net::HTTP::Patch.new(uri)
+      req["Authorization"] = "Bearer #{token}"
+      req["Content-Type"] = "application/json"
+      req.body = body
+
+      res = http.request(req)
+      if res.is_a?(Net::HTTPSuccess)
+        puts "  🤖 Vlad → #{status}#{task ? " (#{task})" : ""}"
+        return
+      else
+        puts "  ⚠  Vlad status update → HTTP #{res.code} (attempt #{attempt + 1}/#{retries})"
+      end
+    rescue => e
+      puts "  ⚠  Vlad status update error: #{e.class}: #{e.message} (attempt #{attempt + 1}/#{retries})"
+      sleep 2 if attempt < retries - 1
     end
-  rescue => e
-    puts "  ⚠  Vlad status update error: #{e.class}: #{e.message}"
   end
 
   def playwright_cli
