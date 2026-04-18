@@ -209,13 +209,13 @@
                       tip_status_color = "text-gray-400"
                     end
 
-                    # Tooltip availability badge
+                    # Tooltip availability badge (soldout wins over closed)
                     case e.availability.to_s.downcase
-                    when /closed/
-                      tip_badge = "TICKETS NO LONGER AVAILABLE"
-                      tip_badge_color = "bg-red-900/50 text-red-400"
                     when /soldout/
                       tip_badge = "SOLD OUT"
+                      tip_badge_color = "bg-red-900/50 text-red-400"
+                    when /closed/
+                      tip_badge = "TICKETS NO LONGER AVAILABLE"
                       tip_badge_color = "bg-red-900/50 text-red-400"
                     when /limited/
                       tip_badge = "LIMITED"
@@ -339,13 +339,13 @@
                         tip_status_color = "text-gray-400"
                       end
 
-                      # Availability badge
+                      # Availability badge (soldout wins over closed)
                       case e.availability.to_s.downcase
-                      when /closed/
-                        avail_label = "TICKETS NO LONGER AVAILABLE"
-                        avail_color = "bg-red-900/50 text-red-400"
                       when /soldout/
                         avail_label = "SOLD OUT"
+                        avail_color = "bg-red-900/50 text-red-400"
+                      when /closed/
+                        avail_label = "TICKETS NO LONGER AVAILABLE"
                         avail_color = "bg-red-900/50 text-red-400"
                       when /limited/
                         avail_label = "LIMITED"
