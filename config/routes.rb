@@ -66,6 +66,7 @@ Rails.application.routes.draw do
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [:show]
     get "kitchen", to: "kitchen#index"
+    post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
     get "chat", to: "chat#index"
     post "chat", to: "chat#create"
