@@ -11,18 +11,17 @@ module Api
         bot_reply = params.dig(:message, :from, :is_bot)
         from_user = params.dig(:message, :from, :first_name)
 
-        # Check for deploy commands from human users
-        if !bot_reply && message_text.present? && deploy_request?(message_text)
-          handle_deploy_request(message_text, from_user)
-          head :ok
-          return
-        end
-
-        # Check for smoke test trigger from human users
-        if !bot_reply && message_text.present? && smoke_test_request?(message_text)
-          trigger_smoke_test(from_user)
-          head :ok
-          return
+        # Check for human user commands
+        if !bot_reply && message_text.present?
+          if smoke_request?(message_text)
+            handle_smoke_request(from_user)
+            head :ok
+            return
+          elsif deploy_request?(message_text)
+            handle_deploy_request(message_text, from_user)
+            head :ok
+            return
+          end
         end
 
         # Only process bot messages (from our agent bot)
@@ -154,6 +153,47 @@ module Api
         Rails.logger.info("[TelegramWebhook] Deploy queued: #{app} by #{from_user}")
       end
 
+      def smoke_request?(text)
+        text.match?(/\b(?:smoke|smoke[-\s]?test|run\s+smoke)\b/i)
+      end
+
+      def handle_smoke_request(from_user)
+        token = ENV["GITHUB_PAT"]
+        if token.blank?
+          Rails.logger.warn("[TelegramWebhook] GITHUB_PAT not set — cannot trigger smoke workflow")
+          return
+        end
+
+        uri = URI("https://api.github.com/repos/agent44bot/agent44_app/dispatches")
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        http.open_timeout = 5
+        http.read_timeout = 10
+
+        req = Net::HTTP::Post.new(uri)
+        req["Authorization"] = "Bearer #{token}"
+        req["Accept"] = "application/vnd.github+json"
+        req["Content-Type"] = "application/json"
+        req.body = { event_type: "smoke-nyk" }.to_json
+
+        res = http.request(req)
+
+        if res.is_a?(Net::HTTPSuccess) || res.code == "204"
+          Notification.notify!(
+            level: "info",
+            source: "smoke_test",
+            title: "Smoke test triggered",
+            body: "#{from_user} requested NY Kitchen smoke test via Telegram",
+            telegram: true
+          )
+          Rails.logger.info("[TelegramWebhook] Smoke test triggered by #{from_user}")
+        else
+          Rails.logger.error("[TelegramWebhook] GitHub dispatch failed (#{res.code}): #{res.body.to_s[0, 200]}")
+        end
+      rescue => e
+        Rails.logger.error("[TelegramWebhook] Smoke trigger error: #{e.class}: #{e.message}")
+      end
+
       def extract_task(text)
         # Try to extract a meaningful task description from the message
         if text =~ /security\s+scan/i
@@ -169,46 +209,6 @@ module Api
         end
       end
 
-      SMOKE_PATTERNS = [
-        /(?:run|trigger|start)\s+(?:the\s+)?smoke\s*test/i,
-        /smoke\s*test\s+(?:the\s+)?(?:kitchen|nyk|calendar)/i,
-        /test\s+(?:the\s+)?(?:kitchen|nyk)\s*(?:calendar)?/i,
-      ].freeze
-
-      def smoke_test_request?(text)
-        SMOKE_PATTERNS.any? { |p| text.match?(p) }
-      end
-
-      def trigger_smoke_test(from_user)
-        token = ENV["GITHUB_DISPATCH_TOKEN"]
-        repo = "agent44bot/agent44_app"
-
-        if token.present?
-          uri = URI("https://api.github.com/repos/#{repo}/dispatches")
-          http = Net::HTTP.new(uri.host, uri.port)
-          http.use_ssl = true
-          http.open_timeout = 5
-          http.read_timeout = 10
-
-          req = Net::HTTP::Post.new(uri)
-          req["Authorization"] = "Bearer #{token}"
-          req["Accept"] = "application/vnd.github+json"
-          req.body = { event_type: "smoke-nyk" }.to_json
-
-          res = http.request(req)
-          Rails.logger.info("[TelegramWebhook] Smoke test dispatch → HTTP #{res.code}")
-        else
-          Rails.logger.warn("[TelegramWebhook] GITHUB_DISPATCH_TOKEN not set, cannot trigger smoke test")
-        end
-
-        Notification.notify!(
-          level: "info",
-          source: "smoke_test",
-          title: "Smoke test triggered",
-          body: "#{from_user} requested NY Kitchen smoke test via Telegram",
-          telegram: true
-        )
-      end
     end
   end
 end
