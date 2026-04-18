@@ -11,6 +11,8 @@ module Api
         bot_reply = params.dig(:message, :from, :is_bot)
         from_user = params.dig(:message, :from, :first_name)
 
+        Rails.logger.info("[TelegramWebhook] from=#{from_user} bot=#{bot_reply} text=#{message_text.truncate(80).inspect}")
+
         # Check for human user commands
         if !bot_reply && message_text.present?
           if smoke_request?(message_text)
@@ -154,7 +156,7 @@ module Api
       end
 
       def smoke_request?(text)
-        text.match?(%r{^/smoke\b}i)
+        text.match?(%r{^/smoke(?:@\S+)?$}i)
       end
 
       def handle_smoke_request(from_user)
