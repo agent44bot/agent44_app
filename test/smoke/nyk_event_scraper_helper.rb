@@ -97,11 +97,27 @@ module NykEventScraperHelper
     page.evaluate(<<~JS)
       (() => {
         const body = document.body.innerHTML;
-        const bodyText = document.body.innerText;
-        const hasSoldOut = /sold\s*out/i.test(bodyText);
+
+        // Check for "Tickets are no longer available" in the ticket section
         const hasClosed = body.includes('Tickets are no longer available');
 
-        // If "SOLD OUT" appears anywhere on the page, prefer that over "closed"
+        // Check for "SOLD OUT" only in the event's own content (header + ticket area),
+        // NOT the "More Classes You Might Like" recommendations at the bottom.
+        const eventContent = document.querySelector('.tribe-events-single-event-title, .tribe-events-schedule, .tribe-tickets, .tribe-events-content');
+        const mainArea = document.querySelector('.tribe-events-single');
+        // The recommendations section has class "tribe-related-events" — exclude it
+        let eventText = '';
+        if (mainArea) {
+          const clone = mainArea.cloneNode(true);
+          const related = clone.querySelector('.tribe-related-events, .tribe-events-related-events-title');
+          if (related) related.parentNode.removeChild(related);
+          eventText = clone.innerText || clone.textContent || '';
+        } else {
+          eventText = (eventContent ? eventContent.textContent : '') || '';
+        }
+        const hasSoldOut = /sold\s*out/i.test(eventText);
+
+        // If "SOLD OUT" appears in the event's own content, prefer that over "closed"
         if (hasClosed && !hasSoldOut) {
           return { spots_left: 0, capacity: null, closed: true };
         }
