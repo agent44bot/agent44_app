@@ -7,6 +7,29 @@ export default class extends Controller {
     inactiveClasses: { type: String, default: "text-gray-500 border-transparent" }
   }
 
+  connect() {
+    // Ensure first tab is active on initial load — fixes iOS Safari
+    // not connecting controllers when page is opened from iMessage/external links.
+    const active = this.activeClassesValue.split(" ")
+    const inactive = this.inactiveClassesValue.split(" ")
+    this.tabTargets.forEach((tab, i) => {
+      if (i === 0) {
+        tab.classList.add(...active)
+        tab.classList.remove(...inactive)
+      } else {
+        tab.classList.remove(...active)
+        tab.classList.add(...inactive)
+      }
+    })
+    this.panelTargets.forEach((panel, i) => {
+      panel.classList.toggle("hidden", i !== 0)
+    })
+    this.element.querySelectorAll("[data-tabs-chrome-for]").forEach(el => {
+      const indices = el.dataset.tabsChromeFor.split(" ").map(s => s.trim())
+      el.classList.toggle("hidden", !indices.includes("0"))
+    })
+  }
+
   select(event) {
     const index = parseInt(event.currentTarget.dataset.tabIndex)
     const active = this.activeClassesValue.split(" ")
