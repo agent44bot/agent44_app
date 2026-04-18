@@ -97,8 +97,16 @@ module NykEventScraperHelper
     page.evaluate(<<~JS)
       (() => {
         const body = document.body.innerHTML;
-        if (body.includes('Tickets are no longer available')) {
+        const bodyText = document.body.innerText;
+        const hasSoldOut = /sold\s*out/i.test(bodyText);
+        const hasClosed = body.includes('Tickets are no longer available');
+
+        // If "SOLD OUT" appears anywhere on the page, prefer that over "closed"
+        if (hasClosed && !hasSoldOut) {
           return { spots_left: 0, capacity: null, closed: true };
+        }
+        if (hasSoldOut && hasClosed) {
+          return { spots_left: 0, capacity: null, closed: false };
         }
 
         // Strategy 1: data attributes on ticket items (some events use these)
