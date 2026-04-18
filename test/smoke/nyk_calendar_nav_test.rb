@@ -184,7 +184,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
               # Update Vlad's progress every ~10%
               pct = ((i + 1) * 100 / unique_urls.size / 10) * 10
               if pct > last_pct
-                update_vlad_status("busy", "Scraping #{pct}%")
+                update_vlad_status("busy", "Scraping nykitchen #{pct}%")
                 last_pct = pct
               end
               page.wait_for_timeout(DETAIL_PAGE_PAUSE_MS) if i < unique_urls.size - 1
