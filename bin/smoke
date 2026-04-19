@@ -17,6 +17,8 @@ set -euo pipefail
 
 APP="${SMOKE_APP:-agent44-app}"
 FILTER="${1:-}"
+API_BASE="https://agent44labs.com/api/v1"
+VLAD_AGENT="Vlad%20%E2%9C%85"
 
 if [ -z "${API_TOKEN:-}" ]; then
   echo "→ Fetching API_TOKEN from Fly app '$APP'..."
@@ -31,13 +33,42 @@ export RUN_SMOKE=true
 
 cd "$(dirname "$0")/.."
 
+# Determine test name for Vlad's status
+if [ -n "$FILTER" ]; then
+  TASK_NAME="Running smoke: $FILTER"
+else
+  TASK_NAME="Running all smoke tests"
+fi
+
+# Set Vlad to busy
+vlad_status() {
+  curl -sf -X PATCH \
+    -H "Authorization: Bearer $API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"status\": \"$1\", \"current_task\": $2}" \
+    "$API_BASE/agents/$VLAD_AGENT/status" >/dev/null 2>&1 || true
+}
+
+vlad_status "busy" "\"$TASK_NAME\""
+echo "🤖 Vlad → busy ($TASK_NAME)"
+
+# Always set Vlad back to online when done (success or failure)
+cleanup() {
+  vlad_status "online" "null"
+  echo "🤖 Vlad → online"
+}
+trap cleanup EXIT
+
+# Give the status time to propagate and be visible on web/iOS/Telegram
+sleep 8
+
 if [ -n "$FILTER" ]; then
   matches=$(find test/smoke -name "*${FILTER}*.rb" -type f)
   if [ -z "$matches" ]; then
     echo "✗ No smoke test matches '$FILTER' under test/smoke/" >&2
     exit 1
   fi
-  exec bin/rails test $matches
+  bin/rails test $matches
 else
-  exec bin/rails test test/smoke/
+  bin/rails test test/smoke/
 fi

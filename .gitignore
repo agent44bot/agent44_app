@@ -40,3 +40,10 @@
 # Ignore Node modules and Playwright artifacts
 /node_modules/
 /test-results/
+
+# Capacitor / iOS build artifacts
+/build/
+/www/
+/ios/
+capacitor.config.ts
+capacitor.config.ci.ts

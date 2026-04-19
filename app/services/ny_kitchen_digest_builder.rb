@@ -12,17 +12,23 @@ class NyKitchenDigestBuilder
     price_changes  = cur.values.select { |e| prev[e[:url]] && prev[e[:url]][:price] != e[:price] && prev[e[:url]][:price] }
 
     upcoming = cur.values.select { |e| e[:start_at] >= Time.current }.sort_by { |e| e[:start_at] }
-    week1 = upcoming.select { |e| (today..today + 6).cover?(e[:start_at].to_date) }
-    week2 = upcoming.select { |e| (today + 7..today + 13).cover?(e[:start_at].to_date) }
-    week3 = upcoming.select { |e| (today + 14..today + 20).cover?(e[:start_at].to_date) }
-    week4 = upcoming.select { |e| (today + 21..today + 27).cover?(e[:start_at].to_date) }
+
+    # Calendar weeks: Mon–Sun. "Current Week" = today through this Sunday.
+    days_until_sunday = (7 - today.cwday) % 7
+    this_sunday = today + days_until_sunday
+    next_monday = this_sunday + 1
+
+    current_week = upcoming.select { |e| (today..this_sunday).cover?(e[:start_at].to_date) }
+    week1 = upcoming.select { |e| (next_monday..next_monday + 6).cover?(e[:start_at].to_date) }
+    week2 = upcoming.select { |e| (next_monday + 7..next_monday + 13).cover?(e[:start_at].to_date) }
+    week3 = upcoming.select { |e| (next_monday + 14..next_monday + 20).cover?(e[:start_at].to_date) }
 
     {
       today: today,
+      current_week_events: current_week,
       week1_events: week1,
       week2_events: week2,
       week3_events: week3,
-      week4_events: week4,
       newly_sold_out: newly_sold_out,
       newly_added: newly_added,
       removed: removed,

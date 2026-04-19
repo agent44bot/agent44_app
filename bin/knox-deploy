@@ -40,9 +40,9 @@ poll_once() {
     curl -sf -X PATCH -H "Authorization: Bearer $API_TOKEN" \
       "$OPENCLAW_URL/api/v1/chat/$msg_id/ack" >/dev/null 2>&1 || true
 
-    # Run deploy with live status narration ($0, no LLM)
+    # Run the deploy
     cd "$APP_DIR"
-    if deploy_output=$(bin/deploy ship-live 2>&1); then
+    if deploy_output=$(fly deploy --app "$app" 2>&1); then
       status="success"
       reply="Deploy of $app completed successfully."
       echo "[Knox] Deploy succeeded"
@@ -58,6 +58,20 @@ poll_once() {
       -d "$(jq -n --arg id "$msg_id" --arg agent "Knox 🔒" --arg content "$reply" \
         '{id: $id, agent: $agent, content: $content}')" \
       "$OPENCLAW_URL/api/v1/chat/reply" >/dev/null 2>&1 || true
+
+    # Update Knox status
+    curl -sf -X PATCH -H "Authorization: Bearer $API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg status "online" --arg task "" \
+        '{status: $status, current_task: $task}')" \
+      "$OPENCLAW_URL/api/v1/agents/knox/status" >/dev/null 2>&1 || true
+
+    # Notify
+    curl -sf -X POST -H "Authorization: Bearer $API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg level "$status" --arg title "Deploy $status" --arg body "$reply" \
+        '{level: $level, source: "knox_deploy", title: $title, body: $body, telegram: true}')" \
+      "$OPENCLAW_URL/api/v1/notifications" >/dev/null 2>&1 || true
   done
 }
 

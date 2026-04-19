@@ -60,16 +60,14 @@
 <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;margin-bottom:20px">
   <div style="font-size:13px;color:#9a3412;font-weight:600;margin-bottom:4px">View the live calendar &rarr;</div>
   <a href="https://agent44labs.com/nykitchen" style="display:inline-block;background:#ea580c;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;margin-top:4px">agent44labs.com/nykitchen</a>
-  <div style="font-size:12px;color:#7c2d12;margin-top:10px">
-    <strong>New:</strong> Filter by availability &mdash; tap <strong>Available</strong>, <strong>Sold Out</strong>, or <strong>No Longer Available</strong> chips at the top of the page to narrow the list. Filters work across all three views (<strong>List</strong>, <strong>Month</strong>, <strong>Week</strong>); tap <strong>All</strong> to reset.
-  </div>
+  <a href="https://testflight.apple.com/join/DumNGKtU" style="display:inline-block;background:#0a58ca;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;margin-top:4px;margin-left:6px">iOS App (TestFlight)</a>
 </div>
 
 <% [
+  ["Current Week", @current_week_events, "No classes this week."],
   ["Next Week",    @week1_events, "No classes next week."],
   ["In 2 Weeks",   @week2_events, "No classes in two weeks."],
-  ["In 3 Weeks",   @week3_events, "No classes in three weeks."],
-  ["In 4 Weeks",   @week4_events, "No classes in four weeks."]
+  ["In 3 Weeks",   @week3_events, "No classes in three weeks."]
 ].each do |title, events, empty_copy| %>
   <h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px"><%= title %> (<%= events.size %>)</h3>
   <% if events.empty? %>

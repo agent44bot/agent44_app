@@ -42,7 +42,7 @@ module Api
       # and each pair of transitions can be 60+ seconds apart. 300s catches
       # all duplicates inside a single deploy without silencing unrelated
       # later activity.
-      NOTIFY_DEBOUNCE_SECONDS = 300
+      NOTIFY_DEBOUNCE_SECONDS = 60
 
       def notify_status_change(agent, old_status)
         case agent.status
