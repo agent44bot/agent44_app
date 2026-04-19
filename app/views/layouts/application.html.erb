@@ -108,6 +108,7 @@
         <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% if authenticated? && Current.session.user.admin? %>
           <%= link_to "Crypto", crypto_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+          <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% end %>
         <%= link_to "AI News", news_articles_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <%= link_to posts_path, class: "flex items-center gap-1 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-orange-400" do %>
