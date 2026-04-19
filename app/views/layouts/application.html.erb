@@ -23,7 +23,7 @@
 
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
-  <script>
+  <%= javascript_tag nonce: true do %>
   // Fallback nav toggle — only fires if Stimulus hasn't connected yet.
   document.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-nav-target="menuBtn"]');
@@ -37,7 +37,7 @@
     var menu = document.querySelector('[data-nav-target="menu"]');
     if (menu) menu.classList.toggle('hidden');
   });
-  </script>
+  <% end %>
 </head>
 <body class="h-full flex flex-col bg-gray-950 text-white antialiased">
 

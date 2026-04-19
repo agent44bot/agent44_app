@@ -18,9 +18,12 @@ Rails.application.configure do
     policy.form_action :self
   end
 
-  # Nonce disabled — was generating empty nonces which blocked all scripts.
-  # config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
-  # config.content_security_policy_nonce_directives = %w[script-src]
+  # Generate a per-request nonce so inline scripts added by Rails helpers
+  # (importmap tags, csp_meta_tag, javascript_tag nonce: true) are allowed.
+  # Using SecureRandom instead of session.id — session.id can be nil before
+  # the session is loaded, which produced empty nonces and broke everything.
+  config.content_security_policy_nonce_generator = ->(request) { SecureRandom.base64(16) }
+  config.content_security_policy_nonce_directives = %w[script-src]
 
   # Report violations without enforcing initially — switch to enforcing after testing.
   # config.content_security_policy_report_only = true
