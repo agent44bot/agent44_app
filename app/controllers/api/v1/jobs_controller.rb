@@ -12,7 +12,7 @@ module Api
       rate_limit to: 50, within: 1.hour, by: -> { request.remote_ip }, only: :create
 
       def create
-        jobs_data = params[:jobs] || [params[:job]]
+        jobs_data = params[:jobs] || [ params[:job] ]
         result = JobImporter.new(jobs_data).call
         render json: result
       end

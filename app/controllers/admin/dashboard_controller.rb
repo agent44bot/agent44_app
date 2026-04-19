@@ -19,12 +19,12 @@ module Admin
                               .count,
           top_pages: scope.group(:path).order("count_all DESC").limit(10).count,
           device_breakdown: scope.group(:device_type).count,
-          top_referrers: scope.where.not(referrer: [nil, ""])
+          top_referrers: scope.where.not(referrer: [ nil, "" ])
                               .group(:referrer)
                               .order("count_all DESC")
                               .limit(10)
                               .count,
-          top_countries: scope.where.not(country: [nil, ""])
+          top_countries: scope.where.not(country: [ nil, "" ])
                               .group(:country)
                               .order("count_all DESC")
                               .limit(10)
@@ -39,11 +39,12 @@ module Admin
     private
 
     def page_views_for_period
-      scope = case params[:period]
-              when "week" then PageView.this_week
-              when "month" then PageView.this_month
-              else PageView.today
-              end
+      scope =
+        case params[:period]
+        when "week" then PageView.this_week
+        when "month" then PageView.this_month
+        else PageView.today
+        end
       exclude_admins(scope)
     end
 

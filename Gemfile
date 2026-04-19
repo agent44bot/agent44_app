@@ -82,4 +82,4 @@ group :test do
   gem "playwright-ruby-client"
 end
 
-gem "dockerfile-rails", ">= 1.7", :group => :development
+gem "dockerfile-rails", ">= 1.7", group: :development

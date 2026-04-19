@@ -5,8 +5,13 @@ class Api::V1::AgentsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::MethodCallAssertions
 
   setup do
-    @token = Rails.application.credentials.api_token || ENV["API_TOKEN"]
+    @token = "test-api-token-#{SecureRandom.hex(16)}"
+    ENV["API_TOKEN"] = @token
     @headers = { "Authorization" => "Bearer #{@token}", "Content-Type" => "application/json" }
+  end
+
+  teardown do
+    ENV.delete("API_TOKEN")
   end
 
   test "GET statuses returns all agents in order" do

@@ -109,7 +109,7 @@ module Api
       DEPLOY_PATTERNS = [
         /(?:knox|claude)[\s,]*deploy\s+(\S+)/i,
         /deploy\s+(?:the\s+)?(\S+?)(?:\s+app)?(?:\s+for\s+me)?$/i,
-        /(?:push|ship|release)\s+(\S+)\s+(?:to\s+)?prod/i,
+        /(?:push|ship|release)\s+(\S+)\s+(?:to\s+)?prod/i
       ].freeze
 
       APP_ALIASES = {
@@ -117,7 +117,7 @@ module Api
         "agent44_app" => "agent44-app",
         "agent44-app" => "agent44-app",
         "openclaw" => "agent44-app",
-        "app" => "agent44-app",
+        "app" => "agent44-app"
       }.freeze
 
       def deploy_request?(text)
@@ -210,7 +210,6 @@ module Api
           text.truncate(80)
         end
       end
-
     end
   end
 end
