@@ -184,5 +184,18 @@
     </div>
   </footer>
 
+<script>
+// Inline fallback for mobile nav toggle — works before Stimulus/importmap loads.
+// Fixes Capacitor WebView and iOS Safari not executing modules on first load.
+(function() {
+  var btn = document.querySelector('[data-nav-target="menuBtn"]');
+  var menu = document.querySelector('[data-nav-target="menu"]');
+  if (btn && menu) {
+    btn.addEventListener('click', function() {
+      menu.classList.toggle('hidden');
+    });
+  }
+})();
+</script>
 </body>
 </html>
