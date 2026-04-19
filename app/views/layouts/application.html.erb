@@ -23,6 +23,16 @@
 
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
+  <script>
+  // Event-delegated fallback for mobile nav and tabs — survives Turbo body swaps.
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-nav-target="menuBtn"]');
+    if (btn) {
+      var menu = document.querySelector('[data-nav-target="menu"]');
+      if (menu) menu.classList.toggle('hidden');
+    }
+  });
+  </script>
 </head>
 <body class="h-full flex flex-col bg-gray-950 text-white antialiased">
 
@@ -184,17 +194,5 @@
     </div>
   </footer>
 
-<%= javascript_tag nonce: true do %>
-// Inline fallback for mobile nav toggle — works before Stimulus/importmap loads.
-(function() {
-  var btn = document.querySelector('[data-nav-target="menuBtn"]');
-  var menu = document.querySelector('[data-nav-target="menu"]');
-  if (btn && menu) {
-    btn.addEventListener('click', function() {
-      menu.classList.toggle('hidden');
-    });
-  }
-})();
-<% end %>
 </body>
 </html>
