@@ -24,13 +24,18 @@
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
   <script>
-  // Event-delegated fallback for mobile nav and tabs — survives Turbo body swaps.
+  // Fallback nav toggle — only fires if Stimulus hasn't connected yet.
   document.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-nav-target="menuBtn"]');
-    if (btn) {
-      var menu = document.querySelector('[data-nav-target="menu"]');
-      if (menu) menu.classList.toggle('hidden');
+    if (!btn) return;
+    // Skip if Stimulus nav controller is connected (it handles its own click)
+    var navEl = document.querySelector('[data-controller*="nav"]');
+    if (navEl && navEl.dataset.controller && window.Stimulus) {
+      var app = window.Stimulus;
+      if (app.getControllerForElementAndIdentifier && app.getControllerForElementAndIdentifier(navEl, 'nav')) return;
     }
+    var menu = document.querySelector('[data-nav-target="menu"]');
+    if (menu) menu.classList.toggle('hidden');
   });
   </script>
 </head>
