@@ -76,6 +76,61 @@ class HamburgerMenuTest < ActiveSupport::TestCase
     end
   end
 
+  test "admin sign-in and navigate to NY Kitchen via hamburger menu" do
+    email = ENV["SMOKE_ADMIN_EMAIL"]
+    password = ENV["SMOKE_ADMIN_PASSWORD"]
+    skip "Set SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD to run" unless email && password
+
+    Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
+      headful = %w[1 true yes t y].include?(ENV["HEADFUL"].to_s.downcase)
+      iphone = pw.devices["iPhone 14"]
+
+      browser = pw.chromium.launch(headless: !headful)
+      context = browser.new_context(**iphone)
+      page = context.new_page
+
+      begin
+        # Sign in
+        page.goto("#{BASE_URL}/session/new", timeout: 15_000, waitUntil: "domcontentloaded")
+        page.fill('input[name="email_address"]', email)
+        page.fill('input[name="password"]', password)
+        page.click('button[type="submit"]')
+        page.wait_for_url("**/", timeout: 10_000)
+        screenshot(page, "nyk-signed-in")
+
+        # Open hamburger menu
+        hamburger = page.locator('[data-nav-target="menuBtn"]')
+        hamburger.click
+        page.wait_for_timeout(300)
+
+        # Verify NY Kitchen link is present (admin-only)
+        nyk_link = page.locator('[data-nav-target="menu"] a', hasText: "NY Kitchen")
+        assert nyk_link.visible?, "NY Kitchen link should be visible in mobile menu for admin"
+        screenshot(page, "nyk-menu-open")
+
+        # Click NY Kitchen
+        nyk_link.click
+        page.wait_for_url("**/nykitchen", timeout: 10_000)
+
+        # Verify NY Kitchen page rendered
+        heading = page.locator("h1", hasText: "NY Kitchen")
+        assert heading.visible?, "NY Kitchen page heading should be visible"
+
+        page_text = page.text_content("body")
+        assert page_text.include?("Cooking classes"), "Page should show cooking classes description"
+        screenshot(page, "nyk-page")
+
+        puts "✓ Admin sign-in → hamburger → NY Kitchen page works correctly"
+      rescue => e
+        screenshot(page, "nyk-failure")
+        raise
+      ensure
+        context.close
+        browser.close
+      end
+    end
+  end
+
   private
 
   def menu_hidden?(menu)
