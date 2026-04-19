@@ -77,7 +77,6 @@
         <!-- Mobile menu button -->
         <div class="flex items-center md:hidden">
           <button data-action="click->nav#toggle" data-nav-target="menuBtn"
-                  onclick="var m=document.querySelector('[data-nav-target=&quot;menu&quot;]');if(m)m.classList.toggle('hidden')"
                   class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-orange-400 hover:bg-gray-800 transition">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -185,9 +184,8 @@
     </div>
   </footer>
 
-<script>
+<%= javascript_tag nonce: true do %>
 // Inline fallback for mobile nav toggle — works before Stimulus/importmap loads.
-// Fixes Capacitor WebView and iOS Safari not executing modules on first load.
 (function() {
   var btn = document.querySelector('[data-nav-target="menuBtn"]');
   var menu = document.querySelector('[data-nav-target="menu"]');
@@ -197,6 +195,6 @@
     });
   }
 })();
-</script>
+<% end %>
 </body>
 </html>

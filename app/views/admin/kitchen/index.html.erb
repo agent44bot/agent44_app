@@ -526,9 +526,8 @@
   <% end %>
 </div>
 
-<script>
+<%= javascript_tag nonce: true do %>
 // Inline fallback for tab switching — works before Stimulus/importmap loads.
-// Fixes iOS Safari not running module JS on first load from iMessage links.
 (function() {
   var root = document.querySelector('[data-controller*="tabs"]');
   if (!root) return;
@@ -563,4 +562,4 @@
     });
   });
 })();
-</script>
+<% end %>
