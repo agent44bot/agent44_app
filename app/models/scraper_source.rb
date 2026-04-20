@@ -1,5 +1,5 @@
 class ScraperSource < ApplicationRecord
-  SCHEDULES = %w[every_6h twice_daily daily].freeze
+  SCHEDULES = %w[every_6h twice_daily daily every_3d].freeze
 
   attribute :search_terms_text, :string
   attribute :config_text, :string
@@ -20,12 +20,7 @@ class ScraperSource < ApplicationRecord
 
   # Maps slug prefixes to their parent scraper class.
   # e.g. google_jobs_crypto -> Scrapers::GoogleJobs
-  SLUG_ALIASES = {
-    "google_jobs_security" => "Scrapers::GoogleJobs",
-    "google_jobs_crypto"   => "Scrapers::GoogleJobs",
-    "google_jobs_devsecops" => "Scrapers::GoogleJobs",
-    "google_jobs_ai"       => "Scrapers::GoogleJobs"
-  }.freeze
+  SLUG_ALIASES = {}.freeze
 
   def scraper_class
     class_name = SLUG_ALIASES[slug] || "Scrapers::#{slug.camelize}"
@@ -43,6 +38,7 @@ class ScraperSource < ApplicationRecord
     when "every_6h" then "Every 6 hours"
     when "twice_daily" then "Twice daily"
     when "daily" then "Daily"
+    when "every_3d" then "Every 3 days"
     else schedule
     end
   end

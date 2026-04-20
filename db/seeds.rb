@@ -28,6 +28,3 @@ load Rails.root.join("db/seeds/scrapers.rb")
 
 # Seed agent profiles
 load Rails.root.join("db/seeds/agents.rb")
-
-# Seed security scraper sources
-load Rails.root.join("db/seeds/security_scrapers.rb")

@@ -46,11 +46,16 @@ scrapers = [
     name: "Google Jobs (SerpAPI)",
     slug: "google_jobs",
     api_key_name: "SERPAPI_KEY",
-    schedule: "daily",
+    schedule: "every_3d",
     search_terms: [
       "SDET software development engineer in test",
       "QA test automation engineer",
-      "senior quality engineer automation"
+      "senior quality engineer automation",
+      "security engineer application security",
+      "DevSecOps engineer",
+      "blockchain security engineer web3",
+      "AI agent engineer director",
+      "penetration tester pentesting"
     ]
   }
 ]

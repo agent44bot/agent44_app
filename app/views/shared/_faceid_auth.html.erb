@@ -1,0 +1,77 @@
+<%# Face ID authentication for Capacitor iOS app.
+    Saves credentials after successful email sign-in.
+    Shows "Sign in with Face ID" button when stored credentials exist. %>
+<%= javascript_tag nonce: true do %>
+(function() {
+  // Only run inside Capacitor
+  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+
+  var Bio = window.Capacitor.Plugins.BiometricAuth;
+  if (!Bio) return;
+
+  var CSRF = document.querySelector('meta[name="csrf-token"]');
+
+  Bio.isAvailable().then(function(result) {
+    if (!result.isAvailable) return;
+
+    var btns = document.querySelectorAll('[id="faceid-signin-btn"]');
+    if (!btns.length) return;
+
+    if (result.hasCredentials) {
+      btns.forEach(function(btn) {
+        btn.style.display = "flex";
+        btn.addEventListener("click", function() { doFaceIdSignIn(btn); });
+      });
+    }
+  }).catch(function(e) { console.log("BiometricAuth check failed:", e); });
+
+  function doFaceIdSignIn(btn) {
+    btn.disabled = true;
+    var origHTML = btn.innerHTML;
+    btn.textContent = "Authenticating...";
+
+    Bio.getCredentials().then(function(creds) {
+      var form = document.createElement("form");
+      form.method = "POST";
+      form.action = "<%= session_path %>";
+      form.style.display = "none";
+
+      var fields = {
+        "email_address": creds.username,
+        "password": creds.password,
+        "authenticity_token": CSRF ? CSRF.content : ""
+      };
+
+      for (var key in fields) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = fields[key];
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.submit();
+    }).catch(function() {
+      btn.disabled = false;
+      btn.innerHTML = origHTML;
+    });
+  }
+
+  // After successful email sign-in, save credentials for next time
+  var signInForm = document.querySelector('form[action="<%= session_path %>"]');
+  if (signInForm && !signInForm.dataset.faceidBound) {
+    signInForm.dataset.faceidBound = "true";
+    signInForm.addEventListener("submit", function() {
+      var email = signInForm.querySelector('input[name="email_address"]');
+      var pw = signInForm.querySelector('input[name="password"]');
+      if (email && pw && email.value && pw.value) {
+        var e = email.value, p = pw.value;
+        setTimeout(function() {
+          Bio.saveCredentials({ username: e, password: p }).catch(function() {});
+        }, 500);
+      }
+    });
+  }
+})();
+<% end %>
