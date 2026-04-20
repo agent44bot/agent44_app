@@ -1,7 +1,8 @@
 <%# Locals: agents (collection of Agent records) %>
 <% return if agents.blank? %>
 
-<% agent_json = agents.map { |a| { name: a.name, role: a.role, status: a.status, task: a.status_label } } %>
+<% strip_emoji = ->(s) { s.gsub(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{2702}-\u{27B0}\u{200D}\u{20E3}\u{E0020}-\u{E007F}\u2705\u274C\u{1F3FB}-\u{1F3FF}]/u, "").strip } %>
+<% agent_json = agents.map { |a| { name: strip_emoji.(a.name), role: a.role, status: a.status, task: a.status_label } } %>
 
 <div class="font-mono"
      data-controller="typewriter agent-status"
