@@ -20,6 +20,69 @@ class KitchenController < ApplicationController
     render json: { copied_at: log.copied_at, posted_at: log.posted_at }
   end
 
+  def enhance_post
+    user = Current.user
+    api_key = nil
+    remaining = nil
+
+    if user
+      if user.anthropic_api_key.present?
+        api_key = user.anthropic_api_key
+      elsif user.ai_enhances_used < 3
+        api_key = ENV["ANTHROPIC_API_KEY"]
+        remaining = 2 - user.ai_enhances_used
+      else
+        render json: { error: "free_limit_reached", remaining: 0 }, status: 422
+        return
+      end
+    else
+      # Anonymous: use provided key or reject
+      provided_key = params[:api_key]
+      if provided_key.present?
+        api_key = provided_key
+      else
+        render json: { error: "auth_required" }, status: 401
+        return
+      end
+    end
+
+    if api_key.blank?
+      render json: { error: "no_api_key", message: "No API key available" }, status: 422
+      return
+    end
+
+    client = Anthropic::Client.new(api_key: api_key)
+    prompt = build_enhance_prompt(params[:draft], params[:event_name], params[:event_description], params[:event_date], params[:event_price])
+
+    response = client.messages.create(
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      messages: [{ role: "user", content: prompt }]
+    )
+
+    enhanced = response.content.first.text
+
+    if user && user.anthropic_api_key.blank?
+      user.increment!(:ai_enhances_used)
+      remaining = [2 - user.ai_enhances_used, 0].max
+    end
+
+    render json: { enhanced: enhanced, remaining: remaining }
+  rescue Anthropic::Errors::APIError => e
+    render json: { error: "api_error", message: e.message }, status: 502
+  end
+
+  def save_api_key
+    user = Current.user
+    unless user
+      render json: { error: "auth_required" }, status: 401
+      return
+    end
+
+    user.update!(anthropic_api_key: params[:api_key])
+    render json: { saved: true }
+  end
+
   def trigger_smoke
     token = ENV["GITHUB_PAT"]
     if token.blank?
@@ -90,5 +153,33 @@ class KitchenController < ApplicationController
     end
 
     @smoke_runs = SmokeTestRun.for_name("nyk_calendar_nav").recent.with_attached_video.with_attached_thumbnail.limit(20)
+  end
+
+  def build_enhance_prompt(draft, name, description, date, price)
+    <<~PROMPT
+      You are a social media copywriter for New York Kitchen, a beloved culinary education center in Canandaigua in the Finger Lakes region of New York.
+
+      Rewrite this Instagram post draft to be more engaging, creative, and compelling. Make it feel personal and exciting — not corporate or generic.
+
+      Guidelines:
+      - Keep it concise (under 300 words)
+      - Use emojis naturally but don't overdo it
+      - Reference seasonal/timely food trends, holidays, or cultural moments if relevant to the class topic
+      - Add a creative hook or storytelling angle in the first line to stop the scroll
+      - Keep the essential details (date, time, price, location, booking link)
+      - Keep the hashtags at the end
+      - Maintain the urgency/availability messaging
+      - Write in a warm, inviting tone — like a friend telling you about something amazing
+
+      Class name: #{name}
+      Date: #{date}
+      Price: $#{price}
+      Description: #{description}
+
+      Original draft:
+      #{draft}
+
+      Return ONLY the enhanced post text, ready to paste into Instagram. No explanations or commentary.
+    PROMPT
   end
 end

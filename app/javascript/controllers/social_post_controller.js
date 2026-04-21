@@ -1,7 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "status", "postedStatus", "postedCheckbox"]
+  static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "enhanceBtn",
+                     "status", "postedStatus", "postedCheckbox",
+                     "apiKeyPrompt", "apiKeyInput"]
   static values = {
     name: String,
     date: String,
@@ -12,6 +14,8 @@ export default class extends Controller {
     url: String,
     description: String,
     logUrl: String,
+    enhanceUrl: String,
+    saveKeyUrl: String,
     posted: { type: Boolean, default: false }
   }
 
@@ -30,8 +34,8 @@ export default class extends Controller {
   }
 
   copy() {
-    const post = this.buildPost()
-    navigator.clipboard.writeText(post).then(() => {
+    const text = this.previewTextTarget.textContent
+    navigator.clipboard.writeText(text).then(() => {
       const btn = this.copyBtnTarget
       btn.textContent = "Copied!"
       btn.classList.remove("bg-blue-600", "hover:bg-blue-500")
@@ -42,20 +46,102 @@ export default class extends Controller {
         btn.classList.add("bg-blue-600", "hover:bg-blue-500")
       }, 2000)
 
-      // Update status text
       if (this.hasStatusTarget) {
         this.statusTarget.textContent = "Copied just now"
         this.statusTarget.className = "text-green-500"
-        // Insert middot before if empty
         const prev = this.statusTarget.previousElementSibling
-        if (prev && prev.innerHTML === "") {
-          prev.innerHTML = "&middot;"
-        }
+        if (prev && prev.innerHTML === "") prev.innerHTML = "&middot;"
       }
 
-      // Persist to server
       this.logAction("copy")
     })
+  }
+
+  async enhance() {
+    const btn = this.enhanceBtnTarget
+    const originalText = btn.textContent
+    btn.textContent = "Enhancing..."
+    btn.disabled = true
+    btn.classList.add("opacity-50")
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    const draft = this.previewTextTarget.textContent
+
+    try {
+      const resp = await fetch(this.enhanceUrlValue, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        body: JSON.stringify({
+          draft,
+          event_name: this.nameValue,
+          event_description: this.descriptionValue,
+          event_date: this.dateValue,
+          event_price: this.priceValue
+        })
+      })
+
+      const data = await resp.json()
+
+      if (resp.ok && data.enhanced) {
+        this.previewTextTarget.textContent = data.enhanced
+        btn.textContent = "✨ Enhanced!"
+        btn.classList.remove("opacity-50", "bg-purple-600", "hover:bg-purple-500")
+        btn.classList.add("bg-green-600")
+        setTimeout(() => {
+          btn.textContent = originalText
+          btn.classList.remove("bg-green-600")
+          btn.classList.add("bg-purple-600", "hover:bg-purple-500")
+          btn.disabled = false
+        }, 3000)
+
+        if (data.remaining !== null && data.remaining !== undefined) {
+          btn.title = `${data.remaining} free enhance${data.remaining === 1 ? "" : "s"} remaining`
+        }
+      } else if (data.error === "free_limit_reached") {
+        btn.textContent = originalText
+        btn.disabled = false
+        btn.classList.remove("opacity-50")
+        if (this.hasApiKeyPromptTarget) {
+          this.apiKeyPromptTarget.classList.remove("hidden")
+        }
+      } else {
+        btn.textContent = "Enhancement failed"
+        btn.classList.remove("opacity-50")
+        setTimeout(() => {
+          btn.textContent = originalText
+          btn.disabled = false
+        }, 2000)
+      }
+    } catch {
+      btn.textContent = "Enhancement failed"
+      btn.classList.remove("opacity-50")
+      setTimeout(() => {
+        btn.textContent = originalText
+        btn.disabled = false
+      }, 2000)
+    }
+  }
+
+  async saveApiKey() {
+    const key = this.apiKeyInputTarget.value.trim()
+    if (!key) return
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+
+    try {
+      const resp = await fetch(this.saveKeyUrlValue, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        body: JSON.stringify({ api_key: key })
+      })
+
+      if (resp.ok) {
+        this.apiKeyPromptTarget.classList.add("hidden")
+        this.enhance()
+      }
+    } catch {
+      // silently fail
+    }
   }
 
   markPosted() {
@@ -67,9 +153,7 @@ export default class extends Controller {
         this.postedStatusTarget.textContent = "Posted just now"
         this.postedStatusTarget.className = "text-purple-400"
         const prev = this.postedStatusTarget.previousElementSibling
-        if (prev && prev.innerHTML === "") {
-          prev.innerHTML = "&middot;"
-        }
+        if (prev && prev.innerHTML === "") prev.innerHTML = "&middot;"
       } else {
         this.postedStatusTarget.textContent = ""
         const prev = this.postedStatusTarget.previousElementSibling
@@ -87,10 +171,7 @@ export default class extends Controller {
 
     fetch(this.logUrlValue, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken
-      },
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
       body: JSON.stringify(body)
     })
   }
