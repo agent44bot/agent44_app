@@ -20,11 +20,12 @@ class SystemTestCase < ActiveSupport::TestCase
   TEST_DB = Rails.root.join("storage/test.sqlite3")
 
   class << self
-    attr_accessor :server_pid, :playwright_exec, :browser
+    attr_accessor :server_pid, :playwright_exec, :browser, :booted
   end
 
   setup do
-    self.class.boot! unless self.class.server_pid
+    self.class.boot! unless self.class.booted
+    skip "Playwright not available (install with: npx playwright install chromium)" unless self.class.browser
     @page = self.class.browser.new_page
   end
 
@@ -33,6 +34,8 @@ class SystemTestCase < ActiveSupport::TestCase
   end
 
   def self.boot!
+    self.booted = true
+
     # Reset test DB from production seed before booting server
     if SEED_DB.exist?
       FileUtils.cp(SEED_DB, TEST_DB)
@@ -53,6 +56,9 @@ class SystemTestCase < ActiveSupport::TestCase
     self.playwright_exec = Playwright.create(playwright_cli_executable_path: "npx playwright")
     headless = ENV["HEADED"] != "true"
     self.browser = playwright_exec.playwright.chromium.launch(headless: headless, slowMo: headless ? 0 : 300)
+  rescue StandardError => e
+    warn "System tests will be skipped: #{e.message}"
+    self.browser = nil
   end
 
   def self.shutdown
