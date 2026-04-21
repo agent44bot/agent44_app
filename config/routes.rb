@@ -49,7 +49,11 @@ Rails.application.routes.draw do
           put :video
         end
       end
-      resources :kitchen_snapshots, only: [ :create ]
+      resources :kitchen_snapshots, only: [ :create ] do
+        collection do
+          get :upcoming
+        end
+      end
     end
   end
 
