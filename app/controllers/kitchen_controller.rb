@@ -14,6 +14,8 @@ class KitchenController < ApplicationController
       log.copied_at ||= Time.current
     elsif params[:action_type] == "posted"
       log.posted_at = params[:posted] == "true" ? (log.posted_at || Time.current) : nil
+    elsif params[:action_type] == "save_text"
+      log.enhanced_text = params[:text]
     end
 
     log.save!
@@ -37,6 +39,11 @@ class KitchenController < ApplicationController
     )
 
     enhanced = response.content.first.text
+
+    log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
+    log.enhanced_text = enhanced
+    log.save!
+
     render json: { enhanced: enhanced }
   rescue Anthropic::Errors::APIError => e
     render json: { error: "api_error", message: e.message }, status: 502

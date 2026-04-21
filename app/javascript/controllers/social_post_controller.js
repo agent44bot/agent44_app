@@ -14,6 +14,7 @@ export default class extends Controller {
     description: String,
     logUrl: String,
     enhanceUrl: String,
+    enhancedText: { type: String, default: "" },
     posted: { type: Boolean, default: false }
   }
 
@@ -22,7 +23,7 @@ export default class extends Controller {
     const isHidden = panel.classList.contains("hidden")
 
     if (isHidden) {
-      this.previewTextTarget.textContent = this.buildPost()
+      this.previewTextTarget.textContent = this.enhancedTextValue || this.buildPost()
       panel.classList.remove("hidden")
       this.toggleBtnTarget.textContent = "Hide preview"
     } else {
@@ -52,6 +53,10 @@ export default class extends Controller {
       }
 
       this.logAction("copy")
+
+      // Save the current text (may include manual edits) to DB
+      this.enhancedTextValue = text
+      this.saveText(text)
     })
   }
 
@@ -71,6 +76,7 @@ export default class extends Controller {
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({
           draft,
+          event_url: this.urlValue,
           event_name: this.nameValue,
           event_description: this.descriptionValue,
           event_date: this.dateValue,
@@ -81,6 +87,7 @@ export default class extends Controller {
       const data = await resp.json()
 
       if (resp.ok && data.enhanced) {
+        this.enhancedTextValue = data.enhanced
         this.previewTextTarget.textContent = data.enhanced
         btn.textContent = "✨ Enhanced!"
         btn.classList.remove("opacity-50", "bg-purple-600", "hover:bg-purple-500")
@@ -127,6 +134,15 @@ export default class extends Controller {
     }
 
     this.logAction("posted", checked)
+  }
+
+  saveText(text) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    fetch(this.logUrlValue, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+      body: JSON.stringify({ event_url: this.urlValue, action_type: "save_text", text })
+    })
   }
 
   logAction(actionType, posted) {

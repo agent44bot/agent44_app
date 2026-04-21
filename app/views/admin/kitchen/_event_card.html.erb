@@ -8,10 +8,11 @@
      data-social-post-spots-value="<%= event.spots_left %>"
      data-social-post-capacity-value="<%= event.capacity %>"
      data-social-post-url-value="<%= event.url %>"
-     data-social-post-description-value="<%= truncate(event.description.to_s.gsub(/\n/, ' ').strip, length: 200, separator: '. ', omission: '.') %>"
+     data-social-post-description-value="<%= truncate(strip_tags(event.description.to_s).gsub(/\n/, ' ').strip, length: 200, separator: '. ', omission: '.') %>"
      data-social-post-log-url-value="/nykitchen/social_post_log"
      data-social-post-enhance-url-value="/nykitchen/enhance_post"
      data-social-post-posted-value="<%= post_log&.posted? ? 'true' : 'false' %>"
+     data-social-post-enhanced-text-value="<%= post_log&.enhanced_text %>"
      class="bg-gray-900 rounded-lg p-4">
   <div class="flex items-start justify-between gap-4">
     <div class="min-w-0">
@@ -82,8 +83,8 @@
   <% unless event.sold_out? %>
   <div data-social-post-target="preview" class="hidden mt-3">
     <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <pre data-social-post-target="previewText"
-           class="text-sm text-gray-300 whitespace-pre-wrap font-sans leading-relaxed"></pre>
+      <pre data-social-post-target="previewText" contenteditable="true"
+           class="text-sm text-gray-300 whitespace-pre-wrap font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-purple-500 rounded p-1 cursor-text"></pre>
       <div class="flex items-center gap-3 mt-3 pt-3 border-t border-gray-700 flex-wrap">
         <button data-action="social-post#copy" data-social-post-target="copyBtn"
                 class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer">
