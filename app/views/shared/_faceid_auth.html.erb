@@ -1,6 +1,7 @@
 <%# Face ID authentication for Capacitor iOS app.
-    Saves credentials after successful email sign-in.
-    Shows "Sign in with Face ID" button when stored credentials exist. %>
+    Saves credentials after successful email sign-in via Turbo.
+    Shows "Sign in with Face ID" button when biometrics/passcode available.
+    Works in simulator via passcode fallback. %>
 <%= javascript_tag nonce: true do %>
 (function() {
   // Only run inside Capacitor
@@ -18,9 +19,30 @@
     if (!btns.length) return;
 
     if (result.hasCredentials) {
+      // Stored credentials — show button, tap triggers Face ID and auto sign-in
       btns.forEach(function(btn) {
         btn.style.display = "flex";
         btn.addEventListener("click", function() { doFaceIdSignIn(btn); });
+      });
+    } else {
+      // No stored credentials yet — show button on home page only (links to sign-in)
+      // On the sign-in page itself, hide it (user should sign in with email first)
+      var isSignInPage = window.location.pathname.indexOf("session") !== -1;
+      if (!isSignInPage) {
+        btns.forEach(function(btn) {
+          btn.style.display = "flex";
+          btn.addEventListener("click", function() {
+            window.location.href = "<%= new_session_path %>";
+          });
+        });
+      }
+    }
+
+    // Update button label based on biometry type
+    if (!result.hasBiometrics) {
+      btns.forEach(function(btn) {
+        var label = btn.querySelector(".faceid-label");
+        if (label) label.textContent = "Sign in with Passcode";
       });
     }
   }).catch(function(e) { console.log("BiometricAuth check failed:", e); });
@@ -58,20 +80,47 @@
     });
   }
 
-  // After successful email sign-in, save credentials for next time
+  // Save credentials after successful email sign-in (Turbo submit)
+  // Uses turbo:submit-end so credentials are saved AFTER the server responds,
+  // before the page navigates away
   var signInForm = document.querySelector('form[action="<%= session_path %>"]');
   if (signInForm && !signInForm.dataset.faceidBound) {
     signInForm.dataset.faceidBound = "true";
+
+    signInForm.addEventListener("turbo:submit-end", function(event) {
+      // Only save on successful sign-in (redirect = success)
+      if (!event.detail || !event.detail.success) return;
+
+      var email = signInForm.querySelector('input[name="email_address"]');
+      var pw = signInForm.querySelector('input[name="password"]');
+      if (email && pw && email.value && pw.value) {
+        Bio.saveCredentials({ username: email.value, password: pw.value }).catch(function() {});
+      }
+    });
+
+    // Fallback: also capture on regular submit in case Turbo isn't handling it
     signInForm.addEventListener("submit", function() {
       var email = signInForm.querySelector('input[name="email_address"]');
       var pw = signInForm.querySelector('input[name="password"]');
       if (email && pw && email.value && pw.value) {
-        var e = email.value, p = pw.value;
-        setTimeout(function() {
-          Bio.saveCredentials({ username: e, password: p }).catch(function() {});
-        }, 500);
+        // Store in sessionStorage as backup — will be saved on next page load
+        try {
+          sessionStorage.setItem("_faceid_pending_email", email.value);
+          sessionStorage.setItem("_faceid_pending_pw", pw.value);
+        } catch(e) {}
       }
     });
   }
+
+  // Check for pending credentials from a previous sign-in
+  try {
+    var pendingEmail = sessionStorage.getItem("_faceid_pending_email");
+    var pendingPw = sessionStorage.getItem("_faceid_pending_pw");
+    if (pendingEmail && pendingPw) {
+      sessionStorage.removeItem("_faceid_pending_email");
+      sessionStorage.removeItem("_faceid_pending_pw");
+      Bio.saveCredentials({ username: pendingEmail, password: pendingPw }).catch(function() {});
+    }
+  } catch(e) {}
 })();
 <% end %>

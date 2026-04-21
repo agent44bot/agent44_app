@@ -42,13 +42,13 @@
               Sign In
             </button>
 
-            <!-- Face ID button (shown only in Capacitor iOS app with saved credentials) -->
+            <!-- Face ID button (shown in Capacitor iOS app when biometrics/passcode available) -->
             <button type="button" id="faceid-signin-btn" style="display:none"
                     class="w-full px-4 py-2.5 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-700 transition shadow-sm border border-gray-700 flex items-center justify-center gap-2">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M3 17v2a2 2 0 002 2h2M17 21h2a2 2 0 002-2v-2M8 11v1M16 11v1M9 16c.5.5 1.5 1 3 1s2.5-.5 3-1M12 8v5"/>
               </svg>
-              Sign in with Face ID
+              <span class="faceid-label">Sign in with Face ID</span>
             </button>
 
             <div class="text-center space-y-2">

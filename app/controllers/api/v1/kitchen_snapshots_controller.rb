@@ -7,6 +7,40 @@ module Api
       allow_unauthenticated_access
       before_action :authenticate_api_token
 
+      # GET /api/v1/kitchen_snapshots/upcoming
+      # Returns upcoming events from the latest snapshot that still have seats.
+      def upcoming
+        snapshot = KitchenSnapshot.order(taken_on: :desc).first
+        unless snapshot
+          render json: { events: [], message: "No snapshots yet" }
+          return
+        end
+
+        events = snapshot.kitchen_events
+          .upcoming
+          .where.not("LOWER(availability) LIKE ? OR LOWER(availability) LIKE ?", "%soldout%", "%closed%")
+          .order(:start_at)
+
+        render json: {
+          snapshot_id: snapshot.id,
+          taken_on: snapshot.taken_on,
+          events: events.map { |e|
+            {
+              name: e.name,
+              start_at: e.start_at,
+              end_at: e.end_at,
+              price: e.price,
+              venue: e.venue,
+              description: e.description,
+              url: e.url,
+              availability: e.availability,
+              spots_left: e.last_known_spots_left || e.spots_left,
+              capacity: e.last_known_capacity || e.capacity
+            }
+          }
+        }
+      end
+
       # POST /api/v1/kitchen_snapshots
       # Body: {
       #   taken_on: "2026-04-17",   # optional, defaults to today
