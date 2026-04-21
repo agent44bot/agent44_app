@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Reset the test database from the production seed snapshot.
+# Usage: bin/reset-test-db
+#
+# To refresh the seed from production:
+#   fly ssh console -C "sqlite3 /data/production.sqlite3 .dump" > /tmp/prod.sql
+#   rm -f storage/test_seed.sqlite3
+#   sqlite3 storage/test_seed.sqlite3 < /tmp/prod.sql
+set -e
+
+SEED="storage/test_seed.sqlite3"
+TEST_DB="storage/test.sqlite3"
+
+if [ ! -f "$SEED" ]; then
+  echo "Error: $SEED not found. Pull it from production first."
+  exit 1
+fi
+
+echo "Copying seed → test DB..."
+cp "$SEED" "$TEST_DB"
+
+echo "Running migrations..."
+RAILS_ENV=test bin/rails db:migrate > /dev/null 2>&1
+
+echo "Done. Test DB ready with $(sqlite3 "$TEST_DB" 'SELECT count(*) FROM kitchen_events;') kitchen events."
