@@ -24,7 +24,6 @@ Rails.application.routes.draw do
   get "nykitchen", to: "kitchen#index"
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
-  post "nykitchen/save_api_key", to: "kitchen#save_api_key"
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [:index], path: "news"

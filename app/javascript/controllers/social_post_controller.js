@@ -2,8 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "enhanceBtn",
-                     "status", "postedStatus", "postedCheckbox",
-                     "apiKeyPrompt", "apiKeyInput"]
+                     "status", "postedStatus", "postedCheckbox"]
   static values = {
     name: String,
     date: String,
@@ -15,7 +14,6 @@ export default class extends Controller {
     description: String,
     logUrl: String,
     enhanceUrl: String,
-    saveKeyUrl: String,
     posted: { type: Boolean, default: false }
   }
 
@@ -93,17 +91,6 @@ export default class extends Controller {
           btn.classList.add("bg-purple-600", "hover:bg-purple-500")
           btn.disabled = false
         }, 3000)
-
-        if (data.remaining !== null && data.remaining !== undefined) {
-          btn.title = `${data.remaining} free enhance${data.remaining === 1 ? "" : "s"} remaining`
-        }
-      } else if (data.error === "free_limit_reached") {
-        btn.textContent = originalText
-        btn.disabled = false
-        btn.classList.remove("opacity-50")
-        if (this.hasApiKeyPromptTarget) {
-          this.apiKeyPromptTarget.classList.remove("hidden")
-        }
       } else {
         btn.textContent = "Enhancement failed"
         btn.classList.remove("opacity-50")
@@ -119,28 +106,6 @@ export default class extends Controller {
         btn.textContent = originalText
         btn.disabled = false
       }, 2000)
-    }
-  }
-
-  async saveApiKey() {
-    const key = this.apiKeyInputTarget.value.trim()
-    if (!key) return
-
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-
-    try {
-      const resp = await fetch(this.saveKeyUrlValue, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-        body: JSON.stringify({ api_key: key })
-      })
-
-      if (resp.ok) {
-        this.apiKeyPromptTarget.classList.add("hidden")
-        this.enhance()
-      }
-    } catch {
-      // silently fail
     }
   }
 
