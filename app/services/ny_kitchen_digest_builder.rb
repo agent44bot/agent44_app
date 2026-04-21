@@ -34,7 +34,7 @@ class NyKitchenDigestBuilder
       removed: removed,
       price_changes: price_changes,
       total_upcoming: upcoming.size,
-      total_sold_out: sold_out_now.size,
+      total_sold_out: sold_out_now.size
     }
   end
 
@@ -59,7 +59,7 @@ class NyKitchenDigestBuilder
         availability: e.availability,
         price: e.price,
         last_known_spots_left: e.last_known_spots_left,
-        last_known_capacity: e.last_known_capacity,
+        last_known_capacity: e.last_known_capacity
       }
     end
   end

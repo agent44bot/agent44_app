@@ -25,10 +25,10 @@ class CryptoController < ApplicationController
 
     # Current tab's jobs
     @jobs = case @tab
-            when "crypto"   then base.crypto_trustless
-            when "secfirst" then base.security_first
-            else                 base.security_engineer
-            end.recent.includes(:job_sources).limit(50)
+    when "crypto"   then base.crypto_trustless
+    when "secfirst" then base.security_first
+    else                 base.security_engineer
+    end.recent.includes(:job_sources).limit(50)
 
     # Trend data (cached)
     end_date = Time.current.to_date
@@ -50,21 +50,21 @@ class CryptoController < ApplicationController
     # Skills per tab (cached)
     @top_skills = Rails.cache.fetch("crypto/skills/#{@tab}/#{@range}/#{Date.current}", expires_in: 1.hour) do
       scope = case @tab
-              when "crypto"   then base.crypto_trustless
-              when "secfirst" then base.security_first
-              else                 base.security_engineer
-              end
+      when "crypto"   then base.crypto_trustless
+      when "secfirst" then base.security_first
+      else                 base.security_engineer
+      end
       SecuritySkillExtractor.top_skills(scope, limit: 10)
     end
 
     # Salary stats
     @salary = Rails.cache.fetch("crypto/salary/#{@tab}/#{@range}/#{Date.current}", expires_in: 1.hour) do
       scope = case @tab
-              when "crypto"   then base.crypto_trustless
-              when "secfirst" then base.security_first
-              else                 base.security_engineer
-              end
-      values = scope.where.not(salary: [nil, ""]).pluck(:salary).filter_map { |s| Job.parse_salary_midpoint(s) }.sort
+      when "crypto"   then base.crypto_trustless
+      when "secfirst" then base.security_first
+      else                 base.security_engineer
+      end
+      values = scope.where.not(salary: [ nil, "" ]).pluck(:salary).filter_map { |s| Job.parse_salary_midpoint(s) }.sort
       n = values.size
       pct = ->(p) { n.zero? ? nil : values[((n - 1) * p).round] }
       { total: scope.count, with_salary: n, median: pct.call(0.5), p25: pct.call(0.25), p75: pct.call(0.75) }

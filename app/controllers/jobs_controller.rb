@@ -1,5 +1,5 @@
 class JobsController < ApplicationController
-  allow_unauthenticated_access only: [:index, :globe, :today, :show]
+  allow_unauthenticated_access only: [ :index, :globe, :today, :show ]
 
   FREE_JOB_VIEWS = 5
 
@@ -13,10 +13,10 @@ class JobsController < ApplicationController
     @tab = params[:tab].presence || "traditional"
     base = Job.active.where(posted_at: @range_days.days.ago..Time.current)
     base = case @tab
-           when "ai"       then base.ai_augmented_only
-           when "director" then base.agent_director
-           else                 base.traditional
-           end
+    when "ai"       then base.ai_augmented_only
+    when "director" then base.agent_director
+    else                 base.traditional
+    end
     base = base.search(params[:q]) if params[:q].present?
     base = base.by_skill(params[:skill]) if params[:skill].present?
 
@@ -105,10 +105,10 @@ class JobsController < ApplicationController
     @top_skills = Rails.cache.fetch("jobs/top_skills/#{@tab}/#{@range}/#{Date.current}", expires_in: 1.hour) do
       skills_scope = Job.active.where(posted_at: @range_days.days.ago..Time.current)
       skills_scope = case @tab
-                     when "ai"       then skills_scope.ai_augmented_only
-                     when "director" then skills_scope.agent_director
-                     else                 skills_scope.traditional
-                     end
+      when "ai"       then skills_scope.ai_augmented_only
+      when "director" then skills_scope.agent_director
+      else                 skills_scope.traditional
+      end
       SkillExtractor.top_skills(skills_scope, limit: 10)
     end
     @ai_demand_meter = Job.ai_demand_meter(window_days: @range_days)
@@ -139,7 +139,7 @@ class JobsController < ApplicationController
 
         if viewed.length > FREE_JOB_VIEWS
           redirect_to soft_gate_path(next: request.fullpath, source: "job_view_limit")
-          return
+          nil
         end
       end
     end

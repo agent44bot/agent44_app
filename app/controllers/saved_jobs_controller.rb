@@ -1,5 +1,5 @@
 class SavedJobsController < ApplicationController
-  before_action :set_job, only: [:create, :destroy, :toggle_applied]
+  before_action :set_job, only: [ :create, :destroy, :toggle_applied ]
 
   def index
     @saved_jobs = Current.session.user.saved_job_listings.active.order(posted_at: :desc)

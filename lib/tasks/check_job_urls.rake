@@ -4,7 +4,7 @@ require "uri"
 namespace :jobs do
   desc "Deactivate jobs with dead URLs (404/410/unreachable)"
   task check_urls: :environment do
-    jobs = Job.active.where.not(url: [nil, ""])
+    jobs = Job.active.where.not(url: [ nil, "" ])
     total = jobs.count
     dead = 0
     alive = 0

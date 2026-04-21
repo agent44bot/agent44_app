@@ -8,11 +8,11 @@ namespace :jobs do
     skip_patterns = /\b(remote|anywhere|distributed|see listing|united states)\b/i
 
     jobs = Job.where(latitude: nil)
-              .where.not(location: [nil, ""])
+              .where.not(location: [ nil, "" ])
               .where.not("location REGEXP ?", skip_patterns.source)
 
     # SQLite doesn't support REGEXP by default, filter in Ruby
-    jobs = Job.where(latitude: nil).where.not(location: [nil, ""])
+    jobs = Job.where(latitude: nil).where.not(location: [ nil, "" ])
     jobs = jobs.to_a.reject { |j| j.location.match?(skip_patterns) }
 
     puts "Geocoding #{jobs.size} jobs..."
@@ -48,11 +48,11 @@ namespace :jobs do
           lat = results[0]["lat"].to_f
           lng = results[0]["lon"].to_f
           job.update_columns(latitude: lat, longitude: lng)
-          cache[location] = [lat, lng]
+          cache[location] = [ lat, lng ]
           geocoded += 1
           puts "  [#{i + 1}/#{jobs.size}] #{location} => #{lat}, #{lng}"
         else
-          cache[location] = [nil, nil]
+          cache[location] = [ nil, nil ]
           failed += 1
           puts "  [#{i + 1}/#{jobs.size}] #{location} => NOT FOUND"
         end

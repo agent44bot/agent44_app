@@ -208,7 +208,7 @@ namespace :newsletter do
         request.body = {
           model: "claude-haiku-4-5-20251001",
           max_tokens: 1024,
-          messages: [{ role: "user", content: prompt }]
+          messages: [ { role: "user", content: prompt } ]
         }.to_json
 
         response = http.request(request)

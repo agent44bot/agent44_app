@@ -35,7 +35,7 @@ class KitchenController < ApplicationController
     response = client.messages.create(
       model: "claude-haiku-4-5-20251001",
       max_tokens: 600,
-      messages: [{ role: "user", content: prompt }]
+      messages: [ { role: "user", content: prompt } ]
     )
 
     enhanced = response.content.first.text

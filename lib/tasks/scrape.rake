@@ -110,7 +110,7 @@ namespace :jobs do
   end
 
   desc "Run a specific scraper by slug (e.g. rake jobs:scrape[remoteok])"
-  task :scrape, [:slug] => :environment do |_t, args|
+  task :scrape, [ :slug ] => :environment do |_t, args|
     source = ScraperSource.find_by!(slug: args[:slug])
     puts "Running #{source.name}..."
     result = source.run!

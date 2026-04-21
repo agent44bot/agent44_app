@@ -154,7 +154,7 @@ class NyKitchenScraper
       availability: (offers["availability"] || "").to_s.sub("https://schema.org/", "").sub("http://schema.org/", ""),
       venue:        decode.call(venue),
       instructor:   decode.call(instructor),
-      description:  decode.call(raw["description"]),
+      description:  decode.call(raw["description"])
     }
   end
 end
