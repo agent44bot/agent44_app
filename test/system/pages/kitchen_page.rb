@@ -10,11 +10,11 @@ class KitchenPage < BasePage
   end
 
   def visible_cards
-    page.query_selector_all("[data-kitchen-filter-target='card']:not([style*='display: none'])")
+    page.query_selector_all("[data-kitchen-filter-target='card']:not(.hidden)")
   end
 
   def filter_chip(status)
-    page.query_selector("[data-filter='#{status}']")
+    page.query_selector("[data-filter-status='#{status}']")
   end
 
   def preview_button

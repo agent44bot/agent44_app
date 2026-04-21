@@ -19,14 +19,14 @@ class NykitchenSystemTest < SystemTestCase
     @kitchen.visit
 
     chip = @kitchen.filter_chip("instock")
-    if chip
-      chip.click
-      sleep 0.3
+    assert chip, "Expected 'Available' filter chip on the page"
 
-      @kitchen.visible_cards.each do |card|
-        assert_equal "instock", card.get_attribute("data-status"),
-          "Expected only 'instock' cards after filtering"
-      end
+    chip.click
+    sleep 0.3
+
+    @kitchen.visible_cards.each do |card|
+      assert_equal "instock", card.get_attribute("data-status"),
+        "Expected only 'instock' cards after filtering"
     end
   end
 
