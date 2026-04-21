@@ -84,11 +84,16 @@
   <div data-social-post-target="preview" class="hidden mt-3">
     <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
       <pre data-social-post-target="previewText" contenteditable="true"
+           data-action="input->social-post#markDirty"
            class="text-sm text-gray-300 whitespace-pre-wrap font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-purple-500 rounded p-1 cursor-text"></pre>
       <div class="flex items-center gap-3 mt-3 pt-3 border-t border-gray-700 flex-wrap">
         <button data-action="social-post#copy" data-social-post-target="copyBtn"
                 class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer">
           Copy to clipboard
+        </button>
+        <button data-action="social-post#saveDraft" data-social-post-target="saveBtn"
+                class="hidden px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-500 text-white text-xs font-semibold transition cursor-pointer">
+          Save draft
         </button>
         <button data-action="social-post#enhance" data-social-post-target="enhanceBtn"
                 class="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition cursor-pointer">

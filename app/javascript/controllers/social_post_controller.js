@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "enhanceBtn",
+  static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "saveBtn", "enhanceBtn",
                      "status", "postedStatus", "postedCheckbox"]
   static values = {
     name: String,
@@ -58,6 +58,29 @@ export default class extends Controller {
       this.enhancedTextValue = text
       this.saveText(text)
     })
+  }
+
+  markDirty() {
+    if (this.hasSaveBtnTarget) {
+      this.saveBtnTarget.classList.remove("hidden")
+    }
+  }
+
+  saveDraft() {
+    const text = this.previewTextTarget.textContent
+    this.enhancedTextValue = text
+    this.saveText(text)
+
+    const btn = this.saveBtnTarget
+    btn.textContent = "Saved!"
+    btn.classList.remove("bg-green-600", "hover:bg-green-500")
+    btn.classList.add("bg-gray-600")
+    setTimeout(() => {
+      btn.textContent = "Save draft"
+      btn.classList.remove("bg-gray-600")
+      btn.classList.add("bg-green-600", "hover:bg-green-500")
+      btn.classList.add("hidden")
+    }, 2000)
   }
 
   async enhance() {
