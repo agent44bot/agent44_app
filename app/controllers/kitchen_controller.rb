@@ -37,6 +37,11 @@ class KitchenController < ApplicationController
     )
 
     enhanced = response.content.first.text
+
+    log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
+    log.enhanced_text = enhanced
+    log.save!
+
     render json: { enhanced: enhanced }
   rescue Anthropic::Errors::APIError => e
     render json: { error: "api_error", message: e.message }, status: 502
