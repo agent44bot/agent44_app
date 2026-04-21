@@ -14,6 +14,8 @@ class KitchenController < ApplicationController
       log.copied_at ||= Time.current
     elsif params[:action_type] == "posted"
       log.posted_at = params[:posted] == "true" ? (log.posted_at || Time.current) : nil
+    elsif params[:action_type] == "save_text"
+      log.enhanced_text = params[:text]
     end
 
     log.save!

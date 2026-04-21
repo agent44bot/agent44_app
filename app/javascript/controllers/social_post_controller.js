@@ -53,6 +53,10 @@ export default class extends Controller {
       }
 
       this.logAction("copy")
+
+      // Save the current text (may include manual edits) to DB
+      this.enhancedTextValue = text
+      this.saveText(text)
     })
   }
 
@@ -130,6 +134,15 @@ export default class extends Controller {
     }
 
     this.logAction("posted", checked)
+  }
+
+  saveText(text) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    fetch(this.logUrlValue, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+      body: JSON.stringify({ event_url: this.urlValue, action_type: "save_text", text })
+    })
   }
 
   logAction(actionType, posted) {
