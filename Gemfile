@@ -26,6 +26,9 @@ gem "bcrypt", "~> 3.1.7"
 gem "bip-schnorr", "~> 0.7", require: "schnorr"
 gem "bech32", "~> 1.5"
 
+# Claude API for AI-enhanced social media posts
+gem "anthropic"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 

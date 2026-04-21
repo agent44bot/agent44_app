@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_20_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_144810) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -287,6 +287,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_20_120000) do
     t.index ["started_at"], name: "index_smoke_test_runs_on_started_at"
   end
 
+  create_table "social_post_logs", force: :cascade do |t|
+    t.datetime "copied_at"
+    t.datetime "created_at", null: false
+    t.string "event_url"
+    t.datetime "posted_at"
+    t.datetime "updated_at", null: false
+    t.index ["event_url"], name: "index_social_post_logs_on_event_url", unique: true
+  end
+
   create_table "subscribers", force: :cascade do |t|
     t.boolean "confirmed", default: false
     t.datetime "created_at", null: false
@@ -298,6 +307,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_20_120000) do
   end
 
   create_table "users", force: :cascade do |t|
+    t.integer "ai_enhances_used", default: 0, null: false
+    t.string "anthropic_api_key"
     t.datetime "created_at", null: false
     t.string "display_name"
     t.string "email_address"

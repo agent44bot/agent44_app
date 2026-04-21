@@ -9,10 +9,10 @@ module Admin
       Rails.cache.delete("smoke_runs/recent")
       respond_to do |format|
         format.turbo_stream { render turbo_stream: turbo_stream.remove(run) }
-        format.html { redirect_to admin_kitchen_path, notice: "Smoke test run removed." }
+        format.html { redirect_to nykitchen_path, notice: "Smoke test run removed." }
       end
     rescue ActiveRecord::RecordNotFound
-      redirect_to admin_kitchen_path, alert: "Smoke test run not found."
+      redirect_to nykitchen_path, alert: "Smoke test run not found."
     end
   end
 end
