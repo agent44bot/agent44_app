@@ -8,7 +8,7 @@ module Trackable
   private
 
   def track_page_view
-    return unless request.get?
+    return unless request.get? || request.method == "HEAD"
     return if controller_path.start_with?("admin", "api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
     return if Current.session&.user&.admin?

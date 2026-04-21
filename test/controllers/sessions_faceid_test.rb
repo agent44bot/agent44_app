@@ -10,7 +10,7 @@ class SessionsFaceIdTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "button#faceid-signin-btn"
     # Button should be hidden by default (only shown by JS in Capacitor)
-    assert_match 'display:none', response.body
+    assert_match "display:none", response.body
   end
 
   test "sign-in page includes faceid_auth JS partial" do

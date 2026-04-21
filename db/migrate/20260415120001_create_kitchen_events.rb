@@ -16,6 +16,6 @@ class CreateKitchenEvents < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :kitchen_events, [:kitchen_snapshot_id, :url], unique: true
+    add_index :kitchen_events, [ :kitchen_snapshot_id, :url ], unique: true
   end
 end

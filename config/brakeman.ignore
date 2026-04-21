@@ -1,0 +1,42 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "0185367cf1c2761296514072aba96b431db995cfd905f9c681456bfb53077b6c",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "65d18851000c8efceded047bf01a2e49aaac827b05ebabf07aad605e9d0e32af",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "6969a3f9f7c3f5366110fc1983782f7cb96efe53a25951ed0623a5601a2cfc1a",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "739308af1453550678dbf047d54855c62ad662ed4392149972d97da522b0096c",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "a62a0f81d8ecdf0c3c99df9946e2c43b37c5e73651ddd344afe16fc586b49af6",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "b40f21332f436d27ca3643b1b6611771f876938c3bedc2c5fb7b7f8b2de0d7a5",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "e3f7087c29daaaa88331a6153d6956341b4135a6ed1f4c9a02152573622a44b1",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "f39bccc6562ce535c8f503973695390da39a2bb0b4acf025913e4feba1d284b2",
+      "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "f6215ab675941c7fae32a1eff8985003b200bcb575a36252da83ee4a80ceecf3",
+      "note": "Safe — reviewed 2026-04-21"
+    }
+  ],
+  "updated": "2026-04-21",
+  "brakeman_version": "8.0.4"
+}

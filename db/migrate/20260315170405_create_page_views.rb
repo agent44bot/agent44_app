@@ -22,6 +22,6 @@ class CreatePageViews < ActiveRecord::Migration[8.1]
     add_index :page_views, :session_id
     add_index :page_views, :created_at
     add_index :page_views, :country
-    add_index :page_views, [:created_at, :path]
+    add_index :page_views, [ :created_at, :path ]
   end
 end

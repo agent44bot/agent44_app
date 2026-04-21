@@ -65,7 +65,7 @@ namespace :newsletter do
     request.body = {
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
-      messages: [{ role: "user", content: prompt }]
+      messages: [ { role: "user", content: prompt } ]
     }.to_json
 
     response = http.request(request)

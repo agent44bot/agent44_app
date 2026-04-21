@@ -25,7 +25,7 @@ class TrackPageViewJob < ApplicationJob
   private
 
   def parse_user_agent(ua)
-    return ["Unknown", "Unknown", "desktop"] if ua.blank?
+    return [ "Unknown", "Unknown", "desktop" ] if ua.blank?
 
     # Browser detection
     browser = case ua
@@ -54,7 +54,7 @@ class TrackPageViewJob < ApplicationJob
     else "desktop"
     end
 
-    [browser, os, device_type]
+    [ browser, os, device_type ]
   end
 
   def lookup_geolocation(ip_address)

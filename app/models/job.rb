@@ -54,8 +54,8 @@ class Job < ApplicationRecord
     # SQLite REGEXP isn't enabled by default; do a coarse LIKE prefilter then
     # an in-Ruby regex filter to get exact word-boundary matches.
     likes = SkillExtractor::SKILLS[skill].map { |v| "%#{v.gsub(/\\\w|\\\b/, '').gsub('\\.', '.')}%" }
-    cond = (["(description LIKE ? OR title LIKE ?)"] * likes.size).join(" OR ")
-    args = likes.flat_map { |l| [l, l] }
+    cond = ([ "(description LIKE ? OR title LIKE ?)" ] * likes.size).join(" OR ")
+    args = likes.flat_map { |l| [ l, l ] }
     candidates = where(cond, *args).pluck(:id, :title, :description)
     matching_ids = candidates.select { |_, t, d| "#{t} #{d}".match?(pattern) }.map(&:first)
     where(id: matching_ids)
@@ -141,7 +141,7 @@ class Job < ApplicationRecord
       scope = active.where(role_class: role_class)
       scope = scope.where(posted_at: (Time.current - window_days.days)..Time.current) if window_days
       total = scope.count
-      values = scope.where.not(salary: [nil, ""]).pluck(:salary).filter_map { |s| parse_salary_midpoint(s) }
+      values = scope.where.not(salary: [ nil, "" ]).pluck(:salary).filter_map { |s| parse_salary_midpoint(s) }
       values.sort!
       n = values.size
       pct = ->(p) { n.zero? ? nil : values[((n - 1) * p).round] }

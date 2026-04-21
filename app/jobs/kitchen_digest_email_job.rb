@@ -1,7 +1,7 @@
 class KitchenDigestEmailJob < ApplicationJob
   queue_as :default
 
-  RECIPIENTS = ["botwhisperer@hey.com", "lora.downie@nykitchen.com"]
+  RECIPIENTS = [ "botwhisperer@hey.com", "lora.downie@nykitchen.com" ]
 
   def perform
     today    = Date.today
@@ -20,7 +20,7 @@ class KitchenDigestEmailJob < ApplicationJob
         instructor: e.instructor, description: e.description,
         spots_left: e.spots_left, capacity: e.capacity,
         last_known_spots_left: e.last_known_spots_left,
-        last_known_capacity: e.last_known_capacity,
+        last_known_capacity: e.last_known_capacity
       }
     end
 

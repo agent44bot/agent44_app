@@ -29,7 +29,7 @@ scrapers = [
     slug: "welcometothejungle",
     source_url: "https://CSEKHVMS53-dsn.algolia.net/1/indexes/wttj_jobs_production_en/query",
     schedule: "daily",
-    search_terms: ["SDET", "QA engineer", "test automation", "quality engineer"],
+    search_terms: [ "SDET", "QA engineer", "test automation", "quality engineer" ],
     config: {
       "algolia_app_id" => "CSEKHVMS53",
       "algolia_api_key" => "4bd8f6215d0cc52b26430765769e65a0"

@@ -81,7 +81,7 @@
             </div>
           </div>
           <div class="mb-5 overflow-hidden">
-            <%= raw(markdown_to_html(@digest.summary)) %>
+            <%= sanitize(markdown_to_html(@digest.summary)) %>
           </div>
           <%= link_to news_articles_path, class: "inline-flex items-center text-sm font-semibold text-orange-600 hover:text-orange-300 transition" do %>
             Browse all AI news

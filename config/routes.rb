@@ -5,40 +5,40 @@ Rails.application.routes.draw do
   resource :session do
     post :challenge, on: :collection
   end
-  resource :registration, only: [:new, :create]
+  resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
   get "email_verification", to: "email_verifications#show", as: :email_verification
   post "email_verification/resend", to: "email_verifications#resend", as: :resend_email_verification
 
-  resources :jobs, only: [:index, :show] do
+  resources :jobs, only: [ :index, :show ] do
     collection do
       get :globe
       get :today
     end
-    resource :saved_job, only: [:create, :destroy] do
+    resource :saved_job, only: [ :create, :destroy ] do
       post :toggle_applied, on: :member
     end
-    resource :hidden_job, only: [:create, :destroy]
+    resource :hidden_job, only: [ :create, :destroy ]
   end
-  resources :saved_jobs, only: [:index]
+  resources :saved_jobs, only: [ :index ]
   get "nykitchen", to: "kitchen#index"
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   get "crypto", to: "crypto#index", as: :crypto
-  resources :news_articles, only: [:index], path: "news"
-  resources :posts, only: [:index, :show], path: "pulse"
+  resources :news_articles, only: [ :index ], path: "news"
+  resources :posts, only: [ :index, :show ], path: "pulse"
   # Permanent redirects from old /newsletter URLs to /pulse
   get "/newsletter", to: redirect("/pulse", status: 301)
   get "/newsletter/*slug", to: redirect("/pulse/%{slug}", status: 301)
   # resources :videos, only: [:index, :show]
-  resources :subscribers, only: [:create]
+  resources :subscribers, only: [ :create ]
   get "soft_gate", to: "soft_gates#show", as: :soft_gate
 
   namespace :api do
     namespace :v1 do
-      resources :jobs, only: [:create]
-      resources :scrapers, only: [:update]
+      resources :jobs, only: [ :create ]
+      resources :scrapers, only: [ :update ]
       patch "agents/:name/status", to: "agents#update_status", as: :agent_status
       get "agents/statuses", to: "agents#statuses"
       post "telegram/webhook", to: "telegram_webhook#create"
@@ -69,16 +69,16 @@ Rails.application.routes.draw do
         post :run
       end
     end
-    resources :users, only: [:index]
+    resources :users, only: [ :index ]
     get "visitors/map", to: "visitors#map"
-    resources :agents, except: [:show]
+    resources :agents, except: [ :show ]
     get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
     get "chat", to: "chat#index"
     post "chat", to: "chat#create"
     get "chat/messages", to: "chat#messages"
-    resources :notifications, only: [:index, :update, :destroy] do
+    resources :notifications, only: [ :index, :update, :destroy ] do
       collection do
         post :mark_all_read
       end

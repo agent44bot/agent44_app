@@ -8,7 +8,7 @@ class CreateJobSources < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :job_sources, [:source, :url], unique: true
-    add_index :job_sources, [:job_id, :source], unique: true
+    add_index :job_sources, [ :source, :url ], unique: true
+    add_index :job_sources, [ :job_id, :source ], unique: true
   end
 end

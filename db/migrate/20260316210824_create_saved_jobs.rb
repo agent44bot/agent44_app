@@ -6,6 +6,6 @@ class CreateSavedJobs < ActiveRecord::Migration[8.1]
 
       t.timestamps
     end
-    add_index :saved_jobs, [:user_id, :job_id], unique: true
+    add_index :saved_jobs, [ :user_id, :job_id ], unique: true
   end
 end
