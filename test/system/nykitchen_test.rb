@@ -48,6 +48,24 @@ class NykitchenSystemTest < SystemTestCase
     assert_equal "true", el.get_attribute("contenteditable")
   end
 
+  test "save draft button appears after editing text" do
+    @kitchen.visit
+    @kitchen.open_preview
+
+    # Save button should be hidden initially
+    save_btn = @kitchen.save_button
+    assert save_btn, "Expected save draft button in preview panel"
+    assert save_btn.evaluate("el => el.classList.contains('hidden')"), "Save button should be hidden before editing"
+
+    # Type into the preview text to trigger markDirty
+    @kitchen.preview_text_element.click
+    @page.keyboard.type(" test edit")
+    sleep 0.3
+
+    # Save button should now be visible
+    refute save_btn.evaluate("el => el.classList.contains('hidden')"), "Save button should be visible after editing"
+  end
+
   test "enhance with AI button exists but is not clicked in tests" do
     @kitchen.visit
     @kitchen.open_preview

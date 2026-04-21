@@ -33,6 +33,10 @@ class KitchenPage < BasePage
     page.text_content("[data-social-post-target='previewText']")
   end
 
+  def save_button
+    page.query_selector("[data-social-post-target='saveBtn']")
+  end
+
   def enhance_button
     page.query_selector("[data-social-post-target='enhanceBtn']")
   end
