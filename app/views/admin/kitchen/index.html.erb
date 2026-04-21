@@ -410,7 +410,7 @@
         This is a passive, read-only test &mdash; it simply visits the public calendar in a normal browser, just like any user would, and captures event data. Nothing is submitted, modified, or stressed.
         On failure, a video of the run will be emailed to admins.
       </p>
-      <%= button_to "Run Smoke Test", admin_trigger_smoke_path,
+      <%= button_to "Run Smoke Test", nyk_trigger_smoke_path,
             method: :post,
             data: { turbo_confirm: "Trigger NY Kitchen smoke test on GitHub Actions?" },
             class: "mb-4 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-400 transition" %>

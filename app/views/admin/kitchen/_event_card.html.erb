@@ -1,3 +1,4 @@
+<% post_log = defined?(@post_logs) ? @post_logs[event.url] : nil %>
 <div data-kitchen-filter-target="card" data-status="<%= event.availability_status %>"
      data-controller="social-post"
      data-social-post-name-value="<%= event.name %>"
@@ -8,6 +9,8 @@
      data-social-post-capacity-value="<%= event.capacity %>"
      data-social-post-url-value="<%= event.url %>"
      data-social-post-description-value="<%= truncate(event.description.to_s.gsub(/\n/, ' ').strip, length: 200, separator: '. ', omission: '.') %>"
+     data-social-post-log-url-value="/nykitchen/social_post_log"
+     data-social-post-posted-value="<%= post_log&.posted? ? 'true' : 'false' %>"
      class="bg-gray-900 rounded-lg p-4">
   <div class="flex items-start justify-between gap-4">
     <div class="min-w-0">
@@ -33,6 +36,18 @@
                   class="text-blue-400 hover:text-blue-300 transition cursor-pointer">
             Preview post
           </button>
+          <% if post_log&.copied? %>
+            <span>&middot;</span>
+            <span class="text-green-500" data-social-post-target="status">Copied <%= time_ago_in_words(post_log.copied_at) %> ago</span>
+          <% else %>
+            <span data-social-post-target="status"></span>
+          <% end %>
+          <% if post_log&.posted? %>
+            <span>&middot;</span>
+            <span class="text-purple-400" data-social-post-target="postedStatus">Posted <%= time_ago_in_words(post_log.posted_at) %> ago</span>
+          <% else %>
+            <span data-social-post-target="postedStatus"></span>
+          <% end %>
         <% end %>
       </div>
     </div>
@@ -63,6 +78,7 @@
     </div>
   </div>
   <%# Collapsible preview panel — hidden by default %>
+  <% unless event.sold_out? %>
   <div data-social-post-target="preview" class="hidden mt-3">
     <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
       <pre data-social-post-target="previewText"
@@ -72,6 +88,12 @@
                 class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer">
           Copy to clipboard
         </button>
+        <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+          <input type="checkbox" data-action="social-post#markPosted" data-social-post-target="postedCheckbox"
+                 class="rounded border-gray-600 bg-gray-700 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                 <%= "checked" if post_log&.posted? %>>
+          Posted
+        </label>
         <button data-action="social-post#toggle"
                 class="text-xs text-gray-500 hover:text-gray-400 transition cursor-pointer">
           Close
@@ -79,4 +101,5 @@
       </div>
     </div>
   </div>
+  <% end %>
 </div>

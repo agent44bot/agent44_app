@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["toggleBtn", "preview", "previewText", "copyBtn"]
+  static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "status", "postedStatus", "postedCheckbox"]
   static values = {
     name: String,
     date: String,
@@ -10,7 +10,9 @@ export default class extends Controller {
     spots: Number,
     capacity: Number,
     url: String,
-    description: String
+    description: String,
+    logUrl: String,
+    posted: { type: Boolean, default: false }
   }
 
   toggle() {
@@ -31,15 +33,65 @@ export default class extends Controller {
     const post = this.buildPost()
     navigator.clipboard.writeText(post).then(() => {
       const btn = this.copyBtnTarget
-      const original = btn.textContent
       btn.textContent = "Copied!"
       btn.classList.remove("bg-blue-600", "hover:bg-blue-500")
       btn.classList.add("bg-green-600")
       setTimeout(() => {
-        btn.textContent = original
+        btn.textContent = "Copy to clipboard"
         btn.classList.remove("bg-green-600")
         btn.classList.add("bg-blue-600", "hover:bg-blue-500")
       }, 2000)
+
+      // Update status text
+      if (this.hasStatusTarget) {
+        this.statusTarget.textContent = "Copied just now"
+        this.statusTarget.className = "text-green-500"
+        // Insert middot before if empty
+        const prev = this.statusTarget.previousElementSibling
+        if (prev && prev.innerHTML === "") {
+          prev.innerHTML = "&middot;"
+        }
+      }
+
+      // Persist to server
+      this.logAction("copy")
+    })
+  }
+
+  markPosted() {
+    const checked = this.postedCheckboxTarget.checked
+    this.postedValue = checked
+
+    if (this.hasPostedStatusTarget) {
+      if (checked) {
+        this.postedStatusTarget.textContent = "Posted just now"
+        this.postedStatusTarget.className = "text-purple-400"
+        const prev = this.postedStatusTarget.previousElementSibling
+        if (prev && prev.innerHTML === "") {
+          prev.innerHTML = "&middot;"
+        }
+      } else {
+        this.postedStatusTarget.textContent = ""
+        const prev = this.postedStatusTarget.previousElementSibling
+        if (prev) prev.innerHTML = ""
+      }
+    }
+
+    this.logAction("posted", checked)
+  }
+
+  logAction(actionType, posted) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    const body = { event_url: this.urlValue, action_type: actionType }
+    if (actionType === "posted") body.posted = String(posted)
+
+    fetch(this.logUrlValue, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
+      body: JSON.stringify(body)
     })
   }
 

@@ -3,7 +3,7 @@ module Admin
     def trigger_smoke
       token = ENV["GITHUB_PAT"]
       if token.blank?
-        redirect_to admin_kitchen_path, alert: "GITHUB_PAT not configured"
+        redirect_to nykitchen_path, alert: "GITHUB_PAT not configured"
         return
       end
 
@@ -22,50 +22,12 @@ module Admin
       res = http.request(req)
 
       if res.is_a?(Net::HTTPSuccess) || res.code == "204"
-        redirect_to admin_kitchen_path, notice: "Smoke test triggered — results will appear shortly"
+        redirect_to nykitchen_path, notice: "Smoke test triggered — results will appear shortly"
       else
-        redirect_to admin_kitchen_path, alert: "GitHub dispatch failed (#{res.code})"
+        redirect_to nykitchen_path, alert: "GitHub dispatch failed (#{res.code})"
       end
     rescue => e
-      redirect_to admin_kitchen_path, alert: "Error: #{e.message}"
-    end
-
-    def index
-      @admin = true
-      snapshot = KitchenSnapshot.latest
-      if snapshot
-        @events = snapshot.kitchen_events.upcoming
-        today = Date.today
-        # Calendar weeks: Mon–Sun. "This Week" = today through this Sunday.
-        days_until_sunday = (7 - today.cwday) % 7  # cwday: Mon=1..Sun=7
-        this_sunday = today + days_until_sunday
-        next_monday = this_sunday + 1
-        @week1_events = @events.select { |e| (today..this_sunday).cover?(e.start_at.to_date) }
-        @week2_events = @events.select { |e| (next_monday..next_monday + 6).cover?(e.start_at.to_date) }
-        @week3_events = @events.select { |e| (next_monday + 7..next_monday + 13).cover?(e.start_at.to_date) }
-        @week4_events = @events.select { |e| (next_monday + 14..next_monday + 20).cover?(e.start_at.to_date) }
-        @total = @events.size
-        @sold_out = @events.count(&:sold_out?)
-        @last_updated = snapshot.taken_on
-
-        list_events = @week1_events + @week2_events + @week3_events + @week4_events
-        statuses = list_events.map(&:availability_status)
-        @filter_counts = {
-          "all"     => statuses.size,
-          "instock" => statuses.count("instock"),
-          "limited" => statuses.count("limited"),
-          "soldout" => statuses.count("soldout"),
-          "closed"  => statuses.count("closed")
-        }
-      else
-        @events = []
-        @week1_events = @week2_events = @week3_events = @week4_events = []
-        @total = 0
-        @sold_out = 0
-        @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0 }
-      end
-
-      @smoke_runs = SmokeTestRun.for_name("nyk_calendar_nav").recent.with_attached_video.with_attached_thumbnail.limit(20)
+      redirect_to nykitchen_path, alert: "Error: #{e.message}"
     end
   end
 end

@@ -22,6 +22,8 @@ Rails.application.routes.draw do
   end
   resources :saved_jobs, only: [:index]
   get "nykitchen", to: "kitchen#index"
+  post "nykitchen/social_post_log", to: "kitchen#social_post_log"
+  post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [:index], path: "news"
   resources :posts, only: [:index, :show], path: "pulse"
@@ -69,7 +71,7 @@ Rails.application.routes.draw do
     resources :users, only: [:index]
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [:show]
-    get "kitchen", to: "kitchen#index"
+    get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
     get "chat", to: "chat#index"

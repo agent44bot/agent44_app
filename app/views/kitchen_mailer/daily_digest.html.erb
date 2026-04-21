@@ -29,6 +29,50 @@
     %Q(<span style="font-size:11px;color:#{color};font-weight:600">#{text}</span>)
   end
 
+  def social_post_draft(e)
+    av = e[:availability].to_s.downcase
+    return nil if av.include?("soldout") || av.include?("closed")
+
+    spots_left = e[:spots_left]
+    cap = e[:capacity]
+    if spots_left && cap && cap > 0 && spots_left > 0
+      pct = ((cap - spots_left).to_f / cap) * 100
+      if pct >= 80
+        emoji = "\xF0\x9F\x94\xA5"
+        urgency = "Only #{spots_left} spots left! This class is almost full."
+      elsif pct >= 50
+        emoji = "\xE2\x8F\xB3"
+        urgency = "Spots are filling up \u2014 #{spots_left} of #{cap} seats remaining."
+      else
+        emoji = "\xE2\x9C\xA8"
+        urgency = "Seats are available \u2014 grab yours before they\u2019re gone!"
+      end
+    else
+      emoji = "\xE2\x9C\xA8"
+      urgency = "Seats are still available \u2014 don\u2019t miss out!"
+    end
+
+    desc = e[:description].to_s.gsub(/\n/, " ").strip.truncate(200, separator: ". ", omission: ".")
+
+    lines = []
+    lines << "#{emoji} #{e[:name]}"
+    lines << ""
+    lines << "\xF0\x9F\x93\x85 #{e[:start_at].strftime("%A, %B %-d")}"
+    lines << "\xE2\x8F\xB0 #{e[:start_at].strftime("%-I:%M %p")}#{e[:end_at] ? " - #{e[:end_at].strftime("%-I:%M %p")}" : ""}"
+    lines << "\xF0\x9F\x92\xB2 $#{e[:price]} per person" if e[:price].present?
+    lines << "\xF0\x9F\x93\x8D New York Kitchen, Canandaigua"
+    lines << ""
+    lines << desc if desc.present?
+    lines << "" if desc.present?
+    lines << urgency
+    lines << ""
+    lines << "\xF0\x9F\x94\x97 Link in bio to reserve your spot!"
+    lines << e[:url].to_s
+    lines << ""
+    lines << "#NewYorkKitchen #FingerLakes #CookingClass #HandsOnCooking #NYKitchen #Canandaigua #FLXFood #DateNight #TeamBuilding #CulinaryExperience"
+    lines.join("\n")
+  end
+
   def event_row(e)
     left_meta = []
     left_meta << e[:instructor] if e[:instructor]
@@ -95,6 +139,13 @@
             <% end %>
           </div>
         </div>
+        <% draft = social_post_draft(e) %>
+        <% if draft %>
+          <details style="margin-top:6px">
+            <summary style="font-size:11px;color:#0a58ca;cursor:pointer;user-select:none">Preview social media post</summary>
+            <pre style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:6px;padding:12px;margin-top:6px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;white-space:pre-wrap;color:#333;user-select:all"><%= draft %></pre>
+          </details>
+        <% end %>
       </li>
     <% end %></ul>
   <% end %>
