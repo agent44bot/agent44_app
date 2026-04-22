@@ -5,18 +5,28 @@ import UserNotifications
 import Capacitor
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
     var window: UIWindow?
     private var blurView: UIVisualEffectView?
     private var needsAuth = true
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Show push notification banners even when the app is in the foreground
+        UNUserNotificationCenter.current().delegate = self
+
         // Disable horizontal scroll on WKWebView once the view hierarchy is ready
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.disableHorizontalScroll()
         }
         return true
+    }
+
+    // Show banner + sound even when app is in the foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .badge])
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
