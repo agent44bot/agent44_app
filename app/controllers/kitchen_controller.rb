@@ -84,21 +84,31 @@ class KitchenController < ApplicationController
   def load_kitchen_data
     snapshot = KitchenSnapshot.latest
     if snapshot
-      @events = snapshot.kitchen_events.upcoming
+      @events = snapshot.kitchen_events.upcoming.order(:start_at)
       today = Date.today
       days_until_sunday = (7 - today.cwday) % 7
       this_sunday = today + days_until_sunday
-      next_monday = this_sunday + 1
-      @week1_events = @events.select { |e| (today..this_sunday).cover?(e.start_at.to_date) }
-      @week2_events = @events.select { |e| (next_monday..next_monday + 6).cover?(e.start_at.to_date) }
-      @week3_events = @events.select { |e| (next_monday + 7..next_monday + 13).cover?(e.start_at.to_date) }
-      @week4_events = @events.select { |e| (next_monday + 14..next_monday + 20).cover?(e.start_at.to_date) }
+
+      # Build dynamic weekly buckets covering all events
+      @weeks = []
+      labels = ["Current Week", "Next Week"]
+      last_event_date = @events.last&.start_at&.to_date || today
+      week_start = today
+      week_end = this_sunday
+
+      while week_start <= last_event_date
+        week_events = @events.select { |e| (week_start..week_end).cover?(e.start_at.to_date) }
+        label = @weeks.size < labels.size ? labels[@weeks.size] : week_start.strftime("Week of %b %-d")
+        @weeks << { label: label, events: week_events, expanded: @weeks.size < 2 }
+        week_start = week_end + 1
+        week_end = week_start + 6
+      end
+
       @total = @events.size
       @sold_out = @events.count(&:sold_out?)
       @last_updated = snapshot.taken_on
 
-      list_events = @week1_events + @week2_events + @week3_events + @week4_events
-      statuses = list_events.map(&:availability_status)
+      statuses = @events.map(&:availability_status)
       @filter_counts = {
         "all"     => statuses.size,
         "instock" => statuses.count("instock"),
@@ -111,7 +121,7 @@ class KitchenController < ApplicationController
       @post_logs = SocialPostLog.where(event_url: event_urls).index_by(&:event_url)
     else
       @events = []
-      @week1_events = @week2_events = @week3_events = @week4_events = []
+      @weeks = []
       @total = 0
       @sold_out = 0
       @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0 }

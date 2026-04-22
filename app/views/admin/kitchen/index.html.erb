@@ -122,40 +122,30 @@
 
     <!-- List View -->
     <div data-tabs-target="panel">
-      <% [
-        ["Current Week", @week1_events, "No classes this week."],
-        ["Next Week",    @week2_events, "No classes next week."],
-        ["In 2 Weeks",   @week3_events, "No classes in two weeks."],
-        ["In 3 Weeks",   @week4_events, "No classes in three weeks."]
-      ].each do |title, events, empty_copy| %>
+      <% @weeks.each do |week| %>
+        <% next if week[:events].empty? %>
         <section data-kitchen-filter-target="section"
                  data-controller="collapsible"
+                 data-collapsible-collapsed-value="<%= week[:expanded] ? 'false' : 'true' %>"
                  class="mb-8">
-          <% if events.empty? %>
-            <h2 class="text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4">
-              <%= title %> <span class="text-gray-500 font-normal">(0)</span>
-            </h2>
-            <p class="text-gray-500 text-sm italic"><%= empty_copy %></p>
-          <% else %>
-            <button type="button"
-                    data-action="click->collapsible#toggle"
-                    class="w-full flex items-center justify-between text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
-              <span>
-                <%= title %>
-                <span class="text-gray-500 font-normal">(<%= events.size %>)</span>
-              </span>
-              <svg data-collapsible-target="icon"
-                   class="w-5 h-5 text-gray-500 transition-transform shrink-0"
-                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </button>
-            <div data-collapsible-target="body" class="space-y-3">
-              <% events.each do |e| %>
-                <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
-              <% end %>
-            </div>
-          <% end %>
+          <button type="button"
+                  data-action="click->collapsible#toggle"
+                  class="w-full flex items-center justify-between text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
+            <span>
+              <%= week[:label] %>
+              <span class="text-gray-500 font-normal">(<%= week[:events].size %>)</span>
+            </span>
+            <svg data-collapsible-target="icon"
+                 class="w-5 h-5 text-gray-500 transition-transform shrink-0"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div data-collapsible-target="body" class="space-y-3">
+            <% week[:events].each do |e| %>
+              <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
+            <% end %>
+          </div>
         </section>
       <% end %>
     </div>
