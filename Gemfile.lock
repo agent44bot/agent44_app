@@ -77,6 +77,7 @@ GEM
       uri (>= 0.13.1)
     addressable (2.8.9)
       public_suffix (>= 2.0.2, < 8.0)
+    ansi (1.6.0)
     anthropic (1.35.0)
       cgi
       connection_pool
@@ -204,6 +205,11 @@ GEM
       logger
     mini_mime (1.1.5)
     minitest (5.27.0)
+    minitest-reporters (1.8.0)
+      ansi
+      builder
+      minitest (>= 5.0, < 7)
+      ruby-progressbar
     msgpack (1.8.0)
     multi_xml (0.8.1)
       bigdecimal (>= 3.1, < 5)
@@ -456,6 +462,7 @@ DEPENDENCIES
   jbuilder
   kamal
   minitest (~> 5.20)
+  minitest-reporters
   playwright-ruby-client
   propshaft
   puma (>= 5.0)

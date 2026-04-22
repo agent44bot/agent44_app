@@ -1,9 +1,22 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../../config/environment"
 require "rails/test_help"
+require "minitest/reporters"
 require "playwright"
 require "net/http"
 require "fileutils"
+
+class CleanSpecReporter < Minitest::Reporters::SpecReporter
+  def record(test)
+    # Strip "test_" prefix and replace underscores with spaces
+    test.define_singleton_method(:name) do
+      super().sub(/^test_/, "").tr("_", " ")
+    end
+    super
+  end
+end
+
+Minitest::Reporters.use! CleanSpecReporter.new
 
 # System tests use Playwright against a local Rails server on port 3001.
 # The test DB is seeded from a production snapshot before the server boots.
