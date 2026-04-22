@@ -57,6 +57,12 @@
         });
       });
 
+      // Navigate to the URL when the user taps a notification
+      PN.addListener('pushNotificationActionPerformed', function(action) {
+        var url = action.notification.data && action.notification.data.url;
+        if (url) window.location.href = url;
+      });
+
       PN.register();
     });
   })();

@@ -130,7 +130,8 @@ module Api
             title: title,
             body: "#{old_spots} → #{new_spots} spots remaining",
             telegram: true,
-            apns: true
+            apns: true,
+            apns_url: "/nykitchen"
           )
         end
       end
