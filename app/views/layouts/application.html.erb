@@ -41,50 +41,23 @@
   <% end %>
   <%= javascript_tag nonce: true do %>
   // Push notification registration — only runs inside the Capacitor native shell
-  // DEBUG: temporary alerts to diagnose push registration
   (function() {
-    var debug = [];
-    debug.push('Capacitor: ' + (!!window.Capacitor));
-    debug.push('isNative: ' + (window.Capacitor && window.Capacitor.isNativePlatform ? window.Capacitor.isNativePlatform() : 'N/A'));
-    debug.push('Plugins: ' + (window.Capacitor && window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins).join(', ') : 'none'));
-
     if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
-
     var PN = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
-    if (!PN) {
-      alert('DEBUG: No PushNotifications plugin.\n' + debug.join('\n'));
-      return;
-    }
+    if (!PN) return;
 
     PN.requestPermissions().then(function(perm) {
-      debug.push('permission: ' + perm.receive);
-      if (perm.receive !== 'granted') {
-        alert('DEBUG: Permission denied.\n' + debug.join('\n'));
-        return;
-      }
+      if (perm.receive !== 'granted') return;
 
       PN.addListener('registration', function(token) {
-        debug.push('token: ' + token.value.substring(0, 20) + '...');
         fetch('/api/v1/device_tokens', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: token.value, platform: 'ios' })
-        }).then(function(r) {
-          debug.push('POST status: ' + r.status);
-          alert('DEBUG: Token registered!\n' + debug.join('\n'));
-        }).catch(function(e) {
-          debug.push('POST error: ' + e.message);
-          alert('DEBUG: POST failed.\n' + debug.join('\n'));
         });
       });
 
-      PN.addListener('registrationError', function(err) {
-        alert('DEBUG: Registration error.\n' + JSON.stringify(err) + '\n' + debug.join('\n'));
-      });
-
       PN.register();
-    }).catch(function(e) {
-      alert('DEBUG: Push setup error.\n' + e.message + '\n' + debug.join('\n'));
     });
   })();
   <% end %>
