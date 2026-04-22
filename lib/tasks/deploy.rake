@@ -6,21 +6,14 @@ task :deploy do
     ║                    agent44_app deploy playbook                    ║
     ╚════════════════════════════════════════════════════════════════════╝
 
-      rake deploy:ship    → git pull && fly deploy ($0, silent)
-      rake deploy:live    → same + Knox status narration ($0)
+      rake deploy:live     → git pull && fly deploy + Knox status narration ($0)
       rake deploy:openclaw → route through Knox via OpenClaw (Haiku tokens)
 
   PLAYBOOK
 end
 
 namespace :deploy do
-  desc "Direct deploy: git pull --ff-only && fly deploy ($0, silent)"
-  task :ship do
-    sh "git pull --ff-only"
-    sh "fly deploy"
-  end
-
-  desc "Direct deploy with live Knox status narration on agent44labs.com ($0)"
+  desc "Deploy with live Knox status narration on agent44labs.com ($0)"
   task :live do
     knox_status "busy", "Pulling latest from origin..."
     sh "git pull --ff-only"
