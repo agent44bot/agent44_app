@@ -88,7 +88,11 @@ module NykEventScraperHelper
         const descEl = document.querySelector('.tribe-events-content');
         const description = descEl ? descEl.textContent.trim().substring(0, 500) : null;
 
-        return { name, startAt, endAt, price, venue, description, passed };
+        // Event image: og:image meta tag or featured image in content
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        const imageUrl = ogImage ? ogImage.getAttribute('content') : null;
+
+        return { name, startAt, endAt, price, venue, description, passed, imageUrl };
       })()
     JS
   end
@@ -179,6 +183,7 @@ module NykEventScraperHelper
       event[:price]       = dom_data["price"]
       event[:venue]       = html_unescape(dom_data["venue"])
       event[:description] = html_unescape(dom_data["description"])
+      event[:image_url]   = dom_data["imageUrl"]
       event[:passed]      = dom_data["passed"]
     end
 
