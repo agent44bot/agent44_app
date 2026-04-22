@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_152506) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_22_103658) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -75,6 +75,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_152506) do
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_agents_on_name", unique: true
     t.index ["position"], name: "index_agents_on_position"
+  end
+
+  create_table "device_tokens", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "platform", default: "ios", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token"], name: "index_device_tokens_on_token", unique: true
   end
 
   create_table "hidden_jobs", force: :cascade do |t|

@@ -57,6 +57,7 @@ Rails.application.routes.draw do
           get :upcoming
         end
       end
+      resources :device_tokens, only: [ :create ]
     end
   end
 
