@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "saveBtn", "enhanceBtn",
-                     "status", "postedStatus", "postedCheckbox"]
+                     "status", "postedStatus", "postedCheckbox", "thumbnail", "imageHint"]
   static values = {
     name: String,
     date: String,
@@ -14,6 +14,7 @@ export default class extends Controller {
     description: String,
     logUrl: String,
     enhanceUrl: String,
+    imageUrl: { type: String, default: "" },
     enhancedText: { type: String, default: "" },
     posted: { type: Boolean, default: false }
   }
@@ -58,6 +59,42 @@ export default class extends Controller {
       this.enhancedTextValue = text
       this.saveText(text)
     })
+  }
+
+  async saveImage() {
+    if (!this.imageUrlValue) return
+
+    const img = this.hasThumbnailTarget ? this.thumbnailTarget : null
+
+    try {
+      // Fetch the image and trigger a download (saves to camera roll on iOS)
+      const resp = await fetch(this.imageUrlValue)
+      const blob = await resp.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      // Extract filename from URL
+      const filename = this.imageUrlValue.split("/").pop().split("?")[0] || "event-image.jpg"
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      if (img && this.hasImageHintTarget) {
+        img.style.outline = "2px solid #22c55e"
+        this.imageHintTarget.textContent = "Image saved!"
+        this.imageHintTarget.classList.replace("text-gray-500", "text-green-500")
+        setTimeout(() => {
+          img.style.outline = ""
+          this.imageHintTarget.textContent = "Tap to save image"
+          this.imageHintTarget.classList.replace("text-green-500", "text-gray-500")
+        }, 2000)
+      }
+    } catch {
+      // Fallback: open image in new tab
+      window.open(this.imageUrlValue, "_blank")
+    }
   }
 
   markDirty() {
