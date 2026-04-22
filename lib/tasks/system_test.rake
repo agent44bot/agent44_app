@@ -1,4 +1,26 @@
+desc "Show the test playbook"
+task :tests do
+  puts <<~PLAYBOOK
+
+    ╔════════════════════════════════════════════════════════════════════╗
+    ║                    agent44_app test playbook                      ║
+    ╚════════════════════════════════════════════════════════════════════╝
+
+      rake test:unit           → run unit/integration tests (40 tests)
+      rake test:system         → Playwright system tests, headless (Vlad status, $0)
+      rake test:system:headed  → same in visible browser (Vlad status, $0)
+      rake test:smoke          → production smoke tests via bin/smoke
+      rake test:smoke:nyk      → NY Kitchen calendar smoke test (Playwright)
+
+  PLAYBOOK
+end
+
 namespace :test do
+  desc "Run unit and integration tests"
+  task :unit do
+    sh "bin/rails test"
+  end
+
   desc "Run Playwright system tests (headless, Vlad status updates)"
   task :system do
     vlad_status "busy", "Running system tests (headless)"
