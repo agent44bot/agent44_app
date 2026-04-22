@@ -4,6 +4,14 @@ import { Controller } from "@hotwired/stimulus"
 // and rotates the icon. Count in the header stays visible in both states.
 export default class extends Controller {
   static targets = ["body", "icon"]
+  static values = { collapsed: { type: Boolean, default: false } }
+
+  connect() {
+    if (this.collapsedValue) {
+      this.bodyTarget.classList.add("hidden")
+      if (this.hasIconTarget) this.iconTarget.classList.add("-rotate-90")
+    }
+  }
 
   toggle() {
     const collapsed = this.bodyTarget.classList.toggle("hidden")
