@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "saveBtn", "enhanceBtn",
-                     "status", "postedStatus", "postedCheckbox", "thumbnail"]
+                     "status", "postedStatus", "postedCheckbox", "thumbnail", "imageHint"]
   static values = {
     name: String,
     date: String,
@@ -81,14 +81,14 @@ export default class extends Controller {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      if (img) {
+      if (img && this.hasImageHintTarget) {
         img.style.outline = "2px solid #22c55e"
-        img.nextElementSibling.textContent = "Image saved!"
-        img.nextElementSibling.classList.replace("text-gray-500", "text-green-500")
+        this.imageHintTarget.textContent = "Image saved!"
+        this.imageHintTarget.classList.replace("text-gray-500", "text-green-500")
         setTimeout(() => {
           img.style.outline = ""
-          img.nextElementSibling.textContent = "Tap image to save to camera roll"
-          img.nextElementSibling.classList.replace("text-green-500", "text-gray-500")
+          this.imageHintTarget.textContent = "Tap to save image"
+          this.imageHintTarget.classList.replace("text-green-500", "text-gray-500")
         }, 2000)
       }
     } catch {

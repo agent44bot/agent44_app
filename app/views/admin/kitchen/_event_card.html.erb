@@ -85,12 +85,12 @@
   <div data-social-post-target="preview" class="hidden mt-3">
     <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
       <% if event.image_url.present? %>
-        <div class="mb-3 pb-3 border-b border-gray-700">
+        <div class="mb-3 pb-3 border-b border-gray-700 flex items-center gap-3">
           <img data-social-post-target="thumbnail" src="<%= event.image_url %>" alt="<%= event.name %>"
-               class="rounded-md max-h-48 w-auto cursor-pointer hover:opacity-80 transition"
+               class="rounded max-w-[100px] max-h-14 w-auto cursor-pointer hover:opacity-80 transition shrink-0"
                data-action="click->social-post#saveImage"
                title="Tap to save image">
-          <p class="text-xs text-gray-500 mt-1">Tap image to save to camera roll</p>
+          <span data-social-post-target="imageHint" class="text-[10px] text-gray-500">Tap to save image</span>
         </div>
       <% end %>
       <pre data-social-post-target="previewText" contenteditable="true"

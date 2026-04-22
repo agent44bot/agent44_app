@@ -134,6 +134,35 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_includes tickets_notifications.first.title, "Pasta Making"
   end
 
+  test "stores image_url when provided in event data" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/pasta-101", name: "Pasta Making Workshop",
+          start_at: 3.days.from_now.iso8601, spots_left: 5, capacity: 24,
+          availability: "InStock",
+          image_url: "https://nykitchen.com/wp-content/uploads/pasta.jpg" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+
+    event = KitchenSnapshot.order(taken_on: :desc).first.kitchen_events.first
+    assert_equal "https://nykitchen.com/wp-content/uploads/pasta.jpg", event.image_url
+  end
+
+  test "image_url is nil when not provided" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/pasta-101", name: "Pasta Making Workshop",
+          start_at: 3.days.from_now.iso8601, spots_left: 5, capacity: 24,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+
+    event = KitchenSnapshot.order(taken_on: :desc).first.kitchen_events.first
+    assert_nil event.image_url
+  end
+
   test "notification when event sells out completely" do
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [
