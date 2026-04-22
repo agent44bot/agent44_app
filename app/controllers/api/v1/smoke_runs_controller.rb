@@ -32,10 +32,14 @@ module Api
         run.video.attach(params[:video]) if params[:video]
         run.thumbnail.attach(params[:thumbnail]) if params[:thumbnail]
 
-        # Keep only the latest video — purge from all other runs
-        SmokeTestRun.where.not(id: run.id).find_each do |old_run|
-          old_run.video.purge if old_run.video.attached?
-          old_run.thumbnail.purge if old_run.thumbnail.attached?
+        # Retention policy:
+        #   - Keep ALL failed run videos (for debugging)
+        #   - Keep only the LATEST passing run's video/thumbnail
+        if run.status == "passed"
+          SmokeTestRun.where(status: "passed").where.not(id: run.id).find_each do |old_run|
+            old_run.video.purge if old_run.video.attached?
+            old_run.thumbnail.purge if old_run.thumbnail.attached?
+          end
         end
 
         render json: { status: "ok", video_attached: run.video.attached? }

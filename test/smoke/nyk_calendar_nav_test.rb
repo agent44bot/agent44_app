@@ -393,7 +393,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     video_path = Dir.glob(@video_dir.join("*.webm").to_s).first
 
-    post_result(status: "failed", error_message: message)
+    run_id = post_result(status: "failed", error_message: message)
+    upload_video(run_id) if run_id
 
     preview_failure_email(
       message: message,
