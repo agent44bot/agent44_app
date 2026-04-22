@@ -45,7 +45,6 @@ namespace :deploy do
       abort "✗ Deploy failed"
     end
   end
-
 end
 
 def knox_status(status, task = "")
