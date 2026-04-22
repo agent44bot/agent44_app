@@ -1,21 +1,70 @@
-desc "Show the deploy playbook (bin/deploy)"
+desc "Show the deploy playbook"
 task :deploy do
-  exec "bin/deploy"
+  puts <<~PLAYBOOK
+
+    ╔════════════════════════════════════════════════════════════════════╗
+    ║                    agent44_app deploy playbook                    ║
+    ╚════════════════════════════════════════════════════════════════════╝
+
+      rake deploy:ship    → git pull && fly deploy ($0, silent)
+      rake deploy:live    → same + Knox status narration ($0)
+      rake deploy:knox    → route through Knox OpenClaw agent (Haiku tokens)
+
+  PLAYBOOK
 end
 
 namespace :deploy do
   desc "Direct deploy: git pull --ff-only && fly deploy ($0, silent)"
   task :ship do
-    exec "bin/deploy ship"
+    sh "git pull --ff-only"
+    sh "fly deploy"
   end
 
-  desc "Direct deploy with live status narration on agent44labs.com homepage ($0)"
+  desc "Direct deploy with live Knox status narration on agent44labs.com ($0)"
   task :live do
-    exec "bin/deploy ship-live"
+    knox_status "busy", "Pulling latest from origin..."
+    sh "git pull --ff-only"
+
+    knox_status "busy", "Running fly deploy — building image..."
+    IO.popen("fly deploy 2>&1") do |io|
+      io.each_line do |line|
+        puts line
+        case line
+        when /pushing manifest|Pushing image/i
+          knox_status "busy", "Pushing image to registry..."
+        when /Updating machine/i
+          knox_status "busy", "Updating production machine..."
+        when /Waiting for machine/i
+          knox_status "busy", "Waiting for machine to start..."
+        when /reached started state/i
+          knox_status "busy", "Machine started, running health checks..."
+        when /reached good state|is now in a good state/i
+          knox_status "busy", "Health checks passed, finalizing..."
+        end
+      end
+    end
+
+    if $?.success?
+      knox_status "online", ""
+      puts "✓ Deploy complete"
+    else
+      knox_status "error", "fly deploy failed (exit #{$?.exitstatus})"
+      abort "✗ Deploy failed"
+    end
   end
 
   desc "Route deploy through the Knox OpenClaw agent (costs Haiku tokens)"
   task :knox do
-    exec "bin/deploy with-knox"
+    abort "✗ openclaw CLI not found" unless system("which openclaw > /dev/null 2>&1")
+    commit = `git rev-parse --short HEAD`.strip
+    exec "openclaw agent --agent knox " \
+         "--message \"Deploy agent44-app to prod (commit #{commit}). " \
+         "Run: cd #{Dir.pwd} && git pull --ff-only && fly deploy. " \
+         "Report stdout/exit code.\" --json --timeout 600"
   end
+end
+
+def knox_status(status, task = "")
+  script = File.expand_path("~/.openclaw/skills/update-agent-status.sh")
+  system("bash", script, "Knox 🔒", status, task) if File.exist?(script)
 end
