@@ -29,6 +29,9 @@ gem "bech32", "~> 1.5"
 # Claude API for AI-enhanced social media posts
 gem "anthropic"
 
+# APNs push notifications (HTTP/2)
+gem "apnotic"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 

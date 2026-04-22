@@ -60,6 +60,10 @@ module Api
         prev_events = previous ? previous.kitchen_events.index_by(&:url) : {}
 
         snapshot = KitchenSnapshot.find_or_initialize_by(taken_on: taken_on)
+
+        # Capture current spots before overwriting so we can detect changes
+        prev_spots = snapshot.persisted? ? snapshot.kitchen_events.pluck(:url, :spots_left).to_h : {}
+
         snapshot.kitchen_events.destroy_all if snapshot.persisted?
         snapshot.save!
 
@@ -94,9 +98,41 @@ module Api
           created += 1
         end
 
+        notify_ticket_changes(snapshot, prev_spots)
+
         render json: { snapshot_id: snapshot.id, taken_on: taken_on, events_created: created }, status: :created
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
+      end
+
+      private
+
+      def notify_ticket_changes(snapshot, prev_spots)
+        return if prev_spots.empty?
+
+        snapshot.kitchen_events.each do |event|
+          old_spots = prev_spots[event.url]
+          new_spots = event.spots_left
+          next unless old_spots && new_spots && new_spots < old_spots
+
+          tickets_bought = old_spots - new_spots
+          sold_out = new_spots == 0
+
+          title = if sold_out
+            "#{event.name}: #{tickets_bought} ticket(s) bought — SOLD OUT"
+          else
+            "#{event.name}: #{tickets_bought} ticket(s) bought — #{new_spots} spot(s) left"
+          end
+
+          Notification.notify!(
+            level: "info",
+            source: "kitchen_tickets",
+            title: title,
+            body: "#{old_spots} → #{new_spots} spots remaining",
+            telegram: true,
+            apns: true
+          )
+        end
       end
     end
   end
