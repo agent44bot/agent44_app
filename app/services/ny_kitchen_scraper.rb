@@ -145,6 +145,9 @@ class NyKitchenScraper
     instructor = perf.is_a?(Hash) ? perf["name"] : nil
     decode = ->(s) { s ? CGI.unescapeHTML(s.to_s) : nil }
 
+    image = Array(raw["image"]).first || raw["image"]
+    image_url = image.is_a?(Hash) ? image["url"] : image.to_s.presence
+
     {
       url:          raw["url"] || offers["url"],
       name:         decode.call(raw["name"]),
@@ -154,7 +157,8 @@ class NyKitchenScraper
       availability: (offers["availability"] || "").to_s.sub("https://schema.org/", "").sub("http://schema.org/", ""),
       venue:        decode.call(venue),
       instructor:   decode.call(instructor),
-      description:  decode.call(raw["description"])
+      description:  decode.call(raw["description"]),
+      image_url:    image_url
     }
   end
 end

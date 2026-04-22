@@ -70,6 +70,7 @@ class ScrapeKitchenJob < ApplicationJob
         venue:        e[:venue],
         instructor:   e[:instructor],
         description:  e[:description],
+        image_url:    e[:image_url],
         spots_left:   e[:spots_left],
         capacity:     e[:capacity],
         last_known_spots_left: last_spots,
