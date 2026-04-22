@@ -8,7 +8,7 @@ task :deploy do
 
       rake deploy:ship    → git pull && fly deploy ($0, silent)
       rake deploy:live    → same + Knox status narration ($0)
-      rake deploy:knox    → route through Knox OpenClaw agent (Haiku tokens)
+      rake deploy:openclaw → route through Knox via OpenClaw (Haiku tokens)
 
   PLAYBOOK
 end
@@ -53,8 +53,8 @@ namespace :deploy do
     end
   end
 
-  desc "Route deploy through the Knox OpenClaw agent (costs Haiku tokens)"
-  task :knox do
+  desc "Route deploy through Knox via OpenClaw (costs Haiku tokens)"
+  task :openclaw do
     abort "✗ openclaw CLI not found" unless system("which openclaw > /dev/null 2>&1")
     commit = `git rev-parse --short HEAD`.strip
     exec "openclaw agent --agent knox " \
