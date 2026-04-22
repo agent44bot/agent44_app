@@ -91,7 +91,7 @@ class KitchenController < ApplicationController
 
       # Build dynamic weekly buckets covering all events
       @weeks = []
-      labels = ["Current Week", "Next Week"]
+      labels = [ "Current Week", "Next Week" ]
       last_event_date = @events.last&.start_at&.to_date || today
       week_start = today
       week_end = this_sunday
