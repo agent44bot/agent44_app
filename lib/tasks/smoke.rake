@@ -19,10 +19,10 @@ namespace :smoke do
     exec "bin/smoke"
   end
 
-  desc "NY Kitchen calendar arrow-nav smoke test (Playwright, email on fail)"
+  desc "NY Kitchen calendar smoke tests (Playwright, email on fail)"
   task :nyk do
     ENV["RUN_SMOKE"] = "true"
-    exec "bin/rails test test/smoke/nyk_calendar_nav_test.rb"
+    exec "bin/rails test test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_list_nav_test.rb test/smoke/nyk_coupon_field_test.rb"
   end
 end
 

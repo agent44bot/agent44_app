@@ -51,7 +51,7 @@ jobs:
           NYK_SMOKE_RECIPIENTS: ${{ secrets.NYK_SMOKE_RECIPIENTS }}
           BREVO_SMTP_KEY: ${{ secrets.BREVO_SMTP_KEY }}
           VERIFY_VLAD_STATUS: "true"
-        run: bin/rails test test/smoke/nyk_calendar_nav_test.rb
+        run: bin/rails test test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_list_nav_test.rb test/smoke/nyk_coupon_field_test.rb
 
       - name: Upload smoke artifacts on failure
         uses: actions/upload-artifact@v4

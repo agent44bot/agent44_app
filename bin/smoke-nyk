@@ -28,4 +28,4 @@ export SMOKE_API_URL="https://agent44-app.fly.dev"
 export NYK_SMOKE_DELIVER=true
 
 bin/rails db:test:prepare 2>/dev/null
-bin/rails test test/smoke/nyk_calendar_nav_test.rb
+bin/rails test test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_list_nav_test.rb test/smoke/nyk_coupon_field_test.rb
