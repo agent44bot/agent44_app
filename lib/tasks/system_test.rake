@@ -19,7 +19,7 @@ end
 namespace :test do
   desc "Run unit and integration tests"
   task :unit do
-    sh "bin/rails test"
+    sh "bin/rails test --verbose"
   end
 
   desc "Run Playwright system tests (headless, Vlad status updates)"
