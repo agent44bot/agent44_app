@@ -6,8 +6,8 @@ task :deploy do
     ║                    agent44_app deploy playbook                    ║
     ╚════════════════════════════════════════════════════════════════════╝
 
-      rake deploy:live     → git pull && fly deploy + Knox status narration ($0)
-      rake deploy:openclaw → route through Knox via OpenClaw (Haiku tokens)
+      rake deploy:live      → git pull && fly deploy + Knox status narration ($0)
+      rake openclaw:deploy  → route through Knox via OpenClaw (Haiku tokens)
 
   PLAYBOOK
 end
@@ -46,15 +46,6 @@ namespace :deploy do
     end
   end
 
-  desc "Route deploy through Knox via OpenClaw (costs Haiku tokens)"
-  task :openclaw do
-    abort "✗ openclaw CLI not found" unless system("which openclaw > /dev/null 2>&1")
-    commit = `git rev-parse --short HEAD`.strip
-    exec "openclaw agent --agent knox " \
-         "--message \"Deploy agent44-app to prod (commit #{commit}). " \
-         "Run: cd #{Dir.pwd} && git pull --ff-only && fly deploy. " \
-         "Report stdout/exit code.\" --json --timeout 600"
-  end
 end
 
 def knox_status(status, task = "")

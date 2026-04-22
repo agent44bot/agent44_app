@@ -11,6 +11,7 @@ task :tests do
       rake test:system:headed  → same in visible browser (Vlad status, $0)
       rake test:smoke          → production smoke tests via bin/smoke
       rake test:smoke:nyk      → NY Kitchen calendar smoke test (Playwright)
+      rake openclaw:test       → Vlad runs tests via OpenClaw (Haiku tokens)
 
   PLAYBOOK
 end
