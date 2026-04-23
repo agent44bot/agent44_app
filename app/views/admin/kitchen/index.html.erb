@@ -132,9 +132,9 @@
           <%
             total = week[:events].size
             statuses = week[:events].map(&:availability_status)
-            unavail = statuses.count { |s| s == "soldout" || s == "closed" }
+            unavail = statuses.count { |s| s == "soldout" || s == "closed" || s == "other" }
             limited = statuses.count("limited")
-            avail = total - unavail - limited
+            avail = statuses.count("instock")
             pct_unavail = (unavail.to_f / total * 100).round(1)
             pct_limited = (limited.to_f / total * 100).round(1)
             pct_avail   = (100 - pct_unavail - pct_limited).round(1)

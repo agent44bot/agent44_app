@@ -72,6 +72,22 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.bg-green-500[title='2 available']"
   end
 
+  test "events with empty availability are counted as unavailable not available" do
+    this_week = 2.days.from_now
+    create_event("Sold Out Class", this_week, "SoldOut")
+    create_event("Private Event", this_week + 1.hour, "")  # empty = "other"
+
+    get nykitchen_path
+    assert_response :success
+
+    assert_select "section[id^='week-']" do |sections|
+      section = sections.find { |s| s.text.include?("Private Event") }
+      assert section
+      assert_select section, "div.bg-green-500", count: 0, message: "Empty availability should not show as green/available"
+      assert_select section, "div.bg-red-500"
+    end
+  end
+
   test "each week section has an id for deep linking" do
     create_event("This Week Event", 2.days.from_now, "InStock")
     next_monday = @today + ((7 - @today.cwday) % 7) + 1
