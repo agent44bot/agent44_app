@@ -114,7 +114,8 @@ class KitchenController < ApplicationController
         "instock" => statuses.count("instock"),
         "limited" => statuses.count("limited"),
         "soldout" => statuses.count("soldout"),
-        "closed"  => statuses.count("closed")
+        "closed"  => statuses.count("closed"),
+        "other"   => statuses.count("other")
       }
 
       event_urls = @events.map(&:url)
@@ -124,7 +125,7 @@ class KitchenController < ApplicationController
       @weeks = []
       @total = 0
       @sold_out = 0
-      @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0 }
+      @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0, "other" => 0 }
       @post_logs = {}
     end
 

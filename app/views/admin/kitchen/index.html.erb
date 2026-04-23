@@ -100,7 +100,8 @@
         ["instock", "Available",           "bg-green-700 text-green-100",        "bg-green-900/40 text-green-400 hover:bg-green-900/60"],
         ["limited", "Limited",             "bg-amber-700 text-amber-100",        "bg-amber-900/40 text-amber-400 hover:bg-amber-900/60"],
         ["soldout", "Sold Out",            "bg-red-800 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"],
-        ["closed",  "No Longer Available", "bg-red-900 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"]
+        ["closed",  "No Longer Available", "bg-red-900 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"],
+        ["other",   "Unknown",             "bg-gray-600 text-gray-100",          "bg-gray-800 text-gray-400 hover:bg-gray-700"]
       ]
     %>
     <div class="flex flex-wrap gap-2 mb-5" data-tabs-chrome-for="0 1 2">
@@ -214,8 +215,10 @@
                       dot_color = "bg-red-500"
                     elsif e.spots_left && e.spots_left <= 3
                       dot_color = "bg-amber-500"
-                    else
+                    elsif e.spots_left && e.spots_left > 3
                       dot_color = "bg-green-500"
+                    else
+                      dot_color = "bg-gray-500"
                     end
 
                     # Tooltip status text + color
