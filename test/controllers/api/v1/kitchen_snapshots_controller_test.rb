@@ -135,6 +135,99 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_includes tickets_notifications.first.title, "Pasta Making"
   end
 
+  test "batches into a single digest when multiple events change in one scrape" do
+    # First run: three events
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/pasta-101", name: "Pasta Making",
+          start_at: 3.days.from_now.iso8601, spots_left: 10, capacity: 24,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/wine-102", name: "Wine Tasting",
+          start_at: 4.days.from_now.iso8601, spots_left: 20, capacity: 30,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/bread-103", name: "Bread Basics",
+          start_at: 5.days.from_now.iso8601, spots_left: 8, capacity: 16,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+
+    # Second run: all three drop
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/pasta-101", name: "Pasta Making",
+          start_at: 3.days.from_now.iso8601, spots_left: 8, capacity: 24,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/wine-102", name: "Wine Tasting",
+          start_at: 4.days.from_now.iso8601, spots_left: 19, capacity: 30,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/bread-103", name: "Bread Basics",
+          start_at: 5.days.from_now.iso8601, spots_left: 7, capacity: 16,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+
+    tickets_notifications = Notification.where(source: "kitchen_tickets")
+    assert_equal 1, tickets_notifications.count, "Three changes should produce one digest"
+    digest = tickets_notifications.first
+    assert_includes digest.title, "3 classes"
+    assert_includes digest.title, "4 ticket(s) bought"  # 2 + 1 + 1
+    assert_includes digest.body, "Pasta Making"
+    assert_includes digest.body, "Wine Tasting"
+    assert_includes digest.body, "Bread Basics"
+  end
+
+  test "digest title flags when events sell out" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/a", name: "Class A",
+          start_at: 3.days.from_now.iso8601, spots_left: 2, capacity: 10,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/b", name: "Class B",
+          start_at: 4.days.from_now.iso8601, spots_left: 5, capacity: 10,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/a", name: "Class A",
+          start_at: 3.days.from_now.iso8601, spots_left: 0, capacity: 10,
+          availability: "SoldOut" },
+        { url: "https://nykitchen.com/events/b", name: "Class B",
+          start_at: 4.days.from_now.iso8601, spots_left: 3, capacity: 10,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+
+    digest = Notification.where(source: "kitchen_tickets").order(created_at: :desc).first
+    assert_includes digest.title, "2 classes"
+    assert_includes digest.title, "1 sold out"
+  end
+
+  test "digest truncates body to first 5 changes plus count" do
+    seed = (1..7).map do |i|
+      { url: "https://nykitchen.com/events/c#{i}", name: "Class #{i}",
+        start_at: (i + 2).days.from_now.iso8601, spots_left: 10, capacity: 20,
+        availability: "InStock" }
+    end
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: seed }.to_json,
+      headers: @headers
+
+    drop = seed.map { |e| e.merge(spots_left: 9) }
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: drop }.to_json,
+      headers: @headers
+
+    digest = Notification.where(source: "kitchen_tickets").order(created_at: :desc).first
+    assert_includes digest.body, "+ 2 more"
+    assert_includes digest.body, "Class 1"
+    assert_includes digest.body, "Class 5"
+    assert_not_includes digest.body, "Class 7"
+  end
+
   test "stores image_url when provided in event data" do
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [

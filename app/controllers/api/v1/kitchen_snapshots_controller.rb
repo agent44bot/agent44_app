@@ -111,33 +111,73 @@ module Api
       def notify_ticket_changes(snapshot, prev_spots)
         return if prev_spots.empty?
 
-        snapshot.kitchen_events.each do |event|
+        changes = snapshot.kitchen_events.filter_map do |event|
           old_spots = prev_spots[event.url]
           new_spots = event.spots_left
           next unless old_spots && new_spots && new_spots < old_spots
-
-          tickets_bought = old_spots - new_spots
-          sold_out = new_spots == 0
-
-          title = if sold_out
-            "#{event.name}: #{tickets_bought} ticket(s) bought — SOLD OUT"
-          else
-            "#{event.name}: #{tickets_bought} ticket(s) bought — #{new_spots} spot(s) left"
-          end
-
-          week_index, week_label = week_info_for(event)
-
-          Notification.notify!(
-            level: "info",
-            source: "kitchen_tickets",
-            title: title,
-            body: "#{old_spots} → #{new_spots} spots remaining",
-            telegram: true,
-            apns: true,
-            apns_url: "/nykitchen#week-#{week_index}",
-            apns_subtitle: week_label
-          )
+          { event: event, old_spots: old_spots, new_spots: new_spots }
         end
+
+        return if changes.empty?
+
+        if changes.size == 1
+          notify_single_change(changes.first)
+        else
+          notify_digest(changes)
+        end
+      end
+
+      def notify_single_change(change)
+        event = change[:event]
+        old_spots = change[:old_spots]
+        new_spots = change[:new_spots]
+        tickets_bought = old_spots - new_spots
+        sold_out = new_spots == 0
+
+        title = if sold_out
+          "#{event.name}: #{tickets_bought} ticket(s) bought — SOLD OUT"
+        else
+          "#{event.name}: #{tickets_bought} ticket(s) bought — #{new_spots} spot(s) left"
+        end
+
+        week_index, week_label = week_info_for(event)
+
+        Notification.notify!(
+          level: "info",
+          source: "kitchen_tickets",
+          title: title,
+          body: "#{old_spots} → #{new_spots} spots remaining",
+          telegram: true,
+          apns: true,
+          apns_url: "/nykitchen#week-#{week_index}",
+          apns_subtitle: week_label
+        )
+      end
+
+      def notify_digest(changes)
+        total_tickets = changes.sum { |c| c[:old_spots] - c[:new_spots] }
+        sold_out_count = changes.count { |c| c[:new_spots] == 0 }
+
+        title = "#{changes.size} classes: #{total_tickets} ticket(s) bought"
+        title += " — #{sold_out_count} sold out" if sold_out_count > 0
+
+        lines = changes.first(5).map do |c|
+          name = c[:event].name.to_s
+          name = name[0, 35] + "…" if name.length > 36
+          "#{name}: #{c[:old_spots]} → #{c[:new_spots]}"
+        end
+        lines << "+ #{changes.size - 5} more" if changes.size > 5
+
+        Notification.notify!(
+          level: "info",
+          source: "kitchen_tickets",
+          title: title,
+          body: lines.join("\n"),
+          telegram: true,
+          apns: true,
+          apns_url: "/nykitchen",
+          apns_subtitle: nil
+        )
       end
 
       # Returns [week_index, label] for an event relative to the current week.
