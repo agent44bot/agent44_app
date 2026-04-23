@@ -95,25 +95,25 @@
 
     <!-- Filter chips (apply to all three views) -->
     <%
-      inactive_chip = "bg-gray-800 text-gray-400 hover:bg-gray-700"
+      # [status, label, active_classes, inactive_classes]
       chips = [
-        ["all",     "All",                   "bg-orange-500 text-white"],
-        ["instock", "Available",             "bg-green-700 text-green-100"],
-        ["limited", "Limited",               "bg-amber-700 text-amber-100"],
-        ["soldout", "Sold Out",              "bg-red-800 text-red-100"],
-        ["closed",  "No Longer Available",   "bg-red-900 text-red-100"]
+        ["all",     "All",                 "bg-orange-500 text-white",           "bg-gray-800 text-gray-400 hover:bg-gray-700"],
+        ["instock", "Available",           "bg-green-700 text-green-100",        "bg-green-900/40 text-green-400 hover:bg-green-900/60"],
+        ["limited", "Limited",             "bg-amber-700 text-amber-100",        "bg-amber-900/40 text-amber-400 hover:bg-amber-900/60"],
+        ["soldout", "Sold Out",            "bg-red-800 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"],
+        ["closed",  "No Longer Available", "bg-red-900 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"]
       ]
     %>
     <div class="flex flex-wrap gap-2 mb-5" data-tabs-chrome-for="0 1 2">
-      <% chips.each do |status, text, active_cls| %>
+      <% chips.each do |status, text, active_cls, inactive_cls| %>
         <% count = @filter_counts[status] %>
         <% next if count == 0 && status != "all" %>
-        <% start_cls = status == "all" ? active_cls : inactive_chip %>
+        <% start_cls = status == "all" ? active_cls : inactive_cls %>
         <button data-kitchen-filter-target="chip"
                 data-action="click->kitchen-filter#filter"
                 data-filter-status="<%= status %>"
                 data-active-classes="<%= active_cls %>"
-                data-inactive-classes="<%= inactive_chip %>"
+                data-inactive-classes="<%= inactive_cls %>"
                 class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
           <%= text %> (<%= count %>)
         </button>
