@@ -1,7 +1,7 @@
 require "apnotic"
 
 class ApnsPusher
-  def self.send_alert(notification, url: nil)
+  def self.send_alert(notification, url: nil, subtitle: nil)
     tokens = DeviceToken.active.ios.pluck(:token)
     return if tokens.empty?
 
@@ -10,10 +10,9 @@ class ApnsPusher
 
     tokens.each do |token|
       push_notification = Apnotic::Notification.new(token)
-      push_notification.alert = {
-        title: notification.title,
-        body: notification.body || ""
-      }
+      alert = { title: notification.title, body: notification.body || "" }
+      alert[:subtitle] = subtitle if subtitle
+      push_notification.alert = alert
       push_notification.sound = "default"
       push_notification.topic = "com.agent44labs.app"
       push_notification.custom_payload = { url: url } if url

@@ -16,10 +16,10 @@ class Notification < ApplicationRecord
   end
 
   # Convenience: create + optionally push to Telegram / APNs
-  def self.notify!(level:, source:, title:, body: nil, telegram: false, apns: false, apns_url: nil)
+  def self.notify!(level:, source:, title:, body: nil, telegram: false, apns: false, apns_url: nil, apns_subtitle: nil)
     notification = create!(level: level, source: source, title: title, body: body)
     TelegramNotifier.send_alert(notification) if telegram
-    ApnsPusher.send_alert(notification, url: apns_url) if apns
+    ApnsPusher.send_alert(notification, url: apns_url, subtitle: apns_subtitle) if apns
     notification
   rescue => e
     Rails.logger.error("Notification.notify! failed: #{e.message}")

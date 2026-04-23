@@ -122,9 +122,10 @@
 
     <!-- List View -->
     <div data-tabs-target="panel">
-      <% @weeks.each do |week| %>
+      <% @weeks.each_with_index do |week, week_index| %>
         <% next if week[:events].empty? %>
-        <section data-kitchen-filter-target="section"
+        <section id="week-<%= week_index %>"
+                 data-kitchen-filter-target="section"
                  data-controller="collapsible"
                  data-collapsible-collapsed-value="<%= week[:expanded] ? 'false' : 'true' %>"
                  class="mb-8">
@@ -551,5 +552,26 @@
       selectTab(parseInt(tab.dataset.tabIndex));
     });
   });
+
+  // Deep-link: #week-N scrolls to and expands that week section (List tab)
+  var hash = window.location.hash;
+  if (hash && hash.match(/^#week-\d+$/)) {
+    // Ensure List tab is active (index 0)
+    selectTab(0);
+    var section = document.getElementById(hash.slice(1));
+    if (section) {
+      // Expand if collapsed
+      var body = section.querySelector('[data-collapsible-target="body"]');
+      var icon = section.querySelector('[data-collapsible-target="icon"]');
+      if (body && body.classList.contains('hidden')) {
+        body.classList.remove('hidden');
+        if (icon) icon.classList.remove('-rotate-90');
+      }
+      // Scroll into view after a short delay for layout
+      setTimeout(function() {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }
 })();
 <% end %>

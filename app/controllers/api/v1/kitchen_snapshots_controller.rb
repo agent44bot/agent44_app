@@ -125,6 +125,8 @@ module Api
             "#{event.name}: #{tickets_bought} ticket(s) bought — #{new_spots} spot(s) left"
           end
 
+          week_index, week_label = week_info_for(event)
+
           Notification.notify!(
             level: "info",
             source: "kitchen_tickets",
@@ -132,8 +134,28 @@ module Api
             body: "#{old_spots} → #{new_spots} spots remaining",
             telegram: true,
             apns: true,
-            apns_url: "/nykitchen"
+            apns_url: "/nykitchen#week-#{week_index}",
+            apns_subtitle: week_label
           )
+        end
+      end
+
+      # Returns [week_index, label] for an event relative to the current week.
+      # Week boundaries match the list view: today → this Sunday, then 7-day spans.
+      def week_info_for(event)
+        today = Date.today
+        event_date = event.start_at.to_date
+        days_until_sunday = (7 - today.cwday) % 7
+        this_sunday = today + days_until_sunday
+
+        if event_date <= this_sunday
+          [0, "Current Week"]
+        else
+          weeks_ahead = ((event_date - this_sunday - 1).to_i / 7) + 1
+          case weeks_ahead
+          when 1 then [1, "Next Week"]
+          else [weeks_ahead, "In #{weeks_ahead} Weeks"]
+          end
         end
       end
     end
