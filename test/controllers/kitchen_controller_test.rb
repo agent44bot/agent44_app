@@ -1,0 +1,97 @@
+require "test_helper"
+
+class KitchenControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @today = Date.today
+    @snapshot = KitchenSnapshot.create!(taken_on: @today)
+  end
+
+  test "week headers show availability bar with correct segments" do
+    # Create events this week: 2 available, 1 sold out, 1 limited
+    this_week = 2.days.from_now
+    create_event("Pasta 101", this_week, "InStock")
+    create_event("Wine 201", this_week + 1.hour, "InStock")
+    create_event("Cheese Class", this_week + 2.hours, "SoldOut")
+    create_event("Baking Basics", this_week + 3.hours, "Limited")
+
+    get nykitchen_path
+    assert_response :success
+
+    # The bar should have all three segments
+    assert_select "div.bg-red-500"    # sold out segment
+    assert_select "div.bg-amber-500"  # limited segment
+    assert_select "div.bg-green-500"  # available segment
+  end
+
+  test "week with all available events shows only green bar" do
+    next_monday = @today + ((7 - @today.cwday) % 7) + 1
+    create_event("Event A", next_monday.to_time + 10.hours, "InStock")
+    create_event("Event B", next_monday.to_time + 14.hours, "InStock")
+
+    get nykitchen_path
+    assert_response :success
+
+    # Find the week section containing these events
+    assert_select "section[id^='week-']" do |sections|
+      next_week_section = sections.find { |s| s.text.include?("Event A") }
+      assert next_week_section, "Expected a week section containing the events"
+      assert_select next_week_section, "div.bg-green-500"
+      assert_select next_week_section, "div.bg-red-500", count: 0
+      assert_select next_week_section, "div.bg-amber-500", count: 0
+    end
+  end
+
+  test "week with all sold out events shows only red bar" do
+    next_monday = @today + ((7 - @today.cwday) % 7) + 1
+    create_event("Sold A", next_monday.to_time + 10.hours, "SoldOut")
+    create_event("Sold B", next_monday.to_time + 14.hours, "SoldOut")
+    create_event("Closed C", next_monday.to_time + 16.hours, "Closed")
+
+    get nykitchen_path
+    assert_response :success
+
+    assert_select "section[id^='week-']" do |sections|
+      section = sections.find { |s| s.text.include?("Sold A") }
+      assert section, "Expected a week section with sold out events"
+      assert_select section, "div.bg-red-500"
+      assert_select section, "div.bg-green-500", count: 0
+    end
+  end
+
+  test "availability bar percentages reflect event counts" do
+    # 3 events: 1 sold out (33.3%), 2 available (66.7%)
+    this_week = 2.days.from_now
+    create_event("Available 1", this_week, "InStock")
+    create_event("Available 2", this_week + 1.hour, "InStock")
+    create_event("Gone", this_week + 2.hours, "SoldOut")
+
+    get nykitchen_path
+    assert_response :success
+
+    assert_select "div.bg-red-500[title='1 sold out / closed']"
+    assert_select "div.bg-green-500[title='2 available']"
+  end
+
+  test "each week section has an id for deep linking" do
+    create_event("This Week Event", 2.days.from_now, "InStock")
+    next_monday = @today + ((7 - @today.cwday) % 7) + 1
+    create_event("Next Week Event", next_monday.to_time + 10.hours, "InStock")
+
+    get nykitchen_path
+    assert_response :success
+
+    assert_select "section#week-0"
+    assert_select "section#week-1"
+  end
+
+  private
+
+  def create_event(name, start_at, availability)
+    @snapshot.kitchen_events.create!(
+      url: "https://nykitchen.com/events/#{name.parameterize}",
+      name: name,
+      start_at: start_at,
+      availability: availability
+    )
+  end
+end
