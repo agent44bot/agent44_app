@@ -132,12 +132,14 @@
           <%
             total = week[:events].size
             statuses = week[:events].map(&:availability_status)
-            unavail = statuses.count { |s| s == "soldout" || s == "closed" || s == "other" }
+            unavail = statuses.count { |s| s == "soldout" || s == "closed" }
             limited = statuses.count("limited")
             avail = statuses.count("instock")
+            other = statuses.count("other")
             pct_unavail = (unavail.to_f / total * 100).round(1)
             pct_limited = (limited.to_f / total * 100).round(1)
-            pct_avail   = (100 - pct_unavail - pct_limited).round(1)
+            pct_avail   = (avail.to_f / total * 100).round(1)
+            pct_other   = (100 - pct_unavail - pct_limited - pct_avail).round(1)
           %>
           <button type="button"
                   data-action="click->collapsible#toggle"
@@ -159,6 +161,9 @@
               <% end %>
               <% if limited > 0 %>
                 <div class="bg-amber-500 h-full" style="width: <%= pct_limited %>%" title="<%= limited %> limited"></div>
+              <% end %>
+              <% if other > 0 %>
+                <div class="bg-gray-500 h-full" style="width: <%= pct_other %>%" title="<%= other %> unknown"></div>
               <% end %>
               <% if avail > 0 %>
                 <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>

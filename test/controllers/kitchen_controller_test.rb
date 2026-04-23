@@ -72,7 +72,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.bg-green-500[title='2 available']"
   end
 
-  test "events with empty availability are counted as unavailable not available" do
+  test "events with empty availability show as gray not green or red" do
     this_week = 2.days.from_now
     create_event("Sold Out Class", this_week, "SoldOut")
     create_event("Private Event", this_week + 1.hour, "")  # empty = "other"
@@ -83,8 +83,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "section[id^='week-']" do |sections|
       section = sections.find { |s| s.text.include?("Private Event") }
       assert section
-      assert_select section, "div.bg-green-500", count: 0, message: "Empty availability should not show as green/available"
-      assert_select section, "div.bg-red-500"
+      assert_select section, "div.bg-green-500", count: 0, message: "Empty availability should not show as green"
+      assert_select section, "div.bg-gray-500[title='1 unknown']"
+      assert_select section, "div.bg-red-500[title='1 sold out / closed']"
     end
   end
 
