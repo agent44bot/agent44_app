@@ -129,18 +129,41 @@
                  data-controller="collapsible"
                  data-collapsible-collapsed-value="<%= week[:expanded] ? 'false' : 'true' %>"
                  class="mb-8">
+          <%
+            total = week[:events].size
+            statuses = week[:events].map(&:availability_status)
+            unavail = statuses.count { |s| s == "soldout" || s == "closed" }
+            limited = statuses.count("limited")
+            avail = total - unavail - limited
+            pct_unavail = (unavail.to_f / total * 100).round(1)
+            pct_limited = (limited.to_f / total * 100).round(1)
+            pct_avail   = (100 - pct_unavail - pct_limited).round(1)
+          %>
           <button type="button"
                   data-action="click->collapsible#toggle"
-                  class="w-full flex items-center justify-between text-lg font-bold text-white border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
-            <span>
-              <%= week[:label] %>
-              <span class="text-gray-500 font-normal">(<%= week[:events].size %>)</span>
-            </span>
-            <svg data-collapsible-target="icon"
-                 class="w-5 h-5 text-gray-500 transition-transform shrink-0"
-                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
+                  class="w-full text-left border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
+            <div class="flex items-center justify-between">
+              <span class="text-lg font-bold text-white">
+                <%= week[:label] %>
+                <span class="text-gray-500 font-normal">(<%= total %>)</span>
+              </span>
+              <svg data-collapsible-target="icon"
+                   class="w-5 h-5 text-gray-500 transition-transform shrink-0"
+                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+            <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
+              <% if unavail > 0 %>
+                <div class="bg-red-500 h-full" style="width: <%= pct_unavail %>%" title="<%= unavail %> sold out / closed"></div>
+              <% end %>
+              <% if limited > 0 %>
+                <div class="bg-amber-500 h-full" style="width: <%= pct_limited %>%" title="<%= limited %> limited"></div>
+              <% end %>
+              <% if avail > 0 %>
+                <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>
+              <% end %>
+            </div>
           </button>
           <div data-collapsible-target="body" class="space-y-3">
             <% week[:events].each do |e| %>
