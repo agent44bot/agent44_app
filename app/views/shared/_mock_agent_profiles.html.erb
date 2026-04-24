@@ -1,0 +1,26 @@
+<%# Locals: agents (collection of Agent instances), header (string) %>
+<% return if agents.blank? %>
+
+<div class="font-mono"
+     data-controller="mock-agents"
+     data-mock-agents-tasks-value='<%= [
+       "scanning catalog", "drafting social post", "watching checkout flow",
+       "retrying smoke run", "parsing JSON-LD", "queueing retry",
+       "flushing cache", "running diff", "tracing event", "replaying session",
+       "generating thumbnail", "warming edge", "checking cert", "polling feed",
+       "restarting…"
+     ].to_json %>'>
+  <p class="text-[10px] font-semibold uppercase tracking-wider text-green-400 mb-2"><%= header %></p>
+  <div class="space-y-1">
+    <% agents.each do |agent| %>
+      <div class="flex items-center gap-2 transition-colors duration-500 rounded px-1 -mx-1"
+           data-mock-agents-target="line"
+           data-status="<%= agent.status %>">
+        <span class="inline-block h-2 w-2 rounded-full shrink-0 bg-green-400 animate-pulse" data-dot></span>
+        <span class="text-[11px] text-green-400" data-name><%= agent.name %></span>
+        <span class="text-[9px] text-green-700" data-role><%= agent.role.downcase %></span>
+        <span class="text-[8px] text-amber-500 italic" data-task style="display:none"></span>
+      </div>
+    <% end %>
+  </div>
+</div>

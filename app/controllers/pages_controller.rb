@@ -1,8 +1,26 @@
 class PagesController < ApplicationController
   allow_unauthenticated_access
 
+  MOCK_AGENT_ROLES = [
+    "Scout", "Copywriter", "Watchtower", "Ops Relay", "Crawler",
+    "Digest", "Monitor", "Analyzer", "QA Runner", "Replayer"
+  ].freeze
+
   def home
-    @agents = Agent.ordered.to_a
+    real_agents = Agent.ordered.to_a
+    @agents = (authenticated? && Current.session.user.admin?) ? real_agents : []
+
+    # Mock "fleet" — smoke-and-mirrors. Shown to the public as the agents list,
+    # stacked under the real team list for admins. Statuses animate client-side.
+    @mock_agents = 10.times.map do |i|
+      Agent.new(
+        name: format("%03d", i + 1),
+        role: MOCK_AGENT_ROLES[i],
+        status: %w[online online online busy offline].sample,
+        avatar_color: "orange",
+        current_task: nil
+      )
+    end
 
     # NY Kitchen smoke test case study data
     nyk_runs = SmokeTestRun.for_name("nykitchen").recent
