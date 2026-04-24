@@ -6,71 +6,82 @@
     Signed in as <span class="text-gray-200"><%= Current.user&.email_address %></span>
   </p>
 
-  <!-- Face ID section — visible only inside the Capacitor iOS app.
-       The biometric controller flips the correct state open on connect. -->
+  <!-- Face ID / biometrics. The inner panel flips to whichever state
+       the device supports — card (Capacitor), web fallback, or unsupported. -->
   <div data-controller="biometric"
        data-biometric-verify-url-value="<%= verify_password_settings_path %>"
        data-biometric-email-value="<%= Current.user&.email_address %>"
-       class="hidden bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-6"
-       data-biometric-target="card">
+       class="mb-6">
 
-    <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between gap-3">
-      <div>
-        <h2 class="text-white font-semibold text-base">Face ID</h2>
-        <p class="text-xs text-gray-500 mt-0.5">
-          Sign in to this device with Face ID instead of your password.
-        </p>
+    <!-- State: in-app (Capacitor) -->
+    <div data-biometric-target="card"
+         class="hidden bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-white font-semibold text-base">Face ID</h2>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Sign in to this device with Face ID instead of your password.
+          </p>
+        </div>
+        <span data-biometric-target="status"
+              class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-800 text-gray-400">
+          Checking…
+        </span>
       </div>
-      <span data-biometric-target="status"
-            class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-800 text-gray-400">
-        Checking…
-      </span>
-    </div>
 
-    <!-- State: ON (credentials saved) -->
-    <div data-biometric-target="onState" class="hidden px-5 py-4">
-      <p class="text-sm text-gray-300 mb-3">
-        Face ID is enabled for <span class="text-white font-medium"><%= Current.user&.email_address %></span>.
-        Tapping sign-in will prompt Face ID automatically.
-      </p>
-      <button type="button"
-              data-action="click->biometric#disable"
-              data-biometric-target="disableBtn"
-              class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition">
-        Turn off Face ID
-      </button>
-    </div>
-
-    <!-- State: OFF (no credentials saved) -->
-    <div data-biometric-target="offState" class="hidden px-5 py-4">
-      <p class="text-sm text-gray-300 mb-3">
-        Face ID is off. Enter your password once to enable it — we'll save it securely to the device keychain.
-      </p>
-      <div class="space-y-3">
-        <input type="password" autocomplete="current-password"
-               data-biometric-target="password"
-               placeholder="Your password"
-               class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
-        <div data-biometric-target="error" class="hidden text-sm text-red-400"></div>
+      <!-- ON -->
+      <div data-biometric-target="onState" class="hidden px-5 py-4">
+        <p class="text-sm text-gray-300 mb-3">
+          Face ID is enabled for <span class="text-white font-medium"><%= Current.user&.email_address %></span>.
+          Tapping sign-in will prompt Face ID automatically.
+        </p>
         <button type="button"
-                data-action="click->biometric#enable"
-                data-biometric-target="enableBtn"
-                class="px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-500 transition">
-          Turn on Face ID
+                data-action="click->biometric#disable"
+                data-biometric-target="disableBtn"
+                class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition">
+          Turn off Face ID
         </button>
       </div>
+
+      <!-- OFF -->
+      <div data-biometric-target="offState" class="hidden px-5 py-4">
+        <p class="text-sm text-gray-300 mb-3">
+          Face ID is off. Enter your password once to enable it — we'll save it securely to the device keychain.
+        </p>
+        <div class="space-y-3">
+          <input type="password" autocomplete="current-password"
+                 data-biometric-target="password"
+                 placeholder="Your password"
+                 class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+          <div data-biometric-target="error" class="hidden text-sm text-red-400"></div>
+          <button type="button"
+                  data-action="click->biometric#enable"
+                  data-biometric-target="enableBtn"
+                  class="px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-500 transition">
+            Turn on Face ID
+          </button>
+        </div>
+      </div>
+
+      <!-- Unsupported device -->
+      <div data-biometric-target="unsupportedState" class="hidden px-5 py-4">
+        <p class="text-sm text-gray-400">
+          Biometric authentication isn't available on this device.
+        </p>
+      </div>
     </div>
 
-    <!-- State: unsupported (no biometrics on device) -->
-    <div data-biometric-target="unsupportedState" class="hidden px-5 py-4">
-      <p class="text-sm text-gray-400">
-        Biometric authentication isn't available on this device.
-      </p>
+    <!-- State: web browser (not Capacitor) -->
+    <div data-biometric-target="webState"
+         class="hidden bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm text-gray-400">
+      Face ID settings are only available inside the Agent 44 Labs iOS app (TestFlight).
     </div>
-  </div>
 
-  <!-- Web fallback — shown when NOT running in Capacitor. -->
-  <div data-biometric-target="webState" class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm text-gray-400">
-    Face ID settings are only available inside the Agent 44 Labs iOS app (TestFlight).
+    <!-- Pre-JS placeholder (controller hides it in connect so only one panel shows) -->
+    <noscript>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm text-gray-400">
+        Enable JavaScript to manage device settings.
+      </div>
+    </noscript>
   </div>
 </div>
