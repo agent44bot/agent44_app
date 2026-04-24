@@ -1,5 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Bond-themed tasks for agent 007. Always shown when 007 goes busy.
+const BOND_TASKS = [
+  "martini, shaken, not stirred",
+  "tailing mark through Monte Carlo",
+  "decoding MI6 cipher",
+  "evading pursuit in Aston Martin",
+  "scaling alpine ridge",
+  "briefing M",
+  "checking Q's new gadget",
+  "losing a tail in Istanbul"
+]
+
 // Smoke-and-mirrors fleet animation. Periodically cycles mock agent
 // statuses (online / busy / offline / restarting) and occasionally
 // promotes a row to the top to simulate activity.
@@ -20,16 +32,20 @@ export default class extends Controller {
   tick() {
     if (this.lineTargets.length === 0) return
     const line = this.lineTargets[Math.floor(Math.random() * this.lineTargets.length)]
+    const nameEl = line.querySelector("[data-name]")
+    const isBond = nameEl && nameEl.textContent.trim() === "007"
+    const pool = isBond ? BOND_TASKS : this.tasksValue
+
     const roll = Math.random()
     if (roll < 0.4) {
       this.setStatus(line, "online")
     } else if (roll < 0.75) {
-      const task = this.tasksValue[Math.floor(Math.random() * this.tasksValue.length)]
+      const task = pool[Math.floor(Math.random() * pool.length)]
       this.setStatus(line, "busy", task)
     } else if (roll < 0.9) {
       this.setStatus(line, "offline")
     } else {
-      this.setStatus(line, "busy", "restarting…")
+      this.setStatus(line, "busy", isBond ? "martini, shaken, not stirred" : "restarting…")
     }
   }
 

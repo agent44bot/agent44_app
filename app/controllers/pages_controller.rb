@@ -3,7 +3,7 @@ class PagesController < ApplicationController
 
   MOCK_AGENT_ROLES = [
     "Scout", "Copywriter", "Watchtower", "Ops Relay", "Crawler",
-    "Digest", "Monitor", "Analyzer", "QA Runner", "Replayer"
+    "Digest", "MI6", "Analyzer", "QA Runner", "Replayer"
   ].freeze
 
   def home
