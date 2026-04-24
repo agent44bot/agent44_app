@@ -2,8 +2,8 @@ class PagesController < ApplicationController
   allow_unauthenticated_access
 
   MOCK_AGENT_ROLES = [
-    "Scout", "Copywriter", "Watchtower", "Ops Relay", "Crawler",
-    "Digest", "MI6", "Analyzer", "QA Runner", "Replayer"
+    "Scout", "Email Copywriter", "Watchtower", "Social Media Copywriter", "Crawler",
+    "Digest", "Secret Agent", "Analyzer", "QA Runner", "Replayer"
   ].freeze
 
   def home
@@ -28,6 +28,7 @@ class PagesController < ApplicationController
     @nyk_total_runs = nyk_runs.count
     @nyk_pass_rate = nyk_runs.any? ? (nyk_runs.where(status: "passed").count.to_f / nyk_runs.count * 100).round : nil
     @nyk_total_cost = nyk_runs.sum(:cost_dollars)
+    @can_see_nyk_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
   end
 
   def lab

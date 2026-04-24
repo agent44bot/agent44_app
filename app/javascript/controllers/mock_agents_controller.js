@@ -1,16 +1,45 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Bond-themed tasks for agent 007. Always shown when 007 goes busy.
-const BOND_TASKS = [
-  "martini, shaken, not stirred",
-  "tailing mark through Monte Carlo",
-  "decoding MI6 cipher",
-  "evading pursuit in Aston Martin",
-  "scaling alpine ridge",
-  "briefing M",
-  "checking Q's new gadget",
-  "losing a tail in Istanbul"
-]
+// Per-agent task pools. Agents not listed here fall back to tasksValue.
+const SPECIAL_TASKS = {
+  "007": [
+    "martini, shaken, not stirred",
+    "tailing mark through Monte Carlo",
+    "decoding MI6 cipher",
+    "evading pursuit in Aston Martin",
+    "scaling alpine ridge",
+    "briefing M",
+    "checking Q's new gadget",
+    "losing a tail in Istanbul"
+  ],
+  "004": [
+    "drafting an Instagram post",
+    "drafting a Facebook post",
+    "drafting a TikTok caption",
+    "writing a LinkedIn post",
+    "polishing a caption",
+    "generating hashtags",
+    "A/B testing two headlines",
+    "scheduling tomorrow's feed"
+  ],
+  "002": [
+    "drafting a welcome email",
+    "writing newsletter intro",
+    "A/B testing subject lines",
+    "drafting cart abandonment email",
+    "writing promo blast",
+    "scheduling drip sequence",
+    "proofreading newsletter",
+    "tagging CTAs"
+  ]
+}
+
+// Restart-fallback flavor text per agent
+const SPECIAL_RESTART = {
+  "007": "martini, shaken, not stirred",
+  "004": "drafting an Instagram post",
+  "002": "drafting a welcome email"
+}
 
 // Smoke-and-mirrors fleet animation. Periodically cycles mock agent
 // statuses (online / busy / offline / restarting) and occasionally
@@ -33,8 +62,9 @@ export default class extends Controller {
     if (this.lineTargets.length === 0) return
     const line = this.lineTargets[Math.floor(Math.random() * this.lineTargets.length)]
     const nameEl = line.querySelector("[data-name]")
-    const isBond = nameEl && nameEl.textContent.trim() === "007"
-    const pool = isBond ? BOND_TASKS : this.tasksValue
+    const name = nameEl ? nameEl.textContent.trim() : ""
+    const pool = SPECIAL_TASKS[name] || this.tasksValue
+    const restartTask = SPECIAL_RESTART[name] || "restarting…"
 
     const roll = Math.random()
     if (roll < 0.4) {
@@ -45,7 +75,7 @@ export default class extends Controller {
     } else if (roll < 0.9) {
       this.setStatus(line, "offline")
     } else {
-      this.setStatus(line, "busy", isBond ? "martini, shaken, not stirred" : "restarting…")
+      this.setStatus(line, "busy", restartTask)
     }
   }
 

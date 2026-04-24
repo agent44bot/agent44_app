@@ -433,11 +433,13 @@
             data: { turbo_confirm: "Trigger NY Kitchen smoke test on GitHub Actions?" },
             class: "mb-4 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-400 transition" %>
 
-      <% total_cost = @smoke_runs.sum(:cost_dollars) %>
-      <p class="text-sm text-gray-500 mb-6">
-        Total cost: <span class="text-white font-semibold">$<%= "%.4f" % total_cost %></span>
-        (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %> &middot; $0.00044/min)
-      </p>
+      <% if @can_see_pricing %>
+        <% total_cost = @smoke_runs.sum(:cost_dollars) %>
+        <p class="text-sm text-gray-500 mb-6">
+          Total cost: <span class="text-white font-semibold">$<%= "%.4f" % total_cost %></span>
+          (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %> &middot; $0.00044/min)
+        </p>
+      <% end %>
 
       <% if @smoke_runs.empty? %>
         <div class="bg-gray-900 rounded-xl p-8 text-center">
@@ -455,7 +457,9 @@
                 <th class="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider sm:px-4">Duration</th>
                 <th class="hidden sm:table-cell px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
                 <th class="px-3 py-2 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider sm:px-4">Video</th>
-                <th class="hidden sm:table-cell px-4 py-2 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Cost</th>
+                <% if @can_see_pricing %>
+                  <th class="hidden sm:table-cell px-4 py-2 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Cost</th>
+                <% end %>
                 <% if admin %>
                   <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">&nbsp;</th>
                 <% end %>
@@ -504,9 +508,11 @@
                       <span class="text-gray-600 text-xs">—</span>
                     <% end %>
                   </td>
-                  <td class="hidden sm:table-cell px-4 py-3 text-sm text-gray-500 text-right whitespace-nowrap">
-                    $<%= "%.4f" % run.cost_dollars %>
-                  </td>
+                  <% if @can_see_pricing %>
+                    <td class="hidden sm:table-cell px-4 py-3 text-sm text-gray-500 text-right whitespace-nowrap">
+                      $<%= "%.4f" % run.cost_dollars %>
+                    </td>
+                  <% end %>
                   <% if admin %>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
                       <%= button_to admin_smoke_run_path(run),
