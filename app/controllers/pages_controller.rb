@@ -2,13 +2,14 @@ class PagesController < ApplicationController
   allow_unauthenticated_access
 
   def home
-    @recent_jobs = Job.active.recent.limit(6)
-    @todays_jobs = Job.active.posted_today.recent.limit(5)
-    @digest = NewsDigest.order(date: :desc).limit(1).first
-    @recent_news = NewsArticle.recent.limit(3)
-    @recent_posts = Post.published.limit(3)
-    @ai_demand_meter = Job.ai_demand_meter
     @agents = Agent.ordered.to_a
+
+    # NY Kitchen smoke test case study data
+    nyk_runs = SmokeTestRun.for_name("nykitchen").recent
+    @nyk_latest_run = nyk_runs.first
+    @nyk_total_runs = nyk_runs.count
+    @nyk_pass_rate = nyk_runs.any? ? (nyk_runs.where(status: "passed").count.to_f / nyk_runs.count * 100).round : nil
+    @nyk_total_cost = nyk_runs.sum(:cost_dollars)
   end
 
   def lab

@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Agent 44 Labs">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="description" content="Agent 44 Labs — AI agents, test automation, iOS & web apps">
+  <meta name="description" content="Agent 44 Labs — agent-driven production smoke tests for small and mid-size teams.">
   <title><%= content_for?(:title) ? "#{yield(:title)} | Agent 44 Labs" : "Agent 44 Labs" %></title>
   <link rel="icon" href="/agent44_logo.svg" type="image/svg+xml">
   <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
@@ -29,14 +29,19 @@
   document.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-nav-target="menuBtn"]');
     if (!btn) return;
+    var navRoot = btn.closest('[data-controller~="nav"]');
+    if (!navRoot) return;
     // Skip if Stimulus nav controller is connected (it handles its own click)
-    var navEl = document.querySelector('[data-controller*="nav"]');
-    if (navEl && navEl.dataset.controller && window.Stimulus) {
-      var app = window.Stimulus;
-      if (app.getControllerForElementAndIdentifier && app.getControllerForElementAndIdentifier(navEl, 'nav')) return;
+    if (window.Stimulus && window.Stimulus.getControllerForElementAndIdentifier &&
+        window.Stimulus.getControllerForElementAndIdentifier(navRoot, 'nav')) return;
+    // Find the menu target that belongs to this nav (not a nested one)
+    var menus = navRoot.querySelectorAll('[data-nav-target="menu"]');
+    for (var i = 0; i < menus.length; i++) {
+      if (menus[i].closest('[data-controller~="nav"]') === navRoot) {
+        menus[i].classList.toggle('hidden');
+        break;
+      }
     }
-    var menu = document.querySelector('[data-nav-target="menu"]');
-    if (menu) menu.classList.toggle('hidden');
   });
   <% end %>
   <%= javascript_tag nonce: true do %>
@@ -74,43 +79,42 @@
   <nav class="bg-gray-950/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50" data-controller="nav">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
-        <!-- Left: Logo + Links -->
-        <div class="flex items-center space-x-8 min-w-0 overflow-hidden">
+        <!-- Left: Logo -->
+        <div class="flex items-center min-w-0 overflow-hidden">
           <%= link_to root_path, class: "flex items-center space-x-2 font-black text-xl tracking-tight min-w-0" do %>
             <img src="/agent44_logo.svg" alt="Agent 44 Labs" width="40" height="40" class="w-10 h-10">
             <span class="text-white">Agent 44 <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Labs</span></span>
           <% end %>
-
-          <div class="hidden md:flex items-center space-x-6">
-            <%= link_to "Home", root_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
-            <%= link_to "Jobs", jobs_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
-            <% if authenticated? && Current.session.user.admin? %>
-              <%= link_to "Crypto", crypto_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
-            <% end %>
-            <%= link_to "AI News", news_articles_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
-            <%= link_to posts_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition flex items-center gap-1" do %>
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
-              Pulse
-            <% end %>
-            <%= link_to globe_jobs_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition flex items-center gap-1" do %>
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 003 12c0-1.605.42-3.113 1.157-4.418"/></svg>
-              Map
-            <% end %>
-          </div>
         </div>
 
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
-            <%= link_to saved_jobs_path, class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition flex items-center gap-1", title: "Saved Jobs" do %>
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1z"/></svg>
-              Saved
-            <% end %>
             <% if Current.session.user.admin? %>
-              <%= link_to "Dashboard", admin_dashboard_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
+              <!-- Admin dropdown -->
+              <div class="relative" data-controller="nav">
+                <button type="button" data-action="click->nav#toggle" aria-label="Admin menu"
+                        class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-orange-400 hover:bg-gray-800 transition">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                  </svg>
+                </button>
+                <div data-nav-target="menu" class="hidden absolute right-0 mt-2 w-52 rounded-lg bg-gray-900 border border-gray-800 shadow-xl py-1 z-50">
+                  <%= link_to "Dashboard", admin_dashboard_path, class: "block px-4 py-2 text-sm font-medium text-orange-500 hover:bg-gray-800" %>
+                  <div class="my-1 border-t border-gray-800"></div>
+                  <%= link_to "Jobs", jobs_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                  <%= link_to "NY Kitchen", nykitchen_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                  <%= link_to "AI News", news_articles_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                  <%= link_to "Pulse", posts_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                  <%= link_to "Map", globe_jobs_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                  <%= link_to "Crypto", crypto_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                  <div class="my-1 border-t border-gray-800"></div>
+                  <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
+                </div>
+              </div>
             <% end %>
             <%= link_to Current.session.user.display_identifier, settings_path,
-                  class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
+                  class: "text-sm text-gray-400 hover:text-orange-400 transition truncate max-w-[180px]" %>
             <%= button_to "Sign Out", session_path, method: :delete,
                   class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
           <% else %>
@@ -135,17 +139,17 @@
     <div class="hidden md:hidden" data-nav-target="menu">
       <div class="px-4 pt-2 pb-4 space-y-1 border-t border-gray-800">
         <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
-        <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% if authenticated? && Current.session.user.admin? %>
+          <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "Crypto", crypto_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+          <%= link_to "AI News", news_articles_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+          <%= link_to posts_path, class: "flex items-center gap-1 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-orange-400" do %>
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+            Pulse
+          <% end %>
+          <%= link_to "Map", globe_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% end %>
-        <%= link_to "AI News", news_articles_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
-        <%= link_to posts_path, class: "flex items-center gap-1 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-orange-400" do %>
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
-          Pulse
-        <% end %>
-        <%= link_to "Map", globe_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <div class="border-t border-gray-800 pt-2">
           <% if authenticated? %>
             <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
@@ -209,18 +213,18 @@
 
         <!-- Links -->
         <div>
-          <h3 class="text-white font-semibold text-xs uppercase tracking-wide mb-1">Links</h3>
+          <h3 class="text-white font-semibold text-xs uppercase tracking-wide mb-1">Services</h3>
           <ul class="space-y-1 text-xs">
-            <li><%= link_to "Jobs", jobs_path, class: "hover:text-orange-400 transition" %></li>
-            <li><%= link_to "AI News", news_articles_path, class: "hover:text-orange-400 transition" %></li>
-            <li><%= link_to posts_path, class: "hover:text-orange-400 transition inline-flex items-center gap-1" do %><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg> Pulse<% end %></li>
+            <li><a href="#services" class="hover:text-orange-400 transition">Smoke tests</a></li>
+            <li><a href="#case-studies" class="hover:text-orange-400 transition">Case studies</a></li>
+            <li><a href="mailto:botwhisperer@hey.com?subject=Agent%2044%20Labs%20%E2%80%94%20QA%20for%20my%20site" class="hover:text-orange-400 transition">Get a quote</a></li>
           </ul>
         </div>
 
         <!-- Newsletter -->
         <div>
-          <h3 class="text-white font-semibold text-xs uppercase tracking-wide mb-1">Subscribe</h3>
-          <p class="text-xs text-gray-500 mb-2">Jobs, articles, and insights.</p>
+          <h3 class="text-white font-semibold text-xs uppercase tracking-wide mb-1">Stay posted</h3>
+          <p class="text-xs text-gray-500 mb-2">Occasional updates on new tests and tooling.</p>
           <div id="newsletter-form">
             <%= render "subscribers/form" %>
           </div>

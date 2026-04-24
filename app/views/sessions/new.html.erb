@@ -8,7 +8,42 @@
       <p class="mt-2 text-sm text-gray-500">Choose your preferred authentication method</p>
     </div>
 
-    <div class="bg-gray-900 rounded-xl border border-gray-800 shadow-sm overflow-hidden" data-controller="tabs">
+    <% if Rails.env.development? %>
+      <% dev_users = User.where(role: "admin").where.not(email_address: nil).where.not("email_address LIKE ?", "%@example.com").order(:id).to_a %>
+      <% dev_users += User.where.not(role: "admin").where.not(email_address: nil).where.not("email_address LIKE ?", "%@example.com").order(:id).limit(1).to_a %>
+      <% if dev_users.any? %>
+        <div class="mb-6 bg-amber-950/40 border border-amber-800/60 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white">Dev only</span>
+            <span class="text-xs text-amber-300">Click to sign in without a password (localhost only)</span>
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <% dev_users.each do |u| %>
+              <%= button_to dev_login_as_path(u.id),
+                    method: :post,
+                    form_class: "contents",
+                    class: "w-full text-left px-3 py-2 bg-gray-900/80 hover:bg-gray-800 border border-gray-800 rounded-lg text-sm text-gray-200 transition flex items-center justify-between gap-3" do %>
+                <span class="truncate">
+                  <%= u.email_address %>
+                </span>
+                <span class="flex items-center gap-2 flex-shrink-0">
+                  <% if u.admin? %>
+                    <span class="text-[10px] font-semibold uppercase text-amber-400">admin</span>
+                  <% elsif u.kitchen_only? %>
+                    <span class="text-[10px] font-semibold uppercase text-orange-400">kitchen</span>
+                  <% else %>
+                    <span class="text-[10px] font-semibold uppercase text-gray-500">user</span>
+                  <% end %>
+                  <span class="text-[10px] text-gray-500">→</span>
+                </span>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 shadow-sm overflow-hidden" data-controller="tabs">
       <!-- Tab Headers -->
       <div class="flex border-b border-gray-800">
         <button data-action="click->tabs#select" data-tabs-target="tab" data-tab-index="0"

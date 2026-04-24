@@ -5,6 +5,10 @@ Rails.application.routes.draw do
   resource :session do
     post :challenge, on: :collection
   end
+
+  if Rails.env.development?
+    post "dev/login_as/:user_id", to: "dev_sessions#create", as: :dev_login_as
+  end
   resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
   resource :settings, only: [ :show ] do
