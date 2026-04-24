@@ -46,4 +46,23 @@ class Api::V1::DeviceTokensControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
   end
+
+  test "POST create associates token with user when user_id is provided" do
+    user = users(:one)
+    post "/api/v1/device_tokens",
+      params: { token: "user-scoped-token", platform: "ios", user_id: user.id }.to_json,
+      headers: { "Content-Type" => "application/json" }
+
+    assert_response :created
+    assert_equal user.id, DeviceToken.find_by(token: "user-scoped-token").user_id
+  end
+
+  test "POST create ignores unknown user_id" do
+    post "/api/v1/device_tokens",
+      params: { token: "orphan-token", platform: "ios", user_id: 999_999 }.to_json,
+      headers: { "Content-Type" => "application/json" }
+
+    assert_response :created
+    assert_nil DeviceToken.find_by(token: "orphan-token").user_id
+  end
 end

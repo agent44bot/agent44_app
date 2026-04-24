@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_22_124210) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_24_111808) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -83,7 +83,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_124210) do
     t.string "platform", default: "ios", null: false
     t.string "token", null: false
     t.datetime "updated_at", null: false
+    t.integer "user_id"
     t.index ["token"], name: "index_device_tokens_on_token", unique: true
+    t.index ["user_id"], name: "index_device_tokens_on_user_id"
   end
 
   create_table "hidden_jobs", force: :cascade do |t|
@@ -348,6 +350,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_124210) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "device_tokens", "users"
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "job_sources", "jobs"

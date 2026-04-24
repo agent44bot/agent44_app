@@ -29,4 +29,15 @@ class DeviceTokenTest < ActiveSupport::TestCase
     dt = DeviceToken.create!(token: "new-token", platform: "ios")
     assert dt.active?
   end
+
+  test "for_user scope filters by user" do
+    user = users(:one)
+    other = users(:two)
+    mine = DeviceToken.create!(token: "mine", platform: "ios", user: user)
+    DeviceToken.create!(token: "theirs", platform: "ios", user: other)
+    DeviceToken.create!(token: "orphan", platform: "ios")
+
+    assert_equal [mine], DeviceToken.for_user(user).to_a
+    assert_equal [mine], DeviceToken.for_user(user.id).to_a
+  end
 end

@@ -1,8 +1,10 @@
 require "apnotic"
 
 class ApnsPusher
-  def self.send_alert(notification, url: nil, subtitle: nil)
-    tokens = DeviceToken.active.ios.pluck(:token)
+  def self.send_alert(notification, url: nil, subtitle: nil, user: nil)
+    scope = DeviceToken.active.ios
+    scope = scope.for_user(user) if user
+    tokens = scope.pluck(:token)
     return if tokens.empty?
 
     connection = build_connection
