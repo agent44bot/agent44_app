@@ -424,12 +424,9 @@
         Smoke Tests
       </h2>
       <p class="text-gray-400 text-sm mb-4">
-        Automated browser test that clicks the <code class="text-orange-400">&lt;</code> /
-        <code class="text-orange-400">&gt;</code> month-nav arrows on
-        <a href="https://nykitchen.com/calendar/" class="text-orange-400 hover:text-orange-300 underline" target="_blank" rel="noopener">nykitchen.com/calendar/</a>
-        and verifies that events round-trip across 3 months of navigation. Runs 3 times daily starting at 9 AM EDT.
-        This is a passive, read-only test &mdash; it simply visits the public calendar in a normal browser, just like any user would, and captures event data. Nothing is submitted, modified, or stressed.
-        On failure, a video of the run will be emailed to admins.
+        Checks 3 times a day that the
+        <a href="https://nykitchen.com/calendar/" class="text-orange-400 hover:text-orange-300 underline" target="_blank" rel="noopener">NY Kitchen calendar</a>
+        still shows the same classes when you flip through the months. If something looks off, admins get an email with a video of what happened.
       </p>
       <%= button_to "Run Smoke Test", nyk_trigger_smoke_path,
             method: :post,
