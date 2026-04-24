@@ -10,31 +10,25 @@ export default class extends Controller {
   connect() {
     // Ensure first tab is active on initial load — fixes iOS Safari
     // not connecting controllers when page is opened from iMessage/external links.
-    const active = this.activeClassesValue.split(" ")
-    const inactive = this.inactiveClassesValue.split(" ")
-    this.tabTargets.forEach((tab, i) => {
-      if (i === 0) {
-        tab.classList.add(...active)
-        tab.classList.remove(...inactive)
-      } else {
-        tab.classList.remove(...active)
-        tab.classList.add(...inactive)
-      }
-    })
-    this.panelTargets.forEach((panel, i) => {
-      panel.classList.toggle("hidden", i !== 0)
-    })
-    this.element.querySelectorAll("[data-tabs-chrome-for]").forEach(el => {
-      const indices = el.dataset.tabsChromeFor.split(" ").map(s => s.trim())
-      el.classList.toggle("hidden", !indices.includes("0"))
-    })
+    // If ?tab=<name|index> is in the URL, honor it so links like
+    // /nykitchen?tab=tests deep-link into a specific tab.
+    const initial = this.#initialIndex()
+    this.#activate(initial)
   }
 
-  select(event) {
-    const index = parseInt(event.currentTarget.dataset.tabIndex)
+  #initialIndex() {
+    const param = new URLSearchParams(window.location.search).get("tab")
+    if (!param) return 0
+    const byName = this.tabTargets.findIndex(t => t.dataset.tabName === param.toLowerCase())
+    if (byName !== -1) return byName
+    const asIndex = parseInt(param, 10)
+    if (!Number.isNaN(asIndex) && asIndex >= 0 && asIndex < this.tabTargets.length) return asIndex
+    return 0
+  }
+
+  #activate(index) {
     const active = this.activeClassesValue.split(" ")
     const inactive = this.inactiveClassesValue.split(" ")
-
     this.tabTargets.forEach((tab, i) => {
       if (i === index) {
         tab.classList.add(...active)
@@ -44,16 +38,17 @@ export default class extends Controller {
         tab.classList.add(...inactive)
       }
     })
-
     this.panelTargets.forEach((panel, i) => {
       panel.classList.toggle("hidden", i !== index)
     })
-
-    // Hide any chrome (e.g. filter chips) not relevant to the current tab.
-    // Mark with `data-tabs-chrome-for="0 1 2"` to show only on those indices.
     this.element.querySelectorAll("[data-tabs-chrome-for]").forEach(el => {
       const indices = el.dataset.tabsChromeFor.split(" ").map(s => s.trim())
       el.classList.toggle("hidden", !indices.includes(String(index)))
     })
+  }
+
+  select(event) {
+    const index = parseInt(event.currentTarget.dataset.tabIndex)
+    this.#activate(index)
   }
 }
