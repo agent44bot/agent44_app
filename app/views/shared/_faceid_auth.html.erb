@@ -1,7 +1,9 @@
 <%# Face ID authentication for Capacitor iOS app.
-    Saves credentials after successful email sign-in via Turbo.
-    Shows "Sign in with Face ID" button when biometrics/passcode available.
-    Works in simulator via passcode fallback. %>
+    Shows "Sign in with Face ID" button when biometrics/passcode available
+    and credentials were previously saved from /settings. Sign-in itself does
+    NOT save credentials — that's an explicit opt-in via the Settings page,
+    otherwise toggling Face ID off from Settings would silently get re-enabled
+    on every email sign-in. Works in simulator via passcode fallback. %>
 <%= javascript_tag nonce: true do %>
 (function() {
   // Only run inside Capacitor
@@ -80,47 +82,11 @@
     });
   }
 
-  // Save credentials after successful email sign-in (Turbo submit)
-  // Uses turbo:submit-end so credentials are saved AFTER the server responds,
-  // before the page navigates away
-  var signInForm = document.querySelector('form[action="<%= session_path %>"]');
-  if (signInForm && !signInForm.dataset.faceidBound) {
-    signInForm.dataset.faceidBound = "true";
-
-    signInForm.addEventListener("turbo:submit-end", function(event) {
-      // Only save on successful sign-in (redirect = success)
-      if (!event.detail || !event.detail.success) return;
-
-      var email = signInForm.querySelector('input[name="email_address"]');
-      var pw = signInForm.querySelector('input[name="password"]');
-      if (email && pw && email.value && pw.value) {
-        Bio.saveCredentials({ username: email.value, password: pw.value }).catch(function() {});
-      }
-    });
-
-    // Fallback: also capture on regular submit in case Turbo isn't handling it
-    signInForm.addEventListener("submit", function() {
-      var email = signInForm.querySelector('input[name="email_address"]');
-      var pw = signInForm.querySelector('input[name="password"]');
-      if (email && pw && email.value && pw.value) {
-        // Store in sessionStorage as backup — will be saved on next page load
-        try {
-          sessionStorage.setItem("_faceid_pending_email", email.value);
-          sessionStorage.setItem("_faceid_pending_pw", pw.value);
-        } catch(e) {}
-      }
-    });
-  }
-
-  // Check for pending credentials from a previous sign-in
+  // Clean up any stale pending credentials left behind by the previous
+  // auto-save behavior so they don't silently repopulate the keychain.
   try {
-    var pendingEmail = sessionStorage.getItem("_faceid_pending_email");
-    var pendingPw = sessionStorage.getItem("_faceid_pending_pw");
-    if (pendingEmail && pendingPw) {
-      sessionStorage.removeItem("_faceid_pending_email");
-      sessionStorage.removeItem("_faceid_pending_pw");
-      Bio.saveCredentials({ username: pendingEmail, password: pendingPw }).catch(function() {});
-    }
+    sessionStorage.removeItem("_faceid_pending_email");
+    sessionStorage.removeItem("_faceid_pending_pw");
   } catch(e) {}
 })();
 <% end %>

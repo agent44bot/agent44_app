@@ -109,7 +109,8 @@
             <% if Current.session.user.admin? %>
               <%= link_to "Dashboard", admin_dashboard_path, class: "text-sm font-medium text-orange-600 hover:text-orange-300 transition" %>
             <% end %>
-            <span class="text-sm text-gray-400"><%= Current.session.user.display_identifier %></span>
+            <%= link_to Current.session.user.display_identifier, settings_path,
+                  class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
             <%= button_to "Sign Out", session_path, method: :delete,
                   class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
           <% else %>
@@ -151,7 +152,10 @@
             <% if Current.session.user.admin? %>
               <%= link_to "Dashboard", admin_dashboard_path, class: "block px-3 py-2 rounded-md text-base font-medium text-orange-600 hover:bg-gray-800" %>
             <% end %>
-            <span class="block px-3 py-2 text-sm text-gray-400"><%= Current.session.user.display_identifier %></span>
+            <%= link_to Current.session.user.display_identifier, settings_path,
+                  class: "block px-3 py-2 text-sm text-gray-400 hover:bg-gray-800 rounded-md" %>
+            <%= link_to "Settings", settings_path,
+                  class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
             <%= button_to "Sign Out", session_path, method: :delete,
                   class: "block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <% else %>

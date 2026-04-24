@@ -19,7 +19,8 @@ class SessionsFaceIdTest < ActionDispatch::IntegrationTest
     # The JS checks for Capacitor and BiometricAuth plugin
     assert_match "BiometricAuth", response.body
     assert_match "isAvailable", response.body
-    assert_match "saveCredentials", response.body
+    # Credentials are fetched on Face ID sign-in, not saved here
+    assert_match "getCredentials", response.body
   end
 
   test "homepage shows Face ID button for signed-out users" do
@@ -37,12 +38,13 @@ class SessionsFaceIdTest < ActionDispatch::IntegrationTest
     assert_select "button#faceid-signin-btn"
   end
 
-  test "sign-in form saves credentials on submit via JS" do
+  test "sign-in form does not save credentials automatically" do
     get new_session_path
     assert_response :success
-    # JS binds to form submit to call saveCredentials
-    assert_match "faceidBound", response.body
-    assert_match "saveCredentials", response.body
+    # Auto-save was moved to an explicit opt-in on the Settings page so a
+    # user's "off" choice isn't silently undone by the next email sign-in.
+    assert_no_match(/saveCredentials/, response.body)
+    assert_no_match(/faceidBound/, response.body)
   end
 
   test "Face ID JS creates hidden form targeting session_path" do
