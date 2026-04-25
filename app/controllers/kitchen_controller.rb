@@ -53,7 +53,7 @@ class KitchenController < ApplicationController
   def trigger_smoke
     token = ENV["GITHUB_PAT"]
     if token.blank?
-      redirect_to nykitchen_path, alert: "GITHUB_PAT not configured"
+      render json: { error: "GITHUB_PAT not configured" }, status: 500
       return
     end
 
@@ -72,12 +72,15 @@ class KitchenController < ApplicationController
     res = http.request(req)
 
     if res.is_a?(Net::HTTPSuccess) || res.code == "204"
-      redirect_to nykitchen_path, notice: "Smoke test triggered — results will appear shortly"
+      render json: {
+        ok: true,
+        workflow_url: "https://github.com/agent44bot/agent44_app/actions/workflows/smoke-nyk.yml"
+      }
     else
-      redirect_to nykitchen_path, alert: "GitHub dispatch failed (#{res.code})"
+      render json: { error: "GitHub dispatch failed (#{res.code})" }, status: 502
     end
   rescue => e
-    redirect_to nykitchen_path, alert: "Error: #{e.message}"
+    render json: { error: e.message }, status: 500
   end
 
   private
