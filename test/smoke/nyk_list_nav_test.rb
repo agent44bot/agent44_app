@@ -130,26 +130,50 @@ class NykListNavTest < ActiveSupport::TestCase
 
     # Wait for navigation — watch for URL or event change
     deadline = Time.now + 15
+    navigated = false
     while Time.now < deadline
       url_changed = page.url != before_url
       events_changed = capture_list_events(page) != before_events
-      break if url_changed || events_changed
+      if url_changed || events_changed
+        navigated = true
+        break
+      end
       page.wait_for_timeout(250)
     end
     page.wait_for_load_state("networkidle", timeout: 5_000) rescue nil
     page.wait_for_timeout(1_000)
+
+    # Bail loudly if the click didn't navigate. Without this we silently
+    # capture the same page N times and "round-trip" assertions go weird.
+    flunk "List view '#{direction}' click did not navigate within 15s — " \
+          "url stayed '#{before_url}' and event set unchanged. " \
+          "The selector likely no longer matches the site's list pagination." unless navigated
   end
 
+  # Scoped to the actual list-view event container so we don't pick up
+  # rotating "Featured Events" carousel titles or any other h6-styled
+  # decoration on the page. If the page structure shifts again, broaden
+  # the container selector list — but never fall back to the bare
+  # `.tribe-common-h6` (it matches site chrome).
   def capture_list_events(page)
     page.evaluate(<<~JS) || []
-      Array.from(
-        document.querySelectorAll(
-          '.tribe-events-list-event-title, ' +
+      (function() {
+        const container = document.querySelector(
+          '.tribe-events-calendar-list, ' +
+          '.tribe-events-l-container, ' +
+          '#tribe-events-content .tribe-events-list, ' +
+          '.tribe-events-list'
+        );
+        if (!container) return [];
+        const titles = container.querySelectorAll(
           '.tribe-events-calendar-list__event-title, ' +
-          '.tribe-common-h6, ' +
-          'h2.tribe-events-list-event-title'
-        )
-      ).map(el => el.textContent.trim().replace(/\\s+/g, ' '))
+          '.tribe-events-calendar-list__event-title a, ' +
+          'h3.tribe-events-calendar-list__event-title, ' +
+          'h2.tribe-events-list-event-title, ' +
+          '.tribe-events-list-event-title'
+        );
+        return Array.from(titles).map(el => el.textContent.trim().replace(/\\s+/g, ' '));
+      })()
     JS
   end
 

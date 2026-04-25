@@ -1,10 +1,10 @@
 name: NY Kitchen Smoke Test
 
 on:
-  # 12 AM / 8 AM / 4 PM EDT = 4:00 / 12:00 / 20:00 UTC
+  # 1 AM / 9 AM / 4 PM EDT = 5:00 / 13:00 / 20:00 UTC
   schedule:
-    - cron: "0 4 * * *"
-    - cron: "0 12 * * *"
+    - cron: "0 5 * * *"
+    - cron: "0 13 * * *"
     - cron: "0 20 * * *"
   repository_dispatch:
     types: [smoke-nyk]
@@ -69,3 +69,18 @@ jobs:
           name: smoke-artifacts
           path: tmp/smoke/
           if-no-files-found: ignore
+
+      # Belt-and-suspenders: even if the test process is SIGTERMed (cancel,
+      # timeout, or anything skipping Minitest teardown), make sure Vlad
+      # doesn't get stuck "busy" on the dashboard.
+      - name: Reset Vlad to online (always)
+        if: always()
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          [ -z "$API_TOKEN" ] && { echo "no API_TOKEN — skipping Vlad reset"; exit 0; }
+          curl -fsS -X PATCH \
+            -H "Authorization: Bearer $API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"status":"online","current_task":null}' \
+            "https://agent44-app.fly.dev/api/v1/agents/Vlad%20%E2%9C%85/status" || true
