@@ -15,53 +15,53 @@
   </div>
 
   <%# Agent status — mobile: stacked above hero, desktop: pinned top-left %>
-  <% mock_header = "virtual" %>
+  <% mock_header = "AI Agents · Status" %>
 
-  <%# Mobile: real team (admins) then mock fleet %>
-  <div class="relative z-10 px-4 pt-3 md:hidden overflow-x-hidden">
-    <% if @agents.present? %>
-      <%= render "shared/agent_profiles_mobile", agents: @agents %>
-    <% end %>
-    <%= render "shared/mock_agent_profiles_mobile", agents: @mock_agents, header: mock_header %>
-  </div>
+  <% show_mock_fleet = !Current.session&.user&.admin? %>
 
-  <%# Desktop: stacked top-left, real team above mock fleet %>
-  <div class="absolute top-12 left-0 z-10 px-8 sm:px-12 lg:px-24 hidden md:block space-y-4">
-    <% if @agents.present? %>
-      <%= render "shared/agent_profiles", agents: @agents %>
-    <% end %>
-    <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header %>
-  </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 md:py-24 relative">
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-36 relative">
+    <%# Always 30/70 — agents on the left, hero on the right (mobile + desktop) %>
+    <div class="grid grid-cols-10 gap-2 sm:gap-3 md:gap-4 items-start">
+      <%# Left: agent status %>
+      <div class="col-span-3 space-y-4">
+        <% if @agents.present? %>
+          <%= render "shared/agent_profiles", agents: @agents %>
+        <% end %>
+        <% if show_mock_fleet %>
+          <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header %>
+        <% end %>
+      </div>
 
-    <div class="text-center max-w-3xl mx-auto">
-      <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.05]">
-        Hire agents to <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">monitor, test,</span> and generate content for your business.
-      </h1>
-      <p class="mt-6 text-xl md:text-2xl text-gray-300 leading-snug max-w-2xl mx-auto font-medium">
-        Always on. Always working. Zero overhead.
-      </p>
+      <%# Right: hero %>
+      <div class="col-span-7 text-left pr-2 sm:pr-6 md:pr-10 lg:pr-16">
+        <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
+          Hire agents to <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">monitor, test,</span> and generate content for your business.
+        </h1>
+        <p class="mt-4 sm:mt-6 text-sm sm:text-xl md:text-2xl text-gray-300 leading-snug font-medium">
+          Always on. Always working. Zero overhead.
+        </p>
 
-      <div class="mt-8 flex flex-col items-center justify-center gap-4">
-        <%# Face ID button — shown on mobile native when available %>
-        <button type="button" id="faceid-signin-btn" style="display:none"
-                class="inline-flex items-center gap-3 px-8 py-4 text-base font-bold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-full hover:from-orange-700 hover:to-amber-700 transition shadow-lg shadow-orange-600/30 md:hidden">
-          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M3 17v2a2 2 0 002 2h2M17 21h2a2 2 0 002-2v-2M8 11v1M16 11v1M9 16c.5.5 1.5 1 3 1s2.5-.5 3-1M12 8v5"/>
-          </svg>
-          <span class="faceid-label">Sign in with Face ID</span>
-        </button>
-        <%= render "shared/faceid_auth" %>
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <a href="#case-studies"
-             class="inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-full hover:from-orange-700 hover:to-amber-700 transition shadow-lg shadow-orange-600/30">
-            See a live test →
-          </a>
-          <a href="mailto:botwhisperer@hey.com?subject=Agent%2044%20Labs%20%E2%80%94%20QA%20for%20my%20site"
-             class="inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-gray-800 rounded-full hover:bg-gray-700 transition border border-gray-700">
-            Get a quote
-          </a>
+        <div class="mt-6 sm:mt-8 flex flex-col items-start justify-start gap-4">
+          <%# Face ID button — shown on mobile native when available %>
+          <button type="button" id="faceid-signin-btn" style="display:none"
+                  class="inline-flex items-center gap-3 px-8 py-4 text-base font-bold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-full hover:from-orange-700 hover:to-amber-700 transition shadow-lg shadow-orange-600/30 sm:hidden">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M3 17v2a2 2 0 002 2h2M17 21h2a2 2 0 002-2v-2M8 11v1M16 11v1M9 16c.5.5 1.5 1 3 1s2.5-.5 3-1M12 8v5"/>
+            </svg>
+            <span class="faceid-label">Sign in with Face ID</span>
+          </button>
+          <%= render "shared/faceid_auth" %>
+          <div class="flex flex-wrap items-center justify-start gap-3">
+            <a href="#case-studies"
+               class="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-full hover:from-orange-700 hover:to-amber-700 transition shadow-lg shadow-orange-600/30">
+              See a live test →
+            </a>
+            <a href="mailto:botwhisperer@hey.com?subject=Agent%2044%20Labs%20%E2%80%94%20QA%20for%20my%20site"
+               class="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white bg-gray-800 rounded-full hover:bg-gray-700 transition border border-gray-700">
+              Get a quote
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -109,6 +109,7 @@
   </div>
 </section>
 
+<% if false # Hidden for now — bring back later %>
 <!-- Services -->
 <section id="services" class="border-t border-gray-800">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -237,6 +238,7 @@
     </div>
   </div>
 </section>
+<% end %>
 
 <!-- Contact CTA -->
 <section class="border-t border-gray-800">

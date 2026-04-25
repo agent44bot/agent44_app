@@ -172,7 +172,7 @@
   </nav>
 
   <!-- Email verification banner -->
-  <% if authenticated? && Current.session.user.email_address.present? && !Current.session.user.email_verified? %>
+  <% if !Rails.env.development? && authenticated? && Current.session.user.email_address.present? && !Current.session.user.email_verified? %>
     <div class="bg-amber-900/30 border-b border-amber-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-2">
         <p class="text-sm text-amber-300">Please verify your email. Check your inbox for a verification link.</p>
