@@ -81,7 +81,7 @@ group :test do
 
   # Rails 8 test helpers (ActiveSupport::Testing::MethodCallAssertions)
   # still require minitest/mock, which was removed in Minitest 6.
-  gem "minitest", "~> 5.20"
+  gem "minitest", "~> 6.0"
 
   # Human-readable test output
   gem "minitest-reporters"
