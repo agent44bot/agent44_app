@@ -19,22 +19,32 @@
 
   <% show_mock_fleet = !Current.session&.user&.admin? %>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 md:py-24 relative">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 sm:py-20 md:py-24 relative">
 
-    <%# Always 30/70 — agents on the left, hero on the right (mobile + desktop) %>
-    <div class="grid grid-cols-10 gap-2 sm:gap-3 md:gap-4 items-start">
-      <%# Left: agent status %>
-      <div class="col-span-3 space-y-4">
+    <%# Mobile-only: agents stacked above hero (5 visible) %>
+    <div class="sm:hidden mb-6 space-y-4">
+      <% if @agents.present? %>
+        <%= render "shared/agent_profiles", agents: @agents %>
+      <% end %>
+      <% if show_mock_fleet %>
+        <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header, visible_count: 5 %>
+      <% end %>
+    </div>
+
+    <%# Desktop: 30/70 — agents on the left, hero on the right %>
+    <div class="grid grid-cols-1 sm:grid-cols-10 gap-2 sm:gap-3 md:gap-4 items-start">
+      <%# Left: agent status (desktop only — mobile renders above) %>
+      <div class="hidden sm:block sm:col-span-3 space-y-4">
         <% if @agents.present? %>
           <%= render "shared/agent_profiles", agents: @agents %>
         <% end %>
         <% if show_mock_fleet %>
-          <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header %>
+          <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header, visible_count: 10 %>
         <% end %>
       </div>
 
-      <%# Right: hero %>
-      <div class="col-span-7 text-left pr-2 sm:pr-6 md:pr-10 lg:pr-16">
+      <%# Right: hero — full width on mobile, 70% on desktop %>
+      <div class="col-span-1 sm:col-span-7 text-left sm:pr-6 md:pr-10 lg:pr-16">
         <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
           Hire agents to <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">monitor, test,</span> and generate content for your business.
         </h1>

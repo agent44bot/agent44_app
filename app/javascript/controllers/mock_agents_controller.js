@@ -1,6 +1,21 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Per-agent task pools. Agents not listed here fall back to tasksValue.
+const ROLE_POOL = [
+  "Scout", "Email Copywriter", "Watchtower", "Social Media Copywriter",
+  "Crawler", "Digest", "Analyzer", "QA Runner", "Replayer",
+  "Kitchen Watcher", "Cart Smoke", "Cert Watcher", "Edge Warmer",
+  "Pricing Diff", "Image Gen", "OCR Bot", "Sentiment", "Sitemap Crawler",
+  "Form Filler", "Inbox Reaper", "Calendar Hawk", "Stock Sniper",
+  "Receipt Reader", "Translator", "Link Checker", "Heatmap Watch",
+  "Latency Probe", "DNS Sentinel", "Bot Tail", "Coupon Sniffer"
+]
+
+const FIXED_ROLES = {
+  "002": "Email Copywriter",
+  "004": "Social Media Copywriter",
+  "007": "Secret Agent"
+}
+
 const SPECIAL_TASKS = {
   "007": [
     "martini, shaken, not stirred",
@@ -34,92 +49,139 @@ const SPECIAL_TASKS = {
   ]
 }
 
-// Restart-fallback flavor text per agent
-const SPECIAL_RESTART = {
-  "007": "martini, shaken, not stirred",
-  "004": "drafting an Instagram post",
-  "002": "drafting a welcome email"
-}
+const TOTAL_AGENTS = 99
+const ROW_HEIGHT_PX = 20
 
-// Smoke-and-mirrors fleet animation. Periodically cycles mock agent
-// statuses (online / busy / offline / restarting) and occasionally
-// promotes a row to the top to simulate activity.
+// Smoke-and-mirrors fleet animation. Maintains a pool of 99 agents and
+// always shows 10. Periodically promotes a visible agent to "busy" (yellow,
+// moves to top), then after a few seconds slides it out the bottom and
+// brings a fresh pool agent in.
 export default class extends Controller {
-  static targets = ["line"]
-  static values = { tasks: Array }
+  static targets = ["list", "line"]
+  static values = { tasks: Array, visibleCount: { type: Number, default: 10 } }
 
   connect() {
-    this.cycleTimer = setInterval(() => this.tick(), 1400 + Math.random() * 900)
-    this.shuffleTimer = setInterval(() => this.shuffle(), 5200 + Math.random() * 1800)
+    const visible = this.visibleCountValue || 10
+
+    this.allAgents = []
+    for (let i = 1; i <= TOTAL_AGENTS; i++) {
+      const id = String(i).padStart(3, "0")
+      const role = FIXED_ROLES[id] || ROLE_POOL[Math.floor(Math.random() * ROLE_POOL.length)]
+      this.allAgents.push({ id, role })
+    }
+    this.shuffle(this.allAgents)
+
+    const initial = this.allAgents.slice(0, visible)
+    this.poolIds = this.allAgents.slice(visible).map(a => a.id)
+    this.byId = Object.fromEntries(this.allAgents.map(a => [a.id, a]))
+
+    this.renderInitial(initial)
+
+    // Slow the cycle when fewer rows are visible — otherwise the same
+    // agent gets promoted too often and the list feels frantic.
+    const baseInterval = visible <= 5 ? 4000 : 2200
+    const jitter = visible <= 5 ? 2000 : 1800
+    this.cycleTimer = setInterval(() => this.startTask(), baseInterval + Math.random() * jitter)
   }
 
   disconnect() {
     clearInterval(this.cycleTimer)
-    clearInterval(this.shuffleTimer)
   }
 
-  tick() {
-    if (this.lineTargets.length === 0) return
-    const line = this.lineTargets[Math.floor(Math.random() * this.lineTargets.length)]
-    const nameEl = line.querySelector("[data-name]")
-    const name = nameEl ? nameEl.textContent.trim() : ""
-    const pool = SPECIAL_TASKS[name] || this.tasksValue
-    const restartTask = SPECIAL_RESTART[name] || "restarting…"
+  renderInitial(initial) {
+    const list = this.listTarget
+    list.innerHTML = ""
+    initial.forEach(agent => list.appendChild(this.buildRow(agent.id)))
+  }
 
-    const roll = Math.random()
-    if (roll < 0.4) {
-      this.setStatus(line, "online")
-    } else if (roll < 0.75) {
-      const task = pool[Math.floor(Math.random() * pool.length)]
-      this.setStatus(line, "busy", task)
-    } else if (roll < 0.9) {
-      this.setStatus(line, "offline")
-    } else {
-      this.setStatus(line, "busy", restartTask)
+  buildRow(id) {
+    const agent = this.byId[id]
+    const row = document.createElement("div")
+    row.className = "flex items-center gap-2 rounded px-1 -mx-1 overflow-hidden"
+    row.dataset.mockAgentsTarget = "line"
+    row.dataset.id = id
+    row.dataset.status = "online"
+    row.style.maxHeight = `${ROW_HEIGHT_PX}px`
+    row.style.opacity = "1"
+    row.innerHTML = `
+      <span class="inline-block h-2 w-2 rounded-full shrink-0 bg-green-400 animate-pulse" data-dot></span>
+      <span class="text-[11px] text-green-400" data-name>${id}</span>
+      <span class="text-[8px] text-amber-500 italic" data-task style="display:none"></span>
+    `
+    return row
+  }
+
+  shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
     }
   }
 
-  setStatus(line, status, task = null) {
-    const dot = line.querySelector("[data-dot]")
-    const name = line.querySelector("[data-name]")
-    const role = line.querySelector("[data-role]")
-    const taskEl = line.querySelector("[data-task]")
-    line.dataset.status = status
+  startTask() {
+    const list = this.listTarget
+    const candidates = Array.from(list.children).filter(r => r.dataset.status === "online")
+    if (candidates.length === 0) return
 
-    const palette = {
-      online:  { dot: "bg-green-400 animate-pulse",      name: "text-green-400", role: "text-green-700" },
-      busy:    { dot: "bg-amber-400 animate-agent-pulse", name: "text-amber-400", role: "text-amber-700" },
-      offline: { dot: "bg-gray-600",                      name: "text-gray-500", role: "text-gray-600"  }
-    }
-    const p = palette[status] || palette.online
-    const dotBase = dot.className.match(/h-\d\.?\d?/)?.[0] ?? "h-2"
-    const dotW = dot.className.match(/w-\d\.?\d?/)?.[0] ?? "w-2"
-    dot.className = `inline-block ${dotBase} ${dotW} rounded-full shrink-0 ${p.dot}`
+    const row = candidates[Math.floor(Math.random() * candidates.length)]
+    const id = row.dataset.id
+    const taskPool = SPECIAL_TASKS[id] || this.tasksValue
+    const task = taskPool[Math.floor(Math.random() * taskPool.length)]
 
-    const nameSize = name.className.match(/text-\[\d+px\]/)?.[0] ?? "text-[11px]"
-    name.className = `${nameSize} ${p.name}`
+    list.insertBefore(row, list.firstElementChild)
+    this.setBusy(row, task)
 
-    const roleSize = role.className.match(/text-\[\d+px\]/)?.[0] ?? "text-[9px]"
-    role.className = `${roleSize} ${p.role}`
-
-    if (status === "busy" && task) {
-      taskEl.textContent = `(${task})`
-      taskEl.style.display = ""
-    } else {
-      taskEl.textContent = ""
-      taskEl.style.display = "none"
-    }
+    const taskDuration = 2400 + Math.random() * 3200
+    setTimeout(() => this.finishTask(row), taskDuration)
   }
 
-  shuffle() {
-    const lines = Array.from(this.lineTargets)
-    if (lines.length < 2) return
-    const idx = Math.floor(Math.random() * lines.length)
-    const line = lines[idx]
-    const parent = line.parentElement
-    if (line === parent.firstElementChild) return
-    parent.insertBefore(line, parent.firstElementChild)
-    line.style.backgroundColor = "rgba(245, 158, 11, 0.12)"
-    setTimeout(() => { line.style.backgroundColor = "" }, 600)
+  setBusy(row, task) {
+    row.dataset.status = "busy"
+    const dot = row.querySelector("[data-dot]")
+    const name = row.querySelector("[data-name]")
+    const taskEl = row.querySelector("[data-task]")
+    dot.className = "inline-block h-2 w-2 rounded-full shrink-0 bg-amber-400 animate-agent-pulse"
+    name.className = "text-[11px] text-amber-400"
+    taskEl.textContent = `(${task})`
+    taskEl.style.display = ""
+    row.style.transition = "background-color 600ms ease"
+    row.style.backgroundColor = "rgba(245, 158, 11, 0.12)"
+    setTimeout(() => { row.style.backgroundColor = "" }, 600)
+  }
+
+  finishTask(row) {
+    if (!row.parentElement) return
+    const list = this.listTarget
+    const id = row.dataset.id
+
+    row.style.transition = "max-height 500ms ease, opacity 500ms ease, transform 500ms ease, margin 500ms ease"
+    row.style.maxHeight = "0px"
+    row.style.opacity = "0"
+    row.style.transform = "translateY(8px)"
+
+    setTimeout(() => {
+      row.remove()
+      this.poolIds.push(id)
+      this.addNewAgent()
+    }, 500)
+  }
+
+  addNewAgent() {
+    if (this.poolIds.length === 0) return
+    const idx = Math.floor(Math.random() * this.poolIds.length)
+    const newId = this.poolIds.splice(idx, 1)[0]
+
+    const row = this.buildRow(newId)
+    row.style.maxHeight = "0px"
+    row.style.opacity = "0"
+    row.style.transform = "translateY(8px)"
+    this.listTarget.appendChild(row)
+
+    requestAnimationFrame(() => {
+      row.style.transition = "max-height 500ms ease, opacity 500ms ease, transform 500ms ease"
+      row.style.maxHeight = `${ROW_HEIGHT_PX}px`
+      row.style.opacity = "1"
+      row.style.transform = "translateY(0)"
+    })
   }
 }
