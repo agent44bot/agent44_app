@@ -209,7 +209,9 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (5.27.0)
+    minitest (6.0.5)
+      drb (~> 2.0)
+      prism (~> 1.5)
     minitest-reporters (1.8.0)
       ansi
       builder
@@ -469,7 +471,7 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   kamal
-  minitest (~> 5.20)
+  minitest (~> 6.0)
   minitest-reporters
   playwright-ruby-client
   propshaft
