@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+# Seed a fake failed NYK smoke run with realistic console errors so we can
+# eyeball the Tests tab modal without waiting on a real failure.
+#
+#   bin/seed-fake-smoke-failure              # creates a row, prints id
+#   bin/seed-fake-smoke-failure --cleanup    # deletes runs created by this script
+#
+# Marker: name = "nyk_calendar_nav" + summary contains "[seed-fake]" so
+# cleanup can target without nuking real rows.
+
+require_relative "../config/environment"
+
+MARKER = "[seed-fake]".freeze
+
+if ARGV.include?("--cleanup")
+  scope = SmokeTestRun.where("summary LIKE ? OR error_message LIKE ?", "%#{MARKER}%", "%#{MARKER}%")
+  count = scope.count
+  scope.destroy_all
+  Rails.cache.clear
+  puts "destroyed #{count} seeded run(s)"
+  exit
+end
+
+errors = [
+  "[pageerror] Uncaught TypeError: Cannot read properties of undefined (reading '0') at https://nykitchen.com/wp-content/plugins/the-events-calendar/build/Manager.js:1:4823",
+  "[pageerror] Uncaught (in promise) Error: Network request failed at fetch handler",
+  "[console.error] [Tribe] Failed to render calendar grid for May 2026",
+  "[requestfailed] GET https://nykitchen.com/wp-json/tribe/views/v2/html?eventDisplay=month&eventDate=2026-05-01 — net::ERR_TIMED_OUT",
+  "[response 500] https://nykitchen.com/wp-admin/admin-ajax.php",
+  "[console.warning] [Deprecation] window.event is deprecated, use the local event parameter from the event listener instead.",
+  "[console.error] Mixed Content: The page at https://nykitchen.com/calendar/ was loaded over HTTPS, but requested an insecure resource http://cdn.example.com/tracker.js."
+].join("\n")
+
+run = SmokeTestRun.create!(
+  name: "nyk_calendar_nav",
+  status: "failed",
+  started_at: 2.minutes.ago,
+  ended_at: 1.minute.ago,
+  duration_ms: 60_000,
+  error_message: "#{MARKER} Round-trip failed:\n  - events differ in April 2026 after round-trip — 40 event(s) missing on return: [\"Bagel Workshop\", \"Wineries Without Walls\", \"Curry Class\"]",
+  console_errors: errors,
+  cost_dollars: 0.0
+)
+Rails.cache.clear
+puts "seeded id=#{run.id} (#{run.console_errors.lines.size} console lines)"
+puts "view:    http://localhost:3000/nykitchen?tab=tests"
+puts "cleanup: bin/seed-fake-smoke-failure --cleanup"
