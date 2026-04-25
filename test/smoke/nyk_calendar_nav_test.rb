@@ -105,6 +105,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
         page.wait_for_selector(event_selector, timeout: 15_000)
         dismiss_newsletter_popup(page) unless ENV["NO_POPUP_KILL"] == "true"
         page.wait_for_timeout(STEP_PAUSE_MS)
+        progress_ping("🤖 Vlad — Loaded NYK calendar", body: "starting #{FORWARD_STEPS + 1}-month round-trip")
 
         # --- Forward phase -------------------------------------------------
         forward = [] # [{ title: "April 2026", events: [{id:, title:}, ...] }, ...]
@@ -123,6 +124,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
         total_events = forward.sum { |m| m[:events].size }
         @failures << "No events captured in any of the #{forward.size} forward months — test is not meaningful" if total_events == 0
+        progress_ping("🤖 Vlad — Walking back to verify round-trip", body: "captured #{total_events} events across #{forward.size} months")
 
         # --- Back phase ----------------------------------------------------
         FORWARD_STEPS.times do |i|
@@ -173,6 +175,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
               end
             }
             puts "\n  🔍 Scraping #{unique_urls.size} event detail pages (skipped past dates)..."
+            progress_ping("🤖 Vlad — Scraping #{unique_urls.size} event pages", body: "round-trip OK, gathering details")
 
             last_pct = -1
             unique_urls.each_with_index do |url, i|
@@ -212,6 +215,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
           summary = forward.map { |m| m[:events].size }.join("/") + " events round-tripped#{scrape_note}"
           run_id = post_result(status: "passed", summary: summary)
           upload_video(run_id) if run_id
+          progress_ping("✅ Vlad — NYK smoke PASSED", body: summary, level: "success")
           assert_empty @failures
         end
       rescue => e
@@ -399,6 +403,9 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     run_id = post_result(status: "failed", error_message: enriched)
     upload_video(run_id) if run_id
 
+    short_msg = enriched.lines.first(2).join.strip[0, 240]
+    progress_ping("🚨 Vlad — NYK smoke FAILED", body: short_msg, level: "error")
+
     preview_failure_email(
       message: enriched,
       video_path: video_path,
@@ -409,21 +416,54 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     flunk enriched
   end
 
+  # Posts a Telegram-routed Notification to /api/v1/notifications. Used at
+  # phase boundaries (page loaded, back-nav started, scraping started,
+  # complete). Set VLAD_PROGRESS_PINGS=false to silence them.
+  def progress_ping(title, body: nil, level: "info")
+    return if ENV["VLAD_PROGRESS_PINGS"] == "false"
+    token = ENV["API_TOKEN"]
+    return if token.to_s.empty?
+
+    uri = URI("#{API_URL}/api/v1/notifications")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 5
+    http.read_timeout = 8
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{token}"
+    req["Content-Type"] = "application/json"
+    req.body = { source: "smoke_progress", title: title, body: body, level: level, telegram: true }.compact.to_json
+
+    res = http.request(req)
+    if res.is_a?(Net::HTTPSuccess)
+      puts "  📡 progress: #{title}"
+    else
+      puts "  ⚠  progress ping HTTP #{res.code}: #{res.body[0,200]}"
+    end
+  rescue => e
+    puts "  ⚠  progress ping error: #{e.class}: #{e.message}"
+  end
+
   # Hook page-level console + pageerror listeners. Anything captured shows
   # up in failure messages, the failure email, and the SmokeTestRun row's
-  # error_message, so a regression triggered by a JS error on the live site
-  # is one-glance diagnosable.
+  # console_errors column, so a regression triggered by a JS error on the
+  # live site is one-glance diagnosable.
+  #
+  # playwright-ruby-client's EventEmitter#on takes (event, callback) where
+  # callback is a Proc/lambda — block form raises ArgumentError.
   def attach_console_listeners(page)
-    page.on("console") do |msg|
+    page.on("console", ->(msg) {
       type = (msg.type rescue nil).to_s
-      next unless %w[error warning].include?(type)
-      text = (msg.text rescue msg.to_s).to_s
-      @console_errors << "[#{type}] #{text}" if text.length > 0
-    end
-    page.on("pageerror") do |err|
+      if %w[error warning].include?(type)
+        text = (msg.text rescue msg.to_s).to_s
+        @console_errors << "[#{type}] #{text}" if text.length > 0
+      end
+    })
+    page.on("pageerror", ->(err) {
       txt = (err.message rescue err.to_s).to_s
       @console_errors << "[pageerror] #{txt}" if txt.length > 0
-    end
+    })
   rescue => e
     puts "  ⚠  Could not attach console listeners: #{e.class}: #{e.message}"
   end
