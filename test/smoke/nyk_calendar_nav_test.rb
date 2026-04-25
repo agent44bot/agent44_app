@@ -59,6 +59,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     @screenshot_path = ARTIFACT_DIR.join("nyk-calendar-nav-#{@stamp}.png")
     @trace_path = ARTIFACT_DIR.join("nyk-calendar-nav-#{@stamp}.trace.zip")
     @failures = []
+    @console_errors = [] # populated via page.on("console")/("pageerror") hooks
     @started_at = Time.now
     update_vlad_status("busy", "NY Kitchen smoke test")
   end
@@ -97,6 +98,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       )
       context.tracing.start(screenshots: true, snapshots: true, sources: false)
       page = context.new_page
+      attach_console_listeners(page)
 
       begin
         page.goto(TARGET_URL, timeout: 30_000, waitUntil: "domcontentloaded")
@@ -393,17 +395,45 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     video_path = Dir.glob(@video_dir.join("*.webm").to_s).first
 
-    run_id = post_result(status: "failed", error_message: message)
+    enriched = with_console_context(message)
+    run_id = post_result(status: "failed", error_message: enriched)
     upload_video(run_id) if run_id
 
     preview_failure_email(
-      message: message,
+      message: enriched,
       video_path: video_path,
       screenshot_path: @screenshot_path.to_s,
       trace_path: @trace_path.to_s
     )
 
-    flunk message
+    flunk enriched
+  end
+
+  # Hook page-level console + pageerror listeners. Anything captured shows
+  # up in failure messages, the failure email, and the SmokeTestRun row's
+  # error_message, so a regression triggered by a JS error on the live site
+  # is one-glance diagnosable.
+  def attach_console_listeners(page)
+    page.on("console") do |msg|
+      type = (msg.type rescue nil).to_s
+      next unless %w[error warning].include?(type)
+      text = (msg.text rescue msg.to_s).to_s
+      @console_errors << "[#{type}] #{text}" if text.length > 0
+    end
+    page.on("pageerror") do |err|
+      txt = (err.message rescue err.to_s).to_s
+      @console_errors << "[pageerror] #{txt}" if txt.length > 0
+    end
+  rescue => e
+    puts "  ⚠  Could not attach console listeners: #{e.class}: #{e.message}"
+  end
+
+  def with_console_context(message)
+    return message if @console_errors.nil? || @console_errors.empty?
+    deduped = @console_errors.uniq.first(15)
+    extra = "\n\nBrowser console during run (#{@console_errors.size} captured, #{deduped.size} unique shown):\n  • " + deduped.join("\n  • ")
+    extra += "\n  • … (#{@console_errors.size - deduped.size} more)" if @console_errors.size > deduped.size
+    message + extra
   end
 
   # POST a row to /api/v1/smoke_runs so agent44labs.com/kitchen Tests tab
@@ -417,6 +447,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     end
 
     ended_at = Time.now
+    console_errors = (@console_errors || []).uniq.join("\n").presence
     body = {
       name: TEST_NAME,
       status: status,
@@ -424,7 +455,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       ended_at: ended_at.iso8601,
       duration_ms: ((ended_at - @started_at) * 1000).to_i,
       summary: summary,
-      error_message: error_message
+      error_message: error_message,
+      console_errors: console_errors
     }.compact.to_json
 
     uri = URI("#{API_URL}/api/v1/smoke_runs")

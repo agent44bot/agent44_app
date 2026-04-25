@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_24_111808) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_25_122459) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -285,6 +285,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_24_111808) do
   end
 
   create_table "smoke_test_runs", force: :cascade do |t|
+    t.text "console_errors"
     t.decimal "cost_dollars", precision: 10, scale: 6, default: "0.0", null: false
     t.datetime "created_at", null: false
     t.integer "duration_ms"

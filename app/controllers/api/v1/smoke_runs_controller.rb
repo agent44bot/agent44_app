@@ -50,7 +50,7 @@ module Api
       def run_params
         params.permit(
           :name, :status, :started_at, :ended_at,
-          :duration_ms, :summary, :error_message
+          :duration_ms, :summary, :error_message, :console_errors
         )
       end
 
@@ -63,7 +63,8 @@ module Api
           ended_at: run.ended_at,
           duration_ms: run.duration_ms,
           summary: run.summary,
-          error_message: run.error_message
+          error_message: run.error_message,
+          console_errors: run.console_errors
         }
       end
     end
