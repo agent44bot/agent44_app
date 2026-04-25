@@ -189,12 +189,12 @@ module Api
         this_sunday = today + days_until_sunday
 
         if event_date <= this_sunday
-          [0, "Current Week"]
+          [ 0, "Current Week" ]
         else
           weeks_ahead = ((event_date - this_sunday - 1).to_i / 7) + 1
           case weeks_ahead
-          when 1 then [1, "Next Week"]
-          else [weeks_ahead, "In #{weeks_ahead} Weeks"]
+          when 1 then [ 1, "Next Week" ]
+          else [ weeks_ahead, "In #{weeks_ahead} Weeks" ]
           end
         end
       end

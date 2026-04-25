@@ -90,15 +90,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "each week section has an id for deep linking" do
-    create_event("This Week Event", 2.days.from_now, "InStock")
-    next_monday = @today + ((7 - @today.cwday) % 7) + 1
-    create_event("Next Week Event", next_monday.to_time + 10.hours, "InStock")
+    # Pin to a Tuesday so week 0 spans Tue–Sun and week 1 starts the next
+    # Monday. Otherwise late-week runs (e.g. Saturday) push 2.days.from_now
+    # past Sunday, leaving week 0 empty and the view skipping its section.
+    travel_to Time.zone.local(2026, 6, 16, 9, 0) do
+      create_event("This Week Event", 1.day.from_now, "InStock")
+      create_event("Next Week Event", 7.days.from_now, "InStock")
 
-    get nykitchen_path
-    assert_response :success
+      get nykitchen_path
+      assert_response :success
 
-    assert_select "section#week-0"
-    assert_select "section#week-1"
+      assert_select "section#week-0"
+      assert_select "section#week-1"
+    end
   end
 
   private

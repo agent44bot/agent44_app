@@ -37,7 +37,7 @@ class DeviceTokenTest < ActiveSupport::TestCase
     DeviceToken.create!(token: "theirs", platform: "ios", user: other)
     DeviceToken.create!(token: "orphan", platform: "ios")
 
-    assert_equal [mine], DeviceToken.for_user(user).to_a
-    assert_equal [mine], DeviceToken.for_user(user.id).to_a
+    assert_equal [ mine ], DeviceToken.for_user(user).to_a
+    assert_equal [ mine ], DeviceToken.for_user(user.id).to_a
   end
 end

@@ -442,7 +442,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     if res.is_a?(Net::HTTPSuccess)
       puts "  📡 progress: #{title}"
     else
-      puts "  ⚠  progress ping HTTP #{res.code}: #{res.body[0,200]}"
+      puts "  ⚠  progress ping HTTP #{res.code}: #{res.body[0, 200]}"
     end
   rescue => e
     puts "  ⚠  progress ping error: #{e.class}: #{e.message}"
@@ -473,7 +473,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       begin
         type = (msg.type rescue nil).to_s
         text = (msg.text rescue msg.to_s).to_s.strip
-        log_console_line("🟦 console.#{type}: #{text[0,160]}") if ENV["DEBUG_CONSOLE_LISTENERS"] == "true"
+        log_console_line("🟦 console.#{type}: #{text[0, 160]}") if ENV["DEBUG_CONSOLE_LISTENERS"] == "true"
         if %w[error warning assert].include?(type) && text.length > 0
           @console_errors << "[console.#{type}] #{text}"
         end
@@ -485,7 +485,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     page.on("pageerror", ->(err) {
       begin
         txt = (err.message rescue err.to_s).to_s.strip
-        log_console_line("🟥 pageerror: #{txt[0,160]}")
+        log_console_line("🟥 pageerror: #{txt[0, 160]}")
         @console_errors << "[pageerror] #{txt}" if txt.length > 0
       rescue => e
         puts "  ⚠  pageerror listener error: #{e.class}: #{e.message}"

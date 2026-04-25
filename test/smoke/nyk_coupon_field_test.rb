@@ -56,7 +56,7 @@ class NykCouponFieldTest < ActiveSupport::TestCase
           puts "  📅 Month #{month_idx}: #{urls.uniq.size} event links"
 
           if month_idx < MONTHS_TO_SEARCH
-            next_btn = page.locator('a.tribe-events-c-top-bar__nav-link--next')
+            next_btn = page.locator("a.tribe-events-c-top-bar__nav-link--next")
             break if next_btn.count == 0
             next_btn.first.click
             page.wait_for_timeout(3_000)
@@ -133,7 +133,7 @@ class NykCouponFieldTest < ActiveSupport::TestCase
         get_tickets_btn = page.locator(
           'button:has-text("Get Tickets"), ' \
           'button:has-text("GET TICKETS"), ' \
-          '.tribe-tickets__buy, ' \
+          ".tribe-tickets__buy, " \
           'button[type="submit"].tribe-common-c-btn'
         )
 
@@ -186,8 +186,8 @@ class NykCouponFieldTest < ActiveSupport::TestCase
         #    Click the "Checkout" link inside it to reach /checkout/.
         unless page.url.include?("checkout")
           sidebar_checkout = page.locator(
-            'a.elementor-button--checkout, ' \
-            '.xoo-wsc-ft-btn-checkout, ' \
+            "a.elementor-button--checkout, " \
+            ".xoo-wsc-ft-btn-checkout, " \
             '.widget_shopping_cart a[href*="checkout"]'
           )
 
@@ -245,9 +245,9 @@ class NykCouponFieldTest < ActiveSupport::TestCase
         coupon_toggle = page.locator(
           'a:has-text("Click here to enter your coupon code"), ' \
           'a:has-text("coupon code"), ' \
-          '.showcoupon, ' \
+          ".showcoupon, " \
           '.woocommerce-info a[href*="showcoupon"], ' \
-          'a.showcoupon'
+          "a.showcoupon"
         )
 
         assert coupon_toggle.count > 0,
@@ -263,7 +263,7 @@ class NykCouponFieldTest < ActiveSupport::TestCase
           'input[name="coupon_code"], ' \
           'input[placeholder*="Coupon code" i], ' \
           'input[placeholder*="coupon" i], ' \
-          '#coupon_code'
+          "#coupon_code"
         )
 
         page.screenshot(path: ARTIFACT_DIR.join("nyk-coupon-6-field-#{@stamp}.png").to_s, fullPage: true)
