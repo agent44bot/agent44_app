@@ -2,7 +2,7 @@
 <% return if agents.blank? %>
 <% visible_count ||= 10 %>
 
-<div class="font-mono"
+<div class="font-mono w-full max-w-full overflow-hidden"
      data-controller="mock-agents"
      data-mock-agents-visible-count-value="<%= visible_count %>"
      data-mock-agents-tasks-value='<%= [
@@ -15,14 +15,14 @@
   <p class="text-[10px] font-semibold uppercase tracking-wider text-green-400 mb-2"><%= header %></p>
   <div class="space-y-1" data-mock-agents-target="list">
     <% agents.first(visible_count).each do |agent| %>
-      <div class="flex items-center gap-2 rounded px-1 -mx-1 overflow-hidden"
+      <div class="flex items-center gap-2 rounded px-1 -mx-1 overflow-hidden min-w-0 max-w-full"
            data-mock-agents-target="line"
            data-id="<%= agent.name %>"
            data-status="online"
            style="max-height: 20px;">
         <span class="inline-block h-2 w-2 rounded-full shrink-0 bg-green-400 animate-pulse" data-dot></span>
-        <span class="text-[11px] text-green-400" data-name><%= agent.name %></span>
-        <span class="text-[8px] text-amber-500 italic" data-task style="display:none"></span>
+        <span class="text-[11px] text-green-400 shrink-0" data-name><%= agent.name %></span>
+        <span class="text-[8px] text-amber-500 italic min-w-0 truncate" data-task style="display:none"></span>
       </div>
     <% end %>
   </div>

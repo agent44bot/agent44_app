@@ -97,7 +97,7 @@ export default class extends Controller {
   buildRow(id) {
     const agent = this.byId[id]
     const row = document.createElement("div")
-    row.className = "flex items-center gap-2 rounded px-1 -mx-1 overflow-hidden"
+    row.className = "flex items-center gap-2 rounded px-1 -mx-1 overflow-hidden min-w-0 max-w-full"
     row.dataset.mockAgentsTarget = "line"
     row.dataset.id = id
     row.dataset.status = "online"
@@ -105,8 +105,8 @@ export default class extends Controller {
     row.style.opacity = "1"
     row.innerHTML = `
       <span class="inline-block h-2 w-2 rounded-full shrink-0 bg-green-400 animate-pulse" data-dot></span>
-      <span class="text-[11px] text-green-400" data-name>${id}</span>
-      <span class="text-[8px] text-amber-500 italic" data-task style="display:none"></span>
+      <span class="text-[11px] text-green-400 shrink-0" data-name>${id}</span>
+      <span class="text-[8px] text-amber-500 italic min-w-0 truncate" data-task style="display:none"></span>
     `
     return row
   }
