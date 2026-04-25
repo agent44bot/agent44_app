@@ -9,7 +9,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="description" content="Agent 44 Labs — agent-driven production smoke tests for small and mid-size teams.">
   <title><%= content_for?(:title) ? "#{yield(:title)} | Agent 44 Labs" : "Agent 44 Labs" %></title>
-  <link rel="icon" href="/agent44_logo.svg" type="image/svg+xml">
+  <link rel="icon" href="/agent44_logo.svg?v=2" type="image/svg+xml">
   <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
@@ -19,7 +19,7 @@
 
   <%= yield :head %>
 
-  <link rel="icon" href="/agent44_logo.svg" type="image/svg+xml">
+  <link rel="icon" href="/agent44_logo.svg?v=2" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.png">
 
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
@@ -82,7 +82,7 @@
         <!-- Left: Logo -->
         <div class="flex items-center min-w-0 overflow-hidden">
           <%= link_to root_path, class: "flex items-center space-x-2 font-black text-xl tracking-tight min-w-0" do %>
-            <img src="/agent44_logo.svg" alt="Agent 44 Labs" width="40" height="40" class="w-10 h-10">
+            <img src="/agent44_logo.svg?v=2" alt="Agent 44 Labs" width="40" height="40" class="w-10 h-10">
             <span class="text-white">Agent 44 <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Labs</span></span>
           <% end %>
         </div>

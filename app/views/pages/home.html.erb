@@ -52,6 +52,7 @@
           Always on. Always working. Zero overhead.
         </p>
 
+        <% if false # Hidden for now — bring back later %>
         <div class="mt-6 sm:mt-8 flex flex-col items-start justify-start gap-4">
           <%# Face ID button — shown on mobile native when available %>
           <button type="button" id="faceid-signin-btn" style="display:none"
@@ -73,11 +74,12 @@
             </a>
           </div>
         </div>
+        <% end %>
       </div>
     </div>
 
     <!-- Live pulse: latest NYK smoke run -->
-    <% if @nyk_latest_run.present? %>
+    <% if false && @nyk_latest_run.present? # Hidden for now — bring back later %>
       <div class="mt-16 max-w-2xl mx-auto">
         <div class="bg-gray-900/80 rounded-2xl border border-gray-800 p-6 backdrop-blur">
           <div class="flex items-center justify-between gap-3 mb-3">
@@ -250,6 +252,7 @@
 </section>
 <% end %>
 
+<% if false # Hidden for now — bring back later %>
 <!-- Contact CTA -->
 <section class="border-t border-gray-800">
   <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
@@ -273,3 +276,4 @@
     </div>
   </div>
 </section>
+<% end %>
