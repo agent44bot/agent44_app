@@ -1,6 +1,6 @@
 class NykSmokeMailer < ApplicationMailer
   TARGET_URL = "https://nykitchen.com/calendar/"
-  TESTS_TAB_URL = "https://agent44-app.fly.dev/nykitchen?tab=tests"
+  TESTS_TAB_URL = "https://agent44labs.com/nykitchen?tab=tests"
 
   # Recipients hardcoded while we tune the alert format. Add back to the
   # GHA secret + remove this constant when ready to broaden distribution.
