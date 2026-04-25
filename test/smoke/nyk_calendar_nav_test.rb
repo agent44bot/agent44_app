@@ -60,6 +60,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     @trace_path = ARTIFACT_DIR.join("nyk-calendar-nav-#{@stamp}.trace.zip")
     @failures = []
     @console_errors = [] # populated via page.on("console")/("pageerror") hooks
+    @printed_console_lines = Set.new # dedupe GA log spam (e.g. reCAPTCHA pageerror fires per page)
     @started_at = Time.now
     update_vlad_status("busy", "NY Kitchen smoke test")
   end
@@ -458,12 +459,21 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   # only requests to nykitchen.com and same-page resources.
   RELEVANT_FAILURE_HOSTS = %w[nykitchen.com www.nykitchen.com].freeze
 
+  # Print a console-listener line once per unique text. Subsequent duplicates
+  # are silently dropped from stdout — @console_errors still records every
+  # occurrence so the failure email's count stays accurate.
+  def log_console_line(line)
+    @printed_console_lines ||= Set.new
+    return unless @printed_console_lines.add?(line)
+    puts "  #{line}"
+  end
+
   def attach_console_listeners(page)
     page.on("console", ->(msg) {
       begin
         type = (msg.type rescue nil).to_s
         text = (msg.text rescue msg.to_s).to_s.strip
-        puts "  🟦 console.#{type}: #{text[0,160]}" if ENV["DEBUG_CONSOLE_LISTENERS"] == "true"
+        log_console_line("🟦 console.#{type}: #{text[0,160]}") if ENV["DEBUG_CONSOLE_LISTENERS"] == "true"
         if %w[error warning assert].include?(type) && text.length > 0
           @console_errors << "[console.#{type}] #{text}"
         end
@@ -475,7 +485,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     page.on("pageerror", ->(err) {
       begin
         txt = (err.message rescue err.to_s).to_s.strip
-        puts "  🟥 pageerror: #{txt[0,160]}"
+        log_console_line("🟥 pageerror: #{txt[0,160]}")
         @console_errors << "[pageerror] #{txt}" if txt.length > 0
       rescue => e
         puts "  ⚠  pageerror listener error: #{e.class}: #{e.message}"
