@@ -408,7 +408,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     progress_ping("🚨 Vlad — NYK smoke FAILED", body: short_msg, level: "error")
 
     preview_failure_email(
-      message: enriched,
+      message: message,
+      console_errors: @console_errors.uniq,
       video_path: video_path,
       screenshot_path: @screenshot_path.to_s,
       trace_path: @trace_path.to_s
@@ -674,7 +675,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     "#{File.binread(path)}\r\n"
   end
 
-  def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:)
+  def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:, console_errors: nil)
     deliver = ENV["NYK_SMOKE_DELIVER"] == "true"
 
     # Configure SMTP before building the mail object so delivery method is set
@@ -697,7 +698,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       screenshot_path: screenshot_path,
       trace_path: trace_path,
       started_at: Time.now,
-      recipients: ENV["NYK_SMOKE_RECIPIENTS"] || "preview@example.com"
+      recipients: ENV["NYK_SMOKE_RECIPIENTS"] || "preview@example.com",
+      console_errors: console_errors
     )
 
     html_path = ARTIFACT_DIR.join("nyk-smoke-preview-#{@stamp}.html")
