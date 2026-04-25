@@ -445,24 +445,46 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     puts "  ⚠  progress ping error: #{e.class}: #{e.message}"
   end
 
-  # Hook page-level console + pageerror listeners. Anything captured shows
-  # up in failure messages, the failure email, and the SmokeTestRun row's
-  # console_errors column, so a regression triggered by a JS error on the
-  # live site is one-glance diagnosable.
+  # Hook page-level listeners for anything a developer would see in DevTools:
+  #   - console.{warning,error,assert} messages
+  #   - uncaught JS exceptions (pageerror)
+  #   - network requests that fail / return >= 400
+  # Captured strings are appended to failure messages, the failure email,
+  # and the SmokeTestRun.console_errors column.
   #
-  # playwright-ruby-client's EventEmitter#on takes (event, callback) where
-  # callback is a Proc/lambda — block form raises ArgumentError.
+  # Skip irrelevant network noise (tracking pixels, ads) by domain — keep
+  # only requests to nykitchen.com and same-page resources.
+  RELEVANT_FAILURE_HOSTS = %w[nykitchen.com www.nykitchen.com].freeze
+
   def attach_console_listeners(page)
     page.on("console", ->(msg) {
       type = (msg.type rescue nil).to_s
-      if %w[error warning].include?(type)
-        text = (msg.text rescue msg.to_s).to_s
-        @console_errors << "[#{type}] #{text}" if text.length > 0
-      end
+      return unless %w[error warning assert].include?(type)
+      text = (msg.text rescue msg.to_s).to_s.strip
+      @console_errors << "[console.#{type}] #{text}" if text.length > 0
     })
+
     page.on("pageerror", ->(err) {
-      txt = (err.message rescue err.to_s).to_s
+      txt = (err.message rescue err.to_s).to_s.strip
       @console_errors << "[pageerror] #{txt}" if txt.length > 0
+    })
+
+    page.on("requestfailed", ->(req) {
+      url = (req.url rescue "").to_s
+      next if url.empty?
+      host = (URI.parse(url).host rescue "").to_s
+      next unless RELEVANT_FAILURE_HOSTS.include?(host)
+      reason = (req.failure&.dig("errorText") rescue nil) || "request failed"
+      @console_errors << "[requestfailed] #{req.method rescue 'GET'} #{url} — #{reason}"
+    })
+
+    page.on("response", ->(res) {
+      status = (res.status rescue 0).to_i
+      next if status < 400
+      url = (res.url rescue "").to_s
+      host = (URI.parse(url).host rescue "").to_s
+      next unless RELEVANT_FAILURE_HOSTS.include?(host)
+      @console_errors << "[response #{status}] #{url}"
     })
   rescue => e
     puts "  ⚠  Could not attach console listeners: #{e.class}: #{e.message}"
