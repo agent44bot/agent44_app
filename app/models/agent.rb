@@ -2,6 +2,12 @@ class Agent < ApplicationRecord
   STATUSES = %w[online busy error offline].freeze
   COLORS = %w[orange amber green blue purple red cyan].freeze
 
+  # An agent's busy/error state is only trusted while it keeps refreshing
+  # last_active_at. After this window the stored state is treated as stale
+  # and the agent is shown as online — so a forgotten status update from
+  # OpenClaw/Knox can't pin the dashboard indefinitely.
+  STALE_AFTER = 5.minutes
+
   validates :name, presence: true, uniqueness: true
   validates :role, presence: true
   validates :status, inclusion: { in: STATUSES }
@@ -16,17 +22,23 @@ class Agent < ApplicationRecord
   }
   scope :active, -> { where.not(status: "offline") }
 
-  def online?  = status == "online"
-  def busy?    = status == "busy"
-  def error?   = status == "error"
-  def offline? = status == "offline"
+  def effective_status
+    return status unless %w[busy error].include?(status)
+    return status unless last_active_at.present?
+    last_active_at < STALE_AFTER.ago ? "online" : status
+  end
+
+  def online?  = effective_status == "online"
+  def busy?    = effective_status == "busy"
+  def error?   = effective_status == "error"
+  def offline? = effective_status == "offline"
 
   def initials
     name[0].upcase
   end
 
   def status_color
-    case status
+    case effective_status
     when "online" then "green"
     when "busy"   then "amber"
     when "error"  then "red"
@@ -35,10 +47,10 @@ class Agent < ApplicationRecord
   end
 
   def status_label
-    case status
+    case effective_status
     when "busy"  then current_task.presence || "Working on a task"
     when "error" then current_task.presence || "Task failed"
-    else status.capitalize
+    else effective_status.capitalize
     end
   end
 

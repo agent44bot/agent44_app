@@ -12,7 +12,7 @@ module Api
       def statuses
         agents = Agent.ordered
         render json: agents.map { |a|
-          { name: a.name, status: a.status, task: a.status_label, role: a.role }
+          { name: a.name, status: a.effective_status, task: a.status_label, role: a.role }
         }
       end
 

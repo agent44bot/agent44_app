@@ -79,4 +79,30 @@ class AgentTest < ActiveSupport::TestCase
     assert agent.error?
     assert_equal "red", agent.status_color
   end
+
+  test "stale busy status reverts to online via effective_status" do
+    agent = agents(:russ)
+    agent.update!(status: "busy", current_task: "Deploy bitcoin-calc-buddy", last_active_at: 10.minutes.ago)
+
+    assert_equal "online", agent.effective_status
+    assert agent.online?
+    refute agent.busy?
+    assert_equal "Online", agent.status_label
+  end
+
+  test "fresh busy status stays busy via effective_status" do
+    agent = agents(:russ)
+    agent.update!(status: "busy", current_task: "Working", last_active_at: 1.minute.ago)
+
+    assert_equal "busy", agent.effective_status
+    assert agent.busy?
+    assert_equal "Working", agent.status_label
+  end
+
+  test "busy without last_active_at is not treated as stale" do
+    agent = agents(:russ)
+    agent.update!(status: "busy", current_task: "Working", last_active_at: nil)
+
+    assert agent.busy?
+  end
 end
