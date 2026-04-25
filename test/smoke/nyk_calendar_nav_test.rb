@@ -459,52 +459,62 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
   def attach_console_listeners(page)
     page.on("console", ->(msg) {
-      type = (msg.type rescue nil).to_s
-      text = (msg.text rescue msg.to_s).to_s.strip
-      puts "  🟦 console.#{type}: #{text[0,160]}" if ENV["DEBUG_CONSOLE_LISTENERS"] == "true"
-      if %w[error warning assert].include?(type) && text.length > 0
-        @console_errors << "[console.#{type}] #{text}"
+      begin
+        type = (msg.type rescue nil).to_s
+        text = (msg.text rescue msg.to_s).to_s.strip
+        puts "  🟦 console.#{type}: #{text[0,160]}" if ENV["DEBUG_CONSOLE_LISTENERS"] == "true"
+        if %w[error warning assert].include?(type) && text.length > 0
+          @console_errors << "[console.#{type}] #{text}"
+        end
+      rescue => e
+        puts "  ⚠  console listener error: #{e.class}: #{e.message}"
       end
-    rescue => e
-      puts "  ⚠  console listener error: #{e.class}: #{e.message}"
     })
 
     page.on("pageerror", ->(err) {
-      txt = (err.message rescue err.to_s).to_s.strip
-      puts "  🟥 pageerror: #{txt[0,160]}"
-      @console_errors << "[pageerror] #{txt}" if txt.length > 0
-    rescue => e
-      puts "  ⚠  pageerror listener error: #{e.class}: #{e.message}"
+      begin
+        txt = (err.message rescue err.to_s).to_s.strip
+        puts "  🟥 pageerror: #{txt[0,160]}"
+        @console_errors << "[pageerror] #{txt}" if txt.length > 0
+      rescue => e
+        puts "  ⚠  pageerror listener error: #{e.class}: #{e.message}"
+      end
     })
 
     page.on("requestfailed", ->(req) {
-      url = (req.url rescue "").to_s
-      method = (req.method rescue "GET")
-      reason = "request failed"
       begin
-        f = req.failure
-        reason = f["errorText"] if f.respond_to?(:[]) && f["errorText"]
-      rescue
+        url = (req.url rescue "").to_s
+        method = (req.method rescue "GET")
+        reason = "request failed"
+        begin
+          f = req.failure
+          reason = f["errorText"] if f.respond_to?(:[]) && f["errorText"]
+        rescue
+        end
+        host = (URI.parse(url).host rescue "")
+        if RELEVANT_FAILURE_HOSTS.include?(host)
+          puts "  🟧 requestfailed: #{method} #{url} — #{reason}"
+          @console_errors << "[requestfailed] #{method} #{url} — #{reason}"
+        end
+      rescue => e
+        puts "  ⚠  requestfailed listener error: #{e.class}: #{e.message}"
       end
-      host = (URI.parse(url).host rescue "")
-      puts "  🟧 requestfailed: #{method} #{url} — #{reason}" if RELEVANT_FAILURE_HOSTS.include?(host)
-      @console_errors << "[requestfailed] #{method} #{url} — #{reason}" if RELEVANT_FAILURE_HOSTS.include?(host)
-    rescue => e
-      puts "  ⚠  requestfailed listener error: #{e.class}: #{e.message}"
     })
 
     page.on("response", ->(res) {
-      status = (res.status rescue 0).to_i
-      if status >= 400
-        url = (res.url rescue "").to_s
-        host = (URI.parse(url).host rescue "")
-        if RELEVANT_FAILURE_HOSTS.include?(host)
-          puts "  🟨 response #{status}: #{url}"
-          @console_errors << "[response #{status}] #{url}"
+      begin
+        status = (res.status rescue 0).to_i
+        if status >= 400
+          url = (res.url rescue "").to_s
+          host = (URI.parse(url).host rescue "")
+          if RELEVANT_FAILURE_HOSTS.include?(host)
+            puts "  🟨 response #{status}: #{url}"
+            @console_errors << "[response #{status}] #{url}"
+          end
         end
+      rescue => e
+        puts "  ⚠  response listener error: #{e.class}: #{e.message}"
       end
-    rescue => e
-      puts "  ⚠  response listener error: #{e.class}: #{e.message}"
     })
 
     puts "  📡 console listeners attached (console/pageerror/requestfailed/response)"
