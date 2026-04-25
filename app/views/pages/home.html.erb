@@ -19,17 +19,7 @@
 
   <% show_mock_fleet = !Current.session&.user&.admin? %>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 sm:py-20 md:py-24 relative">
-
-    <%# Mobile-only: agents stacked above hero (5 visible) %>
-    <div class="sm:hidden mb-6 space-y-4">
-      <% if @agents.present? %>
-        <%= render "shared/agent_profiles", agents: @agents %>
-      <% end %>
-      <% if show_mock_fleet %>
-        <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header, visible_count: 5 %>
-      <% end %>
-    </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 md:py-24 relative">
 
     <%# Desktop: 30/70 — agents on the left, hero on the right %>
     <div class="grid grid-cols-1 sm:grid-cols-10 gap-2 sm:gap-3 md:gap-4 items-start">
@@ -76,6 +66,16 @@
         </div>
         <% end %>
       </div>
+    </div>
+
+    <%# Mobile-only: agents stacked below hero (10 visible) %>
+    <div class="sm:hidden mt-8 space-y-4">
+      <% if @agents.present? %>
+        <%= render "shared/agent_profiles", agents: @agents %>
+      <% end %>
+      <% if show_mock_fleet %>
+        <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header, visible_count: 10 %>
+      <% end %>
     </div>
 
     <!-- Live pulse: latest NYK smoke run -->
