@@ -202,42 +202,10 @@
     <%= yield %>
   </main>
 
-  <% if false # Footer hidden for now — bring back later %>
-  <!-- Footer -->
-  <footer class="bg-gray-950 text-gray-400 border-t border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-        <!-- About -->
-        <div>
-          <h3 class="text-white font-black text-sm mb-1">Agent 44 Labs</h3>
-        </div>
-
-        <!-- Links -->
-        <div>
-          <h3 class="text-white font-semibold text-xs uppercase tracking-wide mb-1">Services</h3>
-          <ul class="space-y-1 text-xs">
-            <li><a href="#services" class="hover:text-orange-400 transition">Smoke tests</a></li>
-            <li><a href="#case-studies" class="hover:text-orange-400 transition">Case studies</a></li>
-            <li><a href="mailto:botwhisperer@hey.com?subject=Agent%2044%20Labs%20%E2%80%94%20QA%20for%20my%20site" class="hover:text-orange-400 transition">Get a quote</a></li>
-          </ul>
-        </div>
-
-        <!-- Newsletter -->
-        <div>
-          <h3 class="text-white font-semibold text-xs uppercase tracking-wide mb-1">Stay posted</h3>
-          <p class="text-xs text-gray-500 mb-2">Occasional updates on new tests and tooling.</p>
-          <div id="newsletter-form">
-            <%= render "subscribers/form" %>
-          </div>
-        </div>
-      </div>
-
-      <div class="border-t border-gray-800 mt-4 pt-3 text-center text-xs text-gray-500">
-        &copy; <%= Date.current.year %> Agent 44 Labs. All rights reserved.
-      </div>
-    </div>
+  <!-- Footer (copyright only — full footer hidden, see commit 8c65a6f) -->
+  <footer class="bg-gray-950 text-gray-500 border-t border-gray-800 py-4 text-center text-xs">
+    &copy; <%= Date.current.year %> Agent 44 Labs. All rights reserved.
   </footer>
-  <% end %>
 
 </body>
 </html>
