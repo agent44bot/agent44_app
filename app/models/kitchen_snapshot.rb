@@ -1,5 +1,6 @@
 class KitchenSnapshot < ApplicationRecord
   has_many :kitchen_events, dependent: :destroy
+  has_many :kitchen_ticket_digests, dependent: :destroy
 
   validates :taken_on, presence: true, uniqueness: true
 

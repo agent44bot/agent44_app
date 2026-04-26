@@ -32,6 +32,11 @@ export default class extends Controller {
         console.error("Push registration failed:", error)
       })
 
+      await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+        const url = action?.notification?.data?.url
+        if (url) window.location.href = url
+      })
+
       await PushNotifications.register()
     } catch (e) {
       console.error("Push setup error:", e)

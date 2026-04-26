@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_25_122459) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_26_223347) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -173,6 +173,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_25_122459) do
     t.date "taken_on", null: false
     t.datetime "updated_at", null: false
     t.index ["taken_on"], name: "index_kitchen_snapshots_on_taken_on", unique: true
+  end
+
+  create_table "kitchen_ticket_digests", force: :cascade do |t|
+    t.integer "change_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.json "entries", default: [], null: false
+    t.integer "kitchen_snapshot_id", null: false
+    t.integer "sold_out_count", default: 0, null: false
+    t.integer "total_tickets", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_kitchen_ticket_digests_on_created_at"
+    t.index ["kitchen_snapshot_id"], name: "index_kitchen_ticket_digests_on_kitchen_snapshot_id"
   end
 
   create_table "news_articles", force: :cascade do |t|
@@ -356,6 +368,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_25_122459) do
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
+  add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
   add_foreign_key "saved_jobs", "jobs"

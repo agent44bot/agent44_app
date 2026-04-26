@@ -105,6 +105,48 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "digest summary page renders totals and per-event old → new spots" do
+    digest = @snapshot.kitchen_ticket_digests.create!(
+      total_tickets: 5,
+      sold_out_count: 1,
+      change_count: 2,
+      entries: [
+        { url: "https://nykitchen.com/events/pasta", name: "Pasta Making",
+          start_at: 3.days.from_now.iso8601, instructor: "Chef Lora", price: "85",
+          old_spots: 4, new_spots: 0, tickets_bought: 4, sold_out: true,
+          week_index: 0, week_label: "Current Week" },
+        { url: "https://nykitchen.com/events/wine", name: "Wine Tasting",
+          start_at: 10.days.from_now.iso8601, instructor: nil, price: nil,
+          old_spots: 12, new_spots: 11, tickets_bought: 1, sold_out: false,
+          week_index: 1, week_label: "Next Week" }
+      ]
+    )
+
+    get nyk_digest_path(digest)
+    assert_response :success
+
+    # Stat tiles
+    assert_match(/5/, response.body)   # tickets total
+    assert_match(/2/, response.body)   # change count
+    assert_match(/1/, response.body)   # sold out count
+
+    # Week sections
+    assert_match("Current Week", response.body)
+    assert_match("Next Week", response.body)
+
+    # Per-event details
+    assert_match("Pasta Making", response.body)
+    assert_match("Wine Tasting", response.body)
+    assert_match(/4 .*?→.*?0/m, response.body)
+    assert_match(/12 .*?→.*?11/m, response.body)
+    assert_match("SOLD OUT", response.body)
+  end
+
+  test "digest summary page returns 404 for unknown id" do
+    get nyk_digest_path(id: 999_999)
+    assert_response :not_found
+  end
+
   private
 
   def create_event(name, start_at, availability)

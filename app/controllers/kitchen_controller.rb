@@ -8,6 +8,13 @@ class KitchenController < ApplicationController
     render "admin/kitchen/index", layout: "application"
   end
 
+  def digest
+    @digest = KitchenTicketDigest.find(params[:id])
+    @snapshot = @digest.kitchen_snapshot
+    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+    render layout: "application"
+  end
+
   def social_post_log
     log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
 

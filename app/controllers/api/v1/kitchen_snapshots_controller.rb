@@ -115,15 +115,27 @@ module Api
           old_spots = prev_spots[event.url]
           new_spots = event.spots_left
           next unless old_spots && new_spots && new_spots < old_spots
-          { event: event, old_spots: old_spots, new_spots: new_spots }
+          week_index, week_label = week_info_for(event)
+          {
+            event:       event,
+            old_spots:   old_spots,
+            new_spots:   new_spots,
+            week_index:  week_index,
+            week_label:  week_label
+          }
         end
 
         return if changes.empty?
 
-        if changes.size == 1
-          notify_single_change(changes.first)
+        # Surface highest-signal items first: sold-outs, then biggest movers.
+        sorted = changes.sort_by do |c|
+          [ c[:new_spots] == 0 ? 0 : 1, -(c[:old_spots] - c[:new_spots]), c[:week_index] ]
+        end
+
+        if sorted.size == 1
+          notify_single_change(sorted.first)
         else
-          notify_digest(changes)
+          notify_digest(snapshot, sorted)
         end
       end
 
@@ -140,8 +152,6 @@ module Api
           "#{event.name}: #{tickets_bought} ticket(s) bought — #{new_spots} spot(s) left"
         end
 
-        week_index, week_label = week_info_for(event)
-
         Notification.notify!(
           level: "info",
           source: "kitchen_tickets",
@@ -149,14 +159,21 @@ module Api
           body: "#{old_spots} → #{new_spots} spots remaining",
           telegram: true,
           apns: true,
-          apns_url: "/nykitchen#week-#{week_index}",
-          apns_subtitle: week_label
+          apns_url: "/nykitchen#week-#{change[:week_index]}",
+          apns_subtitle: change[:week_label]
         )
       end
 
-      def notify_digest(changes)
+      def notify_digest(snapshot, changes)
         total_tickets = changes.sum { |c| c[:old_spots] - c[:new_spots] }
         sold_out_count = changes.count { |c| c[:new_spots] == 0 }
+
+        digest = snapshot.kitchen_ticket_digests.create!(
+          total_tickets:  total_tickets,
+          sold_out_count: sold_out_count,
+          change_count:   changes.size,
+          entries: changes.map { |c| serialize_change(c) }
+        )
 
         title = "#{changes.size} classes: #{total_tickets} ticket(s) bought"
         title += " — #{sold_out_count} sold out" if sold_out_count > 0
@@ -164,7 +181,11 @@ module Api
         lines = changes.first(5).map do |c|
           name = c[:event].name.to_s
           name = name[0, 35] + "…" if name.length > 36
-          "#{name}: #{c[:old_spots]} → #{c[:new_spots]}"
+          if c[:new_spots] == 0
+            "#{name}: SOLD OUT (#{c[:old_spots]} → 0)"
+          else
+            "#{name}: #{c[:old_spots]} → #{c[:new_spots]}"
+          end
         end
         lines << "+ #{changes.size - 5} more" if changes.size > 5
 
@@ -175,9 +196,29 @@ module Api
           body: lines.join("\n"),
           telegram: true,
           apns: true,
-          apns_url: "/nykitchen",
+          apns_url: "/nykitchen/digests/#{digest.id}",
           apns_subtitle: nil
         )
+      end
+
+      def serialize_change(c)
+        e = c[:event]
+        {
+          url:                 e.url,
+          name:                e.name,
+          start_at:            e.start_at&.iso8601,
+          instructor:          e.instructor,
+          price:               e.price,
+          image_url:           e.image_url,
+          capacity:            e.capacity,
+          last_known_capacity: e.last_known_capacity,
+          old_spots:           c[:old_spots],
+          new_spots:           c[:new_spots],
+          tickets_bought:      c[:old_spots] - c[:new_spots],
+          sold_out:            c[:new_spots] == 0,
+          week_index:          c[:week_index],
+          week_label:          c[:week_label]
+        }
       end
 
       # Returns [week_index, label] for an event relative to the current week.

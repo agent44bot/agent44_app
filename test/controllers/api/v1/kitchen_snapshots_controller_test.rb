@@ -1,5 +1,6 @@
 require "test_helper"
 require "ostruct"
+require "minitest/mock"
 
 class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -12,6 +13,37 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
   teardown do
     ENV.delete("API_TOKEN")
   end
+
+  private def seed_three_event_drops!
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/pasta-101", name: "Pasta Making",
+          start_at: 3.days.from_now.iso8601, spots_left: 10, capacity: 24,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/wine-102", name: "Wine Tasting",
+          start_at: 4.days.from_now.iso8601, spots_left: 20, capacity: 30,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/bread-103", name: "Bread Basics",
+          start_at: 5.days.from_now.iso8601, spots_left: 8, capacity: 16,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/pasta-101", name: "Pasta Making",
+          start_at: 3.days.from_now.iso8601, spots_left: 8, capacity: 24,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/wine-102", name: "Wine Tasting",
+          start_at: 4.days.from_now.iso8601, spots_left: 19, capacity: 30,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/bread-103", name: "Bread Basics",
+          start_at: 5.days.from_now.iso8601, spots_left: 7, capacity: 16,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+  end
+  public
 
   # --- Ticket availability notifications ---
 
@@ -204,6 +236,89 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     digest = Notification.where(source: "kitchen_tickets").order(created_at: :desc).first
     assert_includes digest.title, "2 classes"
     assert_includes digest.title, "1 sold out"
+  end
+
+  test "digest persists a KitchenTicketDigest with per-change payload" do
+    seed_three_event_drops!
+
+    digest = KitchenTicketDigest.order(created_at: :desc).first
+    assert_not_nil digest, "expected a KitchenTicketDigest record"
+    assert_equal 4, digest.total_tickets
+    assert_equal 3, digest.change_count
+    assert_equal 0, digest.sold_out_count
+    assert_equal 3, digest.entries.size
+
+    sample = digest.entry_records.first
+    assert sample.key?("name")
+    assert sample.key?("old_spots")
+    assert sample.key?("new_spots")
+    assert sample.key?("week_index")
+  end
+
+  test "digest passes per-snapshot summary URL to APNs" do
+    captured = {}
+    ApnsPusher.stub :send_alert, ->(_n, **opts) { captured.merge!(opts) } do
+      seed_three_event_drops!
+    end
+
+    digest = KitchenTicketDigest.order(created_at: :desc).first
+    assert_equal "/nykitchen/digests/#{digest.id}", captured[:url]
+    assert_nil captured[:subtitle]
+  end
+
+  test "single-change push still deep-links to week anchor (no digest record)" do
+    captured = {}
+    ApnsPusher.stub :send_alert, ->(_n, **opts) { captured.merge!(opts) } do
+      post "/api/v1/kitchen_snapshots",
+        params: { taken_on: @today, events: [
+          { url: "https://nykitchen.com/events/pasta-101", name: "Pasta",
+            start_at: 3.days.from_now.iso8601, spots_left: 5, capacity: 24,
+            availability: "InStock" }
+        ] }.to_json,
+        headers: @headers
+
+      post "/api/v1/kitchen_snapshots",
+        params: { taken_on: @today, events: [
+          { url: "https://nykitchen.com/events/pasta-101", name: "Pasta",
+            start_at: 3.days.from_now.iso8601, spots_left: 3, capacity: 24,
+            availability: "InStock" }
+        ] }.to_json,
+        headers: @headers
+    end
+
+    assert_match %r{\A/nykitchen#week-\d+\z}, captured[:url]
+    assert_equal 0, KitchenTicketDigest.count
+  end
+
+  test "digest body labels sold-out lines distinctly" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/a", name: "Class A",
+          start_at: 3.days.from_now.iso8601, spots_left: 2, capacity: 10,
+          availability: "InStock" },
+        { url: "https://nykitchen.com/events/b", name: "Class B",
+          start_at: 4.days.from_now.iso8601, spots_left: 5, capacity: 10,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/a", name: "Class A",
+          start_at: 3.days.from_now.iso8601, spots_left: 0, capacity: 10,
+          availability: "SoldOut" },
+        { url: "https://nykitchen.com/events/b", name: "Class B",
+          start_at: 4.days.from_now.iso8601, spots_left: 3, capacity: 10,
+          availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+
+    digest = Notification.where(source: "kitchen_tickets").order(created_at: :desc).first
+    assert_match(/Class A: SOLD OUT \(2 → 0\)/, digest.body)
+    assert_match(/Class B: 5 → 3/, digest.body)
+    # Sold-out line should be listed first (highest signal)
+    assert digest.body.index("Class A") < digest.body.index("Class B"),
+      "sold-out class should appear before non-sold-out in digest body"
   end
 
   test "digest truncates body to first 5 changes plus count" do

@@ -30,6 +30,7 @@ Rails.application.routes.draw do
   end
   resources :saved_jobs, only: [ :index ]
   get "nykitchen", to: "kitchen#index"
+  get "nykitchen/digests/:id", to: "kitchen#digest", as: :nyk_digest
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
