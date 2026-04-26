@@ -8,9 +8,6 @@ class EmailVerificationsController < ApplicationController
       redirect_to root_path, alert: "Invalid verification link."
     elsif user.email_verified?
       redirect_to root_path, notice: "Email already verified."
-    elsif user.created_at < 24.hours.ago && !user.email_verified?
-      user.send_verification_email
-      redirect_to root_path, alert: "Verification link expired. We sent you a new one."
     else
       user.verify_email!
       redirect_to root_path, notice: "Email verified successfully! Welcome to Agent44."
