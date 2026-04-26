@@ -9,8 +9,10 @@
     </div>
 
     <% if Rails.env.development? %>
-      <% dev_users = User.where(role: "admin").where.not(email_address: nil).where.not("email_address LIKE ?", "%@example.com").order(:id).to_a %>
-      <% dev_users += User.where.not(role: "admin").where.not(email_address: nil).where.not("email_address LIKE ?", "%@example.com").order(:id).limit(1).to_a %>
+      <% dev_base = User.where.not(email_address: nil).where.not("email_address LIKE ?", "%@example.com").order(:id) %>
+      <% dev_users = dev_base.where(role: "admin").to_a +
+                     dev_base.where(role: "kitchen_customer").to_a +
+                     dev_base.where.not(role: [ "admin", "kitchen_customer" ]).limit(1).to_a %>
       <% if dev_users.any? %>
         <div class="mb-6 bg-amber-950/40 border border-amber-800/60 rounded-xl p-4">
           <div class="flex items-center gap-2 mb-3">
