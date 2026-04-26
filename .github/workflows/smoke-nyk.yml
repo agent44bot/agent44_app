@@ -1,11 +1,9 @@
 name: NY Kitchen Smoke Test
 
 on:
-  # 1 AM / 9 AM / 4 PM EDT = 5:00 / 13:00 / 20:00 UTC
-  schedule:
-    - cron: "0 5 * * *"
-    - cron: "0 13 * * *"
-    - cron: "0 20 * * *"
+  # Scheduled fires come from launchd on the mac mini runner
+  # (~/Library/LaunchAgents/com.agent44.smoke-nyk.plist at 1/9/16 local time)
+  # rather than GitHub's `schedule:`, which slipped 1–2h regularly.
   repository_dispatch:
     types: [smoke-nyk]
   workflow_dispatch:
