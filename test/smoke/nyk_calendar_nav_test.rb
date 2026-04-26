@@ -3,6 +3,7 @@ require "fileutils"
 require "playwright"
 require "net/http"
 require "json"
+require "socket"
 require_relative "nyk_event_scraper_helper"
 
 # Black-box smoke test for https://nykitchen.com/calendar/
@@ -61,6 +62,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     @failures = []
     @console_errors = [] # populated via page.on("console")/("pageerror") hooks
     @printed_console_lines = Set.new # dedupe GA log spam (e.g. reCAPTCHA pageerror fires per page)
+    @steps = [] # plain-English step log for the failure email
+    @page_source_path = nil
+    @calendar_url_at_failure = nil
+    @user_agent = nil
     @started_at = Time.now
     update_vlad_status("busy", "NY Kitchen smoke test")
   end
@@ -103,8 +108,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
       begin
         page.goto(TARGET_URL, timeout: 30_000, waitUntil: "domcontentloaded")
+        record_step(kind: "load", url: TARGET_URL)
         page.wait_for_selector(event_selector, timeout: 15_000)
         dismiss_newsletter_popup(page) unless ENV["NO_POPUP_KILL"] == "true"
+        record_step(kind: "popup_dismissed") unless ENV["NO_POPUP_KILL"] == "true"
         page.wait_for_timeout(STEP_PAUSE_MS)
         progress_ping("🤖 Vlad — Loaded NYK calendar", body: "starting #{FORWARD_STEPS + 1}-month round-trip")
 
@@ -115,6 +122,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
           capture = { title: read_month_title(page), events: capture_events(page) }
           forward << capture
           all_event_urls.concat(collect_event_urls(page))
+          record_step(kind: "month_view", direction: "forward", title: capture[:title], events: capture[:events].size)
           puts "  ➡  [#{i}] #{capture[:title]} — #{capture[:events].size} events"
 
           if i < FORWARD_STEPS
@@ -134,6 +142,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
           expected = forward[FORWARD_STEPS - 1 - i]
           actual = { title: read_month_title(page), events: capture_events(page) }
+          record_step(kind: "month_view", direction: "back", title: actual[:title], events: actual[:events].size, expected_events: expected[:events].size)
           puts "  ⬅  #{actual[:title]} — #{actual[:events].size} events (expected #{expected[:events].size})"
 
           if actual[:title] != expected[:title]
@@ -337,6 +346,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     before_title = read_month_title(page)
     before_url = page.url
     before_event_ids = capture_events(page).map { |e| e[:id] }.sort
+    record_step(kind: "click", direction: direction)
     page.locator(nav_selector(direction)).first.click
 
     if DEBUG_NAV
@@ -369,6 +379,21 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     end
     page.wait_for_load_state("networkidle", timeout: 5_000) rescue nil
     page.wait_for_timeout(NAV_WAIT_MS)
+
+    final_title = read_month_title(page)
+    final_ids   = capture_events(page).map { |e| e[:id] }.sort
+    record_step(
+      kind: "navigation_settled",
+      direction: direction,
+      title_after: final_title,
+      events_after: final_ids.size,
+      title_changed: final_title != before_title && !final_title.empty?,
+      events_changed: final_ids != before_event_ids
+    )
+  end
+
+  def record_step(kind:, **details)
+    @steps << { at: Time.now, kind: kind, **details }
   end
 
   # Elementor's "Stay in the Loop" popup on nykitchen.com/calendar/ intercepts
@@ -394,6 +419,13 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   end
 
   def fail_with_artifacts(page, context, message)
+    # Capture page source + URL + UA BEFORE closing the context — page is dead after.
+    @page_source_path = ARTIFACT_DIR.join("nyk-page-source-#{@stamp}.html")
+    File.write(@page_source_path, page.content) rescue nil
+    @calendar_url_at_failure = (page.url rescue TARGET_URL)
+    @user_agent = (page.evaluate("navigator.userAgent") rescue "").to_s
+    record_step(kind: "failure", reason: message.lines.first.to_s.strip)
+
     page.screenshot(path: @screenshot_path.to_s, fullPage: true) rescue nil
     context.tracing.stop(path: @trace_path.to_s) rescue nil
     context.close rescue nil
@@ -413,7 +445,12 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       console_errors: @console_errors.uniq,
       video_path: video_path,
       screenshot_path: @screenshot_path.to_s,
-      trace_path: @trace_path.to_s
+      trace_path: @trace_path.to_s,
+      page_source_path: @page_source_path.to_s,
+      steps: @steps,
+      calendar_url_at_failure: @calendar_url_at_failure,
+      user_agent: @user_agent,
+      run_id: run_id
     )
 
     flunk enriched
@@ -685,7 +722,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     "#{File.binread(path)}\r\n"
   end
 
-  def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:, console_errors: nil)
+  def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:,
+                            page_source_path: nil, console_errors: nil,
+                            steps: nil, calendar_url_at_failure: nil,
+                            user_agent: nil, run_id: nil)
     deliver = ENV["NYK_SMOKE_DELIVER"] == "true"
 
     # Configure SMTP before building the mail object so delivery method is set
@@ -707,9 +747,15 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       video_path: video_path,
       screenshot_path: screenshot_path,
       trace_path: trace_path,
+      page_source_path: page_source_path,
       started_at: Time.now,
       recipients: ENV["NYK_SMOKE_RECIPIENTS"] || "preview@example.com",
-      console_errors: console_errors
+      console_errors: console_errors,
+      steps: steps,
+      calendar_url_at_failure: calendar_url_at_failure,
+      user_agent: user_agent,
+      runner_name: ENV["RUNNER_NAME"].presence || (Socket.gethostname rescue "unknown"),
+      run_id: run_id
     )
 
     html_path = ARTIFACT_DIR.join("nyk-smoke-preview-#{@stamp}.html")

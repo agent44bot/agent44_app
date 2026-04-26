@@ -1,41 +1,146 @@
-<html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:560px;margin:24px auto;color:#222;background:#fafafa;padding:0 20px">
+<html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:24px auto;color:#222;background:#fafafa;padding:0 20px">
 <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
 
-  <h2 style="margin:0 0 6px 0;font-size:20px;color:#b00020">🚨 NY Kitchen smoke failed</h2>
-  <div style="color:#666;font-size:13px;margin-bottom:18px">
-    <%= @started_at.strftime("%A, %B %-d &middot; %-I:%M %p %Z").html_safe %>
+  <div style="text-align:center;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid #f0f0f0">
+    <a href="https://agent44labs.com/" style="text-decoration:none;color:inherit">
+      <img src="https://agent44labs.com/icon.png" alt="Agent 44 Labs" width="40" height="40" style="display:inline-block;vertical-align:middle;border-radius:8px">
+      <span style="display:inline-block;vertical-align:middle;margin-left:10px;font-size:14px;font-weight:600;letter-spacing:0.02em;color:#1f2937">Agent 44 Labs</span>
+    </a>
   </div>
 
+  <h2 style="margin:0 0 6px 0;font-size:20px;color:#b00020">🚨 NY Kitchen smoke failed</h2>
+  <div style="color:#666;font-size:13px;margin-bottom:6px">
+    <%= @started_at.strftime("%A, %B %-d &middot; %-I:%M %p %Z").html_safe %>
+  </div>
+  <div style="color:#666;font-size:12px;margin-bottom:18px;background:#f3f4f6;border-radius:6px;padding:8px 10px">
+    <strong>For Lora:</strong> please forward this email to your nykitchen.com developer.
+    Everything they need to debug the calendar navigation is below or attached.
+  </div>
+
+  <!-- Failure message -->
   <div style="background:#fff1f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:16px">
+    <div style="font-size:11px;color:#991b1b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">What broke</div>
     <pre style="font-size:12px;color:#450a0a;white-space:pre-wrap;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere"><%= @failure_message.lines.first(8).join.strip %></pre>
   </div>
 
+  <!-- Plain English step log -->
+  <% if @steps.any? %>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:#374151;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">
+        What the test did &middot; step by step
+      </div>
+      <ol style="margin:0;padding:0 0 0 20px;font-size:13px;color:#1f2937;line-height:1.6">
+        <% @steps.each do |s| %>
+          <%
+            t = s[:at] || s["at"]
+            ts = t.respond_to?(:strftime) ? t.strftime("%-I:%M:%S %p") : t.to_s
+            kind = (s[:kind] || s["kind"]).to_s
+            failed = kind == "failure"
+            line_color = failed ? "#b00020" : "#1f2937"
+            text = case kind
+            when "load"
+              "Loaded #{s[:url] || s['url']}"
+            when "popup_dismissed"
+              "Dismissed the newsletter popup that blocks the calendar arrows"
+            when "month_view"
+              dir = (s[:direction] || s['direction']).to_s
+              title = s[:title] || s['title']
+              events = s[:events] || s['events']
+              expected = s[:expected_events] || s['expected_events']
+              base = "Viewed #{title.inspect} (#{dir} pass) — found #{events} class#{events == 1 ? '' : 'es'}"
+              expected ? base + " (expected #{expected})" : base
+            when "click"
+              dir = (s[:direction] || s['direction']).to_s
+              "Clicked the #{dir == 'previous' ? 'previous' : 'next'}-month arrow"
+            when "navigation_settled"
+              title_after = s[:title_after] || s['title_after']
+              events_after = s[:events_after] || s['events_after']
+              tch = s[:title_changed] || s['title_changed']
+              ech = s[:events_changed] || s['events_changed']
+              "Calendar settled on #{title_after.inspect} — #{events_after} class#{events_after == 1 ? '' : 'es'}" \
+              " (title #{tch ? 'updated' : 'did NOT update'}, classes #{ech ? 'updated' : 'did NOT update'})"
+            when "failure"
+              "FAILED: #{s[:reason] || s['reason']}"
+            else
+              "#{kind}: #{(s.except(:at, :kind, 'at', 'kind') rescue s)}"
+            end
+          %>
+          <li style="color:<%= line_color %>;<%= failed ? "font-weight:600;" : "" %>margin-bottom:4px">
+            <span style="color:#9ca3af;font-size:11px;font-family:ui-monospace,Menlo,monospace"><%= ts %></span>
+            &nbsp;<%= text %>
+          </li>
+        <% end %>
+      </ol>
+    </div>
+  <% end %>
+
+  <!-- Network failures (the most likely root cause) -->
+  <% if @network_errors.any? %>
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px;margin-bottom:16px">
+      <div style="font-size:11px;color:#9a3412;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">
+        Network failures during the run &middot; <%= @network_errors.size %>
+      </div>
+      <div style="font-size:12px;color:#7c2d12;line-height:1.5;margin-bottom:8px">
+        Most "classes don't load" failures trace back to one of these — a CDN flake, calendar AJAX 5xx, or a blocked third-party request.
+      </div>
+      <pre style="font-size:11px;color:#7c2d12;white-space:pre-wrap;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;line-height:1.5"><%= @network_errors.first(15).join("\n") %></pre>
+    </div>
+  <% end %>
+
+  <!-- Browser console -->
   <% if @console_errors.any? %>
-    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin-bottom:20px">
+    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin-bottom:16px">
       <div style="font-size:11px;color:#fca5a5;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">
         Browser console &middot; <%= @console_errors.size %> entr<%= @console_errors.size == 1 ? "y" : "ies" %>
       </div>
-      <pre style="font-size:11px;color:#fecaca;white-space:pre-wrap;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;line-height:1.5"><%= @console_errors.first(8).join("\n") %></pre>
-      <% if @console_errors.size > 8 %>
-        <div style="font-size:10px;color:#737373;margin-top:8px">+ <%= @console_errors.size - 8 %> more on the Tests tab</div>
+      <pre style="font-size:11px;color:#fecaca;white-space:pre-wrap;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;line-height:1.5"><%= @console_errors.first(10).join("\n") %></pre>
+      <% if @console_errors.size > 10 %>
+        <div style="font-size:10px;color:#737373;margin-top:8px">+ <%= @console_errors.size - 10 %> more on the Tests tab</div>
       <% end %>
+    </div>
+  <% end %>
+
+  <!-- Calendar URL + video CTA -->
+  <% if @calendar_url_at_failure %>
+    <div style="font-size:12px;color:#374151;margin-bottom:16px">
+      <strong>Calendar URL when it failed:</strong>
+      <a href="<%= @calendar_url_at_failure %>" style="color:#2563eb;word-break:break-all"><%= @calendar_url_at_failure %></a>
     </div>
   <% end %>
 
   <div style="text-align:center;margin:24px 0">
     <a href="<%= @tests_tab_url %>"
        style="display:inline-block;background:#ea580c;color:#fff;text-decoration:none;font-weight:600;padding:10px 20px;border-radius:8px;font-size:14px">
-      View this run on the Tests tab →
+      ▶︎ Watch the recording on agent44labs.com →
     </a>
-    <div style="font-size:11px;color:#999;margin-top:8px">video recording is on the row</div>
+    <div style="font-size:11px;color:#999;margin-top:8px">opens the run row — click the thumbnail to play</div>
   </div>
+
+  <!-- Attachments summary -->
+  <% if @attachments_summary.any? %>
+    <div style="background:#f3f4f6;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#374151;line-height:1.6">
+      <div style="font-weight:600;margin-bottom:6px">Attached for the developer</div>
+      <ul style="margin:0;padding:0 0 0 18px">
+        <% @attachments_summary.each do |a| %>
+          <li><%= a %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
 
   <p style="font-size:12px;color:#888;text-align:center;margin:18px 0 0 0">
     Live calendar: <a href="<%= @target_url %>" style="color:#666"><%= @target_url %></a>
   </p>
 
-  <div style="margin-top:24px;padding-top:14px;border-top:1px solid #eee;color:#999;font-size:11px;text-align:center">
-    Agent 44 Labs &middot; automated NY Kitchen smoke
+  <div style="margin-top:24px;padding-top:14px;border-top:1px solid #eee;color:#9ca3af;font-size:11px;line-height:1.6">
+    <div style="text-align:center;margin-bottom:8px">automated NY Kitchen smoke &middot; <a href="https://agent44labs.com/" style="color:#9ca3af">agent44labs.com</a></div>
+    <div><strong>Runner:</strong> <%= @runner_name %></div>
+    <% if @user_agent.present? %>
+      <div style="overflow-wrap:anywhere"><strong>User-Agent:</strong> <%= @user_agent %></div>
+    <% end %>
+    <% if @run_id %>
+      <div><strong>Run ID:</strong> #<%= @run_id %></div>
+    <% end %>
   </div>
 </div>
 </body></html>
