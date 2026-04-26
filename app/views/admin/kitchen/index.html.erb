@@ -477,7 +477,7 @@
                 <tr id="<%= dom_id(run) %>">
                   <td class="px-3 py-3 text-sm text-gray-300 whitespace-nowrap sm:px-4">
                     <%= run.started_at.strftime("%b %-d") %>
-                    <span class="text-gray-500"><%= run.started_at.strftime("%-I:%M %p") %></span>
+                    <span class="block sm:inline text-gray-500"><%= run.started_at.strftime("%-I:%M %p") %></span>
                   </td>
                   <td class="px-3 py-3 whitespace-nowrap sm:px-4">
                     <% if run.passed? %>
