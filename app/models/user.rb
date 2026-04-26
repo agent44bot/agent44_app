@@ -20,17 +20,15 @@ class User < ApplicationRecord
   before_validation :derive_npub_from_pubkey, if: -> { pubkey_hex.present? && npub.blank? }
   before_create :generate_email_verification_token, if: -> { email_address.present? }
 
-  KITCHEN_CUSTOMER_EMAILS = %w[lora.downie@gmail.com].freeze
-
   def admin?
-    role == "admin" && !kitchen_only?
+    role == "admin"
   end
 
   # Customers scoped to a single page (today: NY Kitchen). They bypass the
   # normal admin tools and are pinned to /nykitchen on sign-in and redirected
   # back if they try to visit anything else.
   def kitchen_only?
-    role == "kitchen_customer" || KITCHEN_CUSTOMER_EMAILS.include?(email_address)
+    role == "kitchen_customer"
   end
 
   def email_verified?
