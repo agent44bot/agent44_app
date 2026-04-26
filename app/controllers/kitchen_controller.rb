@@ -15,6 +15,18 @@ class KitchenController < ApplicationController
     render layout: "application"
   end
 
+  def download_smoke_page_source
+    run = SmokeTestRun.find(params[:id])
+    return head :not_found unless run.page_source.attached?
+    redirect_to rails_blob_url(run.page_source, disposition: "attachment"), allow_other_host: true
+  end
+
+  def download_smoke_trace
+    run = SmokeTestRun.find(params[:id])
+    return head :not_found unless run.trace.attached?
+    redirect_to rails_blob_url(run.trace, disposition: "attachment"), allow_other_host: true
+  end
+
   def social_post_log
     log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
 

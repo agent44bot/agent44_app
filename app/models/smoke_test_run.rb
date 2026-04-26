@@ -4,6 +4,8 @@ class SmokeTestRun < ApplicationRecord
 
   has_one_attached :video
   has_one_attached :thumbnail
+  has_one_attached :page_source
+  has_one_attached :trace
 
   validates :name, :status, :started_at, presence: true
   validates :status, inclusion: { in: STATUSES }

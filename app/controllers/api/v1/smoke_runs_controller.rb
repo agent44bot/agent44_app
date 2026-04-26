@@ -26,23 +26,35 @@ module Api
       end
 
       # PUT /api/v1/smoke_runs/:id/video
+      # Accepts video + thumbnail + page_source + trace as multipart parts.
+      # Path stays "/video" for back-compat with older smoke clients.
       def video
         run = SmokeTestRun.find(params[:id])
 
-        run.video.attach(params[:video]) if params[:video]
-        run.thumbnail.attach(params[:thumbnail]) if params[:thumbnail]
+        run.video.attach(params[:video])             if params[:video]
+        run.thumbnail.attach(params[:thumbnail])     if params[:thumbnail]
+        run.page_source.attach(params[:page_source]) if params[:page_source]
+        run.trace.attach(params[:trace])             if params[:trace]
 
         # Retention policy:
-        #   - Keep ALL failed run videos (for debugging)
-        #   - Keep only the LATEST passing run's video/thumbnail
+        #   - Keep ALL failed run artifacts (for debugging)
+        #   - Keep only the LATEST passing run's artifacts
         if run.status == "passed"
           SmokeTestRun.where(status: "passed").where.not(id: run.id).find_each do |old_run|
-            old_run.video.purge if old_run.video.attached?
-            old_run.thumbnail.purge if old_run.thumbnail.attached?
+            old_run.video.purge        if old_run.video.attached?
+            old_run.thumbnail.purge    if old_run.thumbnail.attached?
+            old_run.page_source.purge  if old_run.page_source.attached?
+            old_run.trace.purge        if old_run.trace.attached?
           end
         end
 
-        render json: { status: "ok", video_attached: run.video.attached? }
+        render json: {
+          status: "ok",
+          video_attached:       run.video.attached?,
+          thumbnail_attached:   run.thumbnail.attached?,
+          page_source_attached: run.page_source.attached?,
+          trace_attached:       run.trace.attached?
+        }
       end
 
       private

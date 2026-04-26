@@ -46,6 +46,8 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   # Where to POST results. Defaults to prod so cron runs hit the live DB.
   # Override with SMOKE_API_URL for local testing.
   API_URL = ENV["SMOKE_API_URL"] || "https://agent44-app.fly.dev"
+  # Public-facing host used for email links (developer will see these).
+  PUBLIC_HOST = ENV["NYK_PUBLIC_HOST"] || "https://agent44labs.com"
 
   def self.runnable_methods
     ENV["RUN_SMOKE"] == "true" ? super : []
@@ -430,8 +432,6 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     context.tracing.stop(path: @trace_path.to_s) rescue nil
     context.close rescue nil
 
-    video_path = Dir.glob(@video_dir.join("*.webm").to_s).first
-
     puts "\n  📡 console_errors captured: #{@console_errors.size} entries"
     enriched = with_console_context(message)
     run_id = post_result(status: "failed", error_message: enriched)
@@ -440,17 +440,18 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     short_msg = enriched.lines.first(2).join.strip[0, 240]
     progress_ping("🚨 Vlad — NYK smoke FAILED", body: short_msg, level: "error")
 
+    page_source_url = run_id ? "#{PUBLIC_HOST}/nykitchen/smoke_runs/#{run_id}/page_source" : nil
+    trace_url       = run_id ? "#{PUBLIC_HOST}/nykitchen/smoke_runs/#{run_id}/trace"       : nil
+
     preview_failure_email(
       message: message,
       console_errors: @console_errors.uniq,
-      video_path: video_path,
-      screenshot_path: @screenshot_path.to_s,
-      trace_path: @trace_path.to_s,
-      page_source_path: @page_source_path.to_s,
       steps: @steps,
       calendar_url_at_failure: @calendar_url_at_failure,
       user_agent: @user_agent,
-      run_id: run_id
+      run_id: run_id,
+      page_source_url: page_source_url,
+      trace_url: trace_url
     )
 
     flunk enriched
@@ -691,6 +692,12 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     if File.exist?(thumb_path)
       parts << multipart_file_part("thumbnail", thumb_path, "image/jpeg", boundary)
     end
+    if @page_source_path && File.exist?(@page_source_path.to_s)
+      parts << multipart_file_part("page_source", @page_source_path.to_s, "text/html", boundary)
+    end
+    if @trace_path && File.exist?(@trace_path.to_s)
+      parts << multipart_file_part("trace", @trace_path.to_s, "application/zip", boundary)
+    end
     body = parts.join + "--#{boundary}--\r\n"
 
     http = Net::HTTP.new(uri.host, uri.port)
@@ -722,10 +729,10 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     "#{File.binread(path)}\r\n"
   end
 
-  def preview_failure_email(message:, video_path:, screenshot_path:, trace_path:,
-                            page_source_path: nil, console_errors: nil,
+  def preview_failure_email(message:, console_errors: nil,
                             steps: nil, calendar_url_at_failure: nil,
-                            user_agent: nil, run_id: nil)
+                            user_agent: nil, run_id: nil,
+                            page_source_url: nil, trace_url: nil)
     deliver = ENV["NYK_SMOKE_DELIVER"] == "true"
 
     # Configure SMTP before building the mail object so delivery method is set
@@ -744,10 +751,6 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     mail = NykSmokeMailer.failure(
       failure_message: message,
-      video_path: video_path,
-      screenshot_path: screenshot_path,
-      trace_path: trace_path,
-      page_source_path: page_source_path,
       started_at: Time.now,
       recipients: ENV["NYK_SMOKE_RECIPIENTS"] || "preview@example.com",
       console_errors: console_errors,
@@ -755,7 +758,9 @@ class NykCalendarNavTest < ActiveSupport::TestCase
       calendar_url_at_failure: calendar_url_at_failure,
       user_agent: user_agent,
       runner_name: ENV["RUNNER_NAME"].presence || (Socket.gethostname rescue "unknown"),
-      run_id: run_id
+      run_id: run_id,
+      page_source_url: page_source_url,
+      trace_url: trace_url
     )
 
     html_path = ARTIFACT_DIR.join("nyk-smoke-preview-#{@stamp}.html")
@@ -769,10 +774,9 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     puts "FROM:    #{Array(mail.from).join(", ")}"
     puts
     puts "Artifacts:"
-    puts "  video:      #{video_path || '(none)'}"
-    puts "  screenshot: #{screenshot_path}"
-    puts "  trace:      #{trace_path}  (drag into https://trace.playwright.dev)"
-    puts "  html body:  #{html_path}"
+    puts "  page_source: #{page_source_url || '(no run_id)'}"
+    puts "  trace:       #{trace_url || '(no run_id)'}"
+    puts "  html body:   #{html_path}"
     puts "=" * 70
 
     if deliver

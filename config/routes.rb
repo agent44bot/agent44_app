@@ -31,6 +31,8 @@ Rails.application.routes.draw do
   resources :saved_jobs, only: [ :index ]
   get "nykitchen", to: "kitchen#index"
   get "nykitchen/digests/:id", to: "kitchen#digest", as: :nyk_digest
+  get "nykitchen/smoke_runs/:id/page_source", to: "kitchen#download_smoke_page_source", as: :nyk_smoke_page_source
+  get "nykitchen/smoke_runs/:id/trace", to: "kitchen#download_smoke_trace", as: :nyk_smoke_trace
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
