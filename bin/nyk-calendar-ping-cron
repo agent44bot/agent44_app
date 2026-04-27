@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Wrapper for bin/nyk-calendar-ping invoked by launchd.
+# Loads RVM + env so the cron environment matches an interactive shell.
+
+set -eo pipefail
+
+cd "$(dirname "$0")/.."
+
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+
+if [[ -f "$HOME/.agent44_smoke_env" ]]; then
+  source "$HOME/.agent44_smoke_env"
+else
+  echo "ERROR: ~/.agent44_smoke_env not found"
+  exit 1
+fi
+
+exec bin/nyk-calendar-ping
