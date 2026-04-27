@@ -28,7 +28,7 @@ class NykSmokeMailer < ApplicationMailer
 
     mail(
       to: recipients,
-      subject: "🚨 NY Kitchen smoke failed — #{@started_at.strftime("%-I:%M %p %Z")}"
+      subject: "🚨 NY Kitchen test failed — #{@started_at.strftime("%-I:%M %p %Z")}"
     )
   end
 end
