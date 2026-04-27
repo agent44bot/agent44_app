@@ -2,7 +2,7 @@ class KitchenController < ApplicationController
   allow_unauthenticated_access
 
   def index
-    @admin = false
+    @admin = authenticated? && Current.session.user.admin?
     @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
     load_kitchen_data
     render "admin/kitchen/index", layout: "application"
