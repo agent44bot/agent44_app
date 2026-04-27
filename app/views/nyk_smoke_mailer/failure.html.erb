@@ -19,6 +19,70 @@
     <pre style="font-size:12px;color:#450a0a;white-space:pre-wrap;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere"><%= @failure_message.lines.first(8).join.strip %></pre>
   </div>
 
+  <!-- What we already know about this bug -->
+  <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px;margin-bottom:16px">
+    <div style="font-size:11px;color:#065f46;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">
+      What we already know about this bug
+    </div>
+    <div style="font-size:13px;color:#064e3b;line-height:1.6">
+      <p style="margin:0 0 10px 0">
+        <strong>Customer-facing pattern:</strong> when a visitor clicks the right/left
+        <strong>arrow buttons</strong> on the calendar to change months, the calendar
+        sometimes returns empty (no events). When that same visitor uses the
+        <strong>month dropdown selector</strong> to pick the same month, events load correctly.
+      </p>
+      <p style="margin:0 0 10px 0">
+        <strong>Workaround for customers in the meantime:</strong> if the calendar appears empty
+        after clicking the arrows, use the month dropdown instead.
+        Events appear immediately.
+      </p>
+      <p style="margin:0">
+        <strong>What that tells us:</strong> the server has the events, the data is fine,
+        and TEC's dropdown navigation works. The bug is specifically in TEC's
+        <strong>arrow-button click handler</strong>, which fires a <code>live_refresh</code> AJAX
+        call to <code>/wp-json/tribe/views/v2/html</code> that returns empty.
+      </p>
+    </div>
+  </div>
+
+  <!-- For Jordan / nykitchen.com developer -->
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;margin-bottom:16px">
+    <div style="font-size:11px;color:#075985;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">
+      For Jordan &middot; concrete debug steps
+    </div>
+    <ol style="margin:0;padding:0 0 0 20px;font-size:13px;color:#0c4a6e;line-height:1.6">
+      <li style="margin-bottom:6px">
+        Check <strong>The Events Calendar</strong> plugin version. Recent updates have
+        regressed <code>live_refresh</code> behavior; downgrade or upgrade depending
+        on which version was running before this started failing.
+      </li>
+      <li style="margin-bottom:6px">
+        Inspect the <strong>REST nonce</strong> sent on the AJAX request. If
+        <code>tribe-events-views[_wpnonce]</code> is missing, expired, or stale,
+        TEC silently returns empty rather than erroring.
+      </li>
+      <li style="margin-bottom:6px">
+        In the browser console, click an arrow and watch the
+        <code>POST /wp-json/tribe/views/v2/html</code> request — compare its body
+        and response to the request fired when picking the same month from the
+        dropdown. The diff will isolate the bug.
+      </li>
+      <li style="margin-bottom:6px">
+        Look for JS errors in <code>tribe-events-view.min.js</code> during the arrow click
+        (any uncaught exception there breaks the AJAX dispatch).
+      </li>
+      <li style="margin-bottom:6px">
+        As a quick remediation, try <strong>disabling <code>live_refresh</code></strong> in
+        TEC settings (Events &rarr; Settings &rarr; Display &rarr; "Live Refresh"). Forces
+        full page nav on month change — confirms the bug is in the AJAX path.
+      </li>
+      <li>
+        The full HTML at the moment of failure, the Playwright trace.zip, and a
+        video recording of the bug happening are linked below.
+      </li>
+    </ol>
+  </div>
+
   <!-- Plain English step log -->
   <% if @steps.any? %>
     <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:16px">
