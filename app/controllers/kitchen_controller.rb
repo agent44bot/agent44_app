@@ -64,6 +64,8 @@ class KitchenController < ApplicationController
     log.enhanced_text = enhanced
     log.save!
 
+    Current.session&.user&.increment!(:ai_enhances_used)
+
     render json: { enhanced: enhanced }
   rescue Anthropic::Errors::APIError => e
     render json: { error: "api_error", message: e.message }, status: 502
