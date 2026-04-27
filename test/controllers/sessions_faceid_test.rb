@@ -29,13 +29,16 @@ class SessionsFaceIdTest < ActionDispatch::IntegrationTest
     assert_select "button#faceid-signin-btn"
   end
 
-  test "homepage shows Face ID button even for signed-in users on mobile" do
+  test "homepage hides Face ID button for signed-in users" do
+    # Face ID is a sign-in path; once you're already authenticated, the
+    # button has nothing to do. home.html.erb wraps the button in
+    # `unless authenticated?` for that reason.
     post session_path, params: { email_address: @user.email_address, password: "password" }
     follow_redirect!
 
     get root_path
     assert_response :success
-    assert_select "button#faceid-signin-btn"
+    assert_select "button#faceid-signin-btn", count: 0
   end
 
   test "sign-in form does not save credentials automatically" do
