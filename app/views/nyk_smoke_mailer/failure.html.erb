@@ -83,6 +83,32 @@
     </div>
   <% end %>
 
+  <!-- Likely causes -->
+  <% if @likely_causes.any? %>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:#1e3a8a;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">
+        Likely causes &middot; ranked by how often we see each
+      </div>
+      <ol style="margin:0;padding:0 0 0 20px;font-size:13px;color:#1e3a8a;line-height:1.55">
+        <% @likely_causes.each do |c| %>
+          <li style="margin-bottom:12px">
+            <div style="font-weight:600;color:#0c1c4a">
+              <%= c[:title] %>
+              <% if c[:matched] %>
+                <span style="display:inline-block;background:#fde68a;color:#78350f;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">⚠︎ matches this run</span>
+              <% end %>
+            </div>
+            <div style="color:#1f2937;margin-top:3px"><%= c[:body].html_safe %></div>
+            <% if c[:matched] && c[:match_label] %>
+              <div style="color:#78350f;font-size:12px;margin-top:3px"><strong>Why we flagged this:</strong> <%= c[:match_label] %></div>
+            <% end %>
+            <div style="color:#374151;margin-top:3px;font-size:12px"><strong>What to check:</strong> <%= c[:check].html_safe %></div>
+          </li>
+        <% end %>
+      </ol>
+    </div>
+  <% end %>
+
   <!-- Browser console -->
   <% if @console_errors.any? %>
     <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin-bottom:16px">

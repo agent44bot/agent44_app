@@ -331,8 +331,14 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   # Extract all events visible on the current month view. Returns an array of
   # { id:, title: } hashes. ID comes from the WP post class (stable across
   # navigation); title comes from the rendered anchor text.
+  #
+  # Dedupes by ID: TEC renders multi-week courses (e.g. WSET Level 3 spanning
+  # 3 Saturdays) once per week-row of the grid. Without dedupe, fwd/back arrays
+  # ended up with the same set of IDs but different counts, tripping `!=` while
+  # producing empty diffs — the "events differ in {month} after round-trip — "
+  # truncation we kept seeing.
   def capture_events(page)
-    page.evaluate(<<~JS) || []
+    raw = page.evaluate(<<~JS) || []
       Array.from(document.querySelectorAll('.tribe-events-calendar-month__calendar-event')).map(el => {
         const idMatch = el.className.match(/post-(\\d+)/);
         const linkEl = el.querySelector('.tribe-events-calendar-month__calendar-event-title-link, .tribe-events-calendar-month__calendar-event-title');
@@ -342,6 +348,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
         };
       }).filter(e => e.id);
     JS
+    raw.uniq { |e| e[:id] || e["id"] }
   end
 
   def click_nav(page, direction)
