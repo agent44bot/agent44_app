@@ -12,44 +12,55 @@
   var Bio = window.Capacitor.Plugins.BiometricAuth;
   if (!Bio) return;
 
-  var CSRF = document.querySelector('meta[name="csrf-token"]');
-
-  Bio.isAvailable().then(function(result) {
-    if (!result.isAvailable) return;
-
+  // Re-run on every Turbo navigation, not just initial parse — otherwise the
+  // post-signout return to `/` swaps the body in but the visibility check
+  // never fires, leaving the button at its default display:none and forcing
+  // the user to hard-close the app to recover.
+  function setup() {
+    var CSRF = document.querySelector('meta[name="csrf-token"]');
     var btns = document.querySelectorAll('[id="faceid-signin-btn"]');
     if (!btns.length) return;
 
-    if (result.hasCredentials) {
-      // Stored credentials — show button, tap triggers Face ID and auto sign-in
-      btns.forEach(function(btn) {
-        btn.style.display = "flex";
-        btn.addEventListener("click", function() { doFaceIdSignIn(btn); });
-      });
-    } else {
-      // No stored credentials yet — show button on home page only (links to sign-in)
-      // On the sign-in page itself, hide it (user should sign in with email first)
-      var isSignInPage = window.location.pathname.indexOf("session") !== -1;
-      if (!isSignInPage) {
+    Bio.isAvailable().then(function(result) {
+      if (!result.isAvailable) return;
+
+      if (result.hasCredentials) {
+        // Stored credentials — show button, tap triggers Face ID and auto sign-in
         btns.forEach(function(btn) {
           btn.style.display = "flex";
-          btn.addEventListener("click", function() {
-            window.location.href = "<%= new_session_path %>";
+          if (btn.dataset.faceidInit !== "1") {
+            btn.dataset.faceidInit = "1";
+            btn.addEventListener("click", function() { doFaceIdSignIn(btn, CSRF); });
+          }
+        });
+      } else {
+        // No stored credentials yet — show button on home page only (links to sign-in)
+        // On the sign-in page itself, hide it (user should sign in with email first)
+        var isSignInPage = window.location.pathname.indexOf("session") !== -1;
+        if (!isSignInPage) {
+          btns.forEach(function(btn) {
+            btn.style.display = "flex";
+            if (btn.dataset.faceidInit !== "1") {
+              btn.dataset.faceidInit = "1";
+              btn.addEventListener("click", function() {
+                window.location.href = "<%= new_session_path %>";
+              });
+            }
           });
+        }
+      }
+
+      // Update button label based on biometry type
+      if (!result.hasBiometrics) {
+        btns.forEach(function(btn) {
+          var label = btn.querySelector(".faceid-label");
+          if (label) label.textContent = "Sign in with Passcode";
         });
       }
-    }
+    }).catch(function(e) { console.log("BiometricAuth check failed:", e); });
+  }
 
-    // Update button label based on biometry type
-    if (!result.hasBiometrics) {
-      btns.forEach(function(btn) {
-        var label = btn.querySelector(".faceid-label");
-        if (label) label.textContent = "Sign in with Passcode";
-      });
-    }
-  }).catch(function(e) { console.log("BiometricAuth check failed:", e); });
-
-  function doFaceIdSignIn(btn) {
+  function doFaceIdSignIn(btn, CSRF) {
     btn.disabled = true;
     var origHTML = btn.innerHTML;
     btn.textContent = "Authenticating...";
@@ -88,5 +99,11 @@
     sessionStorage.removeItem("_faceid_pending_email");
     sessionStorage.removeItem("_faceid_pending_pw");
   } catch(e) {}
+
+  // Initial load
+  setup();
+  // Every Turbo navigation (post-signout, back/forward, etc.)
+  document.addEventListener("turbo:load", setup);
+  document.addEventListener("turbo:render", setup);
 })();
 <% end %>
