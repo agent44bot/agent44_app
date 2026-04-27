@@ -42,7 +42,12 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   FORWARD_STEPS = 3 # clicks past initial load; total months visited = 4
   NAV_WAIT_MS   = Integer(ENV["NAV_WAIT_MS"]  || 2_500)
   STEP_PAUSE_MS = Integer(ENV["STEP_PAUSE_MS"] || 0)
-  TEST_NAME = "nyk_calendar_nav"
+  # Browser to drive: chromium (default), firefox, or webkit. Each must be
+  # installed via `npx playwright install <browser>`.
+  BROWSER = (ENV["BROWSER"].presence || "chromium").downcase
+  raise "Unknown BROWSER=#{BROWSER.inspect} (chromium|firefox|webkit)" unless %w[chromium firefox webkit].include?(BROWSER)
+  # Track non-default browsers as separate runs on the dashboard.
+  TEST_NAME = BROWSER == "chromium" ? "nyk_calendar_nav" : "nyk_calendar_nav_#{BROWSER}"
   # Where to POST results. Defaults to prod so cron runs hit the live DB.
   # Override with SMOKE_API_URL for local testing.
   API_URL = ENV["SMOKE_API_URL"] || "https://agent44-app.fly.dev"
@@ -83,7 +88,7 @@ class NykCalendarNavTest < ActiveSupport::TestCase
     # failure after capturing a real video so we can verify end-to-end delivery.
     if ENV["FORCE_FAIL"] == "true"
       Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
-        browser = pw.chromium.launch(headless: true)
+        browser = pw.public_send(BROWSER).launch(headless: true)
         context = browser.new_context(record_video_dir: @video_dir.to_s)
         context.tracing.start(screenshots: true, snapshots: true, sources: false)
         page = context.new_page
@@ -96,11 +101,12 @@ class NykCalendarNavTest < ActiveSupport::TestCase
 
     Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
       headful = %w[1 true yes t y].include?(ENV["HEADFUL"].to_s.downcase)
-      browser = pw.chromium.launch(headless: !headful)
+      browser = pw.public_send(BROWSER).launch(headless: !headful)
+      puts "  🌐 Driving #{BROWSER} (test name: #{TEST_NAME})"
       context = browser.new_context(
         viewport: { width: 1280, height: 900 },
         record_video_dir: @video_dir.to_s
-        # Default Chromium UA — custom UAs can trigger bot-detection on some
+        # Default browser UA — custom UAs can trigger bot-detection on some
         # WordPress sites (The Events Calendar has returned empty AJAX for
         # non-standard UAs in testing).
       )
