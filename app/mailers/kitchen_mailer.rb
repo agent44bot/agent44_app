@@ -11,6 +11,8 @@ class KitchenMailer < ApplicationMailer
     @price_changes = digest[:price_changes]
     @total_upcoming = digest[:total_upcoming]
     @total_sold_out = digest[:total_sold_out]
+    @snapshot_date  = digest[:snapshot_date]
+    @stale_data     = digest[:stale_data]
 
     mail(
       to: recipients,

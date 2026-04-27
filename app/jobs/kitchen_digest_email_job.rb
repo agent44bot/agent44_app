@@ -5,13 +5,18 @@ class KitchenDigestEmailJob < ApplicationJob
 
   def perform
     today    = Date.today
-    snapshot = KitchenSnapshot.find_by(taken_on: today)
-    previous = KitchenSnapshot.latest_before(today)
+    # Prefer today's snapshot, but fall back to the most recent one we have.
+    # The 9 AM smoke that produces today's snapshot has been failing
+    # intermittently, and skipping the digest entirely on those days is
+    # worse for Lora than showing yesterday's data with a clear note.
+    snapshot = KitchenSnapshot.find_by(taken_on: today) || KitchenSnapshot.latest
 
     unless snapshot
-      Rails.logger.info("KitchenDigestEmailJob: no snapshot for #{today}, skipping")
+      Rails.logger.info("KitchenDigestEmailJob: no snapshots in DB at all, skipping")
       return
     end
+
+    previous = KitchenSnapshot.latest_before(snapshot.taken_on)
 
     events = snapshot.kitchen_events.map do |e|
       {
@@ -29,10 +34,12 @@ class KitchenDigestEmailJob < ApplicationJob
       previous_snapshot: previous,
       today: today
     )
+    digest[:snapshot_date] = snapshot.taken_on
+    digest[:stale_data]    = snapshot.taken_on != today
 
     KitchenMailer.daily_digest(digest, recipients: RECIPIENTS).deliver_now
 
-    Rails.logger.info("KitchenDigestEmailJob: sent to #{RECIPIENTS}")
+    Rails.logger.info("KitchenDigestEmailJob: sent to #{RECIPIENTS} (snapshot #{snapshot.taken_on})")
   rescue => e
     Notification.notify!(
       level: "error",
