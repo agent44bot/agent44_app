@@ -329,14 +329,16 @@ class NykCalendarNavTest < ActiveSupport::TestCase
   end
 
   # Extract all events visible on the current month view. Returns an array of
-  # { id:, title: } hashes. ID comes from the WP post class (stable across
-  # navigation); title comes from the rendered anchor text.
+  # { id:, title: } hashes with symbol keys. ID comes from the WP post class
+  # (stable across navigation); title comes from the rendered anchor text.
+  #
+  # playwright-ruby returns string-keyed hashes from page.evaluate, so we
+  # convert at the boundary — otherwise downstream `e[:id]` access silently
+  # returns nil and the round-trip diff degrades to a count-only comparison.
   #
   # Dedupes by ID: TEC renders multi-week courses (e.g. WSET Level 3 spanning
   # 3 Saturdays) once per week-row of the grid. Without dedupe, fwd/back arrays
-  # ended up with the same set of IDs but different counts, tripping `!=` while
-  # producing empty diffs — the "events differ in {month} after round-trip — "
-  # truncation we kept seeing.
+  # would differ in count but match as sets.
   def capture_events(page)
     raw = page.evaluate(<<~JS) || []
       Array.from(document.querySelectorAll('.tribe-events-calendar-month__calendar-event')).map(el => {
@@ -348,7 +350,9 @@ class NykCalendarNavTest < ActiveSupport::TestCase
         };
       }).filter(e => e.id);
     JS
-    raw.uniq { |e| e[:id] || e["id"] }
+    raw
+      .map { |e| { id: e["id"].to_s, title: e["title"].to_s } }
+      .uniq { |e| e[:id] }
   end
 
   def click_nav(page, direction)
