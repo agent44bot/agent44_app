@@ -24,6 +24,14 @@ class User < ApplicationRecord
     role == "admin"
   end
 
+  # App Store reviewers and other read-mostly demo accounts. Sees the same
+  # rich kitchen view as admins (smoke run management, pricing) so the
+  # marketed feature set is visible during review, but is denied access to
+  # admin internals (/admin/*, /lab).
+  def reviewer?
+    role == "reviewer"
+  end
+
   # Customers scoped to a single page (today: NY Kitchen). They bypass the
   # normal admin tools and are pinned to /nykitchen on sign-in and redirected
   # back if they try to visit anything else.

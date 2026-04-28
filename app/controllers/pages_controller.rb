@@ -31,6 +31,9 @@ class PagesController < ApplicationController
     @can_see_nyk_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
   end
 
+  def privacy
+  end
+
   def lab
     unless authenticated? && Current.session.user.admin?
       redirect_to root_path, alert: "Not found." and return

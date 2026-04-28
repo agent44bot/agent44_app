@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   root "pages#home"
   get "lab", to: "pages#lab"
+  get "privacy", to: "pages#privacy"
 
   resource :session do
     post :challenge, on: :collection

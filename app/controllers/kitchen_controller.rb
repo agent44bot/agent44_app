@@ -2,8 +2,8 @@ class KitchenController < ApplicationController
   allow_unauthenticated_access
 
   def index
-    @admin = authenticated? && Current.session.user.admin?
-    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+    @admin = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer?)
+    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer? || Current.session.user.kitchen_only?)
     load_kitchen_data
     render "admin/kitchen/index", layout: "application"
   end
@@ -11,7 +11,7 @@ class KitchenController < ApplicationController
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot
-    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer? || Current.session.user.kitchen_only?)
     render layout: "application"
   end
 
