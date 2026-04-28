@@ -90,6 +90,9 @@
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
+            <% if Current.session.user.reviewer? %>
+              <%= link_to "NY Kitchen", nykitchen_path, class: "text-sm text-gray-300 hover:text-orange-400 transition" %>
+            <% end %>
             <% if Current.session.user.admin? %>
               <!-- Admin dropdown -->
               <div class="relative" data-controller="nav">
@@ -139,6 +142,9 @@
     <div class="hidden md:hidden" data-nav-target="menu">
       <div class="px-4 pt-2 pb-4 space-y-1 border-t border-gray-800">
         <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+        <% if authenticated? && Current.session.user.reviewer? %>
+          <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
+        <% end %>
         <% if authenticated? && Current.session.user.admin? %>
           <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "Crypto", crypto_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
