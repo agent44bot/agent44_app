@@ -199,8 +199,12 @@ class NykCalendarNavTest < ActiveSupport::TestCase
             unique_urls.each_with_index do |url, i|
               begin
                 event = scrape_detail_page(page, url)
-                scraped_events << event if event
-                puts "    [#{i + 1}/#{unique_urls.size}] #{event[:name]&.to_s&.truncate(50) || url}"
+                if event
+                  scraped_events << event
+                  puts "    [#{i + 1}/#{unique_urls.size}] #{event[:name]&.to_s&.truncate(50) || url}"
+                else
+                  puts "    [#{i + 1}/#{unique_urls.size}] SKIPPED (404/deleted): #{url}"
+                end
               rescue => e
                 puts "    [#{i + 1}/#{unique_urls.size}] FAILED: #{e.message}"
               end

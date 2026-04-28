@@ -13,9 +13,17 @@ module NykEventScraperHelper
   end
 
   # Visit a detail page and extract full event data from DOM + ticket widget.
+  # Returns nil if the event has been pulled from the site (404, or grid still
+  # links to a deleted post — TEC's caches lag the actual post deletion).
   def scrape_detail_page(page, url)
-    page.goto(url, timeout: 30_000, waitUntil: "domcontentloaded")
+    response = page.goto(url, timeout: 30_000, waitUntil: "domcontentloaded")
     page.wait_for_timeout(1_000)
+
+    status = (response&.status rescue nil).to_i
+    return nil if status >= 400
+    # Belt-and-suspenders: WP sometimes returns 200 with a "page not found" body.
+    # If the event-title element isn't on the page, treat it as deleted.
+    return nil unless page.locator("h1.tribe-events-single-event-title").count > 0
 
     # Scroll ticket section into view so video captures availability info
     page.evaluate("(document.querySelector('.tribe-tickets') || document.querySelector('.tribe-events-content') || document.body).scrollIntoView({behavior: 'smooth', block: 'center'})")
