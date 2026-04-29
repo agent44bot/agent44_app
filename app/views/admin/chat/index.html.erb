@@ -60,7 +60,7 @@
   <% end %>
 </div>
 
-<script>
+<script nonce="<%= content_security_policy_nonce %>">
   // Sync agent select with hidden input
   document.getElementById('agent-select').addEventListener('change', function() {
     document.getElementById('agent-input').value = this.value;

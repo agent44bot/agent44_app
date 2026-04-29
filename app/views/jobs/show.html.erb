@@ -115,7 +115,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<%= content_security_policy_nonce %>">
 function copyJobDescription(button) {
   var description = document.querySelector('.prose.prose-orange');
   if (!description) return;

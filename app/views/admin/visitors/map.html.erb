@@ -49,7 +49,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<%= content_security_policy_nonce %>">
 document.addEventListener("DOMContentLoaded", function() {
   const visitors = <%= @visitors.map { |v|
     { lat: v.latitude, lng: v.longitude, city: v.city, country: v.country,

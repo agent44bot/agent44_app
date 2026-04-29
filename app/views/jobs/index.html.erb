@@ -63,7 +63,7 @@
 
   <%= javascript_include_tag "chart.umd.min", "data-turbo-track": "reload" %>
 
-  <script>
+  <script nonce="<%= content_security_policy_nonce %>">
     (function() {
       function initCharts() {
         if (typeof Chart === "undefined") {
@@ -304,7 +304,7 @@
   <style>
     .job-tooltip { pointer-events: none; }
   </style>
-  <script>
+  <script nonce="<%= content_security_policy_nonce %>">
     function showJobTooltip(el) {
       const tooltip = el.querySelector('.job-tooltip');
       if (tooltip) tooltip.classList.remove('hidden');

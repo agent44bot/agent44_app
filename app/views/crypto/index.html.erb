@@ -63,7 +63,7 @@
     </div>
   </div>
 
-  <script>
+  <script nonce="<%= content_security_policy_nonce %>">
     (function() {
       function initCryptoCharts() {
         if (typeof Chart === "undefined") { setTimeout(initCryptoCharts, 100); return; }
@@ -161,7 +161,7 @@
   <style>
     .job-tooltip { pointer-events: none; }
   </style>
-  <script>
+  <script nonce="<%= content_security_policy_nonce %>">
     function showJobTooltip(el) {
       const tooltip = el.querySelector('.job-tooltip');
       if (tooltip) tooltip.classList.remove('hidden');

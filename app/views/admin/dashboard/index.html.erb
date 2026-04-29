@@ -179,7 +179,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<%= content_security_policy_nonce %>">
 document.addEventListener("DOMContentLoaded", function() {
   // Daily Trend Chart
   const trendData = <%= @trend_data.to_json.html_safe %>;

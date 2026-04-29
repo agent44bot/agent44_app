@@ -15,7 +15,7 @@
   <div id="globe-container" class="rounded-2xl border border-gray-800 overflow-hidden shadow-lg" style="height: 650px; background: #070B1A;"></div>
 </div>
 
-<script>
+<script nonce="<%= content_security_policy_nonce %>">
 (function() {
   var data = <%= raw @globe_data.to_json %>;
 
