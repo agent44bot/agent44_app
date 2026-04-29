@@ -48,7 +48,10 @@ class NykCalendarNavTest < NykSmokeBase
     end
 
     Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
-      headful = %w[1 true yes t y].include?(ENV["HEADFUL"].to_s.downcase)
+      # Default to headed: lower bot fingerprint (less detectable than headless
+      # Chromium) matters since this test runs hourly. Set HEADFUL=false to
+      # force headless (e.g. on a runner without a display).
+      headful = ENV["HEADFUL"].to_s.downcase != "false"
       browser = pw.public_send(BROWSER).launch(headless: !headful)
       puts "  🌐 Driving #{BROWSER} (test name: #{TEST_NAME})#{headful ? " [headful]" : ""}"
       context = browser.new_context(

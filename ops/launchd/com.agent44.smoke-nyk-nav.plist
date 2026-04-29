@@ -7,9 +7,10 @@
     0–1799 seconds before triggering the workflow. Final fire times are
     spread randomly across each hour so the cadence doesn't look like a
     bot signing in on the dot.
-  - Runs headed (HEADFUL=true) for a less detectable Chromium fingerprint.
-    Requires the agent44 user to be logged in on the Mac mini (display
-    can sleep — only the user session needs to be active).
+  - Runs headed by default (the test file's own default) for a less
+    detectable Chromium fingerprint. Requires the agent44 user to be
+    logged in on the Mac mini (display can sleep — only the user session
+    needs to be active).
   - Test failures email botwhisperer@hey.com only (NYK_SMOKE_RECIPIENTS in
     the workflow's GH secret should be set to that address). Lora is never
     notified by this test.
@@ -31,7 +32,7 @@
     <array>
         <string>/bin/sh</string>
         <string>-c</string>
-        <string>sleep $((RANDOM % 1800)); /opt/homebrew/bin/gh workflow run smoke-nyk.yml --ref main -R agent44bot/agent44_app -f test=nav -f headful=true</string>
+        <string>sleep $((RANDOM % 1800)); /opt/homebrew/bin/gh workflow run smoke-nyk.yml --ref main -R agent44bot/agent44_app -f test=nav</string>
     </array>
 
     <key>EnvironmentVariables</key>

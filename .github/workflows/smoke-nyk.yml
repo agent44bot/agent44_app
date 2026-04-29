@@ -18,9 +18,9 @@ on:
           - nav
           - scrape
       headful:
-        description: "Run Chromium headed (less bot-like fingerprint)"
-        type: boolean
-        default: false
+        description: "Override headful mode (true|false). Empty = use the test's own default (nav=headed, scrape=headless)."
+        type: string
+        default: ""
 
 jobs:
   smoke:
