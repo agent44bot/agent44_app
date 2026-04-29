@@ -136,4 +136,66 @@
       </div>
     </noscript>
   </div>
+
+  <!-- Delete account. Permanently destroys the user record and all associated
+       data; required for App Store compliance (guideline 5.1.1(v)). -->
+  <div data-controller="account-deletion"
+       data-account-deletion-has-password-value="<%= Current.user&.password_digest.present? %>"
+       class="mb-6 bg-gray-900 border border-red-900/40 rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-800">
+      <h2 class="text-white font-semibold text-base">Delete account</h2>
+      <p class="text-xs text-gray-500 mt-0.5">
+        Permanently delete your account and all data we've stored for you. This can't be undone.
+      </p>
+    </div>
+
+    <!-- View: just the trigger button -->
+    <div data-account-deletion-target="view" class="px-5 py-4">
+      <button type="button"
+              data-action="click->account-deletion#open"
+              class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-red-900/40 text-red-400 text-sm font-semibold transition border border-red-900/40">
+        Delete account…
+      </button>
+    </div>
+
+    <!-- Form: confirmation -->
+    <%= form_with url: settings_path, method: :delete,
+          data: { account_deletion_target: "form" },
+          class: "hidden px-5 py-4 space-y-3" do |f| %>
+      <p class="text-sm text-gray-300">
+        This will delete your account, sign you out, and remove your saved jobs,
+        posts, and other data we've stored for you. <span class="text-red-400 font-semibold">This is permanent.</span>
+      </p>
+
+      <% if Current.user&.password_digest.present? %>
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1">Confirm with your password</label>
+          <%= f.password_field :password,
+                autocomplete: "current-password",
+                class: "w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition" %>
+        </div>
+      <% else %>
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1">
+            Type <span class="font-mono text-red-400">DELETE</span> to confirm
+          </label>
+          <%= f.text_field :confirm,
+                autocomplete: "off", autocapitalize: "characters", spellcheck: "false",
+                data: { account_deletion_target: "confirm", action: "input->account-deletion#checkConfirm" },
+                class: "w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition" %>
+        </div>
+      <% end %>
+
+      <div class="flex items-center gap-2">
+        <%= f.submit "Delete my account",
+              data: { account_deletion_target: "submitBtn" },
+              class: "px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" %>
+        <button type="button"
+                data-action="click->account-deletion#cancel"
+                class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm transition">
+          Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
 </div>

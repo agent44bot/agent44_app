@@ -12,7 +12,7 @@ Rails.application.routes.draw do
   end
   resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
-  resource :settings, only: [ :show ] do
+  resource :settings, only: [ :show, :destroy ] do
     post :verify_password
     patch :update_email
   end

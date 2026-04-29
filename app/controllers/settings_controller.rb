@@ -29,4 +29,27 @@ class SettingsController < ApplicationController
       render json: { error: user.errors.full_messages.first || "Couldn't update email." }, status: :unprocessable_entity
     end
   end
+
+  # Permanent account deletion. Required by Apple App Store guideline 5.1.1(v).
+  # Email/password users must enter their password; Nostr-only users (no
+  # password_digest) must type the literal phrase "DELETE" to confirm.
+  def destroy
+    user = Current.user
+    return redirect_to(root_path) unless user
+
+    if user.password_digest.present?
+      unless user.authenticate(params[:password].to_s)
+        redirect_to settings_path, alert: "That password is incorrect." and return
+      end
+    else
+      unless params[:confirm].to_s.strip == "DELETE"
+        redirect_to settings_path, alert: 'Type "DELETE" to confirm.' and return
+      end
+    end
+
+    user.destroy!
+    cookies.delete(:session_id)
+    Current.session = nil
+    redirect_to root_path, notice: "Your account has been deleted."
+  end
 end
