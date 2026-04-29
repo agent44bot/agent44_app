@@ -64,21 +64,20 @@ jobs:
           RAILS_ENV: test
         run: bin/rails db:test:prepare
 
-      # Quiet hours for the hourly nav test: 10pm–8am ET. During this window
-      # we silence Telegram (Vlad status pings + progress_ping) so overnight
-      # firings don't blow up your phone. Scrape is unaffected (it only fires
-      # 8×/day on a sane schedule).
+      # Quiet hours: 10pm–8am ET. During this window we silence Telegram
+      # (Vlad status pings + progress_ping) for both nav and scrape so
+      # overnight firings don't blow up your phone. Tests still run and
+      # still post to /api/v1/smoke_runs and /api/v1/kitchen_snapshots —
+      # only Telegram is suppressed.
       - name: Compute quiet hours
         id: quiet
-        env:
-          TEST: ${{ github.event.inputs.test || github.event.client_payload.test || 'all' }}
         run: |
           HOUR=$(TZ=America/New_York date +%H)
           QUIET=false
-          if [ "$TEST" = "nav" ] && { [ "$HOUR" -ge 22 ] || [ "$HOUR" -lt 8 ]; }; then
+          if [ "$HOUR" -ge 22 ] || [ "$HOUR" -lt 8 ]; then
             QUIET=true
           fi
-          echo "Hour=$HOUR ET, TEST=$TEST, quiet=$QUIET"
+          echo "Hour=$HOUR ET, quiet=$QUIET"
           echo "quiet=$QUIET" >> "$GITHUB_OUTPUT"
 
       - name: Run NY Kitchen smoke test
