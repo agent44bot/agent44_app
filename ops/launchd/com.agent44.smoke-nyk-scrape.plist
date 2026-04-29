@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Every-3-hour NYK scrape + snapshot on the Mac mini runner.
+
+  - Fires at 0/3/6/9/12/15/18/21 local each day. The 9am slot is the
+    snapshot KitchenDigestEmailJob picks up at 10am for Lora's daily digest.
+  - Adds 0–5 min random jitter (small enough to keep the morning slot
+    safely before 10am, large enough to break perfect on-the-dot cadence).
+  - Runs headless (default) — visiting ~100 detail pages serially, the
+    bot fingerprint matters less than throughput here, and the 8×/day
+    cadence is low enough not to trip rate limiters.
+  - Test failures email botwhisperer@hey.com only (NYK_SMOKE_RECIPIENTS in
+    the workflow's GH secret). Lora's only contact path is the 10am digest.
+
+  Install:
+    cp ops/launchd/com.agent44.smoke-nyk-scrape.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.agent44.smoke-nyk-scrape.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.agent44.smoke-nyk-scrape</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>sleep $((RANDOM % 300)); /opt/homebrew/bin/gh workflow run smoke-nyk.yml --ref main -R agent44bot/agent44_app -f test=scrape</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/agent44</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <!-- Every 3 hours. 9am slot lands the morning snapshot before the
+         10am digest job fires. Command-level sleep adds 0–5 min jitter. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>0</integer>  <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>3</integer>  <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>6</integer>  <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>9</integer>  <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>12</integer> <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>15</integer> <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>18</integer> <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>21</integer> <key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/smoke-nyk-scrape.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/smoke-nyk-scrape.err.log</string>
+</dict>
+</plist>
