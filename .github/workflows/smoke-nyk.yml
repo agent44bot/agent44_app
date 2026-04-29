@@ -76,7 +76,9 @@ jobs:
           VERIFY_VLAD_STATUS: "true"
           # Selection: workflow_dispatch input → repository_dispatch payload → "all"
           TEST: ${{ github.event.inputs.test || github.event.client_payload.test || 'all' }}
-          HEADFUL: ${{ github.event.inputs.headful || github.event.client_payload.headful || 'false' }}
+          # Pass through only when explicitly set; empty string lets the test
+          # file fall back to its own default (nav=headed, scrape=headless).
+          HEADFUL: ${{ github.event.inputs.headful || github.event.client_payload.headful || '' }}
         run: |
           case "$TEST" in
             nav)    FILES="test/smoke/nyk_calendar_nav_test.rb" ;;
