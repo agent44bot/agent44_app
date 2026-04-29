@@ -1,4 +1,6 @@
 name: NY Kitchen Smoke Test
+# Distinguish nav vs scrape vs all runs at a glance in the Actions UI.
+run-name: "NY Kitchen Smoke — ${{ github.event.inputs.test || github.event.client_payload.test || 'all' }}"
 
 on:
   # Scheduled fires come from launchd on the mac mini runner
