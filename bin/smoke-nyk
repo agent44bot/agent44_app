@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-# Runs the NY Kitchen smoke test locally (Mac Mini cron).
+# Runs the NY Kitchen smoke tests locally (Mac mini cron).
 # On failure, delivers an email to NYK_SMOKE_RECIPIENTS via Brevo.
 # Secrets are loaded from ~/.agent44_smoke_env (not checked into git).
+#
+# Usage:
+#   bin/smoke-nyk            # runs all tests (default)
+#   bin/smoke-nyk nav        # arrow-nav regression only
+#   bin/smoke-nyk scrape     # scrape + snapshot only
+#   bin/smoke-nyk all        # explicit "all" (same as no arg)
+#
+# Env override: TEST=nav|scrape|all also works (used by GH workflow).
 
 set -eo pipefail
 
@@ -22,10 +30,23 @@ else
   exit 1
 fi
 
+# Decide which test(s) to run. CLI arg wins over TEST env var; default = all.
+selection="${1:-${TEST:-all}}"
+
+case "$selection" in
+  nav)    files=( test/smoke/nyk_calendar_nav_test.rb ) ;;
+  scrape) files=( test/smoke/nyk_scrape_test.rb ) ;;
+  all|"") files=( test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_scrape_test.rb test/smoke/nyk_coupon_field_test.rb ) ;;
+  *)
+    echo "ERROR: unknown TEST selection '$selection' (expected: nav | scrape | all)"
+    exit 2
+    ;;
+esac
+
 export RAILS_ENV=test
 export RUN_SMOKE=true
 export SMOKE_API_URL="https://agent44-app.fly.dev"
 export NYK_SMOKE_DELIVER=true
 
 bin/rails db:test:prepare 2>/dev/null
-bin/rails test test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_list_nav_test.rb test/smoke/nyk_coupon_field_test.rb
+bin/rails test "${files[@]}"
