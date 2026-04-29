@@ -64,6 +64,23 @@ jobs:
           RAILS_ENV: test
         run: bin/rails db:test:prepare
 
+      # Quiet hours for the hourly nav test: 10pm–8am ET. During this window
+      # we silence Telegram (Vlad status pings + progress_ping) so overnight
+      # firings don't blow up your phone. Scrape is unaffected (it only fires
+      # 8×/day on a sane schedule).
+      - name: Compute quiet hours
+        id: quiet
+        env:
+          TEST: ${{ github.event.inputs.test || github.event.client_payload.test || 'all' }}
+        run: |
+          HOUR=$(TZ=America/New_York date +%H)
+          QUIET=false
+          if [ "$TEST" = "nav" ] && { [ "$HOUR" -ge 22 ] || [ "$HOUR" -lt 8 ]; }; then
+            QUIET=true
+          fi
+          echo "Hour=$HOUR ET, TEST=$TEST, quiet=$QUIET"
+          echo "quiet=$QUIET" >> "$GITHUB_OUTPUT"
+
       - name: Run NY Kitchen smoke test
         env:
           RAILS_ENV: test
@@ -79,6 +96,9 @@ jobs:
           # Pass through only when explicitly set; empty string lets the test
           # file fall back to its own default (nav=headed, scrape=headless).
           HEADFUL: ${{ github.event.inputs.headful || github.event.client_payload.headful || '' }}
+          # Silence Telegram during quiet hours
+          VLAD_PROGRESS_PINGS: ${{ steps.quiet.outputs.quiet == 'true' && 'false' || 'true' }}
+          SKIP_VLAD_STATUS: ${{ steps.quiet.outputs.quiet }}
         run: |
           case "$TEST" in
             nav)    FILES="test/smoke/nyk_calendar_nav_test.rb" ;;
@@ -98,9 +118,10 @@ jobs:
 
       # Belt-and-suspenders: even if the test process is SIGTERMed (cancel,
       # timeout, or anything skipping Minitest teardown), make sure Vlad
-      # doesn't get stuck "busy" on the dashboard.
+      # doesn't get stuck "busy" on the dashboard. Skipped during quiet
+      # hours since the test never set Vlad busy in the first place.
       - name: Reset Vlad to online (always)
-        if: always()
+        if: always() && steps.quiet.outputs.quiet != 'true'
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |

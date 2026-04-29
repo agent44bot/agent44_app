@@ -64,6 +64,11 @@ class NykSmokeBase < ActiveSupport::TestCase
   # ---------------------------------------------------------------------------
 
   def update_vlad_status(status, task = nil, retries: 3)
+    # Quiet hours: skip Vlad status updates entirely so the agent-status API
+    # doesn't fire a Telegram notification on the transition. Set by the
+    # workflow when the nav test runs between 10pm–8am ET.
+    return if ENV["SKIP_VLAD_STATUS"] == "true"
+
     token = ENV["API_TOKEN"]
     return if token.to_s.empty?
 
