@@ -151,10 +151,10 @@ class NykScrapeTest < NykSmokeBase
   # button class, the text-based fallback should still match.
   def click_this_month(page)
     candidates = [
-      '.tribe-events-c-top-bar__today-button',
+      ".tribe-events-c-top-bar__today-button",
       '[data-js="tribe-events-view-link"][data-link*="today"]',
-      'button.tribe-events-c-top-bar__today-button',
-      'a.tribe-events-c-top-bar__today-button'
+      "button.tribe-events-c-top-bar__today-button",
+      "a.tribe-events-c-top-bar__today-button"
     ]
 
     candidates.each do |selector|
