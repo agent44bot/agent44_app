@@ -23,7 +23,7 @@ class PagesController < ApplicationController
     end
 
     # NY Kitchen smoke test case study data
-    nyk_runs = SmokeTestRun.for_name("nykitchen").recent
+    nyk_runs = SmokeTestRun.nyk.recent
     @nyk_latest_run = nyk_runs.first
     @nyk_total_runs = nyk_runs.count
     @nyk_pass_rate = nyk_runs.any? ? (nyk_runs.where(status: "passed").count.to_f / nyk_runs.count * 100).round : nil
