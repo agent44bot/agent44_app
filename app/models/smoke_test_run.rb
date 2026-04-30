@@ -14,6 +14,7 @@ class SmokeTestRun < ApplicationRecord
 
   scope :recent, -> { order(started_at: :desc) }
   scope :for_name, ->(n) { where(name: n) }
+  scope :nyk, -> { where("name LIKE 'nyk_calendar_nav%' OR name LIKE 'nyk_scrape%'") }
 
   def passed?
     status == "passed"
@@ -21,6 +22,10 @@ class SmokeTestRun < ApplicationRecord
 
   def failed?
     status == "failed"
+  end
+
+  def kind
+    name.to_s.start_with?("nyk_scrape") ? "scrape" : "nav"
   end
 
   # Friendly duration string for display

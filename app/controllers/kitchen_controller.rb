@@ -154,7 +154,7 @@ class KitchenController < ApplicationController
       @post_logs = {}
     end
 
-    @smoke_runs = SmokeTestRun.for_name("nyk_calendar_nav").recent.with_attached_video.with_attached_thumbnail.limit(20)
+    @smoke_runs = SmokeTestRun.nyk.recent.with_attached_video.with_attached_thumbnail.limit(20)
   end
 
   def build_enhance_prompt(draft, name, description, date, price)
