@@ -4,6 +4,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   setup do
     @today = Date.today
     @snapshot = KitchenSnapshot.create!(taken_on: @today)
+    admin = users(:one)
+    admin.update!(role: "admin")
+    sign_in_as admin
   end
 
   test "week headers show availability bar with correct segments" do
@@ -145,6 +148,28 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   test "digest summary page returns 404 for unknown id" do
     get nyk_digest_path(id: 999_999)
     assert_response :not_found
+  end
+
+  test "unauthenticated user is redirected to sign-in" do
+    sign_out
+    get nykitchen_path
+    assert_redirected_to new_session_path
+  end
+
+  test "authenticated non-admin non-kitchen user is bounced to root" do
+    plain = users(:two)
+    plain.update!(role: "user")
+    sign_in_as plain
+    get nykitchen_path
+    assert_redirected_to root_path
+  end
+
+  test "kitchen_customer can access the page" do
+    customer = users(:two)
+    customer.update!(role: "kitchen_customer")
+    sign_in_as customer
+    get nykitchen_path
+    assert_response :success
   end
 
   private
