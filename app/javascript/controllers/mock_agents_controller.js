@@ -147,12 +147,15 @@ export default class extends Controller {
     row.style.transition = "background-color 600ms ease"
     row.style.backgroundColor = "rgba(245, 158, 11, 0.12)"
     setTimeout(() => { row.style.backgroundColor = "" }, 600)
+    this.webPulses?.spawn(row.dataset.id)
   }
 
   finishTask(row) {
     if (!row.parentElement) return
     const list = this.listTarget
     const id = row.dataset.id
+
+    this.webPulses?.complete(id)
 
     row.style.transition = "max-height 500ms ease, opacity 500ms ease, transform 500ms ease, margin 500ms ease"
     row.style.maxHeight = "0px"
@@ -164,6 +167,14 @@ export default class extends Controller {
       this.poolIds.push(id)
       this.addNewAgent()
     }, 500)
+  }
+
+  get webPulses() {
+    if (this._webPulses) return this._webPulses
+    const el = document.querySelector('[data-controller~="web-pulses"]')
+    if (!el) return null
+    this._webPulses = this.application.getControllerForElementAndIdentifier(el, "web-pulses")
+    return this._webPulses
   }
 
   addNewAgent() {

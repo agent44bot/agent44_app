@@ -209,9 +209,11 @@
   </main>
 
   <!-- Footer (copyright only — full footer hidden, see commit 8c65a6f) -->
-  <footer class="bg-gray-950 text-gray-500 border-t border-gray-800 py-4 text-center text-xs">
+  <footer class="fixed bottom-0 inset-x-0 z-30 bg-gray-950/90 backdrop-blur text-gray-500 border-t border-gray-800 py-2 text-center text-[11px]">
     &copy; <%= Date.current.year %> Agent 44 Labs. All rights reserved.
   </footer>
+  <%# Spacer so content can scroll past the fixed footer without being hidden behind it %>
+  <div aria-hidden="true" class="h-8"></div>
 
 </body>
 </html>
