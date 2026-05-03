@@ -5,18 +5,6 @@ require_relative "pages/kitchen_page"
 class NykitchenSystemTest < SystemTestCase
   setup do
     @kitchen = KitchenPage.new(@page, BASE_URL) if @page
-
-    # /nykitchen is now gated to admin + kitchen_customer roles. Sign in as
-    # admin via the UI before each test, or skip if creds aren't provided.
-    email = ENV["SMOKE_ADMIN_EMAIL"]
-    password = ENV["SMOKE_ADMIN_PASSWORD"]
-    skip "Set SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD to run these tests" unless email && password
-
-    @page.goto("#{BASE_URL}/session/new", waitUntil: "domcontentloaded")
-    @page.fill('input[name="email_address"]', email)
-    @page.fill('input[name="password"]', password)
-    @page.click('button[type="submit"]')
-    @page.wait_for_url("**/", timeout: 10_000)
   end
 
   test "kitchen page loads and shows event cards" do
