@@ -441,10 +441,9 @@
       </div>
 
       <% if @can_see_pricing %>
-        <% total_cost = @smoke_runs.sum(:cost_dollars) %>
         <p class="text-sm text-gray-500 mb-6">
-          Total cost: <span class="text-white font-semibold">$<%= "%.4f" % total_cost %></span>
-          (<%= @smoke_runs.size %> run<%= @smoke_runs.size == 1 ? "" : "s" %> &middot; $0.00044/min)
+          Total cost: <span class="text-white font-semibold">$<%= "%.2f" % @smoke_runs_total_cost %></span>
+          (<%= @smoke_runs_total_count %> run<%= @smoke_runs_total_count == 1 ? "" : "s" %> &middot; $0.00044/min)
         </p>
       <% end %>
 
