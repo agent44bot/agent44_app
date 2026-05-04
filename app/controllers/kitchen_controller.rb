@@ -50,7 +50,7 @@ class KitchenController < ApplicationController
     end
 
     client = Anthropic::Client.new(api_key: api_key)
-    prompt = build_enhance_prompt(params[:draft], params[:event_name], params[:event_description], params[:event_date], params[:event_price])
+    prompt = build_enhance_prompt(params[:draft], params[:event_name], params[:event_description], params[:event_date], params[:event_price], params[:idea])
 
     response = client.messages.create(
       model: "claude-haiku-4-5-20251001",
@@ -160,7 +160,15 @@ class KitchenController < ApplicationController
     @smoke_runs_total_minutes = (SmokeTestRun.nyk.sum(:duration_ms) / 60_000.0).round
   end
 
-  def build_enhance_prompt(draft, name, description, date, price)
+  def build_enhance_prompt(draft, name, description, date, price, idea = nil)
+    idea_block = if idea.to_s.strip.present?
+      <<~IDEA
+
+        The user has a specific angle they want you to take with this post. Use this as your primary creative direction — let it shape the hook, the framing, and the tone:
+        "#{idea.to_s.strip}"
+      IDEA
+    end
+
     <<~PROMPT
       You are a social media copywriter for New York Kitchen, a beloved culinary education center in Canandaigua in the Finger Lakes region of New York.
 
@@ -175,7 +183,7 @@ class KitchenController < ApplicationController
       - Keep the hashtags at the end
       - Maintain the urgency/availability messaging
       - Write in a warm, inviting tone — like a friend telling you about something amazing
-
+      #{idea_block}
       Class name: #{name}
       Date: #{date}
       Price: $#{price}

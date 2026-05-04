@@ -2,7 +2,10 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "saveBtn", "enhanceBtn",
-                     "status", "postedStatus", "postedCheckbox", "thumbnail", "imageHint"]
+                     "status", "postedStatus", "postedCheckbox", "thumbnail", "imageHint",
+                     "idea", "ideaCallout"]
+
+  IDEA_CALLOUT_STORAGE_KEY = "nyk:idea-field-seen"
   static values = {
     name: String,
     date: String,
@@ -27,10 +30,24 @@ export default class extends Controller {
       this.previewTextTarget.textContent = this.enhancedTextValue || this.buildPost()
       panel.classList.remove("hidden")
       this.toggleBtnTarget.textContent = "Hide preview"
+      this._maybeShowIdeaCallout()
     } else {
       panel.classList.add("hidden")
       this.toggleBtnTarget.textContent = "Preview post"
     }
+  }
+
+  dismissIdeaCallout() {
+    if (!this.hasIdeaCalloutTarget) return
+    this.ideaCalloutTarget.classList.add("hidden")
+    try { localStorage.setItem(this.IDEA_CALLOUT_STORAGE_KEY, "1") } catch (_) {}
+  }
+
+  _maybeShowIdeaCallout() {
+    if (!this.hasIdeaCalloutTarget) return
+    let seen = false
+    try { seen = localStorage.getItem(this.IDEA_CALLOUT_STORAGE_KEY) === "1" } catch (_) {}
+    if (!seen) this.ideaCalloutTarget.classList.remove("hidden")
   }
 
   copy() {
@@ -129,6 +146,7 @@ export default class extends Controller {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
     const draft = this.previewTextTarget.textContent
+    const idea = this.hasIdeaTarget ? this.ideaTarget.value.trim() : ""
 
     try {
       const resp = await fetch(this.enhanceUrlValue, {
@@ -136,6 +154,7 @@ export default class extends Controller {
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({
           draft,
+          idea,
           event_url: this.urlValue,
           event_name: this.nameValue,
           event_description: this.descriptionValue,
