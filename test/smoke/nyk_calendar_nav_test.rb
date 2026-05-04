@@ -69,7 +69,6 @@ class NykCalendarNavTest < NykSmokeBase
         dismiss_newsletter_popup(page) unless ENV["NO_POPUP_KILL"] == "true"
         record_step(kind: "popup_dismissed") unless ENV["NO_POPUP_KILL"] == "true"
         page.wait_for_timeout(STEP_PAUSE_MS)
-        progress_ping("🤖 Vlad — Loaded NYK calendar", body: "starting #{FORWARD_STEPS + 1}-month round-trip")
 
         # --- Forward phase -------------------------------------------------
         forward = []
@@ -87,7 +86,6 @@ class NykCalendarNavTest < NykSmokeBase
 
         total_events = forward.sum { |m| m[:events].size }
         @failures << "No events captured in any of the #{forward.size} forward months — test is not meaningful" if total_events == 0
-        progress_ping("🤖 Vlad — Walking back to verify round-trip", body: "captured #{total_events} events across #{forward.size} months")
 
         # --- Back phase ----------------------------------------------------
         FORWARD_STEPS.times do |i|
@@ -129,7 +127,6 @@ class NykCalendarNavTest < NykSmokeBase
           summary = forward.map { |m| m[:events].size }.join("/") + " events round-tripped"
           run_id = post_result(status: "passed", summary: summary)
           upload_video(run_id) if run_id
-          progress_ping("✅ Vlad — NYK smoke PASSED", body: summary, level: "success")
           assert_empty @failures
         end
       rescue => e
