@@ -157,6 +157,7 @@ class KitchenController < ApplicationController
     @smoke_runs = SmokeTestRun.nyk.recent.with_attached_video.with_attached_thumbnail.limit(100)
     @smoke_runs_total_count = SmokeTestRun.nyk.count
     @smoke_runs_total_cost = SmokeTestRun.nyk.sum(:cost_dollars)
+    @smoke_runs_total_minutes = (SmokeTestRun.nyk.sum(:duration_ms) / 60_000.0).round
   end
 
   def build_enhance_prompt(draft, name, description, date, price)

@@ -443,7 +443,7 @@
       <% if @can_see_pricing %>
         <p class="text-sm text-gray-500 mb-6">
           Total cost: <span class="text-white font-semibold">$<%= "%.2f" % @smoke_runs_total_cost %></span>
-          (<%= @smoke_runs_total_count %> run<%= @smoke_runs_total_count == 1 ? "" : "s" %> &middot; $0.00044/min)
+          (<%= @smoke_runs_total_count %> runs &middot; <%= @smoke_runs_total_minutes %> min &middot; $0.00044/min)
         </p>
       <% end %>
 
