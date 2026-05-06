@@ -1,0 +1,48 @@
+<% content_for :title, "Notifications" %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-white mb-1">Notifications</h1>
+  <p class="text-sm text-gray-400 mb-6">
+    <%= pluralize(@notifications.size, "notification") %>
+  </p>
+
+  <% if @notifications.empty? %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-8 text-center">
+      <p class="text-gray-400">You're all caught up.</p>
+    </div>
+  <% else %>
+    <div class="space-y-3">
+      <% @notifications.each do |n| %>
+        <% level_color = case n.level
+           when "error" then "border-red-700 bg-red-950/40"
+           when "warning" then "border-yellow-700 bg-yellow-950/30"
+           when "success" then "border-green-700 bg-green-950/30"
+           else "border-gray-800 bg-gray-900"
+           end %>
+        <% icon = case n.level
+           when "error" then "🚨"
+           when "warning" then "⚠️"
+           when "success" then "✅"
+           else "ℹ️"
+           end %>
+        <% wrapper_tag = n.url.present? ? :a : :div %>
+        <%= content_tag(wrapper_tag, href: (n.url if wrapper_tag == :a),
+              class: "block rounded-lg border #{level_color} p-4 transition #{'hover:border-orange-500' if n.url.present?}") do %>
+          <div class="flex items-start gap-3">
+            <span class="text-lg shrink-0"><%= icon %></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                <span class="font-mono"><%= n.source %></span>
+                <span><%= n.created_at.in_time_zone.strftime("%b %-d, %-l:%M %p") %></span>
+              </div>
+              <h3 class="text-sm font-semibold text-white break-words"><%= n.title %></h3>
+              <% if n.body.present? %>
+                <p class="text-sm text-gray-300 mt-1 whitespace-pre-wrap break-words"><%= n.body %></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

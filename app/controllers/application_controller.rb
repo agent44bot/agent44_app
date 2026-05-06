@@ -11,7 +11,7 @@ class ApplicationController < ActionController::Base
 
   private
 
-  KITCHEN_ALLOWED_PREFIXES = %w[/nykitchen /session /email_verification /passwords /settings /api /assets /rails/active_storage].freeze
+  KITCHEN_ALLOWED_PREFIXES = %w[/nykitchen /notifications /session /email_verification /passwords /settings /api /assets /rails/active_storage].freeze
 
   def enforce_kitchen_only_scope
     return unless authenticated?

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_06_134046) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_06_201221) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -217,6 +217,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_06_134046) do
     t.string "source", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.string "url"
     t.integer "user_id"
     t.index ["created_at"], name: "index_notifications_on_created_at"
     t.index ["level"], name: "index_notifications_on_level"

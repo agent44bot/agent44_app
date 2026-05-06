@@ -64,6 +64,27 @@
       }).catch(function() {});
     }
 
+    // Tap-to-route: when the app foregrounds, ask the server what's pending.
+    // 1 unread + url → jump straight to it; many unread → /notifications inbox;
+    // 0 → stay put. Always clear the badge afterwards.
+    function routeFromBadgeAndClear() {
+      fetch('/api/v1/badge/peek', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      }).then(function(r) {
+        if (!r.ok) return null;
+        return r.json();
+      }).then(function(payload) {
+        if (payload && payload.count > 0) {
+          var dest = (payload.count === 1 && payload.url) ? payload.url : '/notifications';
+          if (window.location.pathname + window.location.hash !== dest && window.location.href !== dest) {
+            window.location.href = dest;
+          }
+        }
+      }).catch(function() {}).finally(function() { clearBadge(); });
+    }
+
     PN.requestPermissions().then(function(perm) {
       if (perm.receive !== 'granted') return;
 
@@ -85,15 +106,16 @@
       PN.register();
     });
 
-    // Clear the icon badge whenever the app comes to the foreground (or first
-    // loads). Sends a silent push so all of the user's devices reset together.
+    // On first load and every foreground, peek at the user's unread state and
+    // route to the right place (single → that notification's url, many →
+    // inbox), then clear the badge.
     var App = window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if (App && App.addListener) {
       App.addListener('appStateChange', function(state) {
-        if (state.isActive) clearBadge();
+        if (state.isActive) routeFromBadgeAndClear();
       });
     }
-    clearBadge();
+    routeFromBadgeAndClear();
   })();
   <% end %>
 </head>

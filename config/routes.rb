@@ -47,6 +47,8 @@ Rails.application.routes.draw do
   resources :subscribers, only: [ :create ]
   get "soft_gate", to: "soft_gates#show", as: :soft_gate
 
+  get "notifications", to: "notifications#index"
+
   namespace :api do
     namespace :v1 do
       resources :jobs, only: [ :create ]
@@ -72,6 +74,7 @@ Rails.application.routes.draw do
       resources :device_tokens, only: [ :create ]
       resources :notifications, only: [ :create ]
       post "badge/clear", to: "badges#clear"
+      get  "badge/peek",  to: "badges#peek"
     end
   end
 

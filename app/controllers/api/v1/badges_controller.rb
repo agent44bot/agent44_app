@@ -12,6 +12,21 @@ module Api
 
         head :no_content
       end
+
+      # Reports the current user's unread state so the app can decide where to
+      # land on icon tap: a single unread → straight to that notification's
+      # url; multiple unread → /notifications inbox.
+      def peek
+        return head :unauthorized unless authenticated?
+
+        user = Current.session.user
+        unread = user.notifications.unread.recent
+        latest = unread.first
+        render json: {
+          count: unread.count,
+          url:   latest&.url
+        }
+      end
     end
   end
 end
