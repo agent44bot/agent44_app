@@ -51,6 +51,19 @@
     var PN = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
     if (!PN) return;
 
+    function csrfToken() {
+      var el = document.querySelector('meta[name="csrf-token"]');
+      return el ? el.getAttribute('content') : '';
+    }
+
+    function clearBadge() {
+      fetch('/api/v1/badge/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken() },
+        credentials: 'same-origin'
+      }).catch(function() {});
+    }
+
     PN.requestPermissions().then(function(perm) {
       if (perm.receive !== 'granted') return;
 
@@ -66,10 +79,21 @@
       PN.addListener('pushNotificationActionPerformed', function(action) {
         var url = action.notification.data && action.notification.data.url;
         if (url) window.location.href = url;
+        clearBadge();
       });
 
       PN.register();
     });
+
+    // Clear the icon badge whenever the app comes to the foreground (or first
+    // loads). Sends a silent push so all of the user's devices reset together.
+    var App = window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (App && App.addListener) {
+      App.addListener('appStateChange', function(state) {
+        if (state.isActive) clearBadge();
+      });
+    }
+    clearBadge();
   })();
   <% end %>
 </head>

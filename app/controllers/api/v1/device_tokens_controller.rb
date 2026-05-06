@@ -12,7 +12,11 @@ module Api
         device_token = DeviceToken.find_or_initialize_by(token: params[:token])
         device_token.platform = params[:platform] || "ios"
         device_token.active = true
-        device_token.user_id = resolve_user_id(params[:user_id]) if params.key?(:user_id)
+        if params.key?(:user_id)
+          device_token.user_id = resolve_user_id(params[:user_id])
+        elsif authenticated?
+          device_token.user_id = Current.session.user.id
+        end
         device_token.save!
 
         render json: { id: device_token.id, token: device_token.token, user_id: device_token.user_id }, status: :created

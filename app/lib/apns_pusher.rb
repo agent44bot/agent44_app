@@ -7,6 +7,8 @@ class ApnsPusher
     tokens = scope.pluck(:token)
     return if tokens.empty?
 
+    badge = user ? user.notifications.unread.count : nil
+
     connection = build_connection
     return unless connection
 
@@ -17,7 +19,30 @@ class ApnsPusher
       push_notification.alert = alert
       push_notification.sound = "default"
       push_notification.topic = "com.agent44labs.app"
+      push_notification.badge = badge if badge
       push_notification.custom_payload = { url: url } if url
+
+      response = connection.push(push_notification)
+      handle_response(response, token)
+    end
+  ensure
+    connection&.close
+  end
+
+  # Sends a silent (content-available) push to the user's iOS devices that
+  # zeroes the app icon badge. Used after the user opens the app.
+  def self.clear_badge_for(user)
+    tokens = DeviceToken.active.ios.for_user(user).pluck(:token)
+    return if tokens.empty?
+
+    connection = build_connection
+    return unless connection
+
+    tokens.each do |token|
+      push_notification = Apnotic::Notification.new(token)
+      push_notification.topic = "com.agent44labs.app"
+      push_notification.content_available = 1
+      push_notification.badge = 0
 
       response = connection.push(push_notification)
       handle_response(response, token)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_26_223347) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_06_134046) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -217,9 +217,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_223347) do
     t.string "source", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.integer "user_id"
     t.index ["created_at"], name: "index_notifications_on_created_at"
     t.index ["level"], name: "index_notifications_on_level"
     t.index ["read_at"], name: "index_notifications_on_read_at"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "page_views", force: :cascade do |t|
@@ -369,6 +371,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_223347) do
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
+  add_foreign_key "notifications", "users"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
   add_foreign_key "saved_jobs", "jobs"

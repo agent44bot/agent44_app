@@ -71,6 +71,7 @@ Rails.application.routes.draw do
       end
       resources :device_tokens, only: [ :create ]
       resources :notifications, only: [ :create ]
+      post "badge/clear", to: "badges#clear"
     end
   end
 

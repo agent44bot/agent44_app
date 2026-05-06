@@ -7,6 +7,7 @@ class User < ApplicationRecord
   has_many :saved_job_listings, through: :saved_jobs, source: :job
   has_many :hidden_jobs, dependent: :destroy
   has_many :hidden_job_listings, through: :hidden_jobs, source: :job
+  has_many :notifications, dependent: :nullify
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 

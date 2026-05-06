@@ -1,6 +1,8 @@
 class Notification < ApplicationRecord
   LEVELS = %w[info success warning error].freeze
 
+  belongs_to :user, optional: true
+
   validates :level, inclusion: { in: LEVELS }
   validates :source, :title, presence: true
 
@@ -17,8 +19,10 @@ class Notification < ApplicationRecord
 
   # Convenience: create + optionally push to Telegram / APNs
   # Pass apns_user to target a specific user's iOS devices; nil = all devices.
+  # The notification record is tied to apns_user so that user's unread count
+  # drives the iOS app icon badge.
   def self.notify!(level:, source:, title:, body: nil, telegram: false, apns: false, apns_url: nil, apns_subtitle: nil, apns_user: nil)
-    notification = create!(level: level, source: source, title: title, body: body)
+    notification = create!(level: level, source: source, title: title, body: body, user: apns_user)
     TelegramNotifier.send_alert(notification) if telegram
     ApnsPusher.send_alert(notification, url: apns_url, subtitle: apns_subtitle, user: apns_user) if apns
     notification
