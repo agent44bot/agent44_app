@@ -152,16 +152,9 @@ module Api
           "#{event.name}: #{tickets_bought} ticket(s) bought — #{new_spots} spot(s) left"
         end
 
-        Notification.notify!(
-          level: "info",
-          source: "kitchen_tickets",
-          title: title,
-          body: "#{old_spots} → #{new_spots} spots remaining",
-          telegram: true,
-          apns: true,
-          apns_url: "/nykitchen#week-#{change[:week_index]}",
-          apns_subtitle: change[:week_label]
-        )
+        body = "#{old_spots} → #{new_spots} spots remaining"
+        url = "/nykitchen#week-#{change[:week_index]}"
+        broadcast_kitchen_alert(title: title, body: body, apns_url: url, apns_subtitle: change[:week_label])
       end
 
       def notify_digest(snapshot, changes)
@@ -189,16 +182,47 @@ module Api
         end
         lines << "+ #{changes.size - 5} more" if changes.size > 5
 
+        broadcast_kitchen_alert(
+          title: title,
+          body: lines.join("\n"),
+          apns_url: "/nykitchen/digests/#{digest.id}",
+          apns_subtitle: nil
+        )
+      end
+
+      # Sends one Telegram + creates one user-less notification record (for the
+      # admin activity log), then sends a per-user APNs push to each kitchen
+      # recipient so each recipient's iOS app icon badge tracks their own
+      # unread count. Recipients are admins + kitchen_customers — small
+      # hardcoded set today (Rich + Lora). When the audience grows, swap to
+      # role-based discovery.
+      def broadcast_kitchen_alert(title:, body:, apns_url:, apns_subtitle:)
         Notification.notify!(
           level: "info",
           source: "kitchen_tickets",
           title: title,
-          body: lines.join("\n"),
+          body: body,
           telegram: true,
-          apns: true,
-          apns_url: "/nykitchen/digests/#{digest.id}",
-          apns_subtitle: nil
+          apns: false
         )
+
+        kitchen_recipients.each do |user|
+          Notification.notify!(
+            level: "info",
+            source: "kitchen_tickets",
+            title: title,
+            body: body,
+            telegram: false,
+            apns: true,
+            apns_url: apns_url,
+            apns_subtitle: apns_subtitle,
+            apns_user: user
+          )
+        end
+      end
+
+      def kitchen_recipients
+        User.where(role: %w[admin kitchen_customer]).where.not(email_address: nil)
       end
 
       def serialize_change(c)

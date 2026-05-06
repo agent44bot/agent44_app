@@ -256,6 +256,7 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "digest passes per-snapshot summary URL to APNs" do
+    User.create!(email_address: "kitchen-recipient-1@example.com", role: "admin")
     captured = {}
     ApnsPusher.stub :send_alert, ->(_n, **opts) { captured.merge!(opts) } do
       seed_three_event_drops!
@@ -267,6 +268,7 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "single-change push still deep-links to week anchor (no digest record)" do
+    User.create!(email_address: "kitchen-recipient-2@example.com", role: "admin")
     captured = {}
     ApnsPusher.stub :send_alert, ->(_n, **opts) { captured.merge!(opts) } do
       post "/api/v1/kitchen_snapshots",
