@@ -8,11 +8,19 @@ class NykBillingController < ApplicationController
   def show
     now = Time.zone.now
     @month_start = now.beginning_of_month
+
     nyk_logs_month = AiCallLog.where(source: AiCallLog::NYK_SOURCES).where("created_at >= ?", @month_start)
     @summary = AiCallLog.summary_by_source(nyk_logs_month)
-    @month_total = AiCallLog.total_cost_dollars(nyk_logs_month)
-    @month_calls = nyk_logs_month.count
-    @recent = nyk_logs_month.order(created_at: :desc).limit(20)
+    @ai_total   = AiCallLog.total_cost_dollars(nyk_logs_month)
+    @ai_calls   = nyk_logs_month.count
+    @recent     = nyk_logs_month.order(created_at: :desc).limit(20)
+
+    smoke_runs_month = SmokeTestRun.nyk.where("started_at >= ?", @month_start)
+    @smoke_count    = smoke_runs_month.count
+    @smoke_minutes  = (smoke_runs_month.sum(:duration_ms) / 60_000.0).round
+    @smoke_cost     = smoke_runs_month.sum(:cost_dollars).to_f
+
+    @month_total = @ai_total + @smoke_cost
   end
 
   private

@@ -1,19 +1,26 @@
-<% content_for :title, "NY Kitchen — AI Billing" %>
+<% content_for :title, "NY Kitchen — Billing" %>
 
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <h1 class="text-2xl font-bold text-white mb-1">AI Billing</h1>
+  <h1 class="text-2xl font-bold text-white mb-1">Billing</h1>
   <p class="text-sm text-gray-400 mb-6">
-    Charges for Anthropic Claude calls made on behalf of NY Kitchen this month.
-    No markup — these are the raw API costs we're billed by Anthropic.
+    Raw monthly cost for NY Kitchen automation. No markup — these are the
+    underlying charges we pay to run your fleet (Anthropic for AI, GitHub
+    Actions minutes for browser smoke tests).
   </p>
 
   <div class="rounded-lg bg-gray-900 border border-orange-700/40 p-5 mb-8">
     <p class="text-xs text-orange-400 uppercase tracking-wide mb-1">Total this month</p>
     <p class="text-3xl font-bold text-white">$<%= sprintf("%.2f", @month_total) %></p>
-    <p class="text-xs text-gray-500 mt-1"><%= pluralize(@month_calls, "AI call") %> since <%= @month_start.strftime("%b %-d") %></p>
+    <p class="text-xs text-gray-500 mt-1">
+      AI: $<%= sprintf("%.4f", @ai_total) %>
+      &middot;
+      Smoke tests: $<%= sprintf("%.4f", @smoke_cost) %>
+      &middot;
+      since <%= @month_start.strftime("%b %-d") %>
+    </p>
   </div>
 
-  <h2 class="text-base font-semibold text-white mb-3">Breakdown</h2>
+  <h2 class="text-base font-semibold text-white mb-3">AI usage</h2>
   <% if @summary.empty? %>
     <p class="text-sm text-gray-500 italic mb-8">No AI usage yet this month.</p>
   <% else %>
@@ -76,4 +83,26 @@
       </table>
     </div>
   <% end %>
+
+  <h2 class="text-base font-semibold text-white mt-8 mb-3">Smoke tests</h2>
+  <p class="text-xs text-gray-500 mb-3">
+    Browser-driven calendar checks (cron-driven, ~3×/day).
+    Billed at $<%= sprintf("%.5f", SmokeTestRun::COST_PER_MINUTE) %>/min of CI runtime.
+  </p>
+  <div class="rounded-lg bg-gray-900 border border-gray-800 p-5 mb-8">
+    <div class="grid grid-cols-3 gap-4 text-center">
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Runs</p>
+        <p class="text-xl font-bold text-white"><%= number_with_delimiter(@smoke_count) %></p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Minutes</p>
+        <p class="text-xl font-bold text-white"><%= number_with_delimiter(@smoke_minutes) %></p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Cost</p>
+        <p class="text-xl font-bold text-white">$<%= sprintf("%.4f", @smoke_cost) %></p>
+      </div>
+    </div>
+  </div>
 </div>
