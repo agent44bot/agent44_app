@@ -85,17 +85,30 @@ class PostNykClassToXJob < ApplicationJob
 
   def notify_for_approval(event, log)
     approval_url = "/nykitchen/x_drafts/#{log.x_approval_token}"
-    rich = User.find_by(role: "admin")
+    recipients = User.where(role: %w[admin kitchen_customer]).where.not(email_address: nil)
 
+    # Telegram fires once (it's a global broadcast).
     Notification.notify!(
       level: "info",
       source: "x_autopost",
       title: "Tweet draft: #{event.name}",
       body: "Tap to review and approve before it posts to @agent44bot.",
       telegram: true,
-      apns: rich.present?,
-      apns_url: approval_url,
-      apns_user: rich
+      apns: false
     )
+
+    # Per-user iOS push so each recipient's badge ticks up.
+    recipients.each do |user|
+      Notification.notify!(
+        level: "info",
+        source: "x_autopost",
+        title: "Tweet draft: #{event.name}",
+        body: "Tap to review and approve before it posts to @agent44bot.",
+        telegram: false,
+        apns: true,
+        apns_url: approval_url,
+        apns_user: user
+      )
+    end
   end
 end

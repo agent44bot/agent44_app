@@ -4,11 +4,11 @@
 # the token + admin check together make this safe for the trial phase.
 class XDraftsController < ApplicationController
   allow_unauthenticated_access only: :show
-  before_action :require_admin, except: :show
+  before_action :require_x_role, except: :show
   before_action :load_log, except: :index
 
   def index
-    return redirect_to("/session/new", alert: "Admin sign-in required.") unless authenticated? && Current.session.user.admin?
+    return redirect_to("/session/new", alert: "Sign-in required.") unless x_role?
 
     logs = SocialPostLog.where("x_drafted_at IS NOT NULL OR x_post_id IS NOT NULL OR x_skipped_at IS NOT NULL").order(Arel.sql("COALESCE(x_posted_at, x_drafted_at, x_skipped_at) DESC"))
     @pending = logs.select { |l| l.x_post_id.blank? && l.x_skipped_at.blank? }
@@ -17,7 +17,7 @@ class XDraftsController < ApplicationController
   end
 
   def show
-    redirect_to "/session/new" unless authenticated? && Current.session.user.admin?
+    redirect_to "/session/new" unless x_role?
   end
 
   def post_now
@@ -69,8 +69,12 @@ class XDraftsController < ApplicationController
     @log = SocialPostLog.find_by!(x_approval_token: params[:token])
   end
 
-  def require_admin
-    return if authenticated? && Current.session.user.admin?
-    redirect_to "/session/new", alert: "Admin sign-in required."
+  def x_role?
+    authenticated? && Current.session.user && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+  end
+
+  def require_x_role
+    return if x_role?
+    redirect_to "/session/new", alert: "Sign-in required."
   end
 end
