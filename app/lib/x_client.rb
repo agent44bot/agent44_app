@@ -1,13 +1,10 @@
 require "net/http"
 require "uri"
 require "json"
-require "openssl"
-require "base64"
-require "securerandom"
+require "simple_oauth"
 
-# Tiny X (Twitter) v2 client. Hand-rolls OAuth 1.0a User Context against
-# POST https://api.x.com/2/tweets. We post on behalf of @agent44bot using the
-# four credentials stored as fly secrets — there's no per-user OAuth flow.
+# Tiny X (Twitter) v2 client. We post on behalf of @agent44bot using the
+# four OAuth 1.0a credentials stored as fly secrets — no per-user OAuth flow.
 class XClient
   ENDPOINT = "https://api.x.com/2/tweets"
   MAX_TWEET_LENGTH = 280
@@ -35,7 +32,7 @@ class XClient
 
     request = Net::HTTP::Post.new(uri)
     request["Content-Type"] = "application/json"
-    request["Authorization"] = build_auth_header(uri)
+    request["Authorization"] = oauth_header(uri, :post)
     request.body = body
 
     Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
@@ -57,32 +54,12 @@ class XClient
     [@consumer_key, @consumer_secret, @access_token, @access_token_secret].any?(&:blank?)
   end
 
-  # OAuth 1.0a HMAC-SHA1 signature. Tweet body is JSON, so it does NOT
-  # contribute to the signature base string — only oauth_* params do.
-  def build_auth_header(uri)
-    params = {
-      oauth_consumer_key:     @consumer_key,
-      oauth_nonce:            SecureRandom.hex(16),
-      oauth_signature_method: "HMAC-SHA1",
-      oauth_timestamp:        Time.now.to_i.to_s,
-      oauth_token:            @access_token,
-      oauth_version:          "1.0"
-    }
-
-    base = [
-      "POST",
-      percent_encode("#{uri.scheme}://#{uri.host}#{uri.path}"),
-      percent_encode(params.sort.map { |k, v| "#{percent_encode(k)}=#{percent_encode(v)}" }.join("&"))
-    ].join("&")
-
-    signing_key = "#{percent_encode(@consumer_secret)}&#{percent_encode(@access_token_secret)}"
-    signature = Base64.strict_encode64(OpenSSL::HMAC.digest("SHA1", signing_key, base))
-    params[:oauth_signature] = signature
-
-    "OAuth " + params.sort.map { |k, v| "#{percent_encode(k)}=\"#{percent_encode(v)}\"" }.join(", ")
-  end
-
-  def percent_encode(str)
-    URI.encode_www_form_component(str.to_s).gsub("+", "%20")
+  def oauth_header(uri, method)
+    SimpleOAuth::Header.new(method, uri.to_s, {},
+      consumer_key:    @consumer_key,
+      consumer_secret: @consumer_secret,
+      token:           @access_token,
+      token_secret:    @access_token_secret
+    ).to_s
   end
 end

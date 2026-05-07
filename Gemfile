@@ -32,6 +32,9 @@ gem "anthropic"
 # APNs push notifications (HTTP/2)
 gem "apnotic"
 
+# X (Twitter) OAuth 1.0a signing for the daily NYK tweet poster
+gem "simple_oauth", "~> 0.3"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
