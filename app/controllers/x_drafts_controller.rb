@@ -5,7 +5,16 @@
 class XDraftsController < ApplicationController
   allow_unauthenticated_access only: :show
   before_action :require_admin, except: :show
-  before_action :load_log
+  before_action :load_log, except: :index
+
+  def index
+    return redirect_to("/session/new", alert: "Admin sign-in required.") unless authenticated? && Current.session.user.admin?
+
+    logs = SocialPostLog.where("x_drafted_at IS NOT NULL OR x_post_id IS NOT NULL OR x_skipped_at IS NOT NULL").order(Arel.sql("COALESCE(x_posted_at, x_drafted_at, x_skipped_at) DESC"))
+    @pending = logs.select { |l| l.x_post_id.blank? && l.x_skipped_at.blank? }
+    @posted  = logs.select { |l| l.x_post_id.present? && l.x_deleted_at.blank? }
+    @history = logs.select { |l| l.x_skipped_at.present? || l.x_deleted_at.present? }
+  end
 
   def show
     redirect_to "/session/new" unless authenticated? && Current.session.user.admin?
