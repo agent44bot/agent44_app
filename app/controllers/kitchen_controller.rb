@@ -159,22 +159,20 @@ class KitchenController < ApplicationController
     nav_scope    = SmokeTestRun.nyk_nav
     scrape_scope = SmokeTestRun.nyk_scrape
 
-    # Smoke tab filters: range window (in days, or nil = all-time) + status.
-    @smoke_days = case params[:days].to_s
-                  when "1", "5", "30" then params[:days].to_i
-                  when "all"          then nil
-                  else                     30
-                  end
+    # Smoke tab filter: status pill (All / Passed / Failed). The
+    # "last 30 days" failure-rate card is fixed; the table is windowed to
+    # 30 days too so it stays in sync with the card.
     @smoke_status = %w[passed failed].include?(params[:status]) ? params[:status] : "all"
+    @smoke_days   = 30
 
-    windowed_scope = @smoke_days ? nav_scope.where("started_at >= ?", @smoke_days.days.ago) : nav_scope
+    windowed_scope = nav_scope.where("started_at >= ?", @smoke_days.days.ago)
     table_scope    = case @smoke_status
                      when "passed" then windowed_scope.where(status: "passed")
                      when "failed" then windowed_scope.where(status: "failed")
                      else               windowed_scope
                      end
 
-    smoke_table_limit = 500
+    smoke_table_limit = 1000
     @smoke_runs = table_scope.recent.with_attached_video.with_attached_thumbnail.limit(smoke_table_limit)
     @smoke_runs_truncated = table_scope.count > smoke_table_limit
 
@@ -194,6 +192,21 @@ class KitchenController < ApplicationController
     @smoke_failed_count_window = failed_window
     @smoke_failure_rate_window = total_window.zero? ? 0.0 :
       (failed_window.to_f / total_window * 100).round(1)
+
+    # Daily buckets for the failures-by-day chart. Pluck + group in Ruby so we
+    # don't have to fight SQLite/Postgres differences in DATE() + timezone.
+    day_buckets = Hash.new { |h, k| h[k] = { total: 0, failed: 0 } }
+    windowed_scope.pluck(:started_at, :status).each do |started_at, status|
+      d = started_at.in_time_zone.to_date
+      day_buckets[d][:total]  += 1
+      day_buckets[d][:failed] += 1 if status == "failed"
+    end
+    today = Time.zone.today
+    @smoke_chart = (0...@smoke_days).map do |i|
+      date   = today - (@smoke_days - 1 - i)
+      bucket = day_buckets[date]
+      { date: date, total: bucket[:total], failed: bucket[:failed] }
+    end
 
     @scrape_runs = scrape_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
     @scrape_runs_total_count   = scrape_scope.count

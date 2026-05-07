@@ -185,20 +185,9 @@
           rate_color = ->(pct) {
             pct >= 20 ? "text-red-400" : pct >= 5 ? "text-amber-400" : "text-green-400"
           }
-          current_days   = (@smoke_days || "all").to_s
           current_status = @smoke_status
-          window_label   = @smoke_days ? "last #{pluralize(@smoke_days, 'day')}" : "all-time"
+          window_label   = "last #{pluralize(@smoke_days, 'day')}"
         %>
-
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mr-1">Range</span>
-          <% [["1","1 day"], ["5","5 days"], ["30","30 days"], ["all","All"]].each do |val, label| %>
-            <% active = current_days == val %>
-            <%= link_to label,
-                  nykitchen_path(days: val, status: current_status, anchor: "smoke"),
-                  class: "px-3 py-1 rounded-full text-xs font-semibold transition #{active ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}" %>
-          <% end %>
-        </div>
 
         <div class="flex flex-wrap items-center gap-2 mb-5">
           <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mr-1">Status</span>
@@ -212,24 +201,69 @@
                            end
             %>
             <%= link_to label,
-                  nykitchen_path(days: current_days, status: val, anchor: "smoke"),
+                  nykitchen_path(tab: "smoke", status: val),
                   class: "px-3 py-1 rounded-full text-xs font-semibold transition #{active ? active_cls : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}" %>
           <% end %>
         </div>
 
-        <div class="grid grid-cols-1 <%= 'sm:grid-cols-2' if @smoke_days %> gap-3 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
             <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · all-time</div>
             <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate) %>"><%= @smoke_failure_rate %>%</div>
             <div class="text-xs text-gray-500"><%= @smoke_failed_count %> failed of <%= @smoke_runs_total_count %> runs</div>
           </div>
-          <% if @smoke_days %>
-            <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
-              <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · <%= window_label %></div>
-              <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate_window) %>"><%= @smoke_failure_rate_window %>%</div>
-              <div class="text-xs text-gray-500"><%= @smoke_failed_count_window %> failed of <%= @smoke_runs_count_window %> runs</div>
-            </div>
-          <% end %>
+          <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
+            <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · <%= window_label %></div>
+            <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate_window) %>"><%= @smoke_failure_rate_window %>%</div>
+            <div class="text-xs text-gray-500"><%= @smoke_failed_count_window %> failed of <%= @smoke_runs_count_window %> runs</div>
+          </div>
+        </div>
+
+        <%
+          chart_h_px       = 80
+          chart_padding_b  = 14
+          bar_area_h       = chart_h_px - chart_padding_b
+          max_failed       = [@smoke_chart.map { |d| d[:failed] }.max || 0, 1].max
+          n                = @smoke_chart.size
+          bar_total_w      = 100.0 / n
+          bar_inner_pad    = 0.25
+        %>
+        <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 mb-6">
+          <div class="flex items-baseline justify-between mb-2">
+            <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failures by day · <%= window_label %></div>
+            <div class="text-[10px] text-gray-600">peak: <%= max_failed %></div>
+          </div>
+          <svg viewBox="0 0 100 <%= chart_h_px %>" preserveAspectRatio="none"
+               class="w-full h-20" role="img" aria-label="Daily failure counts">
+            <% @smoke_chart.each_with_index do |day, i| %>
+              <%
+                bar_h    = day[:failed].zero? ? 0 : (day[:failed].to_f / max_failed * bar_area_h).round(2)
+                tick_h   = day[:total].zero? ? 0 : 1.5
+                x        = (i * bar_total_w).round(3)
+                w        = (bar_total_w - bar_inner_pad).round(3)
+                fill     = day[:failed].zero? ? "#374151" : "#dc2626"
+                tooltip  = if day[:total].zero?
+                             "#{day[:date].strftime('%a %b %-d')}: no runs"
+                           else
+                             "#{day[:date].strftime('%a %b %-d')}: #{day[:failed]} failed of #{day[:total]} runs"
+                           end
+                bar_y    = bar_area_h - bar_h
+                tick_y   = bar_area_h - tick_h
+              %>
+              <rect x="<%= x %>" y="<%= day[:failed].zero? ? tick_y : bar_y %>"
+                    width="<%= w %>"
+                    height="<%= day[:failed].zero? ? tick_h : bar_h %>"
+                    fill="<%= fill %>">
+                <title><%= tooltip %></title>
+              </rect>
+            <% end %>
+            <line x1="0" y1="<%= bar_area_h %>" x2="100" y2="<%= bar_area_h %>"
+                  stroke="#1f2937" stroke-width="0.3" />
+          </svg>
+          <div class="flex justify-between text-[10px] text-gray-600 mt-1 font-mono">
+            <span><%= @smoke_chart.first[:date].strftime("%b %-d") %></span>
+            <span>today</span>
+          </div>
         </div>
       <% end %>
 
@@ -504,15 +538,19 @@
     });
   });
 
-  // Deep-link: #smoke / #scrapes pre-select the matching tab.
-  var hash = window.location.hash;
-  if (hash === '#smoke') {
-    selectTab(1);
-  } else if (hash === '#scrapes') {
-    selectTab(2);
+  // Pre-Stimulus paint: ?tab=<name> selects the matching tab so we don't
+  // flash the default (List) before Stimulus connects.
+  var tabParam = new URLSearchParams(window.location.search).get('tab');
+  if (tabParam) {
+    var byName = -1;
+    tabs.forEach(function(t, i) {
+      if (t.dataset.tabName === tabParam.toLowerCase()) byName = i;
+    });
+    if (byName !== -1) selectTab(byName);
   }
 
   // Deep-link: #week-N scrolls to and expands that week section (List tab)
+  var hash = window.location.hash;
   if (hash && hash.match(/^#week-\d+$/)) {
     // Ensure List tab is active (index 0)
     selectTab(0);
