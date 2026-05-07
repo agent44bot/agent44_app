@@ -156,10 +156,43 @@ class KitchenController < ApplicationController
       @post_logs = {}
     end
 
-    @smoke_runs = SmokeTestRun.nyk.recent.with_attached_video.with_attached_thumbnail.limit(100)
-    @smoke_runs_total_count = SmokeTestRun.nyk.count
-    @smoke_runs_total_cost = SmokeTestRun.nyk.sum(:cost_dollars)
-    @smoke_runs_total_minutes = (SmokeTestRun.nyk.sum(:duration_ms) / 60_000.0).round
+    nav_scope    = SmokeTestRun.nyk_nav
+    scrape_scope = SmokeTestRun.nyk_scrape
+
+    @smoke_runs = nav_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
+    @smoke_runs_total_count   = nav_scope.count
+    @smoke_runs_total_cost    = nav_scope.sum(:cost_dollars)
+    @smoke_runs_total_minutes = (nav_scope.sum(:duration_ms) / 60_000.0).round
+    @smoke_failed_count       = nav_scope.where(status: "failed").count
+    @smoke_failure_rate       = @smoke_runs_total_count.zero? ? 0.0 :
+      (@smoke_failed_count.to_f / @smoke_runs_total_count * 100).round(1)
+
+    nav_30d = nav_scope.where("started_at >= ?", 30.days.ago)
+    total_30d  = nav_30d.count
+    failed_30d = nav_30d.where(status: "failed").count
+    @smoke_runs_count_30d   = total_30d
+    @smoke_failed_count_30d = failed_30d
+    @smoke_failure_rate_30d = total_30d.zero? ? 0.0 :
+      (failed_30d.to_f / total_30d * 100).round(1)
+
+    @scrape_runs = scrape_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
+    @scrape_runs_total_count   = scrape_scope.count
+    @scrape_runs_total_cost    = scrape_scope.sum(:cost_dollars)
+    @scrape_runs_total_minutes = (scrape_scope.sum(:duration_ms) / 60_000.0).round
+
+    # Per-day event counts for the Scrapes tab — KitchenSnapshot is unique on
+    # taken_on, so multiple scrapes the same day all reflect that day's snapshot.
+    scrape_days = @scrape_runs.map { |r| r.started_at.to_date }.uniq
+    @scrape_day_summary = KitchenSnapshot.where(taken_on: scrape_days)
+      .includes(:kitchen_events)
+      .each_with_object({}) do |snap, h|
+        events = snap.kitchen_events.to_a
+        h[snap.taken_on] = {
+          total:     events.size,
+          available: events.count { |e| %w[instock limited].include?(e.availability_status) },
+          soldout:   events.count { |e| %w[soldout closed].include?(e.availability_status) }
+        }
+      end
   end
 
   def build_enhance_prompt(draft, name, description, date, price, idea = nil)

@@ -14,6 +14,8 @@ class SmokeTestRun < ApplicationRecord
 
   scope :recent, -> { order(started_at: :desc) }
   scope :for_name, ->(n) { where(name: n) }
+  scope :nyk_nav,    -> { where("smoke_test_runs.name LIKE 'nyk_calendar_nav%'") }
+  scope :nyk_scrape, -> { where("smoke_test_runs.name LIKE 'nyk_scrape%'") }
   scope :nyk, -> { where("smoke_test_runs.name LIKE 'nyk_calendar_nav%' OR smoke_test_runs.name LIKE 'nyk_scrape%'") }
 
   def passed?
