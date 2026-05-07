@@ -5,6 +5,11 @@ class NykBillingController < ApplicationController
   before_action :require_authentication
   before_action :require_visible
 
+  # Customer-view markup. NYK_BASE_FEE_DOLLARS + (raw cost × NYK_RAW_MULTIPLIER).
+  # Defaults match the current pricing thesis: $50/mo base + 3× raw.
+  DEFAULT_BASE_FEE   = 50.0
+  DEFAULT_MULTIPLIER = 3.0
+
   def show
     now = Time.zone.now
     @month_start = now.beginning_of_month
@@ -20,7 +25,12 @@ class NykBillingController < ApplicationController
     @smoke_minutes  = (smoke_runs_month.sum(:duration_ms) / 60_000.0).round
     @smoke_cost     = smoke_runs_month.sum(:cost_dollars).to_f
 
-    @month_total = @ai_total + @smoke_cost
+    @raw_total       = @ai_total + @smoke_cost
+    @customer_view   = params[:view] == "customer"
+    @base_fee        = (ENV["NYK_BASE_FEE_DOLLARS"].presence || DEFAULT_BASE_FEE).to_f
+    @raw_multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence  || DEFAULT_MULTIPLIER).to_f
+    @customer_total  = @base_fee + (@raw_total * @raw_multiplier)
+    @month_total     = @customer_view ? @customer_total : @raw_total
   end
 
   private
