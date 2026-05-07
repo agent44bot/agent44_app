@@ -12,6 +12,50 @@
   var Bio = window.Capacitor.Plugins.BiometricAuth;
   if (!Bio) return;
 
+  // Banking-pattern auto-prompt: when the app launches with stored credentials,
+  // fire Face ID immediately so the user is signed in before they see the
+  // marketing page. Fires once per Capacitor session (not on every Turbo
+  // navigation) — the sessionStorage flag is set on the first run regardless
+  // of outcome, so post-signout returns to `/` don't ambush the user.
+  function autoPrompt() {
+    if (sessionStorage.getItem("_faceid_auto_checked") === "1") return;
+    sessionStorage.setItem("_faceid_auto_checked", "1");
+
+    // Only on the launch route; deep links go through the menu.
+    if (window.location.pathname !== "/") return;
+
+    var CSRF = document.querySelector('meta[name="csrf-token"]');
+    Bio.isAvailable().then(function(result) {
+      if (!result.isAvailable || !result.hasCredentials) return;
+
+      Bio.getCredentials().then(function(creds) {
+        var form = document.createElement("form");
+        form.method = "POST";
+        form.action = "<%= session_path %>";
+        form.style.display = "none";
+        form.setAttribute("autocomplete", "off");
+
+        var fields = {
+          "email_address": creds.username,
+          "password": creds.password,
+          "authenticity_token": CSRF ? CSRF.content : ""
+        };
+
+        for (var key in fields) {
+          var input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = fields[key];
+          input.setAttribute("autocomplete", "off");
+          form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+      }).catch(function(e) { console.log("Face ID cancelled or failed:", e); });
+    }).catch(function(e) { console.log("BiometricAuth check failed:", e); });
+  }
+
   // Re-run on every Turbo navigation, not just initial parse — otherwise the
   // post-signout return to `/` swaps the body in but the visibility check
   // never fires, leaving the button at its default display:none and forcing
@@ -100,9 +144,12 @@
     sessionStorage.removeItem("_faceid_pending_pw");
   } catch(e) {}
 
-  // Initial load
+  // Initial load — auto-prompt fires once per Capacitor session before the
+  // button-show check, so returning users get signed in immediately.
+  autoPrompt();
   setup();
-  // Every Turbo navigation (post-signout, back/forward, etc.)
+  // Every Turbo navigation (post-signout, back/forward, etc.) re-runs the
+  // button-show check but NOT the auto-prompt — that's session-scoped.
   document.addEventListener("turbo:load", setup);
   document.addEventListener("turbo:render", setup);
 })();

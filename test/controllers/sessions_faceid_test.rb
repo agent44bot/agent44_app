@@ -23,22 +23,24 @@ class SessionsFaceIdTest < ActionDispatch::IntegrationTest
     assert_match "getCredentials", response.body
   end
 
-  test "homepage shows Face ID button for signed-out users" do
+  test "homepage loads Face ID auto-prompt JS for signed-out users" do
+    # Banking pattern: returning iOS users get auto-prompted via the
+    # _faceid_auth partial; no visible button on the marketing hero.
     get root_path
     assert_response :success
-    assert_select "button#faceid-signin-btn"
+    assert_select "button#faceid-signin-btn", count: 0
+    assert_match "_faceid_auto_checked", response.body
+    assert_match "BiometricAuth", response.body
   end
 
-  test "homepage hides Face ID button for signed-in users" do
-    # Face ID is a sign-in path; once you're already authenticated, the
-    # button has nothing to do. home.html.erb wraps the button in
-    # `unless authenticated?` for that reason.
+  test "homepage skips Face ID JS entirely for signed-in users" do
     post session_path, params: { email_address: @user.email_address, password: "password" }
     follow_redirect!
 
     get root_path
     assert_response :success
     assert_select "button#faceid-signin-btn", count: 0
+    assert_no_match(/_faceid_auto_checked/, response.body)
   end
 
   test "sign-in form does not save credentials automatically" do
