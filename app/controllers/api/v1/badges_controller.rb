@@ -1,10 +1,17 @@
 module Api
   module V1
     class BadgesController < ApplicationController
+      # API endpoints — never participate in the post-login redirect dance.
+      # If the JS calls these before the user is authenticated, return 401
+      # JSON so the fetch quietly drops it instead of polluting
+      # session[:return_to_after_authenticating] with /api/v1/badge/clear.
+      # That pollution caused a 404 right after Face ID sign-in because the
+      # browser followed the post-auth redirect to a POST-only endpoint as GET.
+      allow_unauthenticated_access
       skip_before_action :verify_authenticity_token
 
       def clear
-        return head :unauthorized unless authenticated?
+        return render(json: { error: "unauthorized" }, status: :unauthorized) unless authenticated?
 
         user = Current.session.user
         user.notifications.unread.update_all(read_at: Time.current)
@@ -17,7 +24,7 @@ module Api
       # land on icon tap: a single unread → straight to that notification's
       # url; multiple unread → /notifications inbox.
       def peek
-        return head :unauthorized unless authenticated?
+        return render(json: { error: "unauthorized" }, status: :unauthorized) unless authenticated?
 
         user = Current.session.user
         unread = user.notifications.unread.recent
