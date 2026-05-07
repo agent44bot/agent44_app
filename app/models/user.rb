@@ -9,6 +9,8 @@ class User < ApplicationRecord
   has_many :hidden_job_listings, through: :hidden_jobs, source: :job
   has_many :notifications, dependent: :nullify
   has_many :fleet_requests, dependent: :destroy
+  has_many :device_tokens, dependent: :nullify
+  has_many :ai_call_logs, dependent: :nullify
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
