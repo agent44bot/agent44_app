@@ -28,3 +28,6 @@ production:
   post_nyk_class_to_x:
     class: PostNykClassToXJob
     schedule: every day at 9am
+  nyk_filter_card_check:
+    class: NykFilterCardCheckJob
+    schedule: every day at 11am

@@ -49,7 +49,7 @@
     </p>
   </div>
 
-  <% if @events.any? %>
+  <% if @events.any? && Setting.time("nyk.filter_card_hidden_at").nil? %>
     <%
       # [status, label, active_classes, inactive_classes]
       chips = [
@@ -62,11 +62,12 @@
       ]
     %>
     <section class="mb-5"
-             data-controller="collapsible"
+             data-controller="collapsible nyk-filter-tracker"
+             data-nyk-filter-tracker-url-value="<%= api_v1_nyk_filter_expanded_path %>"
              data-collapsible-collapsed-value="true"
              data-tabs-chrome-for="0">
       <button type="button"
-              data-action="click->collapsible#toggle"
+              data-action="click->collapsible#toggle click->nyk-filter-tracker#track"
               class="w-full flex items-center justify-between gap-3 bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 text-left hover:border-gray-700 transition">
         <span class="text-sm font-semibold text-gray-300">Filter</span>
         <svg data-collapsible-target="icon"

@@ -79,6 +79,7 @@ Rails.application.routes.draw do
           get :upcoming
         end
       end
+      post "nyk/filter_expanded", to: "nyk_metrics#filter_expanded", as: :nyk_filter_expanded
       resources :device_tokens, only: [ :create ]
       resources :notifications, only: [ :create ]
       post "badge/clear", to: "badges#clear"
