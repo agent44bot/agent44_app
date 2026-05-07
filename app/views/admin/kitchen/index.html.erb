@@ -206,65 +206,91 @@
           <% end %>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
-            <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · all-time</div>
-            <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate) %>"><%= @smoke_failure_rate %>%</div>
-            <div class="text-xs text-gray-500"><%= @smoke_failed_count %> failed of <%= @smoke_runs_total_count %> runs</div>
-          </div>
-          <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
-            <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · <%= window_label %></div>
-            <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate_window) %>"><%= @smoke_failure_rate_window %>%</div>
-            <div class="text-xs text-gray-500"><%= @smoke_failed_count_window %> failed of <%= @smoke_runs_count_window %> runs</div>
-          </div>
-        </div>
+        <section class="mb-6"
+                 data-controller="collapsible"
+                 data-collapsible-mobile-collapsed-value="true">
+          <button type="button"
+                  data-action="click->collapsible#toggle"
+                  class="w-full flex items-center justify-between gap-3 bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 text-left hover:border-gray-700 transition sm:cursor-default">
+            <div class="min-w-0">
+              <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate</div>
+              <div class="mt-0.5 text-sm">
+                <span class="font-bold <%= rate_color.call(@smoke_failure_rate) %>"><%= @smoke_failure_rate %>%</span>
+                <span class="text-gray-500">all-time</span>
+                <span class="text-gray-700 mx-1">·</span>
+                <span class="font-bold <%= rate_color.call(@smoke_failure_rate_window) %>"><%= @smoke_failure_rate_window %>%</span>
+                <span class="text-gray-500"><%= window_label %></span>
+              </div>
+            </div>
+            <svg data-collapsible-target="icon"
+                 class="w-5 h-5 text-gray-500 transition-transform shrink-0 sm:hidden"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
 
-        <%
-          chart_h_px       = 80
-          chart_padding_b  = 14
-          bar_area_h       = chart_h_px - chart_padding_b
-          max_failed       = [@smoke_chart.map { |d| d[:failed] }.max || 0, 1].max
-          n                = @smoke_chart.size
-          bar_total_w      = 100.0 / n
-          bar_inner_pad    = 0.25
-        %>
-        <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 mb-6">
-          <div class="flex items-baseline justify-between mb-2">
-            <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failures by day · <%= window_label %></div>
-            <div class="text-[10px] text-gray-600">peak: <%= max_failed %></div>
+          <div data-collapsible-target="body" class="mt-3 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
+                <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · all-time</div>
+                <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate) %>"><%= @smoke_failure_rate %>%</div>
+                <div class="text-xs text-gray-500"><%= @smoke_failed_count %> failed of <%= @smoke_runs_total_count %> runs</div>
+              </div>
+              <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
+                <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · <%= window_label %></div>
+                <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate_window) %>"><%= @smoke_failure_rate_window %>%</div>
+                <div class="text-xs text-gray-500"><%= @smoke_failed_count_window %> failed of <%= @smoke_runs_count_window %> runs</div>
+              </div>
+            </div>
+
+            <%
+              chart_h_px       = 80
+              chart_padding_b  = 14
+              bar_area_h       = chart_h_px - chart_padding_b
+              max_failed       = [@smoke_chart.map { |d| d[:failed] }.max || 0, 1].max
+              n                = @smoke_chart.size
+              bar_total_w      = 100.0 / n
+              bar_inner_pad    = 0.25
+            %>
+            <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
+              <div class="flex items-baseline justify-between mb-2">
+                <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failures by day · <%= window_label %></div>
+                <div class="text-[10px] text-gray-600">peak: <%= max_failed %></div>
+              </div>
+              <svg viewBox="0 0 100 <%= chart_h_px %>" preserveAspectRatio="none"
+                   class="w-full h-20" role="img" aria-label="Daily failure counts">
+                <% @smoke_chart.each_with_index do |day, i| %>
+                  <%
+                    bar_h    = day[:failed].zero? ? 0 : (day[:failed].to_f / max_failed * bar_area_h).round(2)
+                    tick_h   = day[:total].zero? ? 0 : 1.5
+                    x        = (i * bar_total_w).round(3)
+                    w        = (bar_total_w - bar_inner_pad).round(3)
+                    fill     = day[:failed].zero? ? "#374151" : "#dc2626"
+                    tooltip  = if day[:total].zero?
+                                 "#{day[:date].strftime('%a %b %-d')}: no runs"
+                               else
+                                 "#{day[:date].strftime('%a %b %-d')}: #{day[:failed]} failed of #{day[:total]} runs"
+                               end
+                    bar_y    = bar_area_h - bar_h
+                    tick_y   = bar_area_h - tick_h
+                  %>
+                  <rect x="<%= x %>" y="<%= day[:failed].zero? ? tick_y : bar_y %>"
+                        width="<%= w %>"
+                        height="<%= day[:failed].zero? ? tick_h : bar_h %>"
+                        fill="<%= fill %>">
+                    <title><%= tooltip %></title>
+                  </rect>
+                <% end %>
+                <line x1="0" y1="<%= bar_area_h %>" x2="100" y2="<%= bar_area_h %>"
+                      stroke="#1f2937" stroke-width="0.3" />
+              </svg>
+              <div class="flex justify-between text-[10px] text-gray-600 mt-1 font-mono">
+                <span><%= @smoke_chart.first[:date].strftime("%b %-d") %></span>
+                <span>today</span>
+              </div>
+            </div>
           </div>
-          <svg viewBox="0 0 100 <%= chart_h_px %>" preserveAspectRatio="none"
-               class="w-full h-20" role="img" aria-label="Daily failure counts">
-            <% @smoke_chart.each_with_index do |day, i| %>
-              <%
-                bar_h    = day[:failed].zero? ? 0 : (day[:failed].to_f / max_failed * bar_area_h).round(2)
-                tick_h   = day[:total].zero? ? 0 : 1.5
-                x        = (i * bar_total_w).round(3)
-                w        = (bar_total_w - bar_inner_pad).round(3)
-                fill     = day[:failed].zero? ? "#374151" : "#dc2626"
-                tooltip  = if day[:total].zero?
-                             "#{day[:date].strftime('%a %b %-d')}: no runs"
-                           else
-                             "#{day[:date].strftime('%a %b %-d')}: #{day[:failed]} failed of #{day[:total]} runs"
-                           end
-                bar_y    = bar_area_h - bar_h
-                tick_y   = bar_area_h - tick_h
-              %>
-              <rect x="<%= x %>" y="<%= day[:failed].zero? ? tick_y : bar_y %>"
-                    width="<%= w %>"
-                    height="<%= day[:failed].zero? ? tick_h : bar_h %>"
-                    fill="<%= fill %>">
-                <title><%= tooltip %></title>
-              </rect>
-            <% end %>
-            <line x1="0" y1="<%= bar_area_h %>" x2="100" y2="<%= bar_area_h %>"
-                  stroke="#1f2937" stroke-width="0.3" />
-          </svg>
-          <div class="flex justify-between text-[10px] text-gray-600 mt-1 font-mono">
-            <span><%= @smoke_chart.first[:date].strftime("%b %-d") %></span>
-            <span>today</span>
-          </div>
-        </div>
+        </section>
       <% end %>
 
       <% if @can_see_pricing %>
