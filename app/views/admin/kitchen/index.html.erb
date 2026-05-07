@@ -120,19 +120,28 @@
             pct_avail   = (avail.to_f / total * 100).round(1)
             pct_other   = (100 - pct_unavail - pct_limited - pct_avail).round(1)
           %>
+          <%
+            sold_pct       = pct_unavail.round
+            sold_pct_color = sold_pct >= 60 ? "text-red-400"
+                           : sold_pct >= 25 ? "text-amber-400"
+                           :                   "text-gray-500"
+          %>
           <button type="button"
                   data-action="click->collapsible#toggle"
                   class="w-full text-left border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
-            <div class="flex items-center justify-between">
-              <span class="text-lg font-bold text-white">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-lg font-bold text-white min-w-0 truncate">
                 <%= week[:label] %>
                 <span class="text-gray-500 font-normal">(<%= total %>)</span>
               </span>
-              <svg data-collapsible-target="icon"
-                   class="w-5 h-5 text-gray-500 transition-transform shrink-0"
-                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
+              <div class="flex items-center gap-3 shrink-0">
+                <span class="text-xs font-semibold <%= sold_pct_color %>"><%= sold_pct %>% sold out</span>
+                <svg data-collapsible-target="icon"
+                     class="w-5 h-5 text-gray-500 transition-transform"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
             </div>
             <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
               <% if unavail > 0 %>
