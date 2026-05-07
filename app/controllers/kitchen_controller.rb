@@ -159,7 +159,26 @@ class KitchenController < ApplicationController
     nav_scope    = SmokeTestRun.nyk_nav
     scrape_scope = SmokeTestRun.nyk_scrape
 
-    @smoke_runs = nav_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
+    # Smoke tab filters: range window (in days, or nil = all-time) + status.
+    @smoke_days = case params[:days].to_s
+                  when "1", "5", "30" then params[:days].to_i
+                  when "all"          then nil
+                  else                     30
+                  end
+    @smoke_status = %w[passed failed].include?(params[:status]) ? params[:status] : "all"
+
+    windowed_scope = @smoke_days ? nav_scope.where("started_at >= ?", @smoke_days.days.ago) : nav_scope
+    table_scope    = case @smoke_status
+                     when "passed" then windowed_scope.where(status: "passed")
+                     when "failed" then windowed_scope.where(status: "failed")
+                     else               windowed_scope
+                     end
+
+    smoke_table_limit = 500
+    @smoke_runs = table_scope.recent.with_attached_video.with_attached_thumbnail.limit(smoke_table_limit)
+    @smoke_runs_truncated = table_scope.count > smoke_table_limit
+
+    # All-time stats — independent of filters, so Lora always sees the running totals.
     @smoke_runs_total_count   = nav_scope.count
     @smoke_runs_total_cost    = nav_scope.sum(:cost_dollars)
     @smoke_runs_total_minutes = (nav_scope.sum(:duration_ms) / 60_000.0).round
@@ -167,13 +186,14 @@ class KitchenController < ApplicationController
     @smoke_failure_rate       = @smoke_runs_total_count.zero? ? 0.0 :
       (@smoke_failed_count.to_f / @smoke_runs_total_count * 100).round(1)
 
-    nav_30d = nav_scope.where("started_at >= ?", 30.days.ago)
-    total_30d  = nav_30d.count
-    failed_30d = nav_30d.where(status: "failed").count
-    @smoke_runs_count_30d   = total_30d
-    @smoke_failed_count_30d = failed_30d
-    @smoke_failure_rate_30d = total_30d.zero? ? 0.0 :
-      (failed_30d.to_f / total_30d * 100).round(1)
+    # Window stats — drive the second failure-rate card; status filter excluded
+    # (otherwise filtering to "failed" would always show 100%).
+    total_window  = windowed_scope.count
+    failed_window = windowed_scope.where(status: "failed").count
+    @smoke_runs_count_window   = total_window
+    @smoke_failed_count_window = failed_window
+    @smoke_failure_rate_window = total_window.zero? ? 0.0 :
+      (failed_window.to_f / total_window * 100).round(1)
 
     @scrape_runs = scrape_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
     @scrape_runs_total_count   = scrape_scope.count

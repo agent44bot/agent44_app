@@ -182,24 +182,54 @@
 
       <% if @smoke_runs_total_count > 0 %>
         <%
-          rate_color = @smoke_failure_rate >= 20 ? "text-red-400"
-                     : @smoke_failure_rate >= 5  ? "text-amber-400"
-                     :                              "text-green-400"
-          rate_color_30d = @smoke_failure_rate_30d >= 20 ? "text-red-400"
-                         : @smoke_failure_rate_30d >= 5  ? "text-amber-400"
-                         :                                  "text-green-400"
+          rate_color = ->(pct) {
+            pct >= 20 ? "text-red-400" : pct >= 5 ? "text-amber-400" : "text-green-400"
+          }
+          current_days   = (@smoke_days || "all").to_s
+          current_status = @smoke_status
+          window_label   = @smoke_days ? "last #{pluralize(@smoke_days, 'day')}" : "all-time"
         %>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mr-1">Range</span>
+          <% [["1","1 day"], ["5","5 days"], ["30","30 days"], ["all","All"]].each do |val, label| %>
+            <% active = current_days == val %>
+            <%= link_to label,
+                  nykitchen_path(days: val, status: current_status, anchor: "smoke"),
+                  class: "px-3 py-1 rounded-full text-xs font-semibold transition #{active ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}" %>
+          <% end %>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 mb-5">
+          <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mr-1">Status</span>
+          <% [["all","All"], ["passed","Passed"], ["failed","Failed"]].each do |val, label| %>
+            <%
+              active = current_status == val
+              active_cls = case val
+                           when "passed" then "bg-green-700 text-green-100"
+                           when "failed" then "bg-red-800 text-red-100"
+                           else               "bg-orange-500 text-white"
+                           end
+            %>
+            <%= link_to label,
+                  nykitchen_path(days: current_days, status: val, anchor: "smoke"),
+                  class: "px-3 py-1 rounded-full text-xs font-semibold transition #{active ? active_cls : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}" %>
+          <% end %>
+        </div>
+
+        <div class="grid grid-cols-1 <%= 'sm:grid-cols-2' if @smoke_days %> gap-3 mb-6">
           <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
             <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · all-time</div>
-            <div class="mt-1 text-xl font-bold <%= rate_color %>"><%= @smoke_failure_rate %>%</div>
+            <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate) %>"><%= @smoke_failure_rate %>%</div>
             <div class="text-xs text-gray-500"><%= @smoke_failed_count %> failed of <%= @smoke_runs_total_count %> runs</div>
           </div>
-          <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
-            <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · last 30 days</div>
-            <div class="mt-1 text-xl font-bold <%= rate_color_30d %>"><%= @smoke_failure_rate_30d %>%</div>
-            <div class="text-xs text-gray-500"><%= @smoke_failed_count_30d %> failed of <%= @smoke_runs_count_30d %> runs</div>
-          </div>
+          <% if @smoke_days %>
+            <div class="bg-gray-900 rounded-lg border border-gray-800 px-4 py-3">
+              <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Failure rate · <%= window_label %></div>
+              <div class="mt-1 text-xl font-bold <%= rate_color.call(@smoke_failure_rate_window) %>"><%= @smoke_failure_rate_window %>%</div>
+              <div class="text-xs text-gray-500"><%= @smoke_failed_count_window %> failed of <%= @smoke_runs_count_window %> runs</div>
+            </div>
+          <% end %>
         </div>
       <% end %>
 
@@ -212,8 +242,13 @@
 
       <% if @smoke_runs.empty? %>
         <div class="bg-gray-900 rounded-xl p-8 text-center">
-          <p class="text-gray-400">No test runs yet.</p>
-          <p class="text-gray-500 text-xs mt-1">First scheduled run is tomorrow at 9 AM EDT.</p>
+          <% if @smoke_runs_total_count.zero? %>
+            <p class="text-gray-400">No test runs yet.</p>
+            <p class="text-gray-500 text-xs mt-1">First scheduled run is tomorrow at 9 AM EDT.</p>
+          <% else %>
+            <p class="text-gray-400">No runs match this filter.</p>
+            <p class="text-gray-500 text-xs mt-1">Try widening the range or switching status to All.</p>
+          <% end %>
         </div>
       <% else %>
         <div class="overflow-x-auto rounded-lg border border-gray-800" data-controller="video-modal console-modal">
@@ -310,6 +345,11 @@
               <% end %>
             </tbody>
           </table>
+          <% if @smoke_runs_truncated %>
+            <p class="px-4 py-2 text-[11px] text-gray-500 bg-gray-900 border-t border-gray-800">
+              Showing the latest 500 runs. Narrow the range to see different windows.
+            </p>
+          <% end %>
           <dialog data-video-modal-target="dialog"
                   data-action="click->video-modal#backdropClose"
                   class="bg-transparent backdrop:bg-black/80 p-0 max-w-4xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
@@ -464,8 +504,15 @@
     });
   });
 
-  // Deep-link: #week-N scrolls to and expands that week section (List tab)
+  // Deep-link: #smoke / #scrapes pre-select the matching tab.
   var hash = window.location.hash;
+  if (hash === '#smoke') {
+    selectTab(1);
+  } else if (hash === '#scrapes') {
+    selectTab(2);
+  }
+
+  // Deep-link: #week-N scrolls to and expands that week section (List tab)
   if (hash && hash.match(/^#week-\d+$/)) {
     // Ensure List tab is active (index 0)
     selectTab(0);
