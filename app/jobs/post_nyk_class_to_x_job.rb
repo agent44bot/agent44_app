@@ -9,6 +9,11 @@ class PostNykClassToXJob < ApplicationJob
 
   TWEET_MAX = XClient::MAX_TWEET_LENGTH
 
+  # Only promote classes happening soon enough to drive bookings — anything
+  # past this window feels like cold leftovers in a tweet feed. Tunable via
+  # ENV["X_AUTOPOST_LOOKAHEAD_DAYS"]; default 14.
+  DEFAULT_LOOKAHEAD_DAYS = 14
+
   def perform
     return unless ENV["X_AUTOPOST_ENABLED"].to_s == "true"
 
@@ -33,7 +38,10 @@ class PostNykClassToXJob < ApplicationJob
   private
 
   def pick_event(snapshot)
-    eligible = snapshot.kitchen_events.upcoming.reject { |e| e.sold_out? }
+    cutoff = lookahead_days.days.from_now
+    eligible = snapshot.kitchen_events.upcoming
+      .where("start_at <= ?", cutoff)
+      .reject { |e| e.sold_out? }
     return nil if eligible.empty?
 
     posted_or_drafted_urls = SocialPostLog
@@ -42,6 +50,10 @@ class PostNykClassToXJob < ApplicationJob
 
     fresh = eligible.reject { |e| posted_or_drafted_urls.include?(e.url) }
     fresh.sample
+  end
+
+  def lookahead_days
+    (ENV["X_AUTOPOST_LOOKAHEAD_DAYS"].presence || DEFAULT_LOOKAHEAD_DAYS).to_i
   end
 
   def build_tweet_text(event)

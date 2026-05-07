@@ -18,6 +18,13 @@ class PostNykClassToXJobTest < ActiveJob::TestCase
       start_at:     3.days.from_now,
       availability: "InStock"
     )
+    @far_future_event = @snapshot.kitchen_events.create!(
+      url:          "https://nykitchen.com/event/x-job-far-#{SecureRandom.hex(2)}/",
+      name:         "Far-Future Class",
+      description:  "Outside the lookahead window",
+      start_at:     60.days.from_now,
+      availability: "InStock"
+    )
   end
 
   teardown do
@@ -53,6 +60,30 @@ class PostNykClassToXJobTest < ActiveJob::TestCase
 
     assert_no_difference -> { AiCallLog.count } do
       PostNykClassToXJob.new.perform
+    end
+  end
+
+  test "pick_event ignores classes past the 14-day lookahead window" do
+    job = PostNykClassToXJob.new
+    picked = job.send(:pick_event, @snapshot)
+    assert_includes [@event.url], picked&.url
+    refute_equal @far_future_event.url, picked&.url
+  end
+
+  test "X_AUTOPOST_LOOKAHEAD_DAYS env override widens the window" do
+    ENV["X_AUTOPOST_LOOKAHEAD_DAYS"] = "90"
+    begin
+      # With a 90-day window, both the 3-day and 60-day events are eligible.
+      job = PostNykClassToXJob.new
+      30.times do
+        log = SocialPostLog.find_or_initialize_by(event_url: SecureRandom.hex(8))
+        log.x_drafted_at = nil
+        log.save!
+      end
+      picked_urls = 20.times.map { job.send(:pick_event, @snapshot)&.url }.compact.uniq
+      assert_includes picked_urls, @far_future_event.url
+    ensure
+      ENV.delete("X_AUTOPOST_LOOKAHEAD_DAYS")
     end
   end
 end
