@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_135646) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_07_144554) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -75,6 +75,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_135646) do
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_agents_on_name", unique: true
     t.index ["position"], name: "index_agents_on_position"
+  end
+
+  create_table "ai_call_logs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "input_tokens", default: 0, null: false
+    t.string "model", null: false
+    t.integer "output_tokens", default: 0, null: false
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["created_at"], name: "index_ai_call_logs_on_created_at"
+    t.index ["source"], name: "index_ai_call_logs_on_source"
+    t.index ["user_id"], name: "index_ai_call_logs_on_user_id"
   end
 
   create_table "device_tokens", force: :cascade do |t|
@@ -374,6 +387,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_135646) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "ai_call_logs", "users"
   add_foreign_key "device_tokens", "users"
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"

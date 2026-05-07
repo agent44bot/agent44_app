@@ -60,6 +60,8 @@ class KitchenController < ApplicationController
 
     enhanced = response.content.first.text
 
+    AiCallLogger.log!(response, model: "claude-haiku-4-5-20251001", source: "nyk_enhance", user: Current.session&.user)
+
     log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
     log.enhanced_text = enhanced
     log.save!

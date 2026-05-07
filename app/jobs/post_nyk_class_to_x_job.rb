@@ -57,6 +57,8 @@ class PostNykClassToXJob < ApplicationJob
       messages: [ { role: "user", content: prompt } ]
     )
 
+    AiCallLogger.log!(response, model: "claude-haiku-4-5-20251001", source: "nyk_x_autopost")
+
     text = response.content.first.text.to_s.strip
     text = text.gsub(/\A["']|["']\z/, "")
     text[0, TWEET_MAX]

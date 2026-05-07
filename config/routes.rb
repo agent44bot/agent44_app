@@ -37,6 +37,7 @@ Rails.application.routes.draw do
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
   get  "nykitchen/x_posts",                 to: "x_drafts#index",  as: :nyk_x_posts
+  get  "nykitchen/billing",                 to: "nyk_billing#show", as: :nyk_billing
   get  "nykitchen/x_drafts/:token",         to: "x_drafts#show",   as: :nyk_x_draft
   post "nykitchen/x_drafts/:token/post",    to: "x_drafts#post_now"
   post "nykitchen/x_drafts/:token/skip",    to: "x_drafts#skip"
@@ -85,6 +86,7 @@ Rails.application.routes.draw do
 
   namespace :admin do
     get "dashboard", to: "dashboard#index"
+    get "ai_costs",  to: "ai_costs#index"
     resources :posts
     resources :videos
     resources :scrapers do

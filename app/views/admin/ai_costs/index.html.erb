@@ -1,0 +1,85 @@
+<% content_for :title, "AI Costs" %>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-white mb-1">AI Costs</h1>
+  <p class="text-sm text-gray-400 mb-6">
+    Anthropic spend by feature. Computed from token counts × Haiku 4.5 published rates ($1/MTok in, $5/MTok out).
+  </p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">This month total</p>
+      <p class="text-2xl font-bold text-white">$<%= sprintf("%.4f", @month_total) %></p>
+    </div>
+    <div class="rounded-lg bg-gray-900 border border-orange-700/40 p-4">
+      <p class="text-xs text-orange-400 uppercase tracking-wide mb-1">NYK this month</p>
+      <p class="text-2xl font-bold text-white">$<%= sprintf("%.4f", @nyk_total_month) %></p>
+    </div>
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">NYK all-time</p>
+      <p class="text-2xl font-bold text-white">$<%= sprintf("%.4f", @nyk_total_all) %></p>
+    </div>
+  </div>
+
+  <h2 class="text-base font-semibold text-white mb-3">By feature (this month)</h2>
+  <% if @summary_by_source.empty? %>
+    <p class="text-sm text-gray-500 italic mb-8">No AI calls yet this month.</p>
+  <% else %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden mb-8">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
+          <tr>
+            <th class="px-4 py-2 text-left">Source</th>
+            <th class="px-4 py-2 text-right">Calls</th>
+            <th class="px-4 py-2 text-right">Input tok</th>
+            <th class="px-4 py-2 text-right">Output tok</th>
+            <th class="px-4 py-2 text-right">Cost</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          <% @summary_by_source.sort_by { |_, v| -v[:cost_dollars] }.each do |source, v| %>
+            <tr>
+              <td class="px-4 py-2 text-gray-200 font-mono text-xs"><%= source %></td>
+              <td class="px-4 py-2 text-right text-gray-300"><%= v[:calls] %></td>
+              <td class="px-4 py-2 text-right text-gray-400"><%= number_with_delimiter(v[:input_tokens]) %></td>
+              <td class="px-4 py-2 text-right text-gray-400"><%= number_with_delimiter(v[:output_tokens]) %></td>
+              <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <h2 class="text-base font-semibold text-white mb-3">Recent calls (last 50)</h2>
+  <% if @recent.empty? %>
+    <p class="text-sm text-gray-500 italic">No calls logged.</p>
+  <% else %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
+          <tr>
+            <th class="px-4 py-2 text-left">When</th>
+            <th class="px-4 py-2 text-left">Source</th>
+            <th class="px-4 py-2 text-left">User</th>
+            <th class="px-4 py-2 text-right">In</th>
+            <th class="px-4 py-2 text-right">Out</th>
+            <th class="px-4 py-2 text-right">Cost</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          <% @recent.each do |log| %>
+            <tr>
+              <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap"><%= log.created_at.in_time_zone.strftime("%b %-d %-l:%M %p") %></td>
+              <td class="px-4 py-2 text-gray-200 font-mono text-xs"><%= log.source %></td>
+              <td class="px-4 py-2 text-gray-400 text-xs"><%= log.user&.email_address || "—" %></td>
+              <td class="px-4 py-2 text-right text-gray-400"><%= number_with_delimiter(log.input_tokens) %></td>
+              <td class="px-4 py-2 text-right text-gray-400"><%= number_with_delimiter(log.output_tokens) %></td>
+              <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.5f", log.cost_dollars) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
