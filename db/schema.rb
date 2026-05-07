@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_06_201221) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_07_124114) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -322,7 +322,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_06_201221) do
     t.string "event_url"
     t.datetime "posted_at"
     t.datetime "updated_at", null: false
+    t.string "x_approval_token"
+    t.text "x_draft_text"
+    t.datetime "x_drafted_at"
+    t.string "x_post_id"
+    t.datetime "x_posted_at"
+    t.datetime "x_skipped_at"
     t.index ["event_url"], name: "index_social_post_logs_on_event_url", unique: true
+    t.index ["x_approval_token"], name: "index_social_post_logs_on_x_approval_token"
   end
 
   create_table "subscribers", force: :cascade do |t|

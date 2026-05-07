@@ -25,3 +25,6 @@ production:
   generate_newsletter:
     class: GenerateNewsletterJob
     schedule: every 3 days at 7am
+  post_nyk_class_to_x:
+    class: PostNykClassToXJob
+    schedule: every day at 9am
