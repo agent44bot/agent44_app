@@ -6,29 +6,11 @@
     on every email sign-in. Works in simulator via passcode fallback. %>
 <%= javascript_tag nonce: true do %>
 (function() {
-  // [FACEID] Diagnostic instrumentation — temporary while debugging the
-  // multi-prompt issue Lora reported. Remove once the cause is identified.
-  var TAG = "[FACEID " + Math.random().toString(36).slice(2, 7) + "]";
-  function log() {
-    var args = Array.prototype.slice.call(arguments);
-    args.unshift(TAG, new Date().toISOString().slice(11, 23));
-    console.log.apply(console, args);
-  }
-
-  log("partial executed, path=" + window.location.pathname);
-
   // Only run inside Capacitor
-  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
-    log("not Capacitor native, bailing");
-    return;
-  }
+  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
 
   var Bio = window.Capacitor.Plugins.BiometricAuth;
-  if (!Bio) {
-    log("BiometricAuth plugin missing, bailing");
-    return;
-  }
-  log("Capacitor + Bio ok");
+  if (!Bio) return;
 
   // Banking-pattern auto-prompt: when the app launches with stored credentials,
   // fire Face ID immediately so the user is signed in before they see the
@@ -36,33 +18,17 @@
   // navigation) — the sessionStorage flag is set on the first run regardless
   // of outcome, so post-signout returns to `/` don't ambush the user.
   function autoPrompt() {
-    var alreadyChecked = sessionStorage.getItem("_faceid_auto_checked") === "1";
-    log("autoPrompt called, alreadyChecked=" + alreadyChecked + ", path=" + window.location.pathname);
-    if (alreadyChecked) {
-      log("autoPrompt skipped (sessionStorage flag set)");
-      return;
-    }
+    if (sessionStorage.getItem("_faceid_auto_checked") === "1") return;
     sessionStorage.setItem("_faceid_auto_checked", "1");
-    log("autoPrompt sessionStorage flag set");
 
     // Only on the launch route; deep links go through the menu.
-    if (window.location.pathname !== "/") {
-      log("autoPrompt skipped (path " + window.location.pathname + " is not /)");
-      return;
-    }
+    if (window.location.pathname !== "/") return;
 
     var CSRF = document.querySelector('meta[name="csrf-token"]');
-    log("autoPrompt calling Bio.isAvailable()");
     Bio.isAvailable().then(function(result) {
-      log("isAvailable result: isAvailable=" + result.isAvailable + ", hasCredentials=" + result.hasCredentials + ", hasBiometrics=" + result.hasBiometrics);
-      if (!result.isAvailable || !result.hasCredentials) {
-        log("autoPrompt bailing — no biometrics or no credentials");
-        return;
-      }
+      if (!result.isAvailable || !result.hasCredentials) return;
 
-      log("autoPrompt calling Bio.getCredentials() — this should trigger Face ID #1");
       Bio.getCredentials().then(function(creds) {
-        log("getCredentials succeeded — submitting form to /session");
         var form = document.createElement("form");
         form.method = "POST";
         form.action = "<%= session_path %>";
@@ -85,10 +51,9 @@
         }
 
         document.body.appendChild(form);
-        log("autoPrompt form.submit() — fly logs should show POST /session next");
         form.submit();
-      }).catch(function(e) { log("Face ID cancelled or failed:", e && e.message); });
-    }).catch(function(e) { log("BiometricAuth check failed:", e && e.message); });
+      }).catch(function(e) { console.log("Face ID cancelled or failed:", e); });
+    }).catch(function(e) { console.log("BiometricAuth check failed:", e); });
   }
 
   // Re-run on every Turbo navigation, not just initial parse — otherwise the
@@ -96,10 +61,8 @@
   // never fires, leaving the button at its default display:none and forcing
   // the user to hard-close the app to recover.
   function setup() {
-    log("setup called, path=" + window.location.pathname);
     var CSRF = document.querySelector('meta[name="csrf-token"]');
     var btns = document.querySelectorAll('[id="faceid-signin-btn"]');
-    log("setup found " + btns.length + " faceid button(s)");
     if (!btns.length) return;
 
     Bio.isAvailable().then(function(result) {
