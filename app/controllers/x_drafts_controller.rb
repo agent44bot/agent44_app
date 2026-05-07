@@ -35,6 +35,25 @@ class XDraftsController < ApplicationController
     redirect_to "/nykitchen", notice: "Skipped — no tweet sent."
   end
 
+  def delete_tweet
+    if @log.x_post_id.blank?
+      redirect_to nyk_x_draft_path(token: @log.x_approval_token), alert: "Nothing posted yet."
+      return
+    end
+    if @log.x_deleted_at.present?
+      redirect_to nyk_x_draft_path(token: @log.x_approval_token), notice: "Already deleted."
+      return
+    end
+
+    result = XClient.delete_tweet(@log.x_post_id)
+    if result.ok?
+      @log.update!(x_deleted_at: Time.current)
+      redirect_to nyk_x_draft_path(token: @log.x_approval_token), notice: "Tweet deleted from X."
+    else
+      redirect_to nyk_x_draft_path(token: @log.x_approval_token), alert: "Delete failed: #{result.error}"
+    end
+  end
+
   private
 
   def load_log

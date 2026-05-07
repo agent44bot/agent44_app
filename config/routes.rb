@@ -39,6 +39,7 @@ Rails.application.routes.draw do
   get  "nykitchen/x_drafts/:token",         to: "x_drafts#show",   as: :nyk_x_draft
   post "nykitchen/x_drafts/:token/post",    to: "x_drafts#post_now"
   post "nykitchen/x_drafts/:token/skip",    to: "x_drafts#skip"
+  post "nykitchen/x_drafts/:token/delete_tweet", to: "x_drafts#delete_tweet"
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"

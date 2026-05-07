@@ -6,12 +6,22 @@
     Review before it posts to <a class="text-orange-400" target="_blank" href="https://x.com/agent44bot">@agent44bot</a>.
   </p>
 
-  <% if @log.x_post_id.present? %>
+  <% if @log.x_post_id.present? && @log.x_deleted_at.blank? %>
     <div class="rounded-lg bg-green-950/40 border border-green-700 p-4 mb-6">
-      <p class="text-sm text-green-300">
-        Already posted —
+      <p class="text-sm text-green-300 mb-3">
+        Posted —
         <a class="underline" target="_blank" href="https://x.com/agent44bot/status/<%= @log.x_post_id %>">view tweet</a>
         (<%= time_ago_in_words(@log.x_posted_at) %> ago).
+      </p>
+      <%= button_to "Delete tweet from X", "/nykitchen/x_drafts/#{@log.x_approval_token}/delete_tweet",
+            method: :post,
+            data: { turbo_confirm: "Delete this tweet from X? This can't be undone." },
+            class: "px-3 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition cursor-pointer" %>
+    </div>
+  <% elsif @log.x_post_id.present? && @log.x_deleted_at.present? %>
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-4 mb-6">
+      <p class="text-sm text-gray-400">
+        Posted, then deleted <%= time_ago_in_words(@log.x_deleted_at) %> ago.
       </p>
     </div>
   <% elsif @log.x_skipped_at.present? %>
@@ -32,6 +42,7 @@
   </p>
 
   <% if @log.x_post_id.blank? && @log.x_skipped_at.blank? %>
+    <% # Action row: show Post/Skip only when there's nothing posted yet. %>
     <div class="flex items-center gap-3">
       <%= button_to "Post to X", "/nykitchen/x_drafts/#{@log.x_approval_token}/post",
             method: :post,
