@@ -83,21 +83,36 @@
         ["other",   "Unknown",             "bg-gray-600 text-gray-100",          "bg-gray-800 text-gray-400 hover:bg-gray-700"]
       ]
     %>
-    <div class="flex flex-wrap gap-2 mb-5" data-tabs-chrome-for="0">
-      <% chips.each do |status, text, active_cls, inactive_cls| %>
-        <% count = @filter_counts[status] %>
-        <% next if count == 0 && status != "all" %>
-        <% start_cls = status == "all" ? active_cls : inactive_cls %>
-        <button data-kitchen-filter-target="chip"
-                data-action="click->kitchen-filter#filter"
-                data-filter-status="<%= status %>"
-                data-active-classes="<%= active_cls %>"
-                data-inactive-classes="<%= inactive_cls %>"
-                class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
-          <%= text %> (<%= count %>)
-        </button>
-      <% end %>
-    </div>
+    <section class="mb-5"
+             data-controller="collapsible"
+             data-collapsible-collapsed-value="true"
+             data-tabs-chrome-for="0">
+      <button type="button"
+              data-action="click->collapsible#toggle"
+              class="w-full flex items-center justify-between gap-3 bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 text-left hover:border-gray-700 transition">
+        <span class="text-sm font-semibold text-gray-300">Filter</span>
+        <svg data-collapsible-target="icon"
+             class="w-5 h-5 text-gray-500 transition-transform"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div data-collapsible-target="body" class="flex flex-wrap gap-2 mt-3">
+        <% chips.each do |status, text, active_cls, inactive_cls| %>
+          <% count = @filter_counts[status] %>
+          <% next if count == 0 && status != "all" %>
+          <% start_cls = status == "all" ? active_cls : inactive_cls %>
+          <button data-kitchen-filter-target="chip"
+                  data-action="click->kitchen-filter#filter"
+                  data-filter-status="<%= status %>"
+                  data-active-classes="<%= active_cls %>"
+                  data-inactive-classes="<%= inactive_cls %>"
+                  class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
+            <%= text %> (<%= count %>)
+          </button>
+        <% end %>
+      </div>
+    </section>
 
     <!-- List View -->
     <div data-tabs-target="panel">
@@ -106,7 +121,7 @@
         <section id="week-<%= week_index %>"
                  data-kitchen-filter-target="section"
                  data-controller="collapsible"
-                 data-collapsible-collapsed-value="<%= week[:expanded] ? 'false' : 'true' %>"
+                 data-collapsible-collapsed-value="true"
                  class="mb-8">
           <%
             total = week[:events].size
