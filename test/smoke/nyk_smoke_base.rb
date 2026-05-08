@@ -284,7 +284,9 @@ class NykSmokeBase < ActiveSupport::TestCase
   # ---------------------------------------------------------------------------
 
   def progress_ping(title, body: nil, level: "info")
-    return if ENV["VLAD_PROGRESS_PINGS"] == "false"
+    # Failure-only mode: when pings are suppressed, error-level still fires
+    # so the workflow can notify on test failure without success spam.
+    return if ENV["VLAD_PROGRESS_PINGS"] == "false" && level != "error"
     token = ENV["API_TOKEN"]
     return if token.to_s.empty?
 

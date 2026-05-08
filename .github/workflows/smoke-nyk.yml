@@ -95,9 +95,13 @@ jobs:
           # Pass through only when explicitly set; empty string lets the test
           # file fall back to its own default (nav=headed, scrape=headless).
           HEADFUL: ${{ github.event.inputs.headful || github.event.client_payload.headful || '' }}
-          # Silence Telegram during quiet hours
-          VLAD_PROGRESS_PINGS: ${{ steps.quiet.outputs.quiet == 'true' && 'false' || 'true' }}
-          SKIP_VLAD_STATUS: ${{ steps.quiet.outputs.quiet }}
+          # Failure-only Telegram: suppress all success/info pings and Vlad
+          # status transitions. progress_ping is gated to still send when
+          # level == "error", so the failure path in fail_with_artifacts
+          # still pings. Quiet hours computation above is now redundant but
+          # left in place for the Vlad-reset gating below.
+          VLAD_PROGRESS_PINGS: "false"
+          SKIP_VLAD_STATUS: "true"
         run: |
           case "$TEST" in
             nav)    FILES="test/smoke/nyk_calendar_nav_test.rb" ;;
