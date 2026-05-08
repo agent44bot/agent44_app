@@ -31,3 +31,6 @@ production:
   nyk_filter_card_check:
     class: NykFilterCardCheckJob
     schedule: every day at 11am
+  nyk_smoke_freshness_check:
+    class: NykSmokeFreshnessCheckJob
+    schedule: every hour at minute 17
