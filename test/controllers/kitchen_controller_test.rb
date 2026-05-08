@@ -6,8 +6,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     @snapshot = KitchenSnapshot.create!(taken_on: @today)
   end
 
-  test "week headers show availability bar with correct segments" do
+  test "week headers show availability bar with red and green only" do
     # Create events this week: 2 available, 1 sold out, 1 limited
+    # Limited rolls into "available" for the binary bar.
     this_week = 2.days.from_now
     create_event("Pasta 101", this_week, "InStock")
     create_event("Wine 201", this_week + 1.hour, "InStock")
@@ -17,10 +18,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     get nykitchen_path
     assert_response :success
 
-    # The bar should have all three segments
-    assert_select "div.bg-red-500"    # sold out segment
-    assert_select "div.bg-amber-500"  # limited segment
-    assert_select "div.bg-green-500"  # available segment
+    assert_select "div.bg-red-500"
+    assert_select "div.bg-green-500"
+    assert_select "div.bg-amber-500", count: 0, message: "Limited segments removed — bar is binary now"
   end
 
   test "week with all available events shows only green bar" do
@@ -72,7 +72,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.bg-green-500[title='2 available']"
   end
 
-  test "events with empty availability show as gray not green or red" do
+  test "events with empty availability are excluded from the bar (red + green only)" do
+    # The bar + percentage are now driven by sold + available only;
+    # "unknown" events don't render any segment.
     this_week = 2.days.from_now
     create_event("Sold Out Class", this_week, "SoldOut")
     create_event("Private Event", this_week + 1.hour, "")  # empty = "other"
@@ -83,8 +85,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "section[id^='week-']" do |sections|
       section = sections.find { |s| s.text.include?("Private Event") }
       assert section
-      assert_select section, "div.bg-green-500", count: 0, message: "Empty availability should not show as green"
-      assert_select section, "div.bg-gray-500[title='1 unknown']"
+      assert_select section, "div.bg-gray-500", count: 0, message: "Gray unknown segment removed"
+      assert_select section, "div.bg-amber-500", count: 0, message: "Amber limited segment removed"
       assert_select section, "div.bg-red-500[title='1 sold out / closed']"
     end
   end

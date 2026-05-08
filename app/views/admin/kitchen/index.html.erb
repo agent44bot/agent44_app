@@ -126,19 +126,15 @@
                  data-collapsible-collapsed-value="true"
                  class="mb-8">
           <%
-            total = week[:events].size
+            total    = week[:events].size
             statuses = week[:events].map(&:availability_status)
-            unavail = statuses.count { |s| s == "soldout" || s == "closed" }
-            limited = statuses.count("limited")
-            avail = statuses.count("instock")
-            other = statuses.count("other")
-            pct_unavail = (unavail.to_f / total * 100).round(1)
-            pct_limited = (limited.to_f / total * 100).round(1)
-            pct_avail   = (avail.to_f / total * 100).round(1)
-            pct_other   = (100 - pct_unavail - pct_limited - pct_avail).round(1)
-          %>
-          <%
-            sold_pct       = pct_unavail.round
+            sold     = statuses.count { |s| s == "soldout" || s == "closed" }
+            avail    = statuses.count { |s| s == "instock" || s == "limited" }
+            denom    = sold + avail
+
+            pct_sold       = denom.zero? ? 0 : (sold.to_f  / denom * 100).round(1)
+            pct_avail      = denom.zero? ? 0 : (avail.to_f / denom * 100).round(1)
+            sold_pct       = pct_sold.round
             sold_pct_color = sold_pct >= 60 ? "text-red-400"
                            : sold_pct >= 25 ? "text-amber-400"
                            :                   "text-gray-500"
@@ -161,14 +157,8 @@
               </div>
             </div>
             <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
-              <% if unavail > 0 %>
-                <div class="bg-red-500 h-full" style="width: <%= pct_unavail %>%" title="<%= unavail %> sold out / closed"></div>
-              <% end %>
-              <% if limited > 0 %>
-                <div class="bg-amber-500 h-full" style="width: <%= pct_limited %>%" title="<%= limited %> limited"></div>
-              <% end %>
-              <% if other > 0 %>
-                <div class="bg-gray-500 h-full" style="width: <%= pct_other %>%" title="<%= other %> unknown"></div>
+              <% if sold > 0 %>
+                <div class="bg-red-500 h-full" style="width: <%= pct_sold %>%" title="<%= sold %> sold out / closed"></div>
               <% end %>
               <% if avail > 0 %>
                 <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>
