@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_183716) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_07_222333) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -211,6 +211,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_183716) do
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_kitchen_ticket_digests_on_created_at"
     t.index ["kitchen_snapshot_id"], name: "index_kitchen_ticket_digests_on_kitchen_snapshot_id"
+  end
+
+  create_table "kv_settings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "key", null: false
+    t.datetime "updated_at", null: false
+    t.text "value"
+    t.index ["key"], name: "index_kv_settings_on_key", unique: true
   end
 
   create_table "news_articles", force: :cascade do |t|
