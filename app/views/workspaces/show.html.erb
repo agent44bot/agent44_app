@@ -170,4 +170,26 @@
       </div>
     <% end %>
   </section>
+
+  <% if %w[owner admin].include?(@my_role) %>
+    <section class="mt-12 pt-6 border-t border-red-950">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-red-500 mb-3">Danger zone</h2>
+      <div class="rounded-lg border border-red-900 bg-red-950/20 p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm text-white">Delete this workspace</p>
+          <p class="text-xs text-gray-400 mt-1">
+            Removes <%= @workspace.name %> and all <%= pluralize(@memberships.size, "member") %>,
+            <%= pluralize(@invitations.size, "pending invite") %>,
+            <%= pluralize(@social_accounts.size, "connected account") %>, and
+            <%= pluralize(@workspace.workspace_posts.count, "post") %>. Cannot be undone.
+          </p>
+        </div>
+        <%= button_to "Delete workspace",
+            workspace_path(@workspace.slug),
+            method: :delete,
+            form: { data: { turbo_confirm: "Permanently delete '#{@workspace.name}' and everything in it? This cannot be undone." } },
+            class: "inline-flex items-center px-4 py-2 rounded-md bg-red-900 hover:bg-red-800 text-white text-sm font-semibold cursor-pointer" %>
+      </div>
+    </section>
+  <% end %>
 </div>

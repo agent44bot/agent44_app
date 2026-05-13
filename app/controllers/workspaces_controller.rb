@@ -1,6 +1,7 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace, only: [:show]
-  before_action :require_member, only: [:show]
+  before_action :load_workspace,  only: [:show, :destroy]
+  before_action :require_member,  only: [:show]
+  before_action :require_admin,   only: [:destroy]
 
   def index
     @workspaces = current_user.workspaces.active.order(:name)
@@ -18,6 +19,12 @@ class WorkspacesController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    name = @workspace.name
+    @workspace.destroy!
+    redirect_to workspaces_path, notice: "Deleted workspace #{name}."
   end
 
   def show
@@ -43,6 +50,11 @@ class WorkspacesController < ApplicationController
   def require_member
     return if @workspace.member?(current_user)
     redirect_to workspaces_path, alert: "You're not a member of that workspace."
+  end
+
+  def require_admin
+    return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
+    redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can do that."
   end
 
   def current_user
