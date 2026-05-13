@@ -49,3 +49,6 @@ capacitor.config.ts
 capacitor.config.ci.ts
 db/development.sqlite3
 .DS_Store
+
+# Claude Code runtime lock file
+.claude/scheduled_tasks.lock
