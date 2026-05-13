@@ -57,6 +57,16 @@ Rails.application.routes.draw do
 
   resources :fleet_requests, only: [ :create ]
 
+  resources :workspaces, only: [ :index, :new, :create, :show ], param: :slug do
+    resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
+    resources :social_accounts, only: [ :destroy ]
+    resources :posts, only: [ :create ], controller: "workspace_posts"
+    post "oauth/x/connect", to: "oauth/x#connect", as: :oauth_x_connect
+  end
+  get  "invitations/:token",        to: "workspace_invitations#show",   as: :workspace_invitation_view
+  post "invitations/:token/accept", to: "workspace_invitations#accept", as: :workspace_invitation_accept
+  get  "oauth/x/callback",          to: "oauth/x#callback",             as: :oauth_x_callback
+
   namespace :api do
     namespace :v1 do
       resources :jobs, only: [ :create ]

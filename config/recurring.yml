@@ -34,3 +34,6 @@ production:
   nyk_smoke_freshness_check:
     class: NykSmokeFreshnessCheckJob
     schedule: every hour at minute 17
+  refresh_x_tokens:
+    class: RefreshXTokensJob
+    schedule: every 30 minutes

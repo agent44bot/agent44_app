@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_222333) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_140000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -349,6 +349,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_222333) do
     t.index ["started_at"], name: "index_smoke_test_runs_on_started_at"
   end
 
+  create_table "social_accounts", force: :cascade do |t|
+    t.text "access_token"
+    t.string "avatar_url"
+    t.integer "connected_by_id"
+    t.datetime "created_at", null: false
+    t.string "display_name"
+    t.string "external_id"
+    t.string "handle"
+    t.datetime "last_synced_at"
+    t.text "metadata"
+    t.string "platform", null: false
+    t.text "refresh_token"
+    t.text "scopes"
+    t.string "status", default: "active", null: false
+    t.datetime "token_expires_at"
+    t.text "token_secret"
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["connected_by_id"], name: "index_social_accounts_on_connected_by_id"
+    t.index ["status"], name: "index_social_accounts_on_status"
+    t.index ["workspace_id", "platform", "external_id"], name: "idx_social_accts_on_ws_platform_extid", unique: true
+    t.index ["workspace_id"], name: "index_social_accounts_on_workspace_id"
+  end
+
   create_table "social_post_logs", force: :cascade do |t|
     t.datetime "copied_at"
     t.datetime "created_at", null: false
@@ -406,6 +430,74 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_222333) do
     t.string "youtube_id"
   end
 
+  create_table "workspace_invitations", force: :cascade do |t|
+    t.datetime "accepted_at"
+    t.integer "accepted_by_id"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at", null: false
+    t.integer "invited_by_id", null: false
+    t.datetime "revoked_at"
+    t.string "role", default: "editor", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["accepted_by_id"], name: "index_workspace_invitations_on_accepted_by_id"
+    t.index ["expires_at"], name: "index_workspace_invitations_on_expires_at"
+    t.index ["invited_by_id"], name: "index_workspace_invitations_on_invited_by_id"
+    t.index ["token"], name: "index_workspace_invitations_on_token", unique: true
+    t.index ["workspace_id", "email"], name: "index_workspace_invitations_on_workspace_id_and_email"
+    t.index ["workspace_id"], name: "index_workspace_invitations_on_workspace_id"
+  end
+
+  create_table "workspace_memberships", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_active_at"
+    t.string "role", default: "editor", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.integer "workspace_id", null: false
+    t.index ["role"], name: "index_workspace_memberships_on_role"
+    t.index ["user_id"], name: "index_workspace_memberships_on_user_id"
+    t.index ["workspace_id", "user_id"], name: "index_workspace_memberships_on_workspace_id_and_user_id", unique: true
+    t.index ["workspace_id"], name: "index_workspace_memberships_on_workspace_id"
+  end
+
+  create_table "workspace_posts", force: :cascade do |t|
+    t.integer "author_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.text "error"
+    t.string "platform", null: false
+    t.datetime "posted_at"
+    t.string "remote_id"
+    t.string "remote_url"
+    t.integer "social_account_id"
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["author_id"], name: "index_workspace_posts_on_author_id"
+    t.index ["social_account_id"], name: "index_workspace_posts_on_social_account_id"
+    t.index ["status"], name: "index_workspace_posts_on_status"
+    t.index ["workspace_id", "created_at"], name: "index_workspace_posts_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_workspace_posts_on_workspace_id"
+  end
+
+  create_table "workspaces", force: :cascade do |t|
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.integer "owner_id", null: false
+    t.text "settings"
+    t.string "slug", null: false
+    t.string "timezone", default: "UTC", null: false
+    t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_workspaces_on_archived_at"
+    t.index ["owner_id"], name: "index_workspaces_on_owner_id"
+    t.index ["slug"], name: "index_workspaces_on_slug", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_call_logs", "users"
@@ -422,4 +514,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_222333) do
   add_foreign_key "saved_jobs", "jobs"
   add_foreign_key "saved_jobs", "users"
   add_foreign_key "sessions", "users"
+  add_foreign_key "social_accounts", "users", column: "connected_by_id"
+  add_foreign_key "social_accounts", "workspaces"
+  add_foreign_key "workspace_invitations", "users", column: "accepted_by_id"
+  add_foreign_key "workspace_invitations", "users", column: "invited_by_id"
+  add_foreign_key "workspace_invitations", "workspaces"
+  add_foreign_key "workspace_memberships", "users"
+  add_foreign_key "workspace_memberships", "workspaces"
+  add_foreign_key "workspace_posts", "social_accounts"
+  add_foreign_key "workspace_posts", "users", column: "author_id"
+  add_foreign_key "workspace_posts", "workspaces"
+  add_foreign_key "workspaces", "users", column: "owner_id"
 end

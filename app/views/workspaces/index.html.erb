@@ -1,0 +1,32 @@
+<% content_for :title, "Workspaces" %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Fleet Social</h1>
+      <p class="text-sm text-gray-400 mt-1">Workspaces you belong to.</p>
+    </div>
+    <%= link_to "New workspace", new_workspace_path,
+        class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
+  </div>
+
+  <% if @workspaces.empty? %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-8 text-center">
+      <p class="text-gray-400">No workspaces yet. Create one to get started.</p>
+    </div>
+  <% else %>
+    <div class="space-y-3">
+      <% @workspaces.each do |ws| %>
+        <%= link_to workspace_path(ws.slug), class: "block rounded-lg border border-gray-800 bg-gray-900 hover:border-orange-500 p-4 transition" do %>
+          <div class="flex items-center justify-between">
+            <div class="min-w-0">
+              <h3 class="text-base font-semibold text-white truncate"><%= ws.name %></h3>
+              <p class="text-xs text-gray-500 font-mono mt-1">/<%= ws.slug %></p>
+            </div>
+            <span class="text-xs uppercase tracking-wide text-gray-500"><%= ws.role_for(Current.session.user) %></span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
