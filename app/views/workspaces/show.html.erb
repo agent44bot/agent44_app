@@ -9,6 +9,18 @@
     <%= link_to "← All workspaces", workspaces_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
   </div>
 
+  <% if %w[owner admin].include?(@my_role) %>
+    <%= form_with model: @workspace, url: workspace_path(@workspace.slug), method: :patch, local: true,
+                  class: "mb-6 flex flex-wrap items-center gap-2" do |f| %>
+      <label class="text-xs text-gray-500 uppercase tracking-wide">Timezone</label>
+      <%= f.time_zone_select :timezone,
+          ActiveSupport::TimeZone.us_zones,
+          { default: @workspace.timezone },
+          { class: "rounded-md bg-gray-900 border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" } %>
+      <%= f.submit "Save", class: "text-xs text-gray-300 hover:text-white px-3 py-1 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
+    <% end %>
+  <% end %>
+
   <% if @workspace.description.present? %>
     <p class="text-sm text-gray-300 mb-8 whitespace-pre-wrap"><%= @workspace.description %></p>
   <% end %>

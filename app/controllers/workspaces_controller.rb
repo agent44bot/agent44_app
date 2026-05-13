@@ -1,7 +1,7 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,  only: [:show, :destroy]
+  before_action :load_workspace,  only: [:show, :update, :destroy]
   before_action :require_member,  only: [:show]
-  before_action :require_admin,   only: [:destroy]
+  before_action :require_admin,   only: [:update, :destroy]
 
   def index
     @workspaces = current_user.workspaces.active.order(:name)
@@ -18,6 +18,14 @@ class WorkspacesController < ApplicationController
       redirect_to workspace_path(@workspace.slug), notice: "Workspace created."
     else
       render :new, status: :unprocessable_entity
+    end
+  end
+
+  def update
+    if @workspace.update(workspace_params)
+      redirect_to workspace_path(@workspace.slug), notice: "Workspace updated."
+    else
+      redirect_to workspace_path(@workspace.slug), alert: "Update failed: #{@workspace.errors.full_messages.to_sentence}"
     end
   end
 
