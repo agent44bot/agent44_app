@@ -43,7 +43,7 @@ class KitchenController < ApplicationController
   end
 
   def enhance_post
-    api_key = ENV["ANTHROPIC_API_KEY"]
+    api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
     if api_key.blank?
       render json: { error: "no_api_key", message: "API key not configured" }, status: 422
       return

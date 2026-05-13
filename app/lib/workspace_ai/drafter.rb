@@ -21,7 +21,7 @@ module WorkspaceAi
     end
 
     def suggest(topic: nil, existing_draft: nil)
-      api_key = ENV["ANTHROPIC_API_KEY"]
+      api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
       return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
 
       prompt = build_prompt(topic: topic, existing_draft: existing_draft)

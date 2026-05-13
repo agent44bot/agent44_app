@@ -57,7 +57,7 @@ class PostNykClassToXJob < ApplicationJob
   end
 
   def build_tweet_text(event)
-    api_key = ENV["ANTHROPIC_API_KEY"]
+    api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
     return nil if api_key.blank?
 
     client = Anthropic::Client.new(api_key: api_key)
