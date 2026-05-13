@@ -20,6 +20,12 @@ module Api
       def create
         run = SmokeTestRun.create!(run_params)
         Rails.cache.delete("smoke_runs/recent")
+        
+        # Send iOS push notifications if the test failed
+        if run.failed?
+          SmokeTestFailureNotificationJob.perform_later(run.id)
+        end
+        
         render json: run_json(run), status: :created
       rescue ActiveRecord::RecordInvalid => e
         render json: { error: e.message }, status: :unprocessable_entity
