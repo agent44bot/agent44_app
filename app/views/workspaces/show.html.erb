@@ -17,17 +17,35 @@
     <section class="mb-10">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Compose</h2>
       <% if @x_account %>
-        <%= form_with url: workspace_posts_path(workspace_slug: @workspace.slug), local: true, class: "rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3" do |f| %>
-          <%= f.text_area :body, rows: 3, maxlength: 280, required: true,
-              placeholder: "What's happening at #{@workspace.name}?",
-              class: "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none font-mono text-sm" %>
-          <div class="flex items-center justify-between">
-            <p class="text-xs text-gray-500">Posting as <%= @x_account.handle %></p>
-            <%= f.submit "Post to X",
-                data: { turbo_confirm: "Post this to X now?" },
-                class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
-          </div>
-        <% end %>
+        <% draft_text  = flash[:draft_text].to_s %>
+        <% draft_topic = flash[:draft_topic].to_s %>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3">
+          <% if draft_text.present? %>
+            <p class="text-xs text-orange-400">✨ AI-suggested draft below — edit, then post.</p>
+          <% end %>
+
+          <%= form_with url: workspace_draft_suggest_path(workspace_slug: @workspace.slug), local: true, class: "space-y-2" do %>
+            <div class="flex flex-wrap gap-2">
+              <%= text_field_tag :topic, draft_topic, placeholder: "Optional angle (e.g. 'fall classes')",
+                  class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+              <%= submit_tag "✨ Draft with AI",
+                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
+            </div>
+          <% end %>
+
+          <%= form_with url: workspace_posts_path(workspace_slug: @workspace.slug), local: true, class: "space-y-3" do |f| %>
+            <%= f.text_area :body, rows: 3, maxlength: 280, required: true,
+                value: draft_text.presence,
+                placeholder: "What's happening at #{@workspace.name}?",
+                class: "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none font-mono text-sm" %>
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-gray-500">Posting as <%= @x_account.handle %></p>
+              <%= f.submit "Post to X",
+                  data: { turbo_confirm: "Post this to X now?" },
+                  class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+            </div>
+          <% end %>
+        </div>
       <% else %>
         <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
           <p class="text-gray-400 text-sm">Connect an X account below to start posting.</p>

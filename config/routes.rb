@@ -61,6 +61,7 @@ Rails.application.routes.draw do
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]
     resources :posts, only: [ :create ], controller: "workspace_posts"
+    post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
     post "oauth/x/connect", to: "oauth/x#connect", as: :oauth_x_connect
   end
   get  "invitations/:token",        to: "workspace_invitations#show",   as: :workspace_invitation_view
