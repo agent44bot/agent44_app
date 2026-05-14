@@ -92,7 +92,8 @@
                 </p>
                 <div class="flex items-center gap-3 shrink-0">
                   <% if p.posted? && p.remote_url.present? %>
-                    <%= link_to "View on X →", p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
+                    <% label = p.platform == "bluesky" ? "View on Bluesky →" : "View on X →" %>
+                    <%= link_to label, p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
                   <% elsif p.failed? %>
                     <span class="text-xs text-red-400" title="<%= p.error %>">failed</span>
                   <% else %>
