@@ -27,7 +27,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(@owner)
     assert_difference -> { WorkspacePost.count }, 1 do
-      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "hello world" }
+      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "hello world", target_platforms: ["x"] }
     end
     assert_redirected_to workspace_path(@ws.slug)
 
@@ -41,7 +41,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
   test "failed X response marks the post failed and stores the error" do
     X::UserClient.http_stub = ->(*) { { status: "403", body: { "detail" => "Duplicate" } } }
     sign_in_as(@owner)
-    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "dup" }
+    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "dup", target_platforms: ["x"] }
     wp = WorkspacePost.last
     assert_equal "failed", wp.status
     assert_match /403/, wp.error
@@ -65,7 +65,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
     }
 
     sign_in_as(@owner)
-    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "retry" }
+    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "retry", target_platforms: ["x"] }
 
     assert refreshed,           "refresh should have fired"
     assert_equal 2, call_count, "should retry once after refresh"
@@ -76,7 +76,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
   test "viewer cannot post" do
     sign_in_as(@viewer)
     assert_no_difference -> { WorkspacePost.count } do
-      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "no" }
+      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "no", target_platforms: ["x"] }
     end
   end
 

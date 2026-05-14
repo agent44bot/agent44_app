@@ -1,0 +1,43 @@
+<% content_for :title, "Connect Bluesky" %>
+
+<div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-white mb-1">Connect Bluesky</h1>
+  <p class="text-sm text-gray-400 mb-6">
+    Workspace: <strong><%= @workspace.name %></strong>
+  </p>
+
+  <% if flash[:alert] %>
+    <div class="mb-4 rounded-md border border-red-700 bg-red-950/40 text-red-200 px-4 py-3 text-sm">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+
+  <div class="mb-6 rounded-md border border-gray-800 bg-gray-900 p-4 text-sm text-gray-300">
+    Bluesky uses an <strong>app password</strong>, not OAuth. Create one at
+    <a class="text-orange-400 hover:text-orange-300 underline" href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener">
+      bsky.app/settings/app-passwords
+    </a>
+    , paste it below. App passwords are scoped — you can revoke this one anytime.
+  </div>
+
+  <%= form_with url: workspace_bluesky_account_path(workspace_slug: @workspace.slug), method: :post, local: true, class: "space-y-4" do |f| %>
+    <div>
+      <%= f.label :handle, "Handle", class: "block text-sm font-medium text-gray-300 mb-1" %>
+      <%= f.text_field :handle, value: @handle, required: true, autofocus: true, placeholder: "agent44.bsky.social",
+          class: "w-full rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none font-mono" %>
+      <p class="text-xs text-gray-500 mt-1">Without the @. Custom domains like <code>agent44labs.com</code> work too.</p>
+    </div>
+
+    <div>
+      <%= f.label :app_password, "App password", class: "block text-sm font-medium text-gray-300 mb-1" %>
+      <%= f.password_field :app_password, required: true, autocomplete: "off",
+          class: "w-full rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none font-mono" %>
+      <p class="text-xs text-gray-500 mt-1">Looks like <code>xxxx-xxxx-xxxx-xxxx</code>. Stored encrypted.</p>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <%= f.submit "Connect Bluesky", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+      <%= link_to "Cancel", workspace_path(@workspace.slug), class: "text-sm text-gray-400 hover:text-gray-200" %>
+    </div>
+  <% end %>
+</div>
