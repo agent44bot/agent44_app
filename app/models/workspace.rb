@@ -8,6 +8,7 @@ class Workspace < ApplicationRecord
   has_many :invitations,       class_name: "WorkspaceInvitation", dependent: :destroy
   has_many :social_accounts,   dependent: :destroy
   has_many :workspace_posts,   dependent: :destroy
+  has_many :workspace_drafts,  dependent: :destroy
 
   validates :name, presence: true, length: { maximum: 100 }
   validates :slug, presence: true, uniqueness: true,

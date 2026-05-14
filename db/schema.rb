@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_210000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -430,6 +430,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_140000) do
     t.string "youtube_id"
   end
 
+  create_table "workspace_drafts", force: :cascade do |t|
+    t.integer "author_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.text "error"
+    t.datetime "published_at"
+    t.text "results"
+    t.datetime "scheduled_for"
+    t.string "status", default: "draft", null: false
+    t.text "target_platforms", default: "[]", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["author_id"], name: "index_workspace_drafts_on_author_id"
+    t.index ["scheduled_for"], name: "index_workspace_drafts_on_scheduled_for"
+    t.index ["status"], name: "index_workspace_drafts_on_status"
+    t.index ["workspace_id", "created_at"], name: "index_workspace_drafts_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_workspace_drafts_on_workspace_id"
+  end
+
   create_table "workspace_invitations", force: :cascade do |t|
     t.datetime "accepted_at"
     t.integer "accepted_by_id"
@@ -516,6 +535,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_140000) do
   add_foreign_key "sessions", "users"
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
+  add_foreign_key "workspace_drafts", "users", column: "author_id"
+  add_foreign_key "workspace_drafts", "workspaces"
   add_foreign_key "workspace_invitations", "users", column: "accepted_by_id"
   add_foreign_key "workspace_invitations", "users", column: "invited_by_id"
   add_foreign_key "workspace_invitations", "workspaces"

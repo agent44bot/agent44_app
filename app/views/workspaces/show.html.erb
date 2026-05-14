@@ -74,13 +74,78 @@
               <% end %>
             </div>
 
-            <div class="flex items-center justify-end">
-              <%= f.submit "Post",
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
+              <label class="text-xs text-gray-500 uppercase tracking-wide">Schedule for:</label>
+              <%= datetime_field_tag :scheduled_for, nil,
+                  class: "rounded-md bg-black border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" %>
+              <span class="text-xs text-gray-500">(<%= @workspace.timezone %>) — leave blank to post now or save as draft</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-1">
+              <%= submit_tag "Save draft", name: "commit", value: "save",
+                  formaction: workspace_drafts_path(workspace_slug: @workspace.slug),
+                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
+              <%= submit_tag "Schedule", name: "commit", value: "schedule",
+                  formaction: workspace_drafts_path(workspace_slug: @workspace.slug),
+                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
+              <%= f.submit "Post now",
                   data: { turbo_confirm: "Post to the selected platforms now?" },
                   class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
             </div>
           <% end %>
         </div>
+
+        <% if @scheduled_drafts.any? %>
+          <h3 class="text-xs uppercase tracking-wide text-gray-500 mt-6 mb-2">Scheduled</h3>
+          <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+            <% @scheduled_drafts.each do |d| %>
+              <div class="px-4 py-3">
+                <div class="flex items-center justify-between mb-1 gap-3">
+                  <p class="text-xs text-gray-500 truncate">
+                    <%= d.author.display_identifier %> · fires <%= d.scheduled_for.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p %Z") %> · <%= Array(d.target_platforms).map(&:titleize).join(", ") %>
+                  </p>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <%= button_to "Post now", publish_workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
+                        method: :post, form: { data: { turbo_confirm: "Publish this draft right now?" } },
+                        class: "text-xs text-orange-400 hover:text-orange-300 px-2 py-1 border border-orange-900 rounded-md cursor-pointer" %>
+                    <%= button_to workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
+                        method: :delete, form: { data: { turbo_confirm: "Cancel this scheduled post?" } },
+                        class: "p-1 text-gray-500 hover:text-red-400 cursor-pointer", title: "Delete" do %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                    <% end %>
+                  </div>
+                </div>
+                <p class="text-sm text-white whitespace-pre-wrap break-words"><%= d.body %></p>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if @drafts.any? %>
+          <h3 class="text-xs uppercase tracking-wide text-gray-500 mt-6 mb-2">Drafts</h3>
+          <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+            <% @drafts.each do |d| %>
+              <div class="px-4 py-3">
+                <div class="flex items-center justify-between mb-1 gap-3">
+                  <p class="text-xs text-gray-500 truncate">
+                    <%= d.author.display_identifier %> · saved <%= d.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %> · <%= Array(d.target_platforms).map(&:titleize).join(", ") %>
+                  </p>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <%= button_to "Post now", publish_workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
+                        method: :post, form: { data: { turbo_confirm: "Publish this draft now?" } },
+                        class: "text-xs text-orange-400 hover:text-orange-300 px-2 py-1 border border-orange-900 rounded-md cursor-pointer" %>
+                    <%= button_to workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
+                        method: :delete, form: { data: { turbo_confirm: "Delete this draft?" } },
+                        class: "p-1 text-gray-500 hover:text-red-400 cursor-pointer", title: "Delete" do %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                    <% end %>
+                  </div>
+                </div>
+                <p class="text-sm text-white whitespace-pre-wrap break-words"><%= d.body %></p>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
       <% else %>
         <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
           <p class="text-gray-400 text-sm">Connect a social account below to start posting.</p>

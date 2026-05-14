@@ -37,3 +37,6 @@ production:
   refresh_x_tokens:
     class: RefreshXTokensJob
     schedule: every 30 minutes
+  publish_due_drafts:
+    class: PublishDueDraftsJob
+    schedule: every minute
