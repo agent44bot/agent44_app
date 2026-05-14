@@ -23,6 +23,20 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     refute_match theirs.name, response.body
   end
 
+  test "index renders trashcan for owners/admins and hides it from viewers" do
+    owned   = Workspace.create!(name: "OwnedWS",  owner: @owner)
+    guested = Workspace.create!(name: "GuestedWS", owner: @outside)
+    guested.memberships.create!(user: @owner, role: "viewer")
+
+    sign_in_as(@owner)
+    get workspaces_path
+    body = response.body
+    assert_match %r{action="/workspaces/#{owned.slug}".*name="_method" value="delete"}m, body,
+      "owner should see a delete form for their own workspace"
+    refute_match %r{action="/workspaces/#{guested.slug}".*name="_method" value="delete"}m, body,
+      "viewer role should NOT see a delete form"
+  end
+
   test "POST /workspaces creates one and makes you owner" do
     sign_in_as(@owner)
     assert_difference -> { Workspace.count }, 1 do
