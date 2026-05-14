@@ -2,6 +2,21 @@ class WorkspacePostsController < ApplicationController
   before_action :load_workspace
   before_action :require_writer
 
+  def destroy
+    post = @workspace.workspace_posts.find(params[:id])
+
+    if post.posted? && post.remote_id.present? && post.social_account&.platform == "x"
+      result = X::UserClient.new(post.social_account).delete_tweet(post.remote_id)
+      unless result.ok?
+        return redirect_to workspace_path(@workspace.slug),
+                           alert: "Couldn't delete from X (#{result.error}). Row kept so you can retry."
+      end
+    end
+
+    post.destroy!
+    redirect_to workspace_path(@workspace.slug), notice: "Post removed."
+  end
+
   def create
     body = params[:body].to_s.strip
     if body.blank?

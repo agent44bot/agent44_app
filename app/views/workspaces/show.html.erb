@@ -69,17 +69,30 @@
         <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
           <% @posts.each do |p| %>
             <div class="px-4 py-3">
-              <div class="flex items-center justify-between mb-1">
-                <p class="text-xs text-gray-500">
+              <div class="flex items-center justify-between mb-1 gap-3">
+                <p class="text-xs text-gray-500 truncate">
                   <%= p.author.display_identifier %> · <%= p.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %>
                 </p>
-                <% if p.posted? && p.remote_url.present? %>
-                  <%= link_to "View on X →", p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
-                <% elsif p.failed? %>
-                  <span class="text-xs text-red-400" title="<%= p.error %>">failed</span>
-                <% else %>
-                  <span class="text-xs text-gray-500"><%= p.status %></span>
-                <% end %>
+                <div class="flex items-center gap-3 shrink-0">
+                  <% if p.posted? && p.remote_url.present? %>
+                    <%= link_to "View on X →", p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
+                  <% elsif p.failed? %>
+                    <span class="text-xs text-red-400" title="<%= p.error %>">failed</span>
+                  <% else %>
+                    <span class="text-xs text-gray-500"><%= p.status %></span>
+                  <% end %>
+                  <% if @writer %>
+                    <%= button_to workspace_post_path(workspace_slug: @workspace.slug, id: p.id),
+                        method: :delete,
+                        form: { data: { turbo_confirm: p.posted? ? "Delete this tweet from X and remove it from the list?" : "Remove this row?" } },
+                        class: "text-gray-500 hover:text-red-400 cursor-pointer",
+                        title: p.posted? ? "Delete from X + remove" : "Remove" do %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+                      </svg>
+                    <% end %>
+                  <% end %>
+                </div>
               </div>
               <p class="text-sm text-white whitespace-pre-wrap break-words"><%= p.body %></p>
               <% if p.failed? && p.error.present? %>

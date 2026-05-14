@@ -60,7 +60,7 @@ Rails.application.routes.draw do
   resources :workspaces, only: [ :index, :new, :create, :show, :update, :destroy ], param: :slug do
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]
-    resources :posts, only: [ :create ], controller: "workspace_posts"
+    resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
     post "oauth/x/connect", to: "oauth/x#connect", as: :oauth_x_connect
   end

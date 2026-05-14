@@ -6,12 +6,14 @@ require "json"
 # refreshes once on 401, and returns a Result.
 module X
   class UserClient
-    POST_URL = "https://api.x.com/2/tweets"
+    POST_URL  = "https://api.x.com/2/tweets"
+    TWEET_URL = "https://api.x.com/2/tweets" # /:id appended at call site
     MAX_TWEET_LENGTH = 280
 
     Result = Struct.new(:ok?, :tweet_id, :error, keyword_init: true)
 
     class << self
+      # Stub signature: ->(method, url, payload_or_nil, bearer) -> { status:, body: }
       attr_accessor :http_stub
     end
 
@@ -26,12 +28,11 @@ module X
       return Result.new(ok?: false, error: "Tweet exceeds #{MAX_TWEET_LENGTH} chars") if text.length > MAX_TWEET_LENGTH
 
       ensure_fresh_token!
-      response = post_json(POST_URL, { text: text }, bearer: @account.access_token)
+      response = http_request(:post, POST_URL, payload: { text: text })
 
       if response[:status] == "401"
-        # Token may have expired between our pre-check and X's read. Try one refresh.
         return Result.new(ok?: false, error: "Unauthorized — refresh failed") unless refresh_token!
-        response = post_json(POST_URL, { text: text }, bearer: @account.access_token)
+        response = http_request(:post, POST_URL, payload: { text: text })
       end
 
       case response[:status]
@@ -40,6 +41,39 @@ module X
       when "401"
         @account.mark_needs_reauth!
         Result.new(ok?: false, error: "Unauthorized (account needs reauth)")
+      else
+        Result.new(ok?: false, error: format_error(response))
+      end
+    rescue => e
+      Result.new(ok?: false, error: "#{e.class}: #{e.message}")
+    end
+
+    def delete_tweet(tweet_id)
+      return Result.new(ok?: false, error: "Account is not X")    unless @account.platform == "x"
+      return Result.new(ok?: false, error: "Missing tweet id")    if tweet_id.to_s.strip.empty?
+
+      ensure_fresh_token!
+      url = "#{TWEET_URL}/#{tweet_id}"
+      response = http_request(:delete, url)
+
+      if response[:status] == "401"
+        return Result.new(ok?: false, error: "Unauthorized — refresh failed") unless refresh_token!
+        response = http_request(:delete, url)
+      end
+
+      case response[:status]
+      when "200"
+        if response[:body].dig("data", "deleted")
+          Result.new(ok?: true, tweet_id: tweet_id)
+        else
+          Result.new(ok?: false, error: "X returned 200 but deleted=false")
+        end
+      when "401"
+        @account.mark_needs_reauth!
+        Result.new(ok?: false, error: "Unauthorized (account needs reauth)")
+      when "404"
+        # Already gone — treat as success so the row can be removed.
+        Result.new(ok?: true, tweet_id: tweet_id)
       else
         Result.new(ok?: false, error: format_error(response))
       end
@@ -75,15 +109,22 @@ module X
       end
     end
 
-    def post_json(url, payload, bearer:)
+    def http_request(method, url, payload: nil)
       if self.class.http_stub
-        return self.class.http_stub.call(url, payload, bearer)
+        return self.class.http_stub.call(method, url, payload, @account.access_token)
       end
       uri = URI(url)
-      req = Net::HTTP::Post.new(uri)
-      req["Content-Type"]  = "application/json"
-      req["Authorization"] = "Bearer #{bearer}"
-      req.body = payload.to_json
+      req =
+        case method
+        when :post   then Net::HTTP::Post.new(uri)
+        when :delete then Net::HTTP::Delete.new(uri)
+        else raise ArgumentError, "unsupported method #{method}"
+        end
+      req["Authorization"] = "Bearer #{@account.access_token}"
+      if payload
+        req["Content-Type"] = "application/json"
+        req.body = payload.to_json
+      end
       res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
       body = begin
         JSON.parse(res.body.to_s)
