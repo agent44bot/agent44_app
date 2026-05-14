@@ -10,6 +10,7 @@ class WorkspacePostsController < ApplicationController
         case post.social_account.platform
         when "x"       then X::UserClient.new(post.social_account).delete_tweet(post.remote_id)
         when "bluesky" then Bluesky::UserClient.new(post.social_account).delete_post(post.remote_id)
+        when "threads" then Threads::UserClient.new(post.social_account).delete_post(post.remote_id)
         end
 
       if result && !result.ok?
@@ -55,6 +56,7 @@ class WorkspacePostsController < ApplicationController
         case platform
         when "x"       then X::UserClient.new(account).post_tweet(body)
         when "bluesky" then Bluesky::UserClient.new(account).post_text(body)
+        when "threads" then Threads::UserClient.new(account).post_text(body)
         end
 
       if result&.ok?
@@ -89,6 +91,7 @@ class WorkspacePostsController < ApplicationController
     case platform
     when "x"       then "https://x.com/#{handle}/status/#{result.tweet_id}"
     when "bluesky" then "https://bsky.app/profile/#{handle}/post/#{result.post_id}"
+    when "threads" then result.permalink_url.presence || "https://www.threads.net/@#{handle}"
     end
   end
 

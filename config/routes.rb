@@ -63,11 +63,13 @@ Rails.application.routes.draw do
     resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
     post "oauth/x/connect", to: "oauth/x#connect", as: :oauth_x_connect
+    post "oauth/threads/connect", to: "oauth/threads#connect", as: :oauth_threads_connect
     resource :bluesky_account, only: [ :new, :create ]
   end
   get  "invitations/:token",        to: "workspace_invitations#show",   as: :workspace_invitation_view
   post "invitations/:token/accept", to: "workspace_invitations#accept", as: :workspace_invitation_accept
   get  "oauth/x/callback",          to: "oauth/x#callback",             as: :oauth_x_callback
+  get  "oauth/threads/callback",    to: "oauth/threads#callback",       as: :oauth_threads_callback
 
   namespace :api do
     namespace :v1 do

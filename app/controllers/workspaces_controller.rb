@@ -44,7 +44,8 @@ class WorkspacesController < ApplicationController
     @writer       = WorkspaceMembership::ROLES.then { %w[owner admin editor].include?(@my_role) }
     @x_account        = @workspace.social_accounts.active.for_platform("x").first
     @bluesky_account  = @workspace.social_accounts.active.for_platform("bluesky").first
-    @connected_platforms = [@x_account && "x", @bluesky_account && "bluesky"].compact
+    @threads_account  = @workspace.social_accounts.active.for_platform("threads").first
+    @connected_platforms = [@x_account && "x", @bluesky_account && "bluesky", @threads_account && "threads"].compact
   end
 
   private

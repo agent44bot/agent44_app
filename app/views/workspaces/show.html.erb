@@ -66,6 +66,12 @@
                   Bluesky <span class="text-xs text-gray-500"><%= @bluesky_account.handle %></span>
                 </label>
               <% end %>
+              <% if @threads_account %>
+                <label class="flex items-center gap-2 text-gray-300">
+                  <%= check_box_tag "target_platforms[]", "threads", true, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+                  Threads <span class="text-xs text-gray-500"><%= @threads_account.handle %></span>
+                </label>
+              <% end %>
             </div>
 
             <div class="flex items-center justify-end">
@@ -92,7 +98,11 @@
                 </p>
                 <div class="flex items-center gap-3 shrink-0">
                   <% if p.posted? && p.remote_url.present? %>
-                    <% label = p.platform == "bluesky" ? "View on Bluesky →" : "View on X →" %>
+                    <% label = case p.platform
+                       when "bluesky" then "View on Bluesky →"
+                       when "threads" then "View on Threads →"
+                       else                "View on X →"
+                       end %>
                     <%= link_to label, p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
                   <% elsif p.failed? %>
                     <span class="text-xs text-red-400" title="<%= p.error %>">failed</span>
@@ -186,6 +196,10 @@
           <%= link_to "Connect Bluesky",
               new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),
               class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold" %>
+          <%= button_to "Connect Threads",
+              workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug),
+              method: :post,
+              class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
         </div>
       <% end %>
     </div>
