@@ -84,11 +84,13 @@
             <div class="flex items-center justify-end gap-2 pt-1">
               <%= submit_tag "Save draft", name: "commit", value: "save",
                   formaction: workspace_drafts_path(workspace_slug: @workspace.slug),
+                  formnovalidate: true,
                   class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
               <%= submit_tag "Schedule", name: "commit", value: "schedule",
                   formaction: workspace_drafts_path(workspace_slug: @workspace.slug),
                   class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
               <%= f.submit "Post now",
+                  formnovalidate: true,
                   data: { turbo_confirm: "Post to the selected platforms now?" },
                   class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
             </div>
