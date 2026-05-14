@@ -68,13 +68,15 @@ Rails.application.routes.draw do
       end
     end
     post "oauth/x/connect", to: "oauth/x#connect", as: :oauth_x_connect
-    post "oauth/threads/connect", to: "oauth/threads#connect", as: :oauth_threads_connect
+    post "oauth/threads/connect",  to: "oauth/threads#connect",  as: :oauth_threads_connect
+    post "oauth/facebook/connect", to: "oauth/facebook#connect", as: :oauth_facebook_connect
     resource :bluesky_account, only: [ :new, :create ]
   end
   get  "invitations/:token",        to: "workspace_invitations#show",   as: :workspace_invitation_view
   post "invitations/:token/accept", to: "workspace_invitations#accept", as: :workspace_invitation_accept
   get  "oauth/x/callback",          to: "oauth/x#callback",             as: :oauth_x_callback
   get  "oauth/threads/callback",    to: "oauth/threads#callback",       as: :oauth_threads_callback
+  get  "oauth/facebook/callback",   to: "oauth/facebook#callback",      as: :oauth_facebook_callback
 
   namespace :api do
     namespace :v1 do

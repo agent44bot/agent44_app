@@ -61,9 +61,10 @@ module WorkspacePosts
 
     def call_client(platform, account)
       case platform
-      when "x"       then X::UserClient.new(account).post_tweet(@body)
-      when "bluesky" then Bluesky::UserClient.new(account).post_text(@body)
-      when "threads" then Threads::UserClient.new(account).post_text(@body)
+      when "x"        then X::UserClient.new(account).post_tweet(@body)
+      when "bluesky"  then Bluesky::UserClient.new(account).post_text(@body)
+      when "threads"  then Threads::UserClient.new(account).post_text(@body)
+      when "facebook" then Facebook::UserClient.new(account).post_text(@body)
       end
     end
 
@@ -74,9 +75,10 @@ module WorkspacePosts
     def remote_url_for(platform, account, result)
       handle = account.handle.to_s.delete_prefix("@")
       case platform
-      when "x"       then "https://x.com/#{handle}/status/#{result.tweet_id}"
-      when "bluesky" then "https://bsky.app/profile/#{handle}/post/#{result.post_id}"
-      when "threads" then result.permalink_url.presence || "https://www.threads.net/@#{handle}"
+      when "x"        then "https://x.com/#{handle}/status/#{result.tweet_id}"
+      when "bluesky"  then "https://bsky.app/profile/#{handle}/post/#{result.post_id}"
+      when "threads"  then result.permalink_url.presence || "https://www.threads.net/@#{handle}"
+      when "facebook" then result.permalink_url
       end
     end
   end

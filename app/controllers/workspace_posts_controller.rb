@@ -8,9 +8,10 @@ class WorkspacePostsController < ApplicationController
     if post.posted? && post.remote_id.present? && post.social_account.present?
       result =
         case post.social_account.platform
-        when "x"       then X::UserClient.new(post.social_account).delete_tweet(post.remote_id)
-        when "bluesky" then Bluesky::UserClient.new(post.social_account).delete_post(post.remote_id)
-        when "threads" then Threads::UserClient.new(post.social_account).delete_post(post.remote_id)
+        when "x"        then X::UserClient.new(post.social_account).delete_tweet(post.remote_id)
+        when "bluesky"  then Bluesky::UserClient.new(post.social_account).delete_post(post.remote_id)
+        when "threads"  then Threads::UserClient.new(post.social_account).delete_post(post.remote_id)
+        when "facebook" then Facebook::UserClient.new(post.social_account).delete_post(post.remote_id)
         end
 
       if result && !result.ok?

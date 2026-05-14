@@ -72,6 +72,12 @@
                   Threads <span class="text-xs text-gray-500"><%= @threads_account.handle %></span>
                 </label>
               <% end %>
+              <% if @facebook_account %>
+                <label class="flex items-center gap-2 text-gray-300">
+                  <%= check_box_tag "target_platforms[]", "facebook", true, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+                  Facebook <span class="text-xs text-gray-500"><%= @facebook_account.handle %></span>
+                </label>
+              <% end %>
             </div>
 
             <div class="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
@@ -166,9 +172,10 @@
                 <div class="flex items-center gap-3 shrink-0">
                   <% if p.posted? && p.remote_url.present? %>
                     <% label = case p.platform
-                       when "bluesky" then "View on Bluesky →"
-                       when "threads" then "View on Threads →"
-                       else                "View on X →"
+                       when "bluesky"  then "View on Bluesky →"
+                       when "threads"  then "View on Threads →"
+                       when "facebook" then "View on Facebook →"
+                       else                 "View on X →"
                        end %>
                     <%= link_to label, p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
                   <% elsif p.failed? %>
@@ -265,6 +272,10 @@
               class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold" %>
           <%= button_to "Connect Threads",
               workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug),
+              method: :post,
+              class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
+          <%= button_to "Connect Facebook",
+              workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug),
               method: :post,
               class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
         </div>

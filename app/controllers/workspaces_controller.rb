@@ -45,7 +45,8 @@ class WorkspacesController < ApplicationController
     @x_account        = @workspace.social_accounts.active.for_platform("x").first
     @bluesky_account  = @workspace.social_accounts.active.for_platform("bluesky").first
     @threads_account  = @workspace.social_accounts.active.for_platform("threads").first
-    @connected_platforms = [@x_account && "x", @bluesky_account && "bluesky", @threads_account && "threads"].compact
+    @facebook_account = @workspace.social_accounts.active.for_platform("facebook").first
+    @connected_platforms = [@x_account && "x", @bluesky_account && "bluesky", @threads_account && "threads", @facebook_account && "facebook"].compact
     @drafts           = @workspace.workspace_drafts.unscheduled.recent.limit(10)
     @scheduled_drafts = @workspace.workspace_drafts.scheduled.limit(20)
   end
