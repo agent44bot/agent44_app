@@ -2,7 +2,7 @@ require "test_helper"
 
 class ThreadsPostsTest < ActionDispatch::IntegrationTest
   setup do
-    @owner = User.create!(email_address: "tp-o-#{SecureRandom.hex(4)}@example.com")
+    @owner = User.create!(email_address: "tp-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws    = Workspace.create!(name: "Threads Posts WS", owner: @owner)
     @th    = @ws.social_accounts.create!(
       platform: "threads", connected_by: @owner,

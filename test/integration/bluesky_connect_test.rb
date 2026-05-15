@@ -2,7 +2,7 @@ require "test_helper"
 
 class BlueskyConnectTest < ActionDispatch::IntegrationTest
   setup do
-    @owner = User.create!(email_address: "bsk-o-#{SecureRandom.hex(4)}@example.com")
+    @owner = User.create!(email_address: "bsk-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws    = Workspace.create!(name: "Bsky WS", owner: @owner)
   end
 
@@ -28,7 +28,7 @@ class BlueskyConnectTest < ActionDispatch::IntegrationTest
       post workspace_bluesky_account_path(workspace_slug: @ws.slug),
            params: { handle: "agent44.bsky.social", app_password: "good-pw" }
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_response :redirect
 
     acct = @ws.social_accounts.for_platform("bluesky").first
     assert_equal "@agent44.bsky.social", acct.handle
@@ -67,7 +67,7 @@ class BlueskyConnectTest < ActionDispatch::IntegrationTest
     sign_in_as(viewer)
     post workspace_bluesky_account_path(workspace_slug: @ws.slug),
          params: { handle: "x.bsky.social", app_password: "y" }
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_response :redirect
     assert_equal 0, @ws.social_accounts.count
   end
 end

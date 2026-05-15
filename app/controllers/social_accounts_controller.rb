@@ -1,4 +1,5 @@
 class SocialAccountsController < ApplicationController
+  include FleetSocialAccess
   before_action :load_workspace
   before_action :require_admin
 

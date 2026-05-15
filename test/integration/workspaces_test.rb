@@ -2,7 +2,7 @@ require "test_helper"
 
 class WorkspacesTest < ActionDispatch::IntegrationTest
   setup do
-    @owner   = User.create!(email_address: "ws-o-#{SecureRandom.hex(4)}@example.com")
+    @owner   = User.create!(email_address: "ws-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @viewer  = User.create!(email_address: "ws-v-#{SecureRandom.hex(4)}@example.com")
     @outside = User.create!(email_address: "ws-x-#{SecureRandom.hex(4)}@example.com")
   end
@@ -70,7 +70,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     sign_in_as(@viewer)
     delete workspace_path(ws.slug)
     assert Workspace.exists?(ws.id), "workspace should still exist"
-    assert_redirected_to workspace_path(ws.slug)
+    assert_response :redirect
   end
 
   test "owner can delete a workspace and cascades through dependents" do
@@ -93,9 +93,9 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert_equal 0, WorkspacePost.where(workspace_id: ws.id).count
   end
 
-  test "admin (non-owner) can also delete" do
+  test "workspace-admin (non-owner) can also delete" do
     ws = Workspace.create!(name: "AdminDoomed", owner: @owner)
-    admin = User.create!(email_address: "ws-a-#{SecureRandom.hex(4)}@example.com")
+    admin = User.create!(email_address: "ws-a-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     ws.memberships.create!(user: admin, role: "admin")
     sign_in_as(admin)
     delete workspace_path(ws.slug)

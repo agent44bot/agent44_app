@@ -1,4 +1,5 @@
 class WorkspaceInvitationsController < ApplicationController
+  include FleetSocialAccess
   before_action :load_workspace,  only: [:create, :destroy]
   before_action :require_admin,   only: [:create, :destroy]
 

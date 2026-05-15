@@ -2,7 +2,7 @@ require "test_helper"
 
 class BlueskyPostsTest < ActionDispatch::IntegrationTest
   setup do
-    @owner = User.create!(email_address: "bp-o-#{SecureRandom.hex(4)}@example.com")
+    @owner = User.create!(email_address: "bp-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws    = Workspace.create!(name: "Bsky Posts WS", owner: @owner)
     @bsky  = @ws.social_accounts.create!(
       platform: "bluesky", connected_by: @owner,

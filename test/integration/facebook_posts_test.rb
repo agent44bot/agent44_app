@@ -2,7 +2,7 @@ require "test_helper"
 
 class FacebookPostsTest < ActionDispatch::IntegrationTest
   setup do
-    @owner = User.create!(email_address: "fp-o-#{SecureRandom.hex(4)}@example.com")
+    @owner = User.create!(email_address: "fp-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws    = Workspace.create!(name: "FB Posts WS", owner: @owner)
     @fb    = @ws.social_accounts.create!(
       platform: "facebook", connected_by: @owner,

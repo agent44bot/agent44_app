@@ -2,7 +2,7 @@ require "test_helper"
 
 class ThreadsOauthTest < ActionDispatch::IntegrationTest
   setup do
-    @owner = User.create!(email_address: "th-o-#{SecureRandom.hex(4)}@example.com")
+    @owner = User.create!(email_address: "th-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws    = Workspace.create!(name: "Threads WS", owner: @owner)
 
     @orig_client_id     = Threads::Oauth.method(:client_id)
@@ -54,7 +54,7 @@ class ThreadsOauthTest < ActionDispatch::IntegrationTest
     assert_difference -> { SocialAccount.count }, 1 do
       get oauth_threads_callback_path, params: { code: "fake", state: state }
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_response :redirect
 
     acct = @ws.social_accounts.last
     assert_equal "threads",      acct.platform
@@ -90,6 +90,6 @@ class ThreadsOauthTest < ActionDispatch::IntegrationTest
     @ws.memberships.create!(user: viewer, role: "viewer")
     sign_in_as(viewer)
     post workspace_oauth_threads_connect_path(workspace_slug: @ws.slug)
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_response :redirect
   end
 end

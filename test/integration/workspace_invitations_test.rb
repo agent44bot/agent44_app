@@ -2,9 +2,9 @@ require "test_helper"
 
 class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
   setup do
-    @owner    = User.create!(email_address: "winv-o-#{SecureRandom.hex(4)}@example.com")
+    @owner    = User.create!(email_address: "winv-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @editor   = User.create!(email_address: "winv-e-#{SecureRandom.hex(4)}@example.com")
-    @teammate = User.create!(email_address: "winv-t-#{SecureRandom.hex(4)}@example.com")
+    @teammate = User.create!(email_address: "winv-t-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws       = Workspace.create!(name: "Invite WS", owner: @owner)
     @ws.memberships.create!(user: @editor, role: "editor")
   end

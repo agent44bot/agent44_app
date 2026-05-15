@@ -2,7 +2,7 @@ require "test_helper"
 
 class WorkspacePostsTest < ActionDispatch::IntegrationTest
   setup do
-    @owner  = User.create!(email_address: "wp-o-#{SecureRandom.hex(4)}@example.com")
+    @owner  = User.create!(email_address: "wp-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @viewer = User.create!(email_address: "wp-v-#{SecureRandom.hex(4)}@example.com")
     @ws     = Workspace.create!(name: "Post WS", owner: @owner)
     @ws.memberships.create!(user: @viewer, role: "viewer")

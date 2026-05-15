@@ -2,7 +2,7 @@ require "test_helper"
 
 class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
   setup do
-    @owner  = User.create!(email_address: "wdc-o-#{SecureRandom.hex(4)}@example.com")
+    @owner  = User.create!(email_address: "wdc-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @viewer = User.create!(email_address: "wdc-v-#{SecureRandom.hex(4)}@example.com")
     @ws     = Workspace.create!(name: "Drafts CRUD WS", owner: @owner, timezone: "Eastern Time (US & Canada)")
     @ws.memberships.create!(user: @viewer, role: "viewer")

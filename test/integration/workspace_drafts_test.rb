@@ -3,7 +3,7 @@ require "ostruct"
 
 class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
   setup do
-    @owner = User.create!(email_address: "wd-o-#{SecureRandom.hex(4)}@example.com")
+    @owner = User.create!(email_address: "wd-o-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     @ws    = Workspace.create!(name: "Drafts WS", description: "Builder energy. No fluff.", owner: @owner)
     @ws.social_accounts.create!(platform: "x", connected_by: @owner, handle: "@magenta", external_id: "1",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
