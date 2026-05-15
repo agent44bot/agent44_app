@@ -170,7 +170,7 @@ namespace :newsletter do
     end
 
     if todays_articles.any? && !NewsDigest.exists?(date: today)
-      api_key = ENV["ANTHROPIC_API_KEY"]
+      api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
       if api_key.present?
         puts "Generating daily digest via Haiku..."
 

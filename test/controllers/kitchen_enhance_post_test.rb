@@ -43,11 +43,13 @@ class KitchenEnhancePostTest < ActionDispatch::IntegrationTest
   test "missing API key short-circuits without creating a log row" do
     ENV.delete("ANTHROPIC_API_KEY")
 
-    assert_no_difference -> { AiCallLog.count } do
-      post "/nykitchen/enhance_post",
-        params: { event_url: "https://nykitchen.com/event/test/", draft: "x", event_name: "x", event_description: "x", event_date: "x", event_price: "0" }
-    end
+    with_credentials_dig(nil) do
+      assert_no_difference -> { AiCallLog.count } do
+        post "/nykitchen/enhance_post",
+          params: { event_url: "https://nykitchen.com/event/test/", draft: "x", event_name: "x", event_description: "x", event_date: "x", event_price: "0" }
+      end
 
-    assert_response :unprocessable_entity
+      assert_response :unprocessable_entity
+    end
   end
 end

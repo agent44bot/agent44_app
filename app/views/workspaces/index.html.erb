@@ -1,0 +1,45 @@
+<% content_for :title, "Workspaces" %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Fleet Social</h1>
+      <p class="text-sm text-gray-400 mt-1">Workspaces you belong to.</p>
+    </div>
+    <%= link_to "New workspace", new_workspace_path,
+        class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
+  </div>
+
+  <% if @workspaces.empty? %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-8 text-center">
+      <p class="text-gray-400">No workspaces yet. Create one to get started.</p>
+    </div>
+  <% else %>
+    <div class="space-y-3">
+      <% @workspaces.each do |ws| %>
+        <% role = ws.role_for(Current.session.user) %>
+        <% admin = %w[owner admin].include?(role) %>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 hover:border-orange-500 transition flex items-center justify-between gap-2 pr-2">
+          <%= link_to workspace_path(ws.slug), class: "flex-1 min-w-0 p-4 flex items-center justify-between gap-3" do %>
+            <div class="min-w-0">
+              <h3 class="text-base font-semibold text-white truncate"><%= ws.name %></h3>
+              <p class="text-xs text-gray-500 font-mono mt-1">/<%= ws.slug %></p>
+            </div>
+            <span class="text-xs uppercase tracking-wide text-gray-500 shrink-0"><%= role %></span>
+          <% end %>
+          <% if admin %>
+            <%= button_to workspace_path(ws.slug),
+                method: :delete,
+                form: { data: { turbo_confirm: "Permanently delete '#{ws.name}' and everything in it? This cannot be undone." } },
+                class: "p-2 text-gray-600 hover:text-red-400 cursor-pointer shrink-0",
+                title: "Delete workspace" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+              </svg>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

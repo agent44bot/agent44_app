@@ -11,6 +11,14 @@ class User < ApplicationRecord
   has_many :fleet_requests, dependent: :destroy
   has_many :device_tokens, dependent: :nullify
   has_many :ai_call_logs, dependent: :nullify
+  has_many :workspace_memberships, dependent: :destroy
+  has_many :workspaces, through: :workspace_memberships
+  has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :destroy
+  has_many :sent_workspace_invitations, class_name: "WorkspaceInvitation", foreign_key: :invited_by_id, dependent: :destroy
+  has_many :accepted_workspace_invitations, class_name: "WorkspaceInvitation", foreign_key: :accepted_by_id, dependent: :nullify
+  has_many :connected_social_accounts, class_name: "SocialAccount", foreign_key: :connected_by_id, dependent: :nullify
+  has_many :authored_workspace_posts, class_name: "WorkspacePost", foreign_key: :author_id, dependent: :destroy
+  has_many :authored_workspace_drafts, class_name: "WorkspaceDraft", foreign_key: :author_id, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 

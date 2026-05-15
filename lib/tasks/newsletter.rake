@@ -4,9 +4,8 @@ namespace :newsletter do
     require "net/http"
     require "json"
 
-    api_key = ENV.fetch("ANTHROPIC_API_KEY") do
-      abort "ANTHROPIC_API_KEY is not set. Set it in your environment to generate newsletter posts."
-    end
+    api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
+    abort "ANTHROPIC_API_KEY (or credentials.anthropic.api_key) is not set." if api_key.blank?
 
     telegram_bot_token = ENV["TELEGRAM_BOT_TOKEN"]
     telegram_chat_id = ENV["TELEGRAM_CHAT_ID"]
