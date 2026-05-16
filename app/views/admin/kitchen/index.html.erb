@@ -130,11 +130,27 @@
             statuses = week[:events].map(&:availability_status)
             sold     = statuses.count { |s| s == "soldout" || s == "closed" }
             avail    = statuses.count { |s| s == "instock" || s == "limited" }
-            denom    = sold + avail
 
-            pct_sold       = denom.zero? ? 0 : (sold.to_f  / denom * 100).round(1)
-            pct_avail      = denom.zero? ? 0 : (avail.to_f / denom * 100).round(1)
-            sold_pct       = pct_sold.round
+            # Capacity-weighted %: sum of tickets actually sold over sum of
+            # tickets that could have been sold, across events where we have
+            # capacity data. Falls back to the old class-count ratio when no
+            # event in the week has capacity (rare — mostly the unscraped
+            # weeks far out in the future).
+            priced_events  = week[:events].select(&:capacity_known?)
+            tickets_total  = priced_events.sum(&:tickets_total)
+            tickets_sold   = priced_events.sum(&:tickets_sold)
+            denom          = sold + avail
+
+            sold_pct = if tickets_total.positive?
+              (tickets_sold.to_f / tickets_total * 100).round
+            elsif denom.positive?
+              (sold.to_f / denom * 100).round
+            else
+              0
+            end
+
+            pct_sold       = sold_pct
+            pct_avail      = 100 - sold_pct
             sold_pct_color = sold_pct >= 60 ? "text-red-400"
                            : sold_pct >= 25 ? "text-amber-400"
                            :                   "text-gray-500"
@@ -148,7 +164,7 @@
                 <span class="text-gray-500 font-normal">(<%= total %>)</span>
               </span>
               <div class="flex items-center gap-3 shrink-0">
-                <span class="text-xs font-semibold <%= sold_pct_color %>"><%= sold_pct %>% sold out</span>
+                <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= tickets_sold %> of <%= tickets_total %> tickets sold across <%= priced_events.size %> classes with capacity data"><%= sold_pct %>% sold</span>
                 <svg data-collapsible-target="icon"
                      class="w-5 h-5 text-gray-500 transition-transform"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">

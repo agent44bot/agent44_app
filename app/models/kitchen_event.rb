@@ -24,4 +24,28 @@ class KitchenEvent < ApplicationRecord
     else                 "other"
     end
   end
+
+  # Capacity helpers powering the week-level "% tickets sold" rollup.
+  # Sold-out events have capacity snapshotted onto last_known_*; available
+  # events expose live capacity/spots_left. Returns nil when we have no
+  # capacity data at all (free community events, scraper didn't see numbers,
+  # etc.) so the rollup can exclude them cleanly.
+  def tickets_total
+    capacity.presence || last_known_capacity.presence
+  end
+
+  def tickets_sold
+    total = tickets_total
+    return nil unless total
+    remaining = if capacity.present?
+      spots_left || 0
+    else
+      last_known_spots_left || 0
+    end
+    [total - remaining, 0].max
+  end
+
+  def capacity_known?
+    tickets_total.present?
+  end
 end
