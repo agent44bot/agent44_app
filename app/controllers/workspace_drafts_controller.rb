@@ -57,18 +57,14 @@ class WorkspaceDraftsController < ApplicationController
   end
 
   def suggest
-    mode = params[:mode].to_s == "site" ? "site" : "topic"
-
     result = WorkspaceAi::Drafter
                .new(@workspace, user: current_user)
-               .suggest(topic: params[:topic], existing_draft: params[:body], mode: mode)
+               .suggest(topic: params[:topic], existing_draft: params[:body])
 
     if result.ok?
       flash[:draft_text]  = result.text
       flash[:draft_topic] = params[:topic].to_s.strip.presence
-      flash[:draft_mode]  = mode
-      redirect_to workspace_path(@workspace.slug),
-                  notice: mode == "site" ? "Drafted from #{@workspace.source_url}." : "Draft suggestion ready."
+      redirect_to workspace_path(@workspace.slug), notice: "Draft suggestion ready."
     else
       redirect_to workspace_path(@workspace.slug), alert: "AI assist failed: #{result.error}"
     end
