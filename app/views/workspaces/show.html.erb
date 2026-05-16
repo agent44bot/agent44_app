@@ -263,21 +263,29 @@
       <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400">Connected accounts</h2>
       <% if %w[owner admin].include?(@my_role) %>
         <div class="flex items-center gap-2">
-          <%= button_to "Connect X",
-              workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),
-              method: :post,
-              class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-          <%= link_to "Connect Bluesky",
-              new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),
-              class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold" %>
-          <%= button_to "Connect Threads",
-              workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug),
-              method: :post,
-              class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-          <%= button_to "Connect Facebook",
-              workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug),
-              method: :post,
-              class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
+          <% unless @x_account %>
+            <%= button_to "Connect X",
+                workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),
+                method: :post,
+                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
+          <% end %>
+          <% unless @bluesky_account %>
+            <%= link_to "Connect Bluesky",
+                new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),
+                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold" %>
+          <% end %>
+          <% unless @threads_account %>
+            <%= button_to "Connect Threads",
+                workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug),
+                method: :post,
+                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
+          <% end %>
+          <% unless @facebook_account %>
+            <%= button_to "Connect Facebook",
+                workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug),
+                method: :post,
+                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
+          <% end %>
         </div>
       <% end %>
     </div>
