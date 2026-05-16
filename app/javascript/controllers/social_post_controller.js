@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "saveBtn", "enhanceBtn",
+                     "sendToWorkspaceBtn",
                      "status", "postedStatus", "postedCheckbox", "thumbnail", "imageHint",
                      "idea", "ideaCallout"]
 
@@ -17,6 +18,7 @@ export default class extends Controller {
     description: String,
     logUrl: String,
     enhanceUrl: String,
+    sendToWorkspaceUrl: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
     enhancedText: { type: String, default: "" },
     posted: { type: Boolean, default: false }
@@ -192,6 +194,48 @@ export default class extends Controller {
         btn.textContent = originalText
         btn.disabled = false
       }, 2000)
+    }
+  }
+
+  async sendToWorkspace() {
+    if (!this.hasSendToWorkspaceBtnTarget || !this.sendToWorkspaceUrlValue) return
+    const btn = this.sendToWorkspaceBtnTarget
+    const originalText = btn.textContent
+    btn.textContent = "Sending…"
+    btn.disabled = true
+    btn.classList.add("opacity-50")
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    const text = this.previewTextTarget.textContent
+
+    try {
+      const resp = await fetch(this.sendToWorkspaceUrlValue, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        body: JSON.stringify({ text, event_url: this.urlValue })
+      })
+      const data = await resp.json().catch(() => ({}))
+
+      if (resp.ok && data.ok) {
+        btn.textContent = "Sent to workspace ✓"
+        btn.classList.remove("opacity-50", "bg-orange-600", "hover:bg-orange-500")
+        btn.classList.add("bg-green-600")
+        btn.disabled = true
+      } else {
+        btn.textContent = "Failed: " + (data.error || resp.status)
+        btn.classList.remove("opacity-50", "bg-orange-600", "hover:bg-orange-500")
+        btn.classList.add("bg-red-700")
+        setTimeout(() => {
+          btn.textContent = originalText
+          btn.classList.remove("bg-red-700")
+          btn.classList.add("bg-orange-600", "hover:bg-orange-500")
+          btn.disabled = false
+        }, 4000)
+      }
+    } catch (e) {
+      btn.textContent = "Network error"
+      btn.disabled = false
+      btn.classList.remove("opacity-50")
     }
   }
 

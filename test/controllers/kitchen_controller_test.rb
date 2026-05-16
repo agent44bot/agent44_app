@@ -149,6 +149,53 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "send_to_workspace creates a WorkspaceDraft in the nykitchen workspace" do
+    admin = User.create!(email_address: "snd-a-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws = Workspace.create!(name: "NYKitchen", owner: admin, slug: "nykitchen")
+    ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a44",
+      external_id: SecureRandom.hex(4), access_token: "AT", refresh_token: "RT",
+      token_expires_at: 2.hours.from_now, status: "active")
+    sign_in_as(admin)
+
+    assert_difference -> { WorkspaceDraft.count }, 1 do
+      post "/nykitchen/send_to_workspace",
+           params: { text: "Chef's Table Sat 6pm — 1 seat left", event_url: "https://nykitchen.com/event/x" }
+    end
+    body = JSON.parse(response.body)
+    assert body["ok"]
+    assert_equal "/workspaces/nykitchen", body["workspace_url"]
+
+    draft = WorkspaceDraft.last
+    assert_equal "Chef's Table Sat 6pm — 1 seat left", draft.body
+    assert_equal %w[x], draft.target_platforms
+    assert_equal "draft", draft.status
+  end
+
+  test "send_to_workspace rejects non-admin" do
+    member = User.create!(email_address: "snd-m-#{SecureRandom.hex(4)}@example.com", role: "member")
+    sign_in_as(member)
+    post "/nykitchen/send_to_workspace", params: { text: "hi" }
+    assert_response :forbidden
+    assert_equal "admin_only", JSON.parse(response.body)["error"]
+  end
+
+  test "send_to_workspace errors when no nykitchen workspace exists" do
+    admin = User.create!(email_address: "snd-n-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    sign_in_as(admin)
+    post "/nykitchen/send_to_workspace", params: { text: "hi" }
+    assert_response :not_found
+    assert_equal "no_workspace", JSON.parse(response.body)["error"]
+  end
+
+  test "send_to_workspace errors when nykitchen workspace has no connected accounts" do
+    admin = User.create!(email_address: "snd-p-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    Workspace.create!(name: "NYKitchen", owner: admin, slug: "nykitchen")
+    sign_in_as(admin)
+    post "/nykitchen/send_to_workspace", params: { text: "hi" }
+    assert_response :unprocessable_entity
+    assert_equal "no_platforms", JSON.parse(response.body)["error"]
+  end
+
   private
 
   def create_event(name, start_at, availability)

@@ -36,6 +36,7 @@ Rails.application.routes.draw do
   get "nykitchen/smoke_runs/:id/trace", to: "kitchen#download_smoke_trace", as: :nyk_smoke_trace
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
+  post "nykitchen/send_to_workspace", to: "kitchen#send_to_workspace"
   get  "nykitchen/x_posts",                 to: "x_drafts#index",  as: :nyk_x_posts
   get  "nykitchen/billing",                 to: "nyk_billing#show", as: :nyk_billing
   get  "nykitchen/x_drafts/:token",         to: "x_drafts#show",   as: :nyk_x_draft

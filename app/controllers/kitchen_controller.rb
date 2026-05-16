@@ -73,6 +73,37 @@ class KitchenController < ApplicationController
     render json: { error: "api_error", message: e.message }, status: 502
   end
 
+  # POST /nykitchen/send_to_workspace — admin clicks "Send to workspace" on a
+  # NYK event preview; we create a WorkspaceDraft on the nykitchen workspace
+  # with the current (possibly AI-enhanced) preview text, target all connected
+  # platforms, status=draft so the admin can review + post from the workspace.
+  def send_to_workspace
+    unless Current.session&.user&.admin?
+      return render json: { error: "admin_only" }, status: :forbidden
+    end
+
+    ws = Workspace.find_by(slug: "nykitchen")
+    return render json: { error: "no_workspace" }, status: :not_found unless ws
+
+    body = params[:text].to_s.strip
+    return render json: { error: "empty" }, status: :unprocessable_entity if body.blank?
+
+    platforms = ws.social_accounts.active.pluck(:platform).uniq
+    return render json: { error: "no_platforms" }, status: :unprocessable_entity if platforms.empty?
+
+    draft = ws.workspace_drafts.create!(
+      author:           Current.session.user,
+      body:             body,
+      target_platforms: platforms,
+      status:           "draft"
+    )
+
+    render json: { ok: true, draft_id: draft.id, workspace_url: workspace_path(ws.slug) }
+  rescue => e
+    Rails.logger.error("send_to_workspace failed: #{e.class}: #{e.message}")
+    render json: { error: "server_error", message: e.message }, status: :internal_server_error
+  end
+
   def trigger_smoke
     token = ENV["GITHUB_PAT"]
     if token.blank?
