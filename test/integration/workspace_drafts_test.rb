@@ -18,7 +18,53 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
     }
   end
 
-  teardown { WorkspaceAi::Drafter.stub = nil }
+  teardown do
+    WorkspaceAi::Drafter.stub = nil
+    WorkspaceAi::Drafter.site_fetch_stub = nil
+  end
+
+  test "mode=site fetches the workspace source_url and folds it into the prompt" do
+    @ws.update!(source_url: "https://nykitchen.com")
+    ENV["ANTHROPIC_API_KEY"] = "stub"
+    WorkspaceAi::Drafter.site_fetch_stub = ->(url) {
+      assert_equal "https://nykitchen.com", url
+      "<html><body>Sushi Rolling Class with Mor — Sat 5/16 11am, 23 of 24 sold</body></html>"
+    }
+
+    sign_in_as(@owner)
+    post workspace_draft_suggest_path(workspace_slug: @ws.slug), params: { mode: "site" }
+    assert_redirected_to workspace_path(@ws.slug)
+    assert_match "Live content scraped from https://nykitchen.com", @captured_prompt
+    assert_match "Sushi Rolling Class with Mor", @captured_prompt
+    assert_nothing_raised { follow_redirect! }
+    assert_match /Drafted from https:\/\/nykitchen.com/, response.body
+  ensure
+    ENV.delete("ANTHROPIC_API_KEY")
+  end
+
+  test "mode=site without a source_url falls through to topic-mode prompt" do
+    ENV["ANTHROPIC_API_KEY"] = "stub"
+    sign_in_as(@owner)
+    post workspace_draft_suggest_path(workspace_slug: @ws.slug), params: { mode: "site", topic: "fallback" }
+    assert_redirected_to workspace_path(@ws.slug)
+    refute_match "Live content scraped from", @captured_prompt
+    assert_match "fallback", @captured_prompt
+  ensure
+    ENV.delete("ANTHROPIC_API_KEY")
+  end
+
+  test "mode=site reports an error when the fetch fails" do
+    @ws.update!(source_url: "https://nykitchen.com")
+    ENV["ANTHROPIC_API_KEY"] = "stub"
+    WorkspaceAi::Drafter.site_fetch_stub = ->(_url) { nil } # nil → fetch failed
+    WorkspaceAi::Drafter.stub = ->(_p) { raise "should not have called AI" }
+
+    sign_in_as(@owner)
+    post workspace_draft_suggest_path(workspace_slug: @ws.slug), params: { mode: "site" }
+    assert_match /Could not fetch/, flash[:alert]
+  ensure
+    ENV.delete("ANTHROPIC_API_KEY")
+  end
 
   test "suggest persists flash[:draft_text], renders pre-filled textarea, logs usage" do
     ENV["ANTHROPIC_API_KEY"] = "stub"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_16_180000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -510,6 +510,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_210000) do
     t.integer "owner_id", null: false
     t.text "settings"
     t.string "slug", null: false
+    t.string "source_url"
     t.string "timezone", default: "UTC", null: false
     t.datetime "updated_at", null: false
     t.index ["archived_at"], name: "index_workspaces_on_archived_at"

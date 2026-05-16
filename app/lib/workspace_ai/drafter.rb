@@ -7,12 +7,16 @@ module WorkspaceAi
     SOURCE      = "workspace_ai_assist"
     MAX_CHARS   = 270
     MAX_TOKENS  = 400
+    SITE_FETCH_TIMEOUT = 5
+    SITE_CONTEXT_CHARS = 3000
 
     Result = Struct.new(:ok?, :text, :error, keyword_init: true)
 
     # Swap with a Proc(prompt) -> response in tests.
     class << self
       attr_accessor :stub
+      # Swap with a Proc(url) -> string in tests. nil means real HTTP fetch.
+      attr_accessor :site_fetch_stub
     end
 
     def initialize(workspace, user: nil)
@@ -20,11 +24,17 @@ module WorkspaceAi
       @user      = user
     end
 
-    def suggest(topic: nil, existing_draft: nil)
+    def suggest(topic: nil, existing_draft: nil, mode: nil)
       api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
       return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
 
-      prompt = build_prompt(topic: topic, existing_draft: existing_draft)
+      site_context = nil
+      if mode.to_s == "site" && @workspace.source_url.present?
+        site_context = fetch_site_content(@workspace.source_url)
+        return Result.new(ok?: false, error: "Could not fetch #{@workspace.source_url}") if site_context.blank?
+      end
+
+      prompt = build_prompt(topic: topic, existing_draft: existing_draft, site_context: site_context)
 
       response =
         if self.class.stub
@@ -51,12 +61,13 @@ module WorkspaceAi
 
     private
 
-    def build_prompt(topic:, existing_draft:)
+    def build_prompt(topic:, existing_draft:, site_context: nil)
       <<~PROMPT
         You are a social media writer for #{@workspace.name}.
         #{brand_context}
+        #{site_block(site_context)}
 
-        #{task_instruction(topic: topic, existing_draft: existing_draft)}
+        #{task_instruction(topic: topic, existing_draft: existing_draft, site_context: site_context)}
 
         Constraints:
         - Plain language. No em-dashes. No greetings.
@@ -74,7 +85,12 @@ module WorkspaceAi
       "Brand context:\n#{desc}"
     end
 
-    def task_instruction(topic:, existing_draft:)
+    def site_block(site_context)
+      return "" if site_context.blank?
+      "Live content scraped from #{@workspace.source_url}:\n#{site_context}"
+    end
+
+    def task_instruction(topic:, existing_draft:, site_context: nil)
       topic_s    = topic.to_s.strip
       existing_s = existing_draft.to_s.strip
 
@@ -82,11 +98,33 @@ module WorkspaceAi
         %(Rewrite this draft to be sharper and on-brand, taking the topic into account.\nTopic: "#{topic_s}"\nCurrent draft: "#{existing_s}")
       elsif existing_s.present?
         %(Rewrite this draft to be sharper and on-brand.\nCurrent draft: "#{existing_s}")
+      elsif site_context.present?
+        %(Write a single X (Twitter) post for this brand using a specific, current angle drawn from the live site content above. Don't reuse generic taglines; surface something concrete from the page.)
       elsif topic_s.present?
         %(Write a single X (Twitter) post about: "#{topic_s}")
       else
         %(Write a single X (Twitter) post that fits this brand's voice. Pick a concrete angle relevant to the brand context above.)
       end
+    end
+
+    def fetch_site_content(url)
+      raw = if self.class.site_fetch_stub
+        self.class.site_fetch_stub.call(url)
+      else
+        uri = URI.parse(url)
+        return nil unless %w[http https].include?(uri.scheme)
+        res = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
+                              open_timeout: SITE_FETCH_TIMEOUT, read_timeout: SITE_FETCH_TIMEOUT) do |http|
+          http.get(uri.request_uri, { "User-Agent" => "Agent44LabsBot/1.0 (+https://agent44labs.com)" })
+        end
+        return nil unless res.is_a?(Net::HTTPSuccess)
+        res.body
+      end
+
+      ActionView::Base.full_sanitizer.sanitize(raw.to_s).gsub(/\s+/, " ").strip.first(SITE_CONTEXT_CHARS)
+    rescue => e
+      Rails.logger.warn("Drafter site fetch failed for #{url}: #{e.class}: #{e.message}")
+      nil
     end
 
     def extract_text(response)

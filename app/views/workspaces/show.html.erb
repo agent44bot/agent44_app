@@ -37,7 +37,22 @@
             <p class="text-xs text-orange-400">✨ AI-suggested draft below — edit, then post.</p>
           <% end %>
 
+          <% draft_mode = flash[:draft_mode].to_s.presence || "topic" %>
           <%= form_with url: workspace_draft_suggest_path(workspace_slug: @workspace.slug), local: true, class: "space-y-2" do %>
+            <% if @workspace.source_url.present? %>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <%= radio_button_tag :mode, "topic", draft_mode == "topic", class: "border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+                  By topic
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <%= radio_button_tag :mode, "site", draft_mode == "site", class: "border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+                  Generic post from <span class="font-mono text-gray-500"><%= URI(@workspace.source_url).host rescue @workspace.source_url %></span>
+                </label>
+              </div>
+            <% else %>
+              <%= hidden_field_tag :mode, "topic" %>
+            <% end %>
             <div class="flex flex-wrap gap-2">
               <%= text_field_tag :topic, draft_topic, placeholder: "What should AI draft about? (optional)",
                   class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
