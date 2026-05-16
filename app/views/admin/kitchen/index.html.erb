@@ -131,12 +131,13 @@
             sold     = statuses.count { |s| s == "soldout" || s == "closed" }
             avail    = statuses.count { |s| s == "instock" || s == "limited" }
 
-            # Capacity-weighted %: sum of tickets actually sold over sum of
-            # tickets that could have been sold, across events where we have
-            # capacity data. Falls back to the old class-count ratio when no
-            # event in the week has capacity (rare — mostly the unscraped
-            # weeks far out in the future).
+            # Capacity-weighted %: sum of tickets sold over sum of capacity,
+            # across events where capacity is known. KitchenEvent#tickets_total
+            # uses a three-tier fallback (live cap → snapshotted cap →
+            # observed-high-water proxy). Falls back to the old class-count
+            # ratio when no event in the week qualifies (rare).
             priced_events  = week[:events].select(&:capacity_known?)
+            proxy_events   = priced_events.select(&:capacity_via_proxy?)
             tickets_total  = priced_events.sum(&:tickets_total)
             tickets_sold   = priced_events.sum(&:tickets_sold)
             denom          = sold + avail
@@ -154,6 +155,12 @@
             sold_pct_color = sold_pct >= 60 ? "text-red-400"
                            : sold_pct >= 25 ? "text-amber-400"
                            :                   "text-gray-500"
+            sold_tooltip   = if priced_events.any?
+              proxy_note = proxy_events.any? ? " (#{proxy_events.size} use observed baseline as capacity proxy — biased low)" : ""
+              "#{tickets_sold} of #{tickets_total} tickets sold across #{priced_events.size} of #{total} classes#{proxy_note}"
+            else
+              "No capacity data — falling back to class-count ratio (#{sold} of #{denom} classes sold out)"
+            end
           %>
           <button type="button"
                   data-action="click->collapsible#toggle"
@@ -164,7 +171,7 @@
                 <span class="text-gray-500 font-normal">(<%= total %>)</span>
               </span>
               <div class="flex items-center gap-3 shrink-0">
-                <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= tickets_sold %> of <%= tickets_total %> tickets sold across <%= priced_events.size %> classes with capacity data"><%= sold_pct %>% sold</span>
+                <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
                 <svg data-collapsible-target="icon"
                      class="w-5 h-5 text-gray-500 transition-transform"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">

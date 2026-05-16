@@ -26,26 +26,38 @@ class KitchenEvent < ApplicationRecord
   end
 
   # Capacity helpers powering the week-level "% tickets sold" rollup.
-  # Sold-out events have capacity snapshotted onto last_known_*; available
-  # events expose live capacity/spots_left. Returns nil when we have no
-  # capacity data at all (free community events, scraper didn't see numbers,
-  # etc.) so the rollup can exclude them cleanly.
+  # Three sources of capacity, in priority order:
+  #   1. capacity / spots_left          — live "X of Y left" on Tock
+  #   2. last_known_capacity / last_known_spots_left — snapshotted at sellout
+  #   3. last_known_spots_left          — proxy: high-water mark of spots
+  #                                       we've ever observed for the event,
+  #                                       used when Tock never showed a Y.
+  # The proxy under-counts true capacity (anything sold before we started
+  # watching is invisible) so the resulting fill % is biased low, which is
+  # the conservative direction. Returns nil when even the proxy is missing
+  # (free events, never-scraped, etc.) so the rollup excludes cleanly.
   def tickets_total
-    capacity.presence || last_known_capacity.presence
+    capacity.presence || last_known_capacity.presence || last_known_spots_left.presence
   end
 
   def tickets_sold
-    total = tickets_total
-    return nil unless total
-    remaining = if capacity.present?
-      spots_left || 0
-    else
-      last_known_spots_left || 0
+    if capacity.present?
+      [capacity - (spots_left || 0), 0].max
+    elsif last_known_capacity.present?
+      [last_known_capacity - (last_known_spots_left || 0), 0].max
+    elsif last_known_spots_left.present?
+      # Proxy: tickets observed selling = high-water minus current
+      [last_known_spots_left - (spots_left || 0), 0].max
     end
-    [total - remaining, 0].max
   end
 
   def capacity_known?
     tickets_total.present?
+  end
+
+  # True iff capacity_known? is satisfied only via the proxy fallback
+  # (no real capacity from Tock, just our scraper's high-water mark).
+  def capacity_via_proxy?
+    capacity.blank? && last_known_capacity.blank? && last_known_spots_left.present?
   end
 end
