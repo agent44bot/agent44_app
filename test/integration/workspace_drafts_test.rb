@@ -20,6 +20,18 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
 
   teardown { WorkspaceAi::Drafter.stub = nil }
 
+  test "URLs in the existing draft are forced into the prompt as preserve-verbatim constraints" do
+    ENV["ANTHROPIC_API_KEY"] = "stub"
+    sign_in_as(@owner)
+    post workspace_draft_suggest_path(workspace_slug: @ws.slug),
+         params: { topic: "Shorten for X", body: "Long NYK promo — register at https://nykitchen.com/event/x and see https://nykitchen.com/classes for the full list" }
+    assert_match "MUST preserve these URLs verbatim", @captured_prompt
+    assert_match "https://nykitchen.com/event/x", @captured_prompt
+    assert_match "https://nykitchen.com/classes", @captured_prompt
+  ensure
+    ENV.delete("ANTHROPIC_API_KEY")
+  end
+
   test "suggest persists flash[:draft_text], renders pre-filled textarea, logs usage" do
     ENV["ANTHROPIC_API_KEY"] = "stub"
     sign_in_as(@owner)

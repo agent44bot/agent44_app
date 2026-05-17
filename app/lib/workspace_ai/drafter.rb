@@ -63,9 +63,19 @@ module WorkspaceAi
         - Maximum #{MAX_CHARS} characters total (X allows 280 — leave room for hashtags).
         - One concrete idea per post.
         - Do not wrap the post in quotes or add a preface.
+        #{url_preservation_constraint(existing_draft)}
 
         Respond with ONLY the post text. Nothing else.
       PROMPT
+    end
+
+    # If the source draft contains URLs, instruct Claude to preserve them
+    # verbatim — otherwise the "shorten for X" path will drop the link to
+    # save characters, which is exactly the wrong tradeoff for a promo post.
+    def url_preservation_constraint(existing_draft)
+      urls = existing_draft.to_s.scan(%r{https?://[^\s)\]"<>]+}).uniq
+      return "" if urls.empty?
+      "- MUST preserve these URLs verbatim, do not shorten or drop them: #{urls.join(', ')}"
     end
 
     def brand_context
