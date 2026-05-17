@@ -74,6 +74,36 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
     assert_nil old.reload.metrics_synced_at, "old row should not be touched"
   end
 
+  test "force: true bypasses MIN_REFRESH_INTERVAL" do
+    fresh = posted!(@x_acct, "x", "FRESH-FORCE")
+    fresh.update_columns(metrics_synced_at: 5.minutes.ago, likes: 1)
+    X::UserClient.http_stub = ->(*) { { status: "200", body: { "data" => { "public_metrics" => { "like_count" => 99 } } } } }
+
+    count = RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true)
+    assert_equal 1, count
+    assert_equal 99, fresh.reload.likes
+  end
+
+  test "workspace_id: scopes refresh to one workspace" do
+    other_owner = User.create!(email_address: "rsm-o-#{SecureRandom.hex(4)}@example.com")
+    other_ws    = Workspace.create!(name: "Other", owner: other_owner)
+    other_acct  = other_ws.social_accounts.create!(platform: "x", connected_by: other_owner, handle: "@b", external_id: "9",
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
+    mine  = posted!(@x_acct, "x", "MINE")
+    other = other_ws.workspace_posts.create!(author: other_owner, social_account: other_acct, platform: "x",
+      body: "x", status: "posted", remote_id: "OTHER", posted_at: 1.hour.ago)
+
+    seen = []
+    X::UserClient.http_stub = ->(_m, url, _p, _b) {
+      seen << url
+      { status: "200", body: { "data" => { "public_metrics" => { "like_count" => 1 } } } }
+    }
+
+    RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id)
+    assert seen.any? { |u| u.include?("MINE") }
+    refute seen.any? { |u| u.include?("OTHER") }, "should not touch posts outside the scoped workspace"
+  end
+
   test "one bad fetch doesn't block the rest" do
     bad  = posted!(@x_acct, "x", "BAD")
     good = posted!(@x_acct, "x", "GOOD")

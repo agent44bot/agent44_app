@@ -9,20 +9,28 @@ class RefreshSocialMetricsJob < ApplicationJob
   REFRESH_WINDOW       = 30.days
   MIN_REFRESH_INTERVAL = 50.minutes
 
-  def perform
+  # workspace_id: scope the refresh to one workspace (used by the manual
+  #   "Refresh metrics" button on /workspaces/:slug).
+  # force: bypass the MIN_REFRESH_INTERVAL gate (manual button only).
+  def perform(workspace_id: nil, force: false)
     scope = WorkspacePost.where(status: "posted")
                          .where("posted_at > ?", REFRESH_WINDOW.ago)
-                         .where("metrics_synced_at IS NULL OR metrics_synced_at < ?", MIN_REFRESH_INTERVAL.ago)
                          .includes(:social_account)
+    scope = scope.where(workspace_id: workspace_id) if workspace_id
+    scope = scope.where("metrics_synced_at IS NULL OR metrics_synced_at < ?", MIN_REFRESH_INTERVAL.ago) unless force
 
-    scope.find_each { |post| refresh_one(post) }
+    refreshed = 0
+    scope.find_each do |post|
+      refreshed += 1 if refresh_one(post)
+    end
+    refreshed
   end
 
   private
 
   def refresh_one(post)
     account = post.social_account
-    return unless account&.status == "active" && post.remote_id.present?
+    return false unless account&.status == "active" && post.remote_id.present?
 
     metrics =
       case post.platform
@@ -33,7 +41,7 @@ class RefreshSocialMetricsJob < ApplicationJob
         Bluesky::UserClient.new(account).fetch_metrics(at_uri)
       end
 
-    return unless metrics
+    return false unless metrics
 
     post.update!(
       impressions:       metrics[:impressions].to_i,
@@ -44,7 +52,9 @@ class RefreshSocialMetricsJob < ApplicationJob
       bookmarks:         metrics[:bookmarks].to_i,
       metrics_synced_at: Time.current
     )
+    true
   rescue => e
     Rails.logger.warn("RefreshSocialMetricsJob: WorkspacePost ##{post.id} failed: #{e.class}: #{e.message}")
+    false
   end
 end

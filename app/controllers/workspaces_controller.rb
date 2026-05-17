@@ -1,7 +1,7 @@
 class WorkspacesController < ApplicationController
   include FleetSocialAccess
-  before_action :load_workspace,  only: [:show, :update, :destroy]
-  before_action :require_member,  only: [:show]
+  before_action :load_workspace,  only: [:show, :update, :destroy, :refresh_metrics]
+  before_action :require_member,  only: [:show, :refresh_metrics]
   before_action :require_admin,   only: [:update, :destroy]
 
   def index
@@ -34,6 +34,14 @@ class WorkspacesController < ApplicationController
     name = @workspace.name
     @workspace.destroy!
     redirect_to workspaces_path, notice: "Deleted workspace #{name}."
+  end
+
+  # Manual one-click refresh for the metrics row under Recent posts.
+  # Bypasses the recurring job's MIN_REFRESH_INTERVAL gate so users get
+  # fresh numbers immediately instead of waiting for the next :23.
+  def refresh_metrics
+    count = RefreshSocialMetricsJob.new.perform(workspace_id: @workspace.id, force: true)
+    redirect_to workspace_path(@workspace.slug), notice: "Refreshed metrics on #{count} #{'post'.pluralize(count)}."
   end
 
   def show

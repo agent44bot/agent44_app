@@ -163,7 +163,18 @@
       <% end %>
 
       <% if @posts.any? %>
-        <h3 class="text-xs uppercase tracking-wide text-gray-500 mt-6 mb-2">Recent posts</h3>
+        <div class="flex items-center justify-between mt-6 mb-2">
+          <h3 class="text-xs uppercase tracking-wide text-gray-500">Recent posts</h3>
+          <%= button_to refresh_metrics_workspace_path(@workspace.slug),
+              method: :post,
+              class: "text-xs text-gray-400 hover:text-orange-400 cursor-pointer flex items-center gap-1",
+              title: "Pull latest impressions / likes / reposts from X + Bluesky now" do %>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Refresh metrics
+          <% end %>
+        </div>
         <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
           <% @posts.each do |p| %>
             <div class="px-4 py-3">
