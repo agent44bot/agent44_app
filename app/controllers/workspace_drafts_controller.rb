@@ -53,7 +53,7 @@ class WorkspaceDraftsController < ApplicationController
       return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id), alert: "Pick at least one platform."
     end
 
-    if draft.update(body: body, target_platforms: platforms)
+    if draft.update(body: body, target_platforms: platforms, image_url: params[:image_url].to_s.presence)
       redirect_to workspace_path(@workspace.slug), notice: "Draft updated."
     else
       redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id),

@@ -13,11 +13,12 @@ module WorkspacePosts
       def partial? = successes.any? && failures.any?
     end
 
-    def initialize(workspace, author:, body:, platforms:)
+    def initialize(workspace, author:, body:, platforms:, image_url: nil)
       @workspace = workspace
       @author    = author
       @body      = body.to_s.strip
       @platforms = (Array(platforms).map(&:to_s) & SocialAccount::PLATFORMS)
+      @image_url = image_url.presence
     end
 
     def dispatch
@@ -37,6 +38,7 @@ module WorkspacePosts
           social_account: account,
           platform:       platform,
           body:           @body,
+          image_url:      @image_url,
           status:         "pending"
         )
         rows << post
@@ -62,7 +64,7 @@ module WorkspacePosts
     def call_client(platform, account)
       case platform
       when "x"        then X::UserClient.new(account).post_tweet(@body)
-      when "bluesky"  then Bluesky::UserClient.new(account).post_text(@body)
+      when "bluesky"  then Bluesky::UserClient.new(account).post_text(@body, image_url: @image_url)
       when "threads"  then Threads::UserClient.new(account).post_text(@body)
       when "facebook" then Facebook::UserClient.new(account).post_text(@body)
       end

@@ -47,6 +47,18 @@
       <%= body_value.length %> chars · X cap 280 · Bluesky cap 300 · Threads cap 500
     </p>
 
+    <div class="space-y-2">
+      <%= label_tag :image_url, "Image URL (Bluesky / Facebook)", class: "block text-xs uppercase tracking-wide text-gray-500" %>
+      <%= text_field_tag :image_url, @draft.image_url, placeholder: "https://...",
+          class: "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+      <% if @draft.image_url.present? %>
+        <div class="rounded-md border border-gray-800 bg-black p-2 inline-block">
+          <img src="<%= @draft.image_url %>" alt="" class="max-h-40 rounded-sm">
+        </div>
+        <p class="text-xs text-gray-500">Bluesky attaches as an inline image (max 1MB). X auto-renders the URL preview card from the link in the body. Clear the field to drop the image.</p>
+      <% end %>
+    </div>
+
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
       <span class="text-xs text-gray-500 uppercase tracking-wide">Post to:</span>
       <% existing = Array(@draft.target_platforms) %>

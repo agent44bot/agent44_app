@@ -130,6 +130,53 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     X::UserClient.http_stub = nil
   end
 
+  test "post with image_url: uploads blob then embeds it in createRecord" do
+    upload_calls = []
+    Bluesky::UserClient.image_fetch_stub = ->(url) {
+      assert_equal "https://nykitchen.com/photo.jpg", url
+      ["FAKE_JPEG_BYTES", "image/jpeg"]
+    }
+    Bluesky::UserClient.http_stub = ->(method, url, payload, bearer) {
+      upload_calls << url
+      if url.end_with?("uploadBlob")
+        assert_equal "FAKE_JPEG_BYTES", payload
+        { status: "200", body: { "blob" => { "$type" => "blob", "ref" => { "$link" => "bafkrei123" }, "mimeType" => "image/jpeg", "size" => 16 } } }
+      elsif url.end_with?("createRecord")
+        embed = payload[:record][:embed]
+        assert_equal "app.bsky.embed.images", embed["$type"]
+        assert_equal "bafkrei123", embed[:images].first[:image].dig("ref", "$link")
+        { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/abc" } }
+      else
+        raise "unexpected #{url}"
+      end
+    }
+
+    sign_in_as(@owner)
+    # Drive the publisher path directly (closest to how a sent-from-NYK draft fans out)
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "with image",
+      target_platforms: %w[bluesky], image_url: "https://nykitchen.com/photo.jpg")
+    result = WorkspaceDrafts::Publisher.new(draft).call
+    assert result.all_ok?, "publish failed: #{result.failures.inspect}"
+    assert_equal 2, upload_calls.size, "expected uploadBlob + createRecord, got #{upload_calls.inspect}"
+    assert upload_calls.any? { |u| u.end_with?("uploadBlob") }
+  ensure
+    Bluesky::UserClient.image_fetch_stub = nil
+  end
+
+  test "image fetch failure surfaces a clean error, post is not made" do
+    Bluesky::UserClient.image_fetch_stub = ->(_url) { nil }
+    Bluesky::UserClient.http_stub = ->(*) { raise "createRecord should not be called" }
+
+    sign_in_as(@owner)
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "x",
+      target_platforms: %w[bluesky], image_url: "https://bad.example/missing.jpg")
+    result = WorkspaceDrafts::Publisher.new(draft).call
+    assert result.all_bad?
+    assert_match /Image upload failed/, result.failures.first
+  ensure
+    Bluesky::UserClient.image_fetch_stub = nil
+  end
+
   test "no platforms checked is rejected without creating rows" do
     sign_in_as(@owner)
     assert_no_difference -> { WorkspacePost.count } do

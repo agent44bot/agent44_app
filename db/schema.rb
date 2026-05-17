@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_16_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_17_160000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -435,6 +435,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_180000) do
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.text "error"
+    t.string "image_url"
     t.datetime "published_at"
     t.text "results"
     t.datetime "scheduled_for"
@@ -487,6 +488,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_180000) do
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.text "error"
+    t.string "image_url"
     t.string "platform", null: false
     t.datetime "posted_at"
     t.string "remote_id"

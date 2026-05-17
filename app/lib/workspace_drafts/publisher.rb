@@ -12,7 +12,8 @@ module WorkspaceDrafts
         @draft.workspace,
         author:    @draft.author,
         body:      @draft.body,
-        platforms: @draft.target_platforms
+        platforms: @draft.target_platforms,
+        image_url: @draft.image_url
       ).dispatch
 
       @draft.update!(

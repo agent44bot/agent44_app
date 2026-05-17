@@ -213,7 +213,7 @@ export default class extends Controller {
       const resp = await fetch(this.sendToWorkspaceUrlValue, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-        body: JSON.stringify({ text, event_url: this.urlValue, workspace_slug: workspaceSlug })
+        body: JSON.stringify({ text, event_url: this.urlValue, workspace_slug: workspaceSlug, image_url: this.imageUrlValue })
       })
       const data = await resp.json().catch(() => ({}))
 

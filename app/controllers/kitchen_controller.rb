@@ -98,6 +98,7 @@ class KitchenController < ApplicationController
       author:           Current.session.user,
       body:             body,
       target_platforms: platforms,
+      image_url:        params[:image_url].to_s.presence,
       status:           "draft"
     )
 
