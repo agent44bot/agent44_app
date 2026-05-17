@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["toggleBtn", "preview", "previewText", "copyBtn", "saveBtn", "enhanceBtn",
-                     "sendToWorkspaceBtn",
+                     "sendToWorkspaceBtn", "sendToWorkspaceSelect",
                      "status", "postedStatus", "postedCheckbox", "thumbnail", "imageHint",
                      "idea", "ideaCallout"]
 
@@ -207,17 +207,18 @@ export default class extends Controller {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
     const text = this.previewTextTarget.textContent
+    const workspaceSlug = this.hasSendToWorkspaceSelectTarget ? this.sendToWorkspaceSelectTarget.value : ""
 
     try {
       const resp = await fetch(this.sendToWorkspaceUrlValue, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-        body: JSON.stringify({ text, event_url: this.urlValue })
+        body: JSON.stringify({ text, event_url: this.urlValue, workspace_slug: workspaceSlug })
       })
       const data = await resp.json().catch(() => ({}))
 
       if (resp.ok && data.ok) {
-        btn.textContent = "Sent to workspace ✓"
+        btn.textContent = `Sent to ${data.workspace_name || "workspace"} ✓`
         btn.classList.remove("opacity-50", "bg-orange-600", "hover:bg-orange-500")
         btn.classList.add("bg-green-600")
         btn.disabled = true

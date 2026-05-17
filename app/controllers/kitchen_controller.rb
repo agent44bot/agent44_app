@@ -4,6 +4,7 @@ class KitchenController < ApplicationController
   def index
     @admin = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer?)
     @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+    @sendable_workspaces = sendable_workspaces_for(Current.session&.user)
     load_kitchen_data
     render "admin/kitchen/index", layout: "application"
   end
@@ -74,16 +75,18 @@ class KitchenController < ApplicationController
   end
 
   # POST /nykitchen/send_to_workspace — admin clicks "Send to workspace" on a
-  # NYK event preview; we create a WorkspaceDraft on the nykitchen workspace
-  # with the current (possibly AI-enhanced) preview text, target all connected
-  # platforms, status=draft so the admin can review + post from the workspace.
+  # NYK event preview; we create a WorkspaceDraft on the workspace the admin
+  # picked (workspace_slug param) with the current (possibly AI-enhanced)
+  # preview text, target all that workspace's connected platforms, status=draft
+  # so the admin can review + post from /workspaces/:slug.
   def send_to_workspace
     unless Current.session&.user&.admin?
       return render json: { error: "admin_only" }, status: :forbidden
     end
 
-    ws = Workspace.find_by(slug: "nykitchen")
-    return render json: { error: "no_workspace" }, status: :not_found unless ws
+    slug = params[:workspace_slug].to_s
+    ws   = Current.session.user.workspaces.find_by(slug: slug)
+    return render json: { error: "workspace_not_found", slug: slug }, status: :not_found unless ws
 
     body = params[:text].to_s.strip
     return render json: { error: "empty" }, status: :unprocessable_entity if body.blank?
@@ -98,7 +101,12 @@ class KitchenController < ApplicationController
       status:           "draft"
     )
 
-    render json: { ok: true, draft_id: draft.id, workspace_url: workspace_path(ws.slug) }
+    render json: {
+      ok:             true,
+      draft_id:       draft.id,
+      workspace_url:  workspace_path(ws.slug),
+      workspace_name: ws.name
+    }
   rescue => e
     Rails.logger.error("send_to_workspace failed: #{e.class}: #{e.message}")
     render json: { error: "server_error", message: e.message }, status: :internal_server_error
@@ -138,6 +146,20 @@ class KitchenController < ApplicationController
   end
 
   private
+
+  # Workspaces the signed-in admin can pick as the destination for
+  # "Send to workspace". We only include workspaces with at least one
+  # active social account (otherwise the draft can't fan out anywhere).
+  # Sort: workspaces whose slug includes "kitchen" first (so the NYK page
+  # naturally defaults to the NYK workspace), then alphabetical.
+  def sendable_workspaces_for(user)
+    return [] unless user&.admin?
+    user.workspaces
+        .joins(:social_accounts)
+        .where(social_accounts: { status: "active" })
+        .distinct
+        .sort_by { |ws| [ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase] }
+  end
 
   def load_kitchen_data
     snapshot = KitchenSnapshot.latest

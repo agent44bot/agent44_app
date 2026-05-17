@@ -149,9 +149,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "send_to_workspace creates a WorkspaceDraft in the nykitchen workspace" do
+  test "send_to_workspace creates a WorkspaceDraft on the picked workspace" do
     admin = User.create!(email_address: "snd-a-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    ws = Workspace.create!(name: "NYKitchen", owner: admin, slug: "nykitchen")
+    ws = Workspace.create!(name: "NY Kitchen", owner: admin)
     ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a44",
       external_id: SecureRandom.hex(4), access_token: "AT", refresh_token: "RT",
       token_expires_at: 2.hours.from_now, status: "active")
@@ -159,11 +159,12 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference -> { WorkspaceDraft.count }, 1 do
       post "/nykitchen/send_to_workspace",
-           params: { text: "Chef's Table Sat 6pm — 1 seat left", event_url: "https://nykitchen.com/event/x" }
+           params: { text: "Chef's Table Sat 6pm — 1 seat left", event_url: "https://nykitchen.com/event/x", workspace_slug: ws.slug }
     end
     body = JSON.parse(response.body)
     assert body["ok"]
-    assert_equal "/workspaces/nykitchen", body["workspace_url"]
+    assert_equal "/workspaces/#{ws.slug}", body["workspace_url"]
+    assert_equal "NY Kitchen",              body["workspace_name"]
 
     draft = WorkspaceDraft.last
     assert_equal "Chef's Table Sat 6pm — 1 seat left", draft.body
@@ -174,26 +175,62 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   test "send_to_workspace rejects non-admin" do
     member = User.create!(email_address: "snd-m-#{SecureRandom.hex(4)}@example.com", role: "member")
     sign_in_as(member)
-    post "/nykitchen/send_to_workspace", params: { text: "hi" }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "any" }
     assert_response :forbidden
     assert_equal "admin_only", JSON.parse(response.body)["error"]
   end
 
-  test "send_to_workspace errors when no nykitchen workspace exists" do
+  test "send_to_workspace 404s when slug doesn't match a workspace the admin belongs to" do
     admin = User.create!(email_address: "snd-n-#{SecureRandom.hex(4)}@example.com", role: "admin")
     sign_in_as(admin)
-    post "/nykitchen/send_to_workspace", params: { text: "hi" }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "nonexistent" }
     assert_response :not_found
-    assert_equal "no_workspace", JSON.parse(response.body)["error"]
+    assert_equal "workspace_not_found", JSON.parse(response.body)["error"]
   end
 
-  test "send_to_workspace errors when nykitchen workspace has no connected accounts" do
-    admin = User.create!(email_address: "snd-p-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    Workspace.create!(name: "NYKitchen", owner: admin, slug: "nykitchen")
+  test "send_to_workspace 404s when slug belongs to a workspace the admin is not a member of" do
+    admin   = User.create!(email_address: "snd-o-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    outside = User.create!(email_address: "snd-x-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws = Workspace.create!(name: "Not Mine", owner: outside)
     sign_in_as(admin)
-    post "/nykitchen/send_to_workspace", params: { text: "hi" }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: ws.slug }
+    assert_response :not_found
+  end
+
+  test "send_to_workspace errors when picked workspace has no connected accounts" do
+    admin = User.create!(email_address: "snd-p-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws = Workspace.create!(name: "Empty WS", owner: admin)
+    sign_in_as(admin)
+    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: ws.slug }
     assert_response :unprocessable_entity
     assert_equal "no_platforms", JSON.parse(response.body)["error"]
+  end
+
+  test "index renders the workspace picker for admin with kitchen-slugged first" do
+    admin = User.create!(email_address: "snd-i-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    a = Workspace.create!(name: "Aardvark Brand", owner: admin)
+    a.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a", external_id: "1",
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
+    k = Workspace.create!(name: "NY Kitchen Co", owner: admin)
+    k.social_accounts.create!(platform: "x", connected_by: admin, handle: "@k", external_id: "2",
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
+    no_accounts = Workspace.create!(name: "Empty WS", owner: admin)
+    # An event so the partial actually renders
+    create_event("Pasta 101", 2.days.from_now, "InStock")
+
+    sign_in_as(admin)
+    get nykitchen_path
+    assert_response :success
+
+    # The picker is a <select name="workspace_slug"> with <option>s
+    assert_match %r{<select[^>]*name="workspace_slug"}, response.body
+    assert_match %r{<option[^>]*value="#{k.slug}"[^>]*>NY Kitchen Co</option>}, response.body
+    assert_match %r{<option[^>]*value="#{a.slug}"[^>]*>Aardvark Brand</option>}, response.body
+    refute_match no_accounts.slug, response.body
+
+    # Kitchen-slugged workspace appears first (positional check via index in body)
+    assert response.body.index(%(value="#{k.slug}")) < response.body.index(%(value="#{a.slug}")),
+      "kitchen-slugged workspace should sort first as the natural default"
   end
 
   private

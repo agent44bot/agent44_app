@@ -130,11 +130,17 @@
                 class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer">
           Copy to clipboard
         </button>
-        <% if Current.session&.user&.admin? %>
-          <button data-action="social-post#sendToWorkspace" data-social-post-target="sendToWorkspaceBtn"
-                  class="px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold transition cursor-pointer">
-            Send to workspace
-          </button>
+        <% if Current.session&.user&.admin? && Array(@sendable_workspaces).any? %>
+          <div class="flex items-center gap-1.5">
+            <%= select_tag :workspace_slug,
+                options_for_select(@sendable_workspaces.map { |w| [w.name, w.slug] }),
+                "data-social-post-target": "sendToWorkspaceSelect",
+                class: "#{@sendable_workspaces.size == 1 ? 'hidden' : ''} bg-gray-700 border border-gray-600 text-white text-xs rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-orange-500" %>
+            <button data-action="social-post#sendToWorkspace" data-social-post-target="sendToWorkspaceBtn"
+                    class="px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold transition cursor-pointer">
+              Send to workspace
+            </button>
+          </div>
         <% end %>
         <button data-action="social-post#saveDraft" data-social-post-target="saveBtn"
                 class="hidden px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-500 text-white text-xs font-semibold transition cursor-pointer">
