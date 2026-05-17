@@ -73,6 +73,35 @@ module Bluesky
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
+    # Fetches engagement metrics via app.bsky.feed.getPosts. Bluesky doesn't
+    # expose impressions on the API (no equivalent), but does give us likes,
+    # reposts, replies, quotes — same shape as the column set we store.
+    def fetch_metrics(at_uri)
+      return nil if at_uri.to_s.strip.empty?
+      ensure_fresh_token!
+
+      url = "#{PDS_URL}/xrpc/app.bsky.feed.getPosts?uris=#{URI.encode_www_form_component(at_uri)}"
+      response = http_request(:get, url)
+
+      if response[:status] == "401"
+        return nil unless refresh_token!
+        response = http_request(:get, url)
+      end
+
+      return nil unless response[:status] == "200"
+      post = response[:body]["posts"]&.first
+      return nil unless post
+      {
+        likes:   post["likeCount"].to_i,
+        reposts: post["repostCount"].to_i,
+        replies: post["replyCount"].to_i,
+        quotes:  post["quoteCount"].to_i
+      }
+    rescue => e
+      Rails.logger.warn("Bluesky fetch_metrics failed for #{at_uri}: #{e.class}: #{e.message}")
+      nil
+    end
+
     def delete_post(post_id)
       return Result.new(ok?: false, error: "Account is not Bluesky") unless @account.platform == "bluesky"
       return Result.new(ok?: false, error: "Missing post id")        if post_id.to_s.strip.empty?
@@ -189,14 +218,20 @@ module Bluesky
         return self.class.http_stub.call(method, url, payload, @account.access_token)
       end
       uri = URI(url)
-      req = Net::HTTP::Post.new(uri)
+      req = case method
+            when :get  then Net::HTTP::Get.new(uri)
+            when :post then Net::HTTP::Post.new(uri)
+            else raise ArgumentError, "unsupported method #{method}"
+            end
       req["Authorization"] = "Bearer #{@account.access_token}"
-      if content_type
-        req["Content-Type"] = content_type
-        req.body = payload                                              # raw bytes (uploadBlob)
-      else
-        req["Content-Type"] = "application/json"
-        req.body = payload.to_json if payload
+      if method == :post
+        if content_type
+          req["Content-Type"] = content_type
+          req.body = payload                                            # raw bytes (uploadBlob)
+        else
+          req["Content-Type"] = "application/json"
+          req.body = payload.to_json if payload
+        end
       end
       res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(req) }
       body = begin

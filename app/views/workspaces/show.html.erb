@@ -202,6 +202,19 @@
               <% if p.failed? && p.error.present? %>
                 <p class="text-xs text-red-500 mt-1 font-mono break-words"><%= p.error %></p>
               <% end %>
+              <% if p.posted? && p.metrics_synced_at.present? %>
+                <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                  <% if p.platform == "x" %>
+                    <span title="impressions">👁 <%= number_with_delimiter(p.impressions) %></span>
+                  <% end %>
+                  <span title="likes">❤️ <%= p.likes %></span>
+                  <span title="<%= p.platform == 'x' ? 'retweets' : 'reposts' %>">🔁 <%= p.reposts %></span>
+                  <span title="replies">💬 <%= p.replies %></span>
+                  <% if p.quotes.positive? %><span title="quotes">📝 <%= p.quotes %></span><% end %>
+                  <% if p.platform == "x" && p.bookmarks.positive? %><span title="bookmarks">🔖 <%= p.bookmarks %></span><% end %>
+                  <span class="text-gray-700" title="last refreshed <%= p.metrics_synced_at %>">updated <%= time_ago_in_words(p.metrics_synced_at) %> ago</span>
+                </div>
+              <% end %>
             </div>
           <% end %>
         </div>

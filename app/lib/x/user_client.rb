@@ -48,6 +48,36 @@ module X
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
+    # Fetches public engagement metrics for a tweet via /2/tweets/:id with
+    # tweet.fields=public_metrics. Returns a hash or nil on failure (the
+    # refresh job is best-effort; we just skip and try again next hour).
+    def fetch_metrics(tweet_id)
+      return nil if tweet_id.to_s.strip.empty?
+      ensure_fresh_token!
+
+      url = "https://api.x.com/2/tweets/#{tweet_id}?tweet.fields=public_metrics"
+      response = http_request(:get, url)
+
+      if response[:status] == "401"
+        return nil unless refresh_token!
+        response = http_request(:get, url)
+      end
+
+      return nil unless response[:status] == "200"
+      m = response[:body].dig("data", "public_metrics") || {}
+      {
+        impressions: m["impression_count"].to_i,
+        likes:       m["like_count"].to_i,
+        reposts:     m["retweet_count"].to_i,
+        replies:     m["reply_count"].to_i,
+        quotes:      m["quote_count"].to_i,
+        bookmarks:   m["bookmark_count"].to_i
+      }
+    rescue => e
+      Rails.logger.warn("X fetch_metrics failed for #{tweet_id}: #{e.class}: #{e.message}")
+      nil
+    end
+
     def delete_tweet(tweet_id)
       return Result.new(ok?: false, error: "Account is not X")    unless @account.platform == "x"
       return Result.new(ok?: false, error: "Missing tweet id")    if tweet_id.to_s.strip.empty?
@@ -118,6 +148,7 @@ module X
         case method
         when :post   then Net::HTTP::Post.new(uri)
         when :delete then Net::HTTP::Delete.new(uri)
+        when :get    then Net::HTTP::Get.new(uri)
         else raise ArgumentError, "unsupported method #{method}"
         end
       req["Authorization"] = "Bearer #{@account.access_token}"

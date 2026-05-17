@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_17_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_17_190000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -488,19 +488,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_170000) do
   create_table "workspace_posts", force: :cascade do |t|
     t.integer "author_id", null: false
     t.text "body", null: false
+    t.integer "bookmarks", default: 0, null: false
     t.datetime "created_at", null: false
     t.text "error"
     t.string "image_url"
+    t.integer "impressions", default: 0, null: false
+    t.integer "likes", default: 0, null: false
+    t.datetime "metrics_synced_at"
     t.string "platform", null: false
     t.datetime "posted_at"
+    t.integer "quotes", default: 0, null: false
     t.string "remote_id"
     t.string "remote_url"
+    t.integer "replies", default: 0, null: false
+    t.integer "reposts", default: 0, null: false
     t.integer "social_account_id"
     t.string "source_url"
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["author_id"], name: "index_workspace_posts_on_author_id"
+    t.index ["metrics_synced_at"], name: "index_workspace_posts_on_metrics_synced_at"
     t.index ["social_account_id"], name: "index_workspace_posts_on_social_account_id"
     t.index ["status"], name: "index_workspace_posts_on_status"
     t.index ["workspace_id", "created_at"], name: "index_workspace_posts_on_workspace_id_and_created_at"
