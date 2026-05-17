@@ -33,6 +33,55 @@ class WorkspaceDraftsController < ApplicationController
     end
   end
 
+  def edit
+    @draft = @workspace.workspace_drafts.find(params[:id])
+    if @draft.published? || @draft.partial? || @draft.failed?
+      return redirect_to workspace_path(@workspace.slug), alert: "Can't edit a draft that's already been processed."
+    end
+  end
+
+  def update
+    draft = @workspace.workspace_drafts.find(params[:id])
+
+    body      = params[:body].to_s.strip
+    platforms = Array(params[:target_platforms]).map(&:to_s) & SocialAccount::PLATFORMS
+
+    if body.blank?
+      return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id), alert: "Draft body can't be empty."
+    end
+    if platforms.empty?
+      return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id), alert: "Pick at least one platform."
+    end
+
+    if draft.update(body: body, target_platforms: platforms)
+      redirect_to workspace_path(@workspace.slug), notice: "Draft updated."
+    else
+      redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id),
+                  alert: "Update failed: #{draft.errors.full_messages.to_sentence}"
+    end
+  end
+
+  # POST /workspaces/:slug/drafts/:id/rewrite — uses Claude to rewrite the
+  # draft body (with an optional topic/instruction). Result is stashed in
+  # flash and pre-fills the edit form so the user reviews before saving.
+  def rewrite
+    draft = @workspace.workspace_drafts.find(params[:id])
+    existing = params[:body].to_s.strip.presence || draft.body
+
+    result = WorkspaceAi::Drafter
+               .new(@workspace, user: current_user)
+               .suggest(topic: params[:topic], existing_draft: existing)
+
+    edit_path = edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id)
+    if result.ok?
+      flash[:draft_text]  = result.text
+      flash[:draft_topic] = params[:topic].to_s.strip.presence
+      redirect_to edit_path, notice: "AI suggestion ready — review + save."
+    else
+      redirect_to edit_path, alert: "AI rewrite failed: #{result.error}"
+    end
+  end
+
   def destroy
     draft = @workspace.workspace_drafts.find(params[:id])
     draft.destroy!

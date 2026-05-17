@@ -1,0 +1,71 @@
+<% content_for :title, "Edit draft — #{@workspace.name}" %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Edit draft</h1>
+      <p class="text-xs text-gray-500 mt-1"><%= @workspace.name %> · saved <%= @draft.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %></p>
+    </div>
+    <%= link_to "← Back to workspace", workspace_path(@workspace.slug), class: "text-sm text-gray-400 hover:text-gray-200" %>
+  </div>
+
+  <% draft_text  = flash[:draft_text].to_s %>
+  <% draft_topic = flash[:draft_topic].to_s %>
+  <% if draft_text.present? %>
+    <p class="text-xs text-orange-400 mb-3">✨ AI rewrite below — review, edit, then save.</p>
+  <% end %>
+
+  <%# AI rewrite — free-form topic + one-click "Shorten for X" %>
+  <div class="rounded-lg border border-gray-800 bg-gray-900 p-4 mb-4 space-y-3">
+    <%= form_with url: rewrite_workspace_draft_path(workspace_slug: @workspace.slug, id: @draft.id), local: true, class: "space-y-2" do %>
+      <%= hidden_field_tag :body, draft_text.presence || @draft.body %>
+      <div class="flex flex-wrap gap-2">
+        <%= text_field_tag :topic, draft_topic, placeholder: "Tell AI how to rewrite (e.g. 'make it punchier', 'fit X 280 chars')",
+            class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+        <%= submit_tag "✨ Rewrite with AI",
+            class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
+      </div>
+    <% end %>
+    <%# Quick shortcut: shorten for X without typing an instruction %>
+    <%= button_to rewrite_workspace_draft_path(workspace_slug: @workspace.slug, id: @draft.id),
+        method: :post,
+        params: { body: (draft_text.presence || @draft.body),
+                  topic: "Shorten this to fit X's 280 character limit. Keep the most important link and one or two hashtags. Plain language." },
+        class: "text-xs text-orange-400 hover:text-orange-300 cursor-pointer" do %>
+      ✨ Shorten for X (280)
+    <% end %>
+  </div>
+
+  <%= form_with url: workspace_draft_path(workspace_slug: @workspace.slug, id: @draft.id),
+                method: :patch, local: true,
+                class: "rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3" do %>
+    <% body_value = draft_text.presence || @draft.body %>
+    <%= label_tag :body, "Body", class: "block text-xs uppercase tracking-wide text-gray-500" %>
+    <%= text_area_tag :body, body_value, rows: 10, required: true,
+        class: "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 font-mono text-sm focus:border-orange-500 focus:outline-none" %>
+    <p class="text-xs text-gray-500">
+      <%= body_value.length %> chars · X cap 280 · Bluesky cap 300 · Threads cap 500
+    </p>
+
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">Post to:</span>
+      <% existing = Array(@draft.target_platforms) %>
+      <% accounts = @workspace.social_accounts.active.group_by(&:platform) %>
+      <% %w[x bluesky threads facebook].each do |platform| %>
+        <% acct = accounts[platform]&.first %>
+        <% next unless acct %>
+        <label class="flex items-center gap-2 text-gray-300">
+          <%= check_box_tag "target_platforms[]", platform, existing.include?(platform),
+              class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+          <%= platform.titleize %> <span class="text-xs text-gray-500"><%= acct.handle %></span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-1">
+      <%= link_to "Cancel", workspace_path(@workspace.slug), class: "text-sm text-gray-400 hover:text-gray-200 px-3 py-2" %>
+      <%= submit_tag "Save draft",
+          class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    </div>
+  <% end %>
+</div>

@@ -63,9 +63,10 @@ Rails.application.routes.draw do
     resources :social_accounts, only: [ :destroy ]
     resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
-    resources :drafts, only: [ :create, :destroy ], controller: "workspace_drafts" do
+    resources :drafts, only: [ :create, :edit, :update, :destroy ], controller: "workspace_drafts" do
       member do
         post :publish
+        post :rewrite
       end
     end
     post "oauth/x/connect", to: "oauth/x#connect", as: :oauth_x_connect
