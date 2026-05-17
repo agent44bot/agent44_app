@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_17_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_17_170000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -439,6 +439,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_160000) do
     t.datetime "published_at"
     t.text "results"
     t.datetime "scheduled_for"
+    t.string "source_url"
     t.string "status", default: "draft", null: false
     t.text "target_platforms", default: "[]", null: false
     t.datetime "updated_at", null: false
@@ -447,6 +448,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_160000) do
     t.index ["scheduled_for"], name: "index_workspace_drafts_on_scheduled_for"
     t.index ["status"], name: "index_workspace_drafts_on_status"
     t.index ["workspace_id", "created_at"], name: "index_workspace_drafts_on_workspace_id_and_created_at"
+    t.index ["workspace_id", "source_url"], name: "index_workspace_drafts_on_workspace_id_and_source_url"
     t.index ["workspace_id"], name: "index_workspace_drafts_on_workspace_id"
   end
 
@@ -494,6 +496,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_160000) do
     t.string "remote_id"
     t.string "remote_url"
     t.integer "social_account_id"
+    t.string "source_url"
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
@@ -501,6 +504,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_160000) do
     t.index ["social_account_id"], name: "index_workspace_posts_on_social_account_id"
     t.index ["status"], name: "index_workspace_posts_on_status"
     t.index ["workspace_id", "created_at"], name: "index_workspace_posts_on_workspace_id_and_created_at"
+    t.index ["workspace_id", "source_url"], name: "index_workspace_posts_on_workspace_id_and_source_url"
     t.index ["workspace_id"], name: "index_workspace_posts_on_workspace_id"
   end
 

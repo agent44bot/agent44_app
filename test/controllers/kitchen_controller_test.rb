@@ -149,6 +149,49 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "index renders Drafted/Posted badges from workspace_status_by_url" do
+    admin = User.create!(email_address: "snd-b-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws    = Workspace.create!(name: "NY Kitchen", owner: admin)
+    acct  = ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a44",
+      external_id: SecureRandom.hex(4), access_token: "AT", refresh_token: "RT",
+      token_expires_at: 2.hours.from_now, status: "active")
+    drafted_event = create_event("Pasta 101", 2.days.from_now, "InStock")
+    posted_event  = create_event("Bread 201", 3.days.from_now, "InStock")
+
+    # Drafted (no posts yet)
+    ws.workspace_drafts.create!(author: admin, body: "draft body",
+      target_platforms: %w[x], source_url: drafted_event.url)
+    # Posted
+    ws.workspace_posts.create!(author: admin, social_account: acct, platform: "x",
+      body: "posted body", source_url: posted_event.url,
+      status: "posted", remote_id: "1", posted_at: 30.minutes.ago)
+
+    sign_in_as(admin)
+    get nykitchen_path
+    assert_response :success
+
+    assert_match /✓ Drafted/, response.body
+    assert_match /✓ Posted/,  response.body
+  end
+
+  test "non-admin doesn't see drafted/posted badges (workspace_status preload is admin-only)" do
+    admin = User.create!(email_address: "snd-c-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws    = Workspace.create!(name: "NY Kitchen", owner: admin)
+    acct  = ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a44",
+      external_id: SecureRandom.hex(4), access_token: "AT", refresh_token: "RT",
+      token_expires_at: 2.hours.from_now, status: "active")
+    event = create_event("Pasta 101", 2.days.from_now, "InStock")
+    ws.workspace_drafts.create!(author: admin, body: "draft body",
+      target_platforms: %w[x], source_url: event.url)
+
+    laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "kitchen_customer")
+    sign_in_as(laura)
+    get nykitchen_path
+    assert_response :success
+    refute_match /✓ Drafted/, response.body
+    refute_match /✓ Posted/,  response.body
+  end
+
   test "send_to_workspace creates a WorkspaceDraft on the picked workspace" do
     admin = User.create!(email_address: "snd-a-#{SecureRandom.hex(4)}@example.com", role: "admin")
     ws = Workspace.create!(name: "NY Kitchen", owner: admin)

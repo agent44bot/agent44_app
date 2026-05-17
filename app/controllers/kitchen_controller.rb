@@ -99,6 +99,7 @@ class KitchenController < ApplicationController
       body:             body,
       target_platforms: platforms,
       image_url:        params[:image_url].to_s.presence,
+      source_url:       params[:event_url].to_s.presence,
       status:           "draft"
     )
 
@@ -147,6 +148,46 @@ class KitchenController < ApplicationController
   end
 
   private
+
+  # Per-event "this URL has been queued/posted in a workspace" lookup, for
+  # the kitchen list. Returns a hash keyed by event URL with the row state:
+  #   { kind: :posted, time:, platforms: [..], workspace_name: }
+  #   { kind: :drafted, time:, workspace_name: }
+  # nil for events with no draft/post in any workspace the user belongs to.
+  def workspace_status_for(user, urls)
+    return {} unless user&.admin? && urls.any?
+
+    ws_ids = user.workspaces.pluck(:id)
+    return {} if ws_ids.empty?
+
+    posts  = WorkspacePost.where(workspace_id: ws_ids, status: "posted", source_url: urls).includes(:workspace)
+    drafts = WorkspaceDraft.where(workspace_id: ws_ids, source_url: urls).includes(:workspace)
+
+    status = {}
+    urls.each do |url|
+      url_posts = posts.select  { |p| p.source_url == url }
+      if url_posts.any?
+        latest = url_posts.max_by { |p| p.posted_at || p.created_at }
+        status[url] = {
+          kind:           :posted,
+          time:           latest.posted_at || latest.created_at,
+          platforms:      url_posts.map(&:platform).uniq.sort,
+          workspace_name: latest.workspace.name
+        }
+        next
+      end
+      url_drafts = drafts.select { |d| d.source_url == url }
+      if url_drafts.any?
+        latest = url_drafts.max_by(&:created_at)
+        status[url] = {
+          kind:           :drafted,
+          time:           latest.created_at,
+          workspace_name: latest.workspace.name
+        }
+      end
+    end
+    status
+  end
 
   # Workspaces the signed-in admin can pick as the destination for
   # "Send to workspace". We only include workspaces with at least one
@@ -201,11 +242,13 @@ class KitchenController < ApplicationController
 
       event_urls = @events.map(&:url)
       @post_logs = SocialPostLog.where(event_url: event_urls).index_by(&:event_url)
+      @workspace_status_by_url = workspace_status_for(Current.session&.user, event_urls)
     else
       @events = []
       @weeks = []
       @total = 0
       @sold_out = 0
+      @workspace_status_by_url = {}
       @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0, "other" => 0 }
       @post_logs = {}
     end

@@ -13,12 +13,13 @@ module WorkspacePosts
       def partial? = successes.any? && failures.any?
     end
 
-    def initialize(workspace, author:, body:, platforms:, image_url: nil)
-      @workspace = workspace
-      @author    = author
-      @body      = body.to_s.strip
-      @platforms = (Array(platforms).map(&:to_s) & SocialAccount::PLATFORMS)
-      @image_url = image_url.presence
+    def initialize(workspace, author:, body:, platforms:, image_url: nil, source_url: nil)
+      @workspace  = workspace
+      @author     = author
+      @body       = body.to_s.strip
+      @platforms  = (Array(platforms).map(&:to_s) & SocialAccount::PLATFORMS)
+      @image_url  = image_url.presence
+      @source_url = source_url.presence
     end
 
     def dispatch
@@ -39,6 +40,7 @@ module WorkspacePosts
           platform:       platform,
           body:           @body,
           image_url:      @image_url,
+          source_url:     @source_url,
           status:         "pending"
         )
         rows << post

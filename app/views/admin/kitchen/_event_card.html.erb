@@ -31,9 +31,23 @@
           <%= event.name %>
         </a>
       </div>
-      <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+      <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
         <% if event.instructor %><span><%= event.instructor %></span><span>&middot;</span><% end %>
         <% if event.price.present? %><span>$<%= event.price %></span><% end %>
+        <% ws_status = defined?(@workspace_status_by_url) ? @workspace_status_by_url[event.url] : nil %>
+        <% if ws_status %>
+          <span>&middot;</span>
+          <% if ws_status[:kind] == :posted %>
+            <span class="text-green-500" title="<%= ws_status[:platforms].map(&:titleize).join(' + ') %> in <%= ws_status[:workspace_name] %>">
+              ✓ Posted <%= time_ago_in_words(ws_status[:time]) %> ago
+              <span class="text-gray-500">to <%= ws_status[:platforms].map(&:titleize).join(' + ') %></span>
+            </span>
+          <% else %>
+            <span class="text-gray-400" title="In <%= ws_status[:workspace_name] %>">
+              ✓ Drafted <%= time_ago_in_words(ws_status[:time]) %> ago
+            </span>
+          <% end %>
+        <% end %>
         <% unless event.sold_out? %>
           <span>&middot;</span>
           <button data-action="social-post#toggle" data-social-post-target="toggleBtn"

@@ -10,10 +10,11 @@ module WorkspaceDrafts
     def call
       result = WorkspacePosts::Dispatcher.new(
         @draft.workspace,
-        author:    @draft.author,
-        body:      @draft.body,
-        platforms: @draft.target_platforms,
-        image_url: @draft.image_url
+        author:     @draft.author,
+        body:       @draft.body,
+        platforms:  @draft.target_platforms,
+        image_url:  @draft.image_url,
+        source_url: @draft.source_url
       ).dispatch
 
       @draft.update!(
