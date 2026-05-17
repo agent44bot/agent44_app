@@ -7,7 +7,10 @@ class WorkspaceDraft < ApplicationRecord
   serialize :target_platforms, coder: JSON, type: Array
   serialize :results,          coder: JSON, type: Array
 
-  validates :body,   presence: true, length: { maximum: 500 }
+  # Bigger than any single-platform cap (X 280, Bluesky 300, Threads 500) on
+  # purpose — drafts are content-storage; per-platform length enforcement
+  # happens at publish time in X::UserClient / Bluesky::UserClient / etc.
+  validates :body,   presence: true, length: { maximum: 5000 }
   validates :status, presence: true, inclusion: { in: STATUSES }
   validate  :target_platforms_known
   validate  :scheduled_for_in_future, if: -> { status == "scheduled" }
