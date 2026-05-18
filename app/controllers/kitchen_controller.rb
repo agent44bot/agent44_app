@@ -172,7 +172,8 @@ class KitchenController < ApplicationController
           kind:           :posted,
           time:           latest.posted_at || latest.created_at,
           platforms:      url_posts.map(&:platform).uniq.sort,
-          workspace_name: latest.workspace.name
+          workspace_name: latest.workspace.name,
+          workspace_slug: latest.workspace.slug
         }
         next
       end
@@ -182,7 +183,8 @@ class KitchenController < ApplicationController
         status[url] = {
           kind:           :drafted,
           time:           latest.created_at,
-          workspace_name: latest.workspace.name
+          workspace_name: latest.workspace.name,
+          workspace_slug: latest.workspace.slug
         }
       end
     end
