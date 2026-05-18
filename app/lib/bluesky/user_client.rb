@@ -48,7 +48,9 @@ module Bluesky
       end
 
       record = { text: text, createdAt: Time.current.utc.iso8601 }
-      record[:embed] = embed if embed
+      facets = ::Bluesky::Facets.build(text)
+      record[:facets] = facets if facets.any?
+      record[:embed]  = embed if embed
       payload = { repo: @account.external_id, collection: FEED_COLLECTION, record: record }
 
       response = http_request(:post, PDS_URL + CREATE_RECORD_PATH, payload: payload)

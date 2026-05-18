@@ -177,6 +177,22 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     Bluesky::UserClient.image_fetch_stub = nil
   end
 
+  test "post text gets facets attached so URLs and hashtags render clickable" do
+    captured_payload = nil
+    Bluesky::UserClient.http_stub = ->(_method, _url, payload, _bearer) {
+      captured_payload = payload
+      { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/with-facets" } }
+    }
+    sign_in_as(@owner)
+    post workspace_posts_path(workspace_slug: @ws.slug),
+         params: { body: "Class at https://nykitchen.com/x #NYKitchen", target_platforms: ["bluesky"] }
+
+    facets = captured_payload[:record][:facets]
+    assert_equal 2, facets.size, "expected one link facet + one tag facet"
+    assert facets.any? { |f| f[:features].first["$type"] == "app.bsky.richtext.facet#link" }
+    assert facets.any? { |f| f[:features].first["$type"] == "app.bsky.richtext.facet#tag" }
+  end
+
   test "no platforms checked is rejected without creating rows" do
     sign_in_as(@owner)
     assert_no_difference -> { WorkspacePost.count } do
