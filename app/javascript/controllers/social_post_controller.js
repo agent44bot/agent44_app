@@ -222,6 +222,9 @@ export default class extends Controller {
         btn.classList.remove("opacity-50", "bg-orange-600", "hover:bg-orange-500")
         btn.classList.add("bg-green-600")
         btn.disabled = true
+        if (data.workspace_url) {
+          window.location = data.workspace_url
+        }
       } else {
         btn.textContent = "Failed: " + (data.error || resp.status)
         btn.classList.remove("opacity-50", "bg-orange-600", "hover:bg-orange-500")
