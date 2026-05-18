@@ -6,7 +6,12 @@
       <h1 class="text-2xl font-bold text-white"><%= @workspace.name %></h1>
       <p class="text-xs text-gray-500 font-mono mt-1">/<%= @workspace.slug %> · <%= @workspace.timezone %></p>
     </div>
-    <%= link_to "← All workspaces", workspaces_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
+    <div class="flex items-center gap-4">
+      <% if @workspace.slug == "ny-kitchen" %>
+        <%= link_to "← NY Kitchen", nykitchen_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
+      <% end %>
+      <%= link_to "← All workspaces", workspaces_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
+    </div>
   </div>
 
   <% if %w[owner admin].include?(@my_role) %>
