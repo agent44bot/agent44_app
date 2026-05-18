@@ -1,80 +1,110 @@
 require "test_helper"
 
-# Verifies the dogfood-phase gate: only site admins can touch Fleet
-# Social. Members, reviewers, kitchen_customers all bounce to root with
-# the private-beta alert. When we open Fleet Social to broader roles,
-# update FleetSocialAccess#require_fleet_social_access and these tests.
+# Verifies the Fleet Social entry gate:
+#   - Site admins always pass.
+#   - Any user with at least one workspace_membership passes.
+#   - Everyone else bounces to root with a "by invitation" alert.
+#
+# Per-workspace authorization (require_member / require_admin / require_writer)
+# still gates each workspace's actions independently — this test only covers
+# the outer gate.
 class FleetSocialAccessTest < ActionDispatch::IntegrationTest
   setup do
-    @admin   = User.create!(email_address: "fsa-a-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    @member  = User.create!(email_address: "fsa-m-#{SecureRandom.hex(4)}@example.com", role: "member")
-    @ws      = Workspace.create!(name: "Gated WS", owner: @admin)
+    @admin     = User.create!(email_address: "fsa-a-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    @outsider  = User.create!(email_address: "fsa-o-#{SecureRandom.hex(4)}@example.com", role: "member")
+    @insider   = User.create!(email_address: "fsa-i-#{SecureRandom.hex(4)}@example.com", role: "member")
+    @kitchen   = User.create!(email_address: "fsa-k-#{SecureRandom.hex(4)}@example.com", role: "kitchen_customer")
+    @ws        = Workspace.create!(name: "Gated WS", owner: @admin)
+    @ws.memberships.create!(user: @insider, role: "editor")
+    @ws.memberships.create!(user: @kitchen, role: "editor")
   end
 
-  test "admin can reach the workspaces index" do
+  test "admin can reach workspaces index" do
     sign_in_as(@admin)
     get workspaces_path
     assert_response :success
   end
 
-  test "member is redirected to root with the private-beta alert" do
-    sign_in_as(@member)
+  test "workspace member can reach workspaces index" do
+    sign_in_as(@insider)
+    get workspaces_path
+    assert_response :success
+  end
+
+  test "kitchen_customer who's a workspace member can reach the workspace surface" do
+    sign_in_as(@kitchen)
+    get workspace_path(@ws.slug)
+    assert_response :success
+  end
+
+  test "user with no workspace memberships is bounced with by-invitation alert" do
+    sign_in_as(@outsider)
     get workspaces_path
     assert_redirected_to root_path
-    assert_match /private beta/i, flash[:alert]
+    assert_match /by invitation/i, flash[:alert]
   end
 
-  test "member cannot create a workspace" do
-    sign_in_as(@member)
+  test "member who's part of a workspace cannot create new workspaces (site-admin gate)" do
+    sign_in_as(@insider)
     assert_no_difference -> { Workspace.count } do
-      post workspaces_path, params: { workspace: { name: "X", timezone: "UTC" } }
+      post workspaces_path, params: { workspace: { name: "Mine", timezone: "UTC" } }
     end
+    assert_redirected_to workspaces_path
+    assert_match /site admins/i, flash[:alert]
+  end
+
+  test "non-member can't create a workspace either" do
+    sign_in_as(@outsider)
+    assert_no_difference -> { Workspace.count } do
+      post workspaces_path, params: { workspace: { name: "Mine", timezone: "UTC" } }
+    end
+    # Outsider bounces at the outer FleetSocialAccess gate before hitting
+    # the site-admin check, so they redirect to root not /workspaces.
     assert_redirected_to root_path
   end
 
-  test "member cannot view a workspace they're an actual member of" do
-    @ws.memberships.create!(user: @member, role: "editor")
-    sign_in_as(@member)
-    get workspace_path(@ws.slug)
-    assert_redirected_to root_path
-  end
+  test "writer member can post via the composer" do
+    @ws.social_accounts.create!(platform: "x", connected_by: @admin, handle: "@a", external_id: "1",
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
 
-  test "member cannot post via the composer" do
-    @ws.memberships.create!(user: @member, role: "editor")
-    sign_in_as(@member)
-    assert_no_difference -> { WorkspacePost.count } do
+    sign_in_as(@insider)
+    # Stub the X HTTP client so we don't hit the real API
+    X::UserClient.http_stub = ->(*) { { status: "201", body: { "data" => { "id" => "TID" } } } }
+    assert_difference -> { WorkspacePost.count }, 1 do
       post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "x", target_platforms: ["x"] }
     end
-    assert_redirected_to root_path
+  ensure
+    X::UserClient.http_stub = nil
   end
 
-  test "member cannot save a draft" do
-    @ws.memberships.create!(user: @member, role: "editor")
-    sign_in_as(@member)
-    assert_no_difference -> { WorkspaceDraft.count } do
-      post workspace_drafts_path(workspace_slug: @ws.slug),
-           params: { body: "x", target_platforms: ["x"], commit: "save" }
-    end
-    assert_redirected_to root_path
+  test "non-member can't even view a workspace they're not in" do
+    other = Workspace.create!(name: "Not mine", owner: @admin)
+    sign_in_as(@insider)
+    get workspace_path(other.slug)
+    # Outer gate passes (they're a member of @ws), then require_member on
+    # this OTHER workspace fails and bounces to /workspaces with the
+    # "not a member of that workspace" alert.
+    assert_redirected_to workspaces_path
+    assert_match /not a member/i, flash[:alert]
   end
 
-  test "member cannot trigger any OAuth connect flow" do
-    @ws.memberships.create!(user: @member, role: "admin")
-    sign_in_as(@member)
+  test "invitation accept flow works for users with no memberships yet" do
+    invitee = User.create!(email_address: "fsa-inv-#{SecureRandom.hex(4)}@example.com", role: "member")
+    inv = @ws.invitations.create!(invited_by: @admin, email: invitee.email_address, role: "editor")
 
-    [
-      workspace_oauth_x_connect_path(workspace_slug: @ws.slug),
-      workspace_oauth_threads_connect_path(workspace_slug: @ws.slug),
-      workspace_oauth_facebook_connect_path(workspace_slug: @ws.slug)
-    ].each do |path|
-      post path
-      assert_redirected_to root_path, "expected #{path} to redirect non-admin"
-    end
+    sign_in_as(invitee)
+    get workspace_invitation_view_path(token: inv.token)
+    assert_response :success, "invitation view must be reachable even for non-members"
+
+    post workspace_invitation_accept_path(token: inv.token)
+    assert_redirected_to workspace_path(@ws.slug)
+    assert @ws.member?(invitee), "invitee should be a member after accept"
   end
 
-  test "member can't see Workspaces in the mobile nav" do
-    sign_in_as(@member)
-    get root_path
-    refute_match /workspaces.*Workspaces/m, response.body, "non-admins should not see the Workspaces link"
+  test "Workspaces nav link surfaces for kitchen_customer once they're a member" do
+    sign_in_as(@kitchen)
+    get nykitchen_path
+    assert_response :success
+    assert_match /Workspaces/, response.body, "expected the Workspaces nav link for a kitchen_customer who is a workspace member"
   end
 end

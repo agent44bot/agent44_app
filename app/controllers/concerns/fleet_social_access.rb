@@ -1,11 +1,9 @@
-# Gates Fleet Social to site admins only during the dogfood phase. We're
-# validating workspaces / X / Bluesky / AI drafts via @agent44bot before
-# opening the product to general signup or kitchen_customer roles like
-# Laura. See memory: project-fleet-social-dogfood-first.
-#
-# When we're ready to open up, replace .admin? with a broader predicate
-# (e.g. admin? || fleet_social_invited?) and exempt the invitation
-# accept flow so invited non-admins can land in their workspace.
+# Gates Fleet Social entry: site admins always pass, plus any user who is
+# a member of at least one workspace (so invitees who accepted can use the
+# product). Per-workspace authorization (require_member / require_admin /
+# require_writer) still gates each workspace's actions inside the resource
+# controllers. Workspace creation stays site-admin-only via
+# WorkspacesController#require_site_admin.
 module FleetSocialAccess
   extend ActiveSupport::Concern
 
@@ -16,7 +14,9 @@ module FleetSocialAccess
   private
 
   def require_fleet_social_access
-    return if Current.session&.user&.admin?
-    redirect_to root_path, alert: "Workspaces are in private beta — admin access only for now."
+    user = Current.session&.user
+    return if user&.admin?
+    return if user&.workspace_memberships&.exists?
+    redirect_to root_path, alert: "Workspaces are by invitation — ask an admin to invite you."
   end
 end

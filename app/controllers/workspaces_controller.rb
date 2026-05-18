@@ -1,8 +1,12 @@
 class WorkspacesController < ApplicationController
   include FleetSocialAccess
-  before_action :load_workspace,  only: [:show, :update, :destroy, :refresh_metrics]
-  before_action :require_member,  only: [:show, :refresh_metrics]
-  before_action :require_admin,   only: [:update, :destroy]
+  before_action :load_workspace,    only: [:show, :update, :destroy, :refresh_metrics]
+  before_action :require_member,    only: [:show, :refresh_metrics]
+  before_action :require_admin,     only: [:update, :destroy]
+  # New / Create stay site-admin-only — workspace members can use existing
+  # workspaces (and accept invitations into them) but creating brand new
+  # workspaces is still an admin concern.
+  before_action :require_site_admin, only: [:new, :create]
 
   def index
     @workspaces = current_user.workspaces.active.order(:name)
@@ -78,6 +82,11 @@ class WorkspacesController < ApplicationController
   def require_admin
     return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
     redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can do that."
+  end
+
+  def require_site_admin
+    return if current_user&.admin?
+    redirect_to workspaces_path, alert: "Only site admins can create new workspaces during the dogfood phase."
   end
 
   def current_user
