@@ -124,7 +124,10 @@ class KitchenController < ApplicationController
     body = params[:text].to_s.strip
     return render json: { error: "empty" }, status: :unprocessable_entity if body.blank?
 
-    platforms = ws.social_accounts.active.pluck(:platform).uniq
+    # Save the draft against whichever platforms the workspace has, even
+    # if some/all need re-auth — the user fixes auth on the draft edit
+    # page before publish. Only reject if there are zero platforms at all.
+    platforms = ws.social_accounts.pluck(:platform).uniq
     return render json: { error: "no_platforms" }, status: :unprocessable_entity if platforms.empty?
 
     draft = ws.workspace_drafts.create!(
@@ -230,15 +233,18 @@ class KitchenController < ApplicationController
   end
 
   # Workspaces the signed-in user can pick as the destination for the
-  # Social Agent handoff. We only include workspaces with at least one
-  # active social account (otherwise the draft can't fan out anywhere).
-  # Sort: workspaces whose slug includes "kitchen" first (so the NYK page
-  # naturally defaults to the NYK workspace), then alphabetical.
+  # Social Agent handoff. We require *any* social account (so the
+  # workspace looks like a real social destination), not an active one
+  # — drafts created from the handoff are persisted in 'draft' status;
+  # token validity is only enforced at publish time on the draft edit
+  # page. This means an expired-token workspace still shows up here
+  # and the user can keep stacking drafts while they re-auth.
+  # Sort: workspaces whose slug includes "kitchen" first (so the NYK
+  # page naturally defaults to the NYK workspace), then alphabetical.
   def sendable_workspaces_for(user)
     return [] unless user
     user.workspaces
         .joins(:social_accounts)
-        .where(social_accounts: { status: "active" })
         .distinct
         .sort_by { |ws| [ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase] }
   end
