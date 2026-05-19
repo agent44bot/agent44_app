@@ -147,7 +147,6 @@
           <% unconfigured = %w[threads facebook] - all_present %>
 
           <% if connected.any? || unconfigured.any? %>
-            <div class="text-xs uppercase tracking-wide text-gray-500">Connected</div>
             <% connected.each do |acct| %>
               <%= link_to platform_profile_url.call(acct), target: "_blank", rel: "noopener",
                     class: "flex items-center justify-between text-gray-200 hover:text-orange-400 transition" do %>
