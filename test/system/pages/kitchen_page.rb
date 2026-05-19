@@ -61,4 +61,8 @@ class KitchenPage < BasePage
     page.query_selector("[data-kitchen-filter-target='section'] > button")&.click
     sleep 0.2
   end
+
+  def handoff_button
+    page.query_selector("[data-social-post-target='sendToWorkspaceBtn']")
+  end
 end
