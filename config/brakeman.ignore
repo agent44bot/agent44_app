@@ -5,6 +5,10 @@
       "note": "Safe — reviewed 2026-04-21"
     },
     {
+      "fingerprint": "5104f1669ca02eba1519bb377e6697436976a3091d026316e8a8a6a0fa8817f2",
+      "note": "Safe — WorkspacePost#remote_url is set server-side from official platform APIs (X/Bluesky/Threads/Facebook), never user input. target=_blank rel=noopener already set. Reviewed 2026-05-19"
+    },
+    {
       "fingerprint": "65d18851000c8efceded047bf01a2e49aaac827b05ebabf07aad605e9d0e32af",
       "note": "Safe — reviewed 2026-04-21"
     },
@@ -37,6 +41,6 @@
       "note": "Safe — reviewed 2026-04-21"
     }
   ],
-  "updated": "2026-04-21",
+  "updated": "2026-05-19",
   "brakeman_version": "8.0.4"
 }
