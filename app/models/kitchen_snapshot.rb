@@ -12,16 +12,25 @@ class KitchenSnapshot < ApplicationRecord
     where("taken_on < ?", date).order(taken_on: :desc).first
   end
 
-  # Tickets sold since the previous day's snapshot was taken. Each
-  # event's last_known_spots_left is carried over from the previous
-  # snapshot at scrape time, so (last_known - current) is the count
-  # sold between snapshots. Sums across all events with both values
-  # present. Capped at >= 0 per event (refunds/availability resets
-  # would otherwise push individual deltas negative).
+  # Tickets sold since the previous day's snapshot. Diffs this
+  # snapshot's spots_left against the immediately-previous snapshot's
+  # spots_left, per event URL. (Don't use last_known_spots_left — it's
+  # a rolling high-water mark in scrape_kitchen_job, not yesterday's
+  # value, so summing against it returns cumulative sales since we
+  # started watching, not today's.)
+  #
+  # Per-event delta is floored at 0 so refunds/availability resets
+  # can't push the total negative. Events that exist only in one
+  # snapshot are ignored.
   def tickets_sold_today
-    kitchen_events
-      .where.not(spots_left: nil)
-      .where.not(last_known_spots_left: nil)
-      .sum { |e| [e.last_known_spots_left - e.spots_left, 0].max }
+    prev = KitchenSnapshot.latest_before(taken_on)
+    return 0 unless prev
+
+    prev_events = prev.kitchen_events.where.not(spots_left: nil).index_by(&:url)
+    kitchen_events.where.not(spots_left: nil).sum do |e|
+      prev_e = prev_events[e.url]
+      next 0 unless prev_e
+      [prev_e.spots_left - e.spots_left, 0].max
+    end
   end
 end
