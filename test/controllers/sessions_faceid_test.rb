@@ -34,7 +34,9 @@ class SessionsFaceIdTest < ActionDispatch::IntegrationTest
   end
 
   test "homepage skips Face ID JS entirely for signed-in users" do
-    post session_path, params: { email_address: @user.email_address, password: "password" }
+    # Admin so the workspace-only sandbox doesn't redirect us away from /.
+    admin = User.create!(email_address: "faceid-admin-#{SecureRandom.hex(4)}@example.com", role: "admin", password: "password")
+    post session_path, params: { email_address: admin.email_address, password: "password" }
     follow_redirect!
 
     get root_path

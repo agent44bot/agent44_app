@@ -12,7 +12,9 @@
      data-social-post-image-url-value="<%= event.image_url %>"
      data-social-post-log-url-value="/nykitchen/social_post_log"
      data-social-post-enhance-url-value="/nykitchen/enhance_post"
-     <% if Current.session&.user&.admin? %>data-social-post-send-to-workspace-url-value="/nykitchen/send_to_workspace"<% end %>
+     <% default_ws = Array(@sendable_workspaces).first %>
+     <% if default_ws %>data-social-post-send-to-workspace-url-value="/nykitchen/send_to_workspace"
+     data-social-post-workspace-slug-value="<%= default_ws.slug %>"<% end %>
      data-social-post-posted-value="<%= post_log&.posted? ? 'true' : 'false' %>"
      data-social-post-enhanced-text-value="<%= post_log&.enhanced_text %>"
      class="bg-gray-900 rounded-lg p-4">
@@ -38,38 +40,28 @@
         <% if ws_status %>
           <span>&middot;</span>
           <% if ws_status[:kind] == :posted %>
-            <%= link_to workspace_path(ws_status[:workspace_slug]),
+            <%= link_to social_workspace_path(ws_status[:workspace_slug]),
                         class: "text-green-500 hover:text-green-400 transition",
                         title: "Open #{ws_status[:workspace_name]} workspace" do %>
               ✓ Posted <%= time_ago_in_words(ws_status[:time]) %> ago
               <span class="text-gray-500">to <%= ws_status[:platforms].map(&:titleize).join(' + ') %></span>
             <% end %>
           <% else %>
-            <%= link_to workspace_path(ws_status[:workspace_slug]),
+            <%= link_to social_workspace_path(ws_status[:workspace_slug]),
                         class: "text-gray-400 hover:text-gray-300 transition",
                         title: "Open #{ws_status[:workspace_name]} workspace" do %>
               ✓ Drafted <%= time_ago_in_words(ws_status[:time]) %> ago
             <% end %>
           <% end %>
         <% end %>
-        <% unless event.sold_out? %>
+        <% if !event.sold_out? && default_ws %>
           <span>&middot;</span>
-          <button data-action="social-post#toggle" data-social-post-target="toggleBtn"
+          <button data-action="social-post#sendToWorkspace"
+                  data-social-post-target="sendToWorkspaceBtn"
                   class="text-blue-400 hover:text-blue-300 transition cursor-pointer">
-            Preview post
+            Send to Social Agent
           </button>
-          <% if post_log&.copied? %>
-            <span>&middot;</span>
-            <span class="text-green-500" data-social-post-target="status">Copied <%= time_ago_in_words(post_log.copied_at) %> ago</span>
-          <% else %>
-            <span data-social-post-target="status"></span>
-          <% end %>
-          <% if post_log&.posted? %>
-            <span>&middot;</span>
-            <span class="text-purple-400" data-social-post-target="postedStatus">Posted <%= time_ago_in_words(post_log.posted_at) %> ago</span>
-          <% else %>
-            <span data-social-post-target="postedStatus"></span>
-          <% end %>
+          <span data-social-post-target="status"></span>
         <% end %>
       </div>
     </div>
@@ -99,83 +91,4 @@
       <% end %>
     </div>
   </div>
-  <%# Collapsible preview panel — hidden by default %>
-  <% unless event.sold_out? %>
-  <div data-social-post-target="preview" class="hidden mt-3">
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <% if event.image_url.present? %>
-        <div class="mb-3 pb-3 border-b border-gray-700 flex items-center gap-3">
-          <img data-social-post-target="thumbnail" src="<%= event.image_url %>" alt="<%= event.name %>"
-               class="rounded max-w-[100px] max-h-14 w-auto cursor-pointer hover:opacity-80 transition shrink-0"
-               data-action="click->social-post#saveImage"
-               title="Tap to save image">
-          <span data-social-post-target="imageHint" class="text-[10px] text-gray-500">Tap to save image</span>
-        </div>
-      <% end %>
-      <pre data-social-post-target="previewText" contenteditable="true"
-           data-action="input->social-post#markDirty"
-           class="text-sm text-gray-300 whitespace-pre-wrap font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-purple-500 rounded p-1 cursor-text"></pre>
-
-      <%# One-time spotlight: shown until the user dismisses it (per-device via localStorage) %>
-      <div data-social-post-target="ideaCallout"
-           class="hidden mt-3 rounded-md bg-purple-900/40 border border-purple-700/60 px-3 py-2 flex items-start gap-2">
-        <span class="text-purple-300 text-sm leading-snug">✨ <strong class="text-purple-200">New:</strong> Tell the AI what angle to take. Type an idea below — Claude will use it as a guide.</span>
-        <button type="button" data-action="social-post#dismissIdeaCallout"
-                class="ml-auto shrink-0 px-2 py-1 rounded text-[11px] font-semibold text-purple-200 hover:bg-purple-800/40 transition cursor-pointer">
-          Got it
-        </button>
-      </div>
-
-      <%# Compose group: idea textarea + Enhance button (above the divider) %>
-      <div class="mt-3">
-        <textarea data-social-post-target="idea"
-                  data-action="input->social-post#dismissIdeaCallout"
-                  rows="3"
-                  placeholder="Any specific angle for the AI? (optional) — e.g. mention Mother's Day, make it more playful, highlight the discount"
-                  class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 resize-y"></textarea>
-      </div>
-
-      <div class="mt-3">
-        <button data-action="social-post#enhance" data-social-post-target="enhanceBtn"
-                class="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition cursor-pointer">
-          ✨ Enhance with AI
-        </button>
-      </div>
-
-      <%# Publish group: act on the current draft (below the divider) %>
-      <div class="flex items-center gap-3 mt-3 pt-3 border-t border-gray-700 flex-wrap">
-        <button data-action="social-post#copy" data-social-post-target="copyBtn"
-                class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer">
-          Copy to clipboard
-        </button>
-        <% if Current.session&.user&.admin? && Array(@sendable_workspaces).any? %>
-          <div class="flex items-center gap-1.5">
-            <%= select_tag :workspace_slug,
-                options_for_select(@sendable_workspaces.map { |w| [w.name, w.slug] }),
-                "data-social-post-target": "sendToWorkspaceSelect",
-                class: "#{@sendable_workspaces.size == 1 ? 'hidden' : ''} bg-gray-700 border border-gray-600 text-white text-xs rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-orange-500" %>
-            <button data-action="social-post#sendToWorkspace" data-social-post-target="sendToWorkspaceBtn"
-                    class="px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold transition cursor-pointer">
-              Send to workspace
-            </button>
-          </div>
-        <% end %>
-        <button data-action="social-post#saveDraft" data-social-post-target="saveBtn"
-                class="hidden px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-500 text-white text-xs font-semibold transition cursor-pointer">
-          Save draft
-        </button>
-        <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
-          <input type="checkbox" data-action="social-post#markPosted" data-social-post-target="postedCheckbox"
-                 class="rounded border-gray-600 bg-gray-700 text-purple-500 focus:ring-purple-500 cursor-pointer"
-                 <%= "checked" if post_log&.posted? %>>
-          Posted
-        </label>
-        <button data-action="social-post#toggle"
-                class="text-xs text-gray-500 hover:text-gray-400 transition cursor-pointer">
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-  <% end %>
 </div>

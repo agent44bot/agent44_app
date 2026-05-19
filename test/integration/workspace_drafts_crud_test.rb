@@ -25,7 +25,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     d = WorkspaceDraft.last
     assert_equal "draft", d.status
     assert_nil d.scheduled_for
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
   end
 
   test "schedule (commit=schedule) parses scheduled_for in workspace timezone" do
@@ -105,7 +105,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
                                          status: "published", published_at: 1.minute.ago)
     sign_in_as(@owner)
     get edit_workspace_draft_path(workspace_slug: @ws.slug, id: draft.id)
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert_match /already been processed/, flash[:alert]
   end
 
@@ -114,7 +114,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     patch workspace_draft_path(workspace_slug: @ws.slug, id: draft.id),
           params: { body: "after", target_platforms: ["x", "bluesky"] }
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert_equal "after", draft.reload.body
     assert_equal %w[x bluesky], draft.target_platforms
   end

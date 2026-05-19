@@ -3,13 +3,14 @@ require "test_helper"
 class Admin::AiCostsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @admin  = User.create!(email_address: "ai-costs-admin-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    @member = User.create!(email_address: "ai-costs-member-#{SecureRandom.hex(4)}@example.com", role: "member")
+    @member = User.create!(email_address: "ai-costs-member-#{SecureRandom.hex(4)}@example.com", role: "user")
   end
 
   test "redirects non-admin away from /admin/ai_costs" do
     sign_in_as(@member)
     get "/admin/ai_costs"
-    assert_redirected_to root_path
+    # Workspace sandbox catches the non-admin first and lands them on /workspaces.
+    assert_redirected_to workspaces_path
   end
 
   test "renders for admins, surfaces NYK subtotal and recent rows" do

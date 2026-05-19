@@ -4,6 +4,12 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   setup do
     @today = Date.today
     @snapshot = KitchenSnapshot.create!(taken_on: @today)
+    # Most tests visit /nykitchen/{list,test,data,digests} which require
+    # auth. Default to a signed-in admin so tests can focus on the page
+    # behavior; tests covering the auth gate or specific roles sign in
+    # their own user explicitly.
+    @default_user = User.create!(email_address: "kctrl-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    sign_in_as(@default_user)
   end
 
   test "week headers show availability bar with red and green only" do
@@ -15,7 +21,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Cheese Class", this_week + 2.hours, "SoldOut")
     create_event("Baking Basics", this_week + 3.hours, "Limited")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "div.bg-red-500"
@@ -28,7 +34,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Event A", next_monday.to_time + 10.hours, "InStock")
     create_event("Event B", next_monday.to_time + 14.hours, "InStock")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     # Find the week section containing these events
@@ -47,7 +53,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Sold B", next_monday.to_time + 14.hours, "SoldOut")
     create_event("Closed C", next_monday.to_time + 16.hours, "Closed")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "section[id^='week-']" do |sections|
@@ -65,7 +71,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Available 2", this_week + 1.hour, "InStock")
     create_event("Gone", this_week + 2.hours, "SoldOut")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "div.bg-red-500[title='1 sold out / closed']"
@@ -79,7 +85,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Sold Out Class", this_week, "SoldOut")
     create_event("Private Event", this_week + 1.hour, "")  # empty = "other"
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "section[id^='week-']" do |sections|
@@ -99,7 +105,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       create_event("This Week Event", 1.day.from_now, "InStock")
       create_event("Next Week Event", 7.days.from_now, "InStock")
 
-      get nykitchen_path
+      get nyk_list_path
       assert_response :success
 
       assert_select "section#week-0"
@@ -167,7 +173,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       status: "posted", remote_id: "1", posted_at: 30.minutes.ago)
 
     sign_in_as(admin)
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_match /✓ Drafted/, response.body
@@ -184,9 +190,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     ws.workspace_drafts.create!(author: admin, body: "draft body",
       target_platforms: %w[x], source_url: event.url)
 
-    laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "kitchen_customer")
+    laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "user")
     sign_in_as(laura)
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
     refute_match /✓ Drafted/, response.body
     refute_match /✓ Posted/,  response.body
@@ -206,7 +212,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     end
     body = JSON.parse(response.body)
     assert body["ok"]
-    assert_equal "/workspaces/#{ws.slug}", body["workspace_url"]
+    draft = WorkspaceDraft.last
+    assert_equal "/workspaces/#{ws.slug}/drafts/#{draft.id}/edit", body["workspace_url"]
     assert_equal "NY Kitchen",              body["workspace_name"]
 
     draft = WorkspaceDraft.last
@@ -215,12 +222,44 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal "draft", draft.status
   end
 
-  test "send_to_workspace rejects non-admin" do
-    member = User.create!(email_address: "snd-m-#{SecureRandom.hex(4)}@example.com", role: "member")
-    sign_in_as(member)
+  test "send_to_workspace returns the draft's edit URL for the NYK workspace" do
+    admin = User.create!(email_address: "snd-nyk-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws    = Workspace.create!(name: "NYK", owner: admin, slug: "nykitchen")
+    ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@nyk", external_id: SecureRandom.hex(4),
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
+    sign_in_as(admin)
+
+    post "/nykitchen/send_to_workspace",
+         params: { text: "hi", event_url: "https://nykitchen.com/event/y", workspace_slug: "nykitchen" }
+    draft = WorkspaceDraft.last
+    assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit",
+                 JSON.parse(response.body)["workspace_url"]
+  end
+
+  test "send_to_workspace rejects unauthenticated requests" do
+    sign_out
     post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "any" }
-    assert_response :forbidden
-    assert_equal "admin_only", JSON.parse(response.body)["error"]
+    # The before-action redirects unauthenticated requests to /session/new.
+    assert_response :redirect
+    assert_match %r{/session/new}, response.location
+  end
+
+  test "send_to_workspace accepts non-admin workspace members" do
+    owner = User.create!(email_address: "snd-o-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws    = Workspace.create!(name: "Member WS", owner: owner)
+    ws.social_accounts.create!(platform: "x", connected_by: owner, handle: "@m",
+      external_id: SecureRandom.hex(4), access_token: "AT", refresh_token: "RT",
+      token_expires_at: 2.hours.from_now, status: "active")
+
+    member = User.create!(email_address: "snd-mem-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: member, role: "editor")
+
+    sign_in_as(member)
+    assert_difference -> { WorkspaceDraft.count }, 1 do
+      post "/nykitchen/send_to_workspace",
+           params: { text: "Hi from a member", event_url: "https://nykitchen.com/event/y", workspace_slug: ws.slug }
+    end
+    assert JSON.parse(response.body)["ok"]
   end
 
   test "send_to_workspace 404s when slug doesn't match a workspace the admin belongs to" do
@@ -249,31 +288,117 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal "no_platforms", JSON.parse(response.body)["error"]
   end
 
-  test "index renders the workspace picker for admin with kitchen-slugged first" do
-    admin = User.create!(email_address: "snd-i-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    a = Workspace.create!(name: "Aardvark Brand", owner: admin)
-    a.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a", external_id: "1",
+  test "event card uses kitchen-slugged workspace as the default Send to Social Agent destination" do
+    user = User.create!(email_address: "snd-i-#{SecureRandom.hex(4)}@example.com", role: "user")
+    a = Workspace.create!(name: "Aardvark Brand", owner: user)
+    a.social_accounts.create!(platform: "x", connected_by: user, handle: "@a", external_id: "1",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
-    k = Workspace.create!(name: "NY Kitchen Co", owner: admin)
-    k.social_accounts.create!(platform: "x", connected_by: admin, handle: "@k", external_id: "2",
+    k = Workspace.create!(name: "NY Kitchen Co", owner: user)
+    k.social_accounts.create!(platform: "x", connected_by: user, handle: "@k", external_id: "2",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
-    no_accounts = Workspace.create!(name: "Empty WS", owner: admin)
-    # An event so the partial actually renders
     create_event("Pasta 101", 2.days.from_now, "InStock")
 
-    sign_in_as(admin)
-    get nykitchen_path
+    sign_in_as(user)
+    get nyk_list_path
     assert_response :success
 
-    # The picker is a <select name="workspace_slug"> with <option>s
-    assert_match %r{<select[^>]*name="workspace_slug"}, response.body
-    assert_match %r{<option[^>]*value="#{k.slug}"[^>]*>NY Kitchen Co</option>}, response.body
-    assert_match %r{<option[^>]*value="#{a.slug}"[^>]*>Aardvark Brand</option>}, response.body
-    refute_match no_accounts.slug, response.body
+    # The event card bakes the default workspace slug into a data attribute
+    # that the social-post Stimulus controller reads when firing the handoff.
+    # Kitchen-slugged workspace sorts first.
+    assert_match %r{data-social-post-workspace-slug-value="#{k.slug}"}, response.body
+  end
 
-    # Kitchen-slugged workspace appears first (positional check via index in body)
-    assert response.body.index(%(value="#{k.slug}")) < response.body.index(%(value="#{a.slug}")),
-      "kitchen-slugged workspace should sort first as the natural default"
+  # --- Agents hub coverage --------------------------------------------------
+
+  test "anonymous visitor sees the hub (shareable)" do
+    sign_out
+    get nykitchen_path
+    assert_response :success
+    assert_match /List Agent/, response.body
+  end
+
+  test "anonymous click on List bounces to sign-in" do
+    sign_out
+    get nyk_list_path
+    assert_redirected_to %r{/session/new}
+  end
+
+  test "anonymous click on Test bounces to sign-in" do
+    sign_out
+    get nyk_test_path
+    assert_redirected_to %r{/session/new}
+  end
+
+  test "anonymous click on Data bounces to sign-in" do
+    sign_out
+    get nyk_data_path
+    assert_redirected_to %r{/session/new}
+  end
+
+  test "hub renders four agent cards" do
+    create_event("Pasta 101", 2.days.from_now, "InStock")
+    get nykitchen_path
+    assert_response :success
+    assert_match /List Agent/,   response.body
+    assert_match /Test Agent/,   response.body
+    assert_match /Data Agent/,   response.body
+    assert_match /Social Agent/, response.body
+  end
+
+  test "hub redirects legacy ?tab=smoke to /nykitchen/test" do
+    get nykitchen_path(tab: "smoke")
+    assert_redirected_to nyk_test_path
+    assert_equal 301, response.status
+  end
+
+  test "hub redirects legacy ?tab=smoke&status=failed preserving the status param" do
+    get nykitchen_path(tab: "smoke", status: "failed")
+    assert_redirected_to nyk_test_path(status: "failed")
+  end
+
+  test "hub redirects legacy ?tab=scrapes to /nykitchen/data" do
+    get nykitchen_path(tab: "scrapes")
+    assert_redirected_to nyk_data_path
+    assert_equal 301, response.status
+  end
+
+  test "hub redirects legacy ?tab=list to /nykitchen/list" do
+    get nykitchen_path(tab: "list")
+    assert_redirected_to nyk_list_path
+  end
+
+  test "nyk_test_path renders smoke content with breadcrumbs" do
+    get nyk_test_path
+    assert_response :success
+    assert_match /Test Agent/,    response.body
+    assert_match /← NY Kitchen/,  response.body
+    assert_match /Smoke Tests/,   response.body
+  end
+
+  test "nyk_data_path renders scrapes content with breadcrumbs" do
+    get nyk_data_path
+    assert_response :success
+    assert_match /Data Agent/,   response.body
+    assert_match /← NY Kitchen/, response.body
+    assert_match /Scrapes/,      response.body
+  end
+
+  test "nyk_social_path renders the NYK workspace composer in-place" do
+    admin = User.create!(email_address: "nyk-social-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = admin }
+    Workspace.find_by(slug: "nykitchen").tap { |w| w.memberships.find_or_create_by!(user: admin, role: "owner") }
+    sign_in_as(admin)
+    get nyk_social_path
+    assert_response :success
+    # The composer view renders, not a redirect — URL stays /nykitchen/social.
+    assert_match %r{name="workspace\[timezone\]"}, response.body
+  end
+
+  test "nyk_list_path renders breadcrumbs above the list" do
+    create_event("Pasta 101", 2.days.from_now, "InStock")
+    get nyk_list_path
+    assert_response :success
+    assert_match /← NY Kitchen/, response.body
   end
 
   private

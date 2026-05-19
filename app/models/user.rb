@@ -8,7 +8,6 @@ class User < ApplicationRecord
   has_many :hidden_jobs, dependent: :destroy
   has_many :hidden_job_listings, through: :hidden_jobs, source: :job
   has_many :notifications, dependent: :nullify
-  has_many :fleet_requests, dependent: :destroy
   has_many :device_tokens, dependent: :nullify
   has_many :ai_call_logs, dependent: :nullify
   has_many :workspace_memberships, dependent: :destroy
@@ -42,13 +41,6 @@ class User < ApplicationRecord
   # admin internals (/admin/*, /lab).
   def reviewer?
     role == "reviewer"
-  end
-
-  # Customers scoped to a single page (today: NY Kitchen). They bypass the
-  # normal admin tools and are pinned to /nykitchen on sign-in and redirected
-  # back if they try to visit anything else.
-  def kitchen_only?
-    role == "kitchen_customer"
   end
 
   def email_verified?

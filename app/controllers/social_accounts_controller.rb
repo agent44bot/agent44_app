@@ -1,5 +1,4 @@
 class SocialAccountsController < ApplicationController
-  include FleetSocialAccess
   before_action :load_workspace
   before_action :require_admin
 
@@ -7,7 +6,7 @@ class SocialAccountsController < ApplicationController
     account = @workspace.social_accounts.find(params[:id])
     label = account.label
     account.destroy
-    redirect_to workspace_path(@workspace.slug), notice: "Disconnected #{label}."
+    redirect_to social_workspace_path(@workspace.slug), notice: "Disconnected #{label}."
   end
 
   private
@@ -18,7 +17,7 @@ class SocialAccountsController < ApplicationController
 
   def require_admin
     return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
-    redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can manage accounts."
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can manage accounts."
   end
 
   def current_user

@@ -1,9 +1,4 @@
 class WorkspaceInvitationsController < ApplicationController
-  include FleetSocialAccess
-  # Invitees haven't accepted yet — they may not be admins and have no
-  # workspace memberships, so the FleetSocialAccess gate would bounce them
-  # to root. Exempt the two actions that only need a valid invitation token.
-  skip_before_action :require_fleet_social_access, only: [:show, :accept]
   before_action :load_workspace,  only: [:create, :destroy]
   before_action :require_admin,   only: [:create, :destroy]
 
@@ -14,10 +9,10 @@ class WorkspaceInvitationsController < ApplicationController
       role:       params[:role].presence_in(%w[admin editor viewer]) || "editor"
     )
     if invitation.save
-      redirect_to workspace_path(@workspace.slug),
+      redirect_to social_workspace_path(@workspace.slug),
                   notice: "Invite created. Share link: #{accept_url(invitation)}"
     else
-      redirect_to workspace_path(@workspace.slug),
+      redirect_to social_workspace_path(@workspace.slug),
                   alert: "Couldn't invite: #{invitation.errors.full_messages.to_sentence}"
     end
   end
@@ -32,7 +27,7 @@ class WorkspaceInvitationsController < ApplicationController
   def accept
     invitation = WorkspaceInvitation.find_by!(token: params[:token])
     invitation.accept!(current_user)
-    redirect_to workspace_path(invitation.workspace.slug), notice: "Joined #{invitation.workspace.name}."
+    redirect_to social_workspace_path(invitation.workspace.slug), notice: "Joined #{invitation.workspace.name}."
   rescue ActiveRecord::RecordNotFound
     redirect_to workspaces_path, alert: "Invitation not found."
   rescue => e
@@ -42,7 +37,7 @@ class WorkspaceInvitationsController < ApplicationController
   def destroy
     invitation = @workspace.invitations.find(params[:id])
     invitation.revoke!
-    redirect_to workspace_path(@workspace.slug), notice: "Invite revoked."
+    redirect_to social_workspace_path(@workspace.slug), notice: "Invite revoked."
   end
 
   private
@@ -54,7 +49,7 @@ class WorkspaceInvitationsController < ApplicationController
   def require_admin
     membership = @workspace.memberships.find_by(user_id: current_user.id)
     return if membership&.admin?
-    redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can manage invites."
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can manage invites."
   end
 
   def current_user

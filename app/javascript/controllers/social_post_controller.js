@@ -19,6 +19,7 @@ export default class extends Controller {
     logUrl: String,
     enhanceUrl: String,
     sendToWorkspaceUrl: { type: String, default: "" },
+    workspaceSlug: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
     enhancedText: { type: String, default: "" },
     posted: { type: Boolean, default: false }
@@ -31,11 +32,11 @@ export default class extends Controller {
     if (isHidden) {
       this.previewTextTarget.textContent = this.enhancedTextValue || this.buildPost()
       panel.classList.remove("hidden")
-      this.toggleBtnTarget.textContent = "Hide preview"
+      this.toggleBtnTarget.textContent = "Hide"
       this._maybeShowIdeaCallout()
     } else {
       panel.classList.add("hidden")
-      this.toggleBtnTarget.textContent = "Preview post"
+      this.toggleBtnTarget.textContent = "Send to Social Agent"
     }
   }
 
@@ -206,8 +207,14 @@ export default class extends Controller {
     btn.classList.add("opacity-50")
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-    const text = this.previewTextTarget.textContent
-    const workspaceSlug = this.hasSendToWorkspaceSelectTarget ? this.sendToWorkspaceSelectTarget.value : ""
+    // Without an inline preview, build the post body from the event's
+    // data values. If a preview IS present and the user edited it, use
+    // their edited text instead.
+    const previewText = this.hasPreviewTextTarget ? this.previewTextTarget.textContent.trim() : ""
+    const text = previewText.length > 0 ? previewText : (this.enhancedTextValue || this.buildPost())
+    const workspaceSlug = this.hasSendToWorkspaceSelectTarget
+                            ? this.sendToWorkspaceSelectTarget.value
+                            : this.workspaceSlugValue
 
     try {
       const resp = await fetch(this.sendToWorkspaceUrlValue, {

@@ -1,0 +1,113 @@
+<% content_for(:title, "NY Kitchen · List Agent") %>
+
+<% content_for(:head) do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10" data-controller="kitchen-filter">
+  <%= render "admin/kitchen/breadcrumbs" %>
+
+  <div class="mb-6">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h1 class="text-3xl font-black text-white tracking-tight">List Agent</h1>
+      <div class="flex items-center gap-2">
+        <% if authenticated? && Current.session.user.admin? %>
+          <%= link_to nyk_billing_path,
+                class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Billing</span>
+          <% end %>
+        <% end %>
+        <button data-controller="clipboard" data-action="click->clipboard#copy"
+                data-clipboard-url-value="<%= nyk_list_url %>"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+          </svg>
+          <span data-clipboard-target="label">Share</span>
+        </button>
+      </div>
+    </div>
+    <p class="text-gray-400 mt-1">
+      Cooking classes at NY Kitchen &middot;
+      <%= @total %> upcoming
+      <% if @last_updated %>
+        &middot; Updated <%= @last_updated.strftime("%b %-d") %>
+      <% end %>
+    </p>
+  </div>
+
+  <% if @events.any? && Setting.time("nyk.filter_card_hidden_at").nil? %>
+    <%
+      chips = [
+        ["all",     "All",                 "bg-orange-500 text-white",           "bg-gray-800 text-gray-400 hover:bg-gray-700"],
+        ["instock", "Available",           "bg-green-700 text-green-100",        "bg-green-900/40 text-green-400 hover:bg-green-900/60"],
+        ["limited", "Limited",             "bg-amber-700 text-amber-100",        "bg-amber-900/40 text-amber-400 hover:bg-amber-900/60"],
+        ["soldout", "Sold Out",            "bg-red-800 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"],
+        ["closed",  "No Longer Available", "bg-red-900 text-red-100",            "bg-red-900/40 text-red-400 hover:bg-red-900/60"],
+        ["other",   "Unknown",             "bg-gray-600 text-gray-100",          "bg-gray-800 text-gray-400 hover:bg-gray-700"]
+      ]
+    %>
+    <section class="mb-5"
+             data-controller="collapsible nyk-filter-tracker"
+             data-nyk-filter-tracker-url-value="<%= api_v1_nyk_filter_expanded_path %>"
+             data-collapsible-collapsed-value="true">
+      <button type="button"
+              data-action="click->collapsible#toggle click->nyk-filter-tracker#track"
+              class="w-full flex items-center justify-between gap-3 bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 text-left hover:border-gray-700 transition">
+        <span class="text-sm font-semibold text-gray-300">Filter</span>
+        <svg data-collapsible-target="icon"
+             class="w-5 h-5 text-gray-500 transition-transform"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div data-collapsible-target="body" class="flex flex-wrap gap-2 mt-3">
+        <% chips.each do |status, text, active_cls, inactive_cls| %>
+          <% count = @filter_counts[status] %>
+          <% next if count == 0 && status != "all" %>
+          <% start_cls = status == "all" ? active_cls : inactive_cls %>
+          <button data-kitchen-filter-target="chip"
+                  data-action="click->kitchen-filter#filter"
+                  data-filter-status="<%= status %>"
+                  data-active-classes="<%= active_cls %>"
+                  data-inactive-classes="<%= inactive_cls %>"
+                  class="px-3 py-1 rounded-full text-xs font-semibold transition <%= start_cls %>">
+            <%= text %> (<%= count %>)
+          </button>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <% if @events.empty? %>
+    <div class="bg-gray-900 rounded-xl p-8 text-center">
+      <p class="text-gray-400">No events scraped yet. The scraper runs every 3 hours.</p>
+    </div>
+  <% else %>
+    <%= render "admin/kitchen/list_panel" %>
+  <% end %>
+</div>
+
+<%= javascript_tag nonce: true do %>
+// Deep-link: #week-N scrolls to and expands that week section.
+(function() {
+  var hash = window.location.hash;
+  if (hash && hash.match(/^#week-\d+$/)) {
+    var section = document.getElementById(hash.slice(1));
+    if (section) {
+      var body = section.querySelector('[data-collapsible-target="body"]');
+      var icon = section.querySelector('[data-collapsible-target="icon"]');
+      if (body && body.classList.contains('hidden')) {
+        body.classList.remove('hidden');
+        if (icon) icon.classList.remove('-rotate-90');
+      }
+      setTimeout(function() {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }
+})();
+<% end %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_17_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -412,7 +412,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_190000) do
     t.string "npub"
     t.string "password_digest"
     t.string "pubkey_hex"
-    t.string "role", default: "member"
+    t.string "role", default: "user"
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["email_verification_token"], name: "index_users_on_email_verification_token", unique: true
@@ -522,6 +522,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_17_190000) do
     t.text "description"
     t.string "name", null: false
     t.integer "owner_id", null: false
+    t.boolean "pricing_visible_to_members", default: false, null: false
     t.text "settings"
     t.string "slug", null: false
     t.string "source_url"

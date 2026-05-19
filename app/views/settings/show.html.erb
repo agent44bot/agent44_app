@@ -6,6 +6,26 @@
     Signed in as <span class="text-gray-200"><%= Current.user&.email_address %></span>
   </p>
 
+  <!-- Display name -->
+  <div class="mb-6 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-800">
+      <h2 class="text-white font-semibold text-base">Name</h2>
+      <p class="text-xs text-gray-500 mt-0.5">
+        How you'll show up to teammates in workspaces. Optional — falls back to your email if blank.
+      </p>
+    </div>
+    <%= form_with url: update_name_settings_path, method: :patch, local: true,
+          class: "px-5 py-4 flex flex-wrap items-center gap-3" do |f| %>
+      <%= f.text_field :display_name,
+            value: Current.user&.display_name,
+            placeholder: "Your name",
+            autocomplete: "name",
+            class: "flex-1 min-w-[200px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition" %>
+      <%= f.submit "Save",
+            class: "px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+  </div>
+
   <!-- Email address -->
   <div data-controller="email-change"
        data-email-change-url-value="<%= update_email_settings_path %>"

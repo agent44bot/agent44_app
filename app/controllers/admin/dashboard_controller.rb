@@ -11,8 +11,8 @@ module Admin
           total_views: scope.count,
           unique_visitors: scope.distinct.count(:session_id),
           unique_ips: scope.distinct.count(:ip_address),
-          registered_users: User.where(role: "member").count,
-          new_users: User.where(role: "member").where(created_at: date_range).count,
+          registered_users: User.where(role: "user").count,
+          new_users: User.where(role: "user").where(created_at: date_range).count,
           trend_data: exclude_admins(PageView.where(created_at: 30.days.ago..Time.current))
                               .group("DATE(created_at)")
                               .order(Arel.sql("DATE(created_at)"))

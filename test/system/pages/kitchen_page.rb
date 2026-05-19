@@ -2,6 +2,10 @@ require_relative "base_page"
 
 class KitchenPage < BasePage
   def visit
+    super("/nykitchen/list")
+  end
+
+  def visit_hub
     super("/nykitchen")
   end
 
@@ -44,5 +48,21 @@ class KitchenPage < BasePage
   def open_preview
     preview_button&.click
     sleep 0.3
+  end
+
+  # The filter chips and week sections start collapsed; tests that interact
+  # with their contents must expand first.
+  def expand_filter
+    page.query_selector("[data-nyk-filter-tracker-url-value] > button")&.click
+    sleep 0.2
+  end
+
+  def expand_first_week
+    page.query_selector("[data-kitchen-filter-target='section'] > button")&.click
+    sleep 0.2
+  end
+
+  def handoff_button
+    page.query_selector("[data-social-post-target='sendToWorkspaceBtn']")
   end
 end

@@ -3,7 +3,7 @@ module Admin
     def trigger_smoke
       token = ENV["GITHUB_PAT"]
       if token.blank?
-        redirect_to nykitchen_path, alert: "GITHUB_PAT not configured"
+        redirect_to nyk_test_path, alert: "GITHUB_PAT not configured"
         return
       end
 
@@ -22,12 +22,12 @@ module Admin
       res = http.request(req)
 
       if res.is_a?(Net::HTTPSuccess) || res.code == "204"
-        redirect_to nykitchen_path, notice: "Smoke test triggered — results will appear shortly"
+        redirect_to nyk_test_path, notice: "Smoke test triggered — results will appear shortly"
       else
-        redirect_to nykitchen_path, alert: "GitHub dispatch failed (#{res.code})"
+        redirect_to nyk_test_path, alert: "GitHub dispatch failed (#{res.code})"
       end
     rescue => e
-      redirect_to nykitchen_path, alert: "Error: #{e.message}"
+      redirect_to nyk_test_path, alert: "Error: #{e.message}"
     end
   end
 end

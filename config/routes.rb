@@ -7,14 +7,15 @@ Rails.application.routes.draw do
     post :challenge, on: :collection
   end
 
-  if Rails.env.development?
-    post "dev/login_as/:user_id", to: "dev_sessions#create", as: :dev_login_as
-  end
+  # DevSessionsController#create returns 404 outside Rails.env.development?,
+  # so the route is safe to expose in prod — it just always 404s there.
+  post "dev/login_as/:user_id", to: "dev_sessions#create", as: :dev_login_as
   resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
   resource :settings, only: [ :show, :destroy ] do
-    post :verify_password
+    post  :verify_password
     patch :update_email
+    patch :update_name
   end
   get "email_verification", to: "email_verifications#show", as: :email_verification
   post "email_verification/resend", to: "email_verifications#resend", as: :resend_email_verification
@@ -30,7 +31,14 @@ Rails.application.routes.draw do
     resource :hidden_job, only: [ :create, :destroy ]
   end
   resources :saved_jobs, only: [ :index ]
-  get "nykitchen", to: "kitchen#index"
+  get "nykitchen",        to: "kitchen#hub"
+  get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
+  get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
+  get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
+  # /nykitchen/social renders the NYK workspace's social composer in-place
+  # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
+  # WorkspacesController#social by baking the slug in as a default param.
+  get "nykitchen/social", to: "workspaces#social", defaults: { slug: "nykitchen" }, as: :nyk_social
   get "nykitchen/digests/:id", to: "kitchen#digest", as: :nyk_digest
   get "nykitchen/smoke_runs/:id/page_source", to: "kitchen#download_smoke_page_source", as: :nyk_smoke_page_source
   get "nykitchen/smoke_runs/:id/trace", to: "kitchen#download_smoke_trace", as: :nyk_smoke_trace
@@ -51,11 +59,11 @@ Rails.application.routes.draw do
 
   get "notifications", to: "notifications#index"
 
-  resources :fleet_requests, only: [ :create ]
-
   resources :workspaces, only: [ :index, :new, :create, :show, :update, :destroy ], param: :slug do
     member do
+      get  :social
       post :refresh_metrics
+      post :toggle_pricing
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]

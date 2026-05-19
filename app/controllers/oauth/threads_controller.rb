@@ -1,12 +1,11 @@
 module Oauth
   class ThreadsController < ApplicationController
-    include FleetSocialAccess
     before_action :load_workspace, only: :connect
     before_action :require_admin,  only: :connect
 
     def connect
       unless ::Threads::Oauth.configured?
-        redirect_to workspace_path(@workspace.slug),
+        redirect_to social_workspace_path(@workspace.slug),
                     alert: "Threads OAuth not configured. Add threads.client_id and threads.client_secret to Rails credentials."
         return
       end
@@ -34,13 +33,13 @@ module Oauth
       return halt(workspaces_path, "Workspace not found.") unless workspace
 
       short = ::Threads::Oauth.exchange_code(code: params[:code], redirect_uri: oauth_threads_callback_url)
-      return halt(workspace_path(workspace.slug), "Code exchange failed: #{short.error}") unless short.ok?
+      return halt(social_workspace_path(workspace.slug), "Code exchange failed: #{short.error}") unless short.ok?
 
       long = ::Threads::Oauth.exchange_for_long_lived(short_token: short.access_token)
-      return halt(workspace_path(workspace.slug), "Long-lived token exchange failed: #{long.error}") unless long.ok?
+      return halt(social_workspace_path(workspace.slug), "Long-lived token exchange failed: #{long.error}") unless long.ok?
 
       me = ::Threads::Oauth.me(access_token: long.access_token)
-      return halt(workspace_path(workspace.slug), "Couldn't fetch Threads profile: #{me.error}") unless me.ok?
+      return halt(social_workspace_path(workspace.slug), "Couldn't fetch Threads profile: #{me.error}") unless me.ok?
 
       account = workspace.social_accounts.find_or_initialize_by(platform: "threads", external_id: me.id)
       account.assign_attributes(
@@ -55,7 +54,7 @@ module Oauth
       )
       account.save!
 
-      redirect_to workspace_path(workspace.slug), notice: "Connected Threads account #{account.handle}."
+      redirect_to social_workspace_path(workspace.slug), notice: "Connected Threads account #{account.handle}."
     end
 
     private
@@ -66,7 +65,7 @@ module Oauth
 
     def require_admin
       return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
-      redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
+      redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
     end
 
     def current_user

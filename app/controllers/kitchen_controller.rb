@@ -1,18 +1,50 @@
 class KitchenController < ApplicationController
-  allow_unauthenticated_access
+  # Only the hub is publicly viewable — anonymous visitors can preview the
+  # NY Kitchen agents fleet (so Lora can share /nykitchen with her boss),
+  # but every card click requires sign-in/sign-up. The four agent pages
+  # (list/test/data + the /nykitchen/social alias which routes to
+  # workspaces#social), the POST endpoints (social_post_log, enhance_post,
+  # send_to_workspace, trigger_smoke), and the digest/download actions all
+  # gate via the default require_authentication.
+  allow_unauthenticated_access only: [:hub]
 
-  def index
-    @admin = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer?)
-    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+  before_action :set_common_view_state, only: %i[hub list test data]
+
+  def hub
+    # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
+    case params[:tab]
+    when "smoke"   then return redirect_to(nyk_test_path(status: params[:status]), status: 301)
+    when "scrapes" then return redirect_to(nyk_data_path, status: 301)
+    when "list"    then return redirect_to(nyk_list_path, status: 301)
+    end
+    load_hub_summary
+    @nyk_workspace = nyk_workspace_for(Current.session&.user)
+    # Team management is rendered below the agent cards for members; load
+    # the workspace data so the partial can render.
+    load_nyk_team_data if @nyk_workspace
+    render "admin/kitchen/hub", layout: "application"
+  end
+
+  def list
     @sendable_workspaces = sendable_workspaces_for(Current.session&.user)
-    load_kitchen_data
-    render "admin/kitchen/index", layout: "application"
+    load_events_data
+    render "admin/kitchen/list", layout: "application"
+  end
+
+  def test
+    load_smoke_data
+    render "admin/kitchen/test", layout: "application"
+  end
+
+  def data
+    load_scrape_data
+    render "admin/kitchen/data", layout: "application"
   end
 
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot
-    @can_see_pricing = authenticated? && (Current.session.user.admin? || Current.session.user.kitchen_only?)
+    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
     render layout: "application"
   end
 
@@ -80,18 +112,22 @@ class KitchenController < ApplicationController
   # preview text, target all that workspace's connected platforms, status=draft
   # so the admin can review + post from /workspaces/:slug.
   def send_to_workspace
-    unless Current.session&.user&.admin?
-      return render json: { error: "admin_only" }, status: :forbidden
-    end
+    return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.session&.user
 
     slug = params[:workspace_slug].to_s
+    # Membership IS the authorization — user.workspaces only includes
+    # workspaces they're a member of, so a non-member lookup returns nil
+    # and we 404 below.
     ws   = Current.session.user.workspaces.find_by(slug: slug)
     return render json: { error: "workspace_not_found", slug: slug }, status: :not_found unless ws
 
     body = params[:text].to_s.strip
     return render json: { error: "empty" }, status: :unprocessable_entity if body.blank?
 
-    platforms = ws.social_accounts.active.pluck(:platform).uniq
+    # Save the draft against whichever platforms the workspace has, even
+    # if some/all need re-auth — the user fixes auth on the draft edit
+    # page before publish. Only reject if there are zero platforms at all.
+    platforms = ws.social_accounts.pluck(:platform).uniq
     return render json: { error: "no_platforms" }, status: :unprocessable_entity if platforms.empty?
 
     draft = ws.workspace_drafts.create!(
@@ -103,10 +139,15 @@ class KitchenController < ApplicationController
       status:           "draft"
     )
 
+    # Drop Lora straight into the draft's edit page so she can tweak +
+    # publish without an intermediate scroll. /workspaces/:slug/drafts/:id/edit
+    # works for any workspace; the NYK alias isn't needed here because
+    # the URL itself is workspace-scoped already.
+    target_url = edit_workspace_draft_path(workspace_slug: ws.slug, id: draft.id)
     render json: {
       ok:             true,
       draft_id:       draft.id,
-      workspace_url:  workspace_path(ws.slug),
+      workspace_url:  target_url,
       workspace_name: ws.name
     }
   rescue => e
@@ -191,21 +232,47 @@ class KitchenController < ApplicationController
     status
   end
 
-  # Workspaces the signed-in admin can pick as the destination for
-  # "Send to workspace". We only include workspaces with at least one
-  # active social account (otherwise the draft can't fan out anywhere).
-  # Sort: workspaces whose slug includes "kitchen" first (so the NYK page
-  # naturally defaults to the NYK workspace), then alphabetical.
+  # Workspaces the signed-in user can pick as the destination for the
+  # Social Agent handoff. We require *any* social account (so the
+  # workspace looks like a real social destination), not an active one
+  # — drafts created from the handoff are persisted in 'draft' status;
+  # token validity is only enforced at publish time on the draft edit
+  # page. This means an expired-token workspace still shows up here
+  # and the user can keep stacking drafts while they re-auth.
+  # Sort: workspaces whose slug includes "kitchen" first (so the NYK
+  # page naturally defaults to the NYK workspace), then alphabetical.
   def sendable_workspaces_for(user)
-    return [] unless user&.admin?
+    return [] unless user
     user.workspaces
         .joins(:social_accounts)
-        .where(social_accounts: { status: "active" })
         .distinct
         .sort_by { |ws| [ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase] }
   end
 
-  def load_kitchen_data
+  def set_common_view_state
+    @admin = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer?)
+    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
+  end
+
+  # The user's NYK-flavored workspace, if any — backs the Social Agent card
+  # on the hub. Falls back to nil; the card then links to /workspaces.
+  def nyk_workspace_for(user)
+    return nil unless user
+    user.workspaces.find { |w| w.slug.to_s.include?("kitchen") || w.name.to_s.downcase.include?("kitchen") }
+  end
+
+  # Loads the locals needed by workspaces/_team partial when rendering on
+  # the NYK hub. Only called when @nyk_workspace is present (i.e. the
+  # signed-in user is a member of the NY Kitchen workspace).
+  def load_nyk_team_data
+    @nyk_memberships     = @nyk_workspace.memberships.includes(:user).order(:created_at)
+    @nyk_invitations     = @nyk_workspace.invitations.pending.order(created_at: :desc)
+    @nyk_social_accounts = @nyk_workspace.social_accounts.order(:platform, :handle)
+    @nyk_my_role         = @nyk_workspace.role_for(Current.session&.user)
+  end
+
+  # List Agent data — events, weeks, filter counts, workspace status.
+  def load_events_data
     snapshot = KitchenSnapshot.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming.order(:start_at)
@@ -254,11 +321,13 @@ class KitchenController < ApplicationController
       @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0, "other" => 0 }
       @post_logs = {}
     end
+  end
 
-    nav_scope    = SmokeTestRun.nyk_nav
-    scrape_scope = SmokeTestRun.nyk_scrape
+  # Test Agent data — smoke runs, failure stats, daily-failure chart.
+  def load_smoke_data
+    nav_scope = SmokeTestRun.nyk_nav
 
-    # Smoke tab filter: status pill (All / Passed / Failed). The
+    # Test page filter: status pill (All / Passed / Failed). The
     # "last 30 days" failure-rate card is fixed; the table is windowed to
     # 30 days too so it stays in sync with the card.
     @smoke_status = %w[passed failed].include?(params[:status]) ? params[:status] : "all"
@@ -306,14 +375,19 @@ class KitchenController < ApplicationController
       bucket = day_buckets[date]
       { date: date, total: bucket[:total], failed: bucket[:failed] }
     end
+  end
+
+  # Data Agent data — scrape runs and per-day event summary.
+  def load_scrape_data
+    scrape_scope = SmokeTestRun.nyk_scrape
 
     @scrape_runs = scrape_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
     @scrape_runs_total_count   = scrape_scope.count
     @scrape_runs_total_cost    = scrape_scope.sum(:cost_dollars)
     @scrape_runs_total_minutes = (scrape_scope.sum(:duration_ms) / 60_000.0).round
 
-    # Per-day event counts for the Scrapes tab — KitchenSnapshot is unique on
-    # taken_on, so multiple scrapes the same day all reflect that day's snapshot.
+    # Per-day event counts. KitchenSnapshot is unique on taken_on, so multiple
+    # scrapes the same day all reflect that day's snapshot.
     scrape_days = @scrape_runs.map { |r| r.started_at.to_date }.uniq
     @scrape_day_summary = KitchenSnapshot.where(taken_on: scrape_days)
       .includes(:kitchen_events)
@@ -325,6 +399,76 @@ class KitchenController < ApplicationController
           soldout:   events.count { |e| %w[soldout closed].include?(e.availability_status) }
         }
       end
+  end
+
+  # Hub summary — just the headline numbers each card displays. Pulls from the
+  # same scopes as the detail pages but skips the heavy joins/snapshot loads.
+  def load_hub_summary
+    snapshot = KitchenSnapshot.latest
+    @hub_events_total    = snapshot ? snapshot.kitchen_events.upcoming.count : 0
+    @hub_events_updated  = snapshot&.taken_on
+
+    nav    = SmokeTestRun.nyk_nav
+    scrape = SmokeTestRun.nyk_scrape
+
+    @hub_smoke_last       = nav.recent.first
+    @hub_smoke_total      = nav.count
+    @hub_smoke_failed_30d = nav.where("started_at >= ?", 30.days.ago).where(status: "failed").count
+    @hub_smoke_runs_30d   = nav.where("started_at >= ?", 30.days.ago).count
+    @hub_smoke_fail_rate_30d = @hub_smoke_runs_30d.zero? ? 0.0 :
+      (@hub_smoke_failed_30d.to_f / @hub_smoke_runs_30d * 100).round(1)
+    @hub_smoke_cost_total    = nav.sum(:cost_dollars)
+    @hub_smoke_total_minutes = (nav.sum(:duration_ms) / 60_000.0).round
+
+    @hub_scrape_last         = scrape.recent.first
+    @hub_scrape_total        = scrape.count
+    @hub_scrape_cost_total   = scrape.sum(:cost_dollars)
+    @hub_scrape_total_minutes = (scrape.sum(:duration_ms) / 60_000.0).round
+
+    @hub_agent_status = {
+      list:   list_agent_status,
+      test:   test_agent_status,
+      data:   data_agent_status,
+      social: social_agent_status
+    }
+  end
+
+  # Agent presence: :running (pulsing dot), :on_cadence (solid green),
+  # :stale (gray). Cadence windows derive from each agent's typical
+  # cron/run interval — see the SmokeTestFailureNotificationJob comments
+  # and the GitHub Actions schedules.
+  RUN_WINDOW   = 5.minutes  # how long after a run we still consider it "running"
+  TEST_CADENCE = 90.minutes # smoke runs every ~hour, +30min slack
+  DATA_CADENCE = 4.hours    # scrapes every 3 hours, +1h slack
+  LIST_CADENCE = 30.hours   # snapshot taken_on is per-day, allow a stale day before going gray
+  SOCIAL_CADENCE = 7.days
+
+  def list_agent_status
+    return :stale unless @hub_events_updated
+    age = Date.current - @hub_events_updated
+    age <= (LIST_CADENCE / 1.day) ? :on_cadence : :stale
+  end
+
+  def test_agent_status
+    presence_for(@hub_smoke_last&.started_at, TEST_CADENCE)
+  end
+
+  def data_agent_status
+    presence_for(@hub_scrape_last&.started_at, DATA_CADENCE)
+  end
+
+  def social_agent_status
+    return :stale unless @nyk_workspace
+    last = @nyk_workspace.workspace_posts.maximum(:posted_at)
+    presence_for(last, SOCIAL_CADENCE, run_window: nil)
+  end
+
+  def presence_for(timestamp, cadence, run_window: RUN_WINDOW)
+    return :stale unless timestamp
+    age = Time.current - timestamp
+    return :running    if run_window && age < run_window
+    return :on_cadence if age < cadence
+    :stale
   end
 
   def build_enhance_prompt(draft, name, description, date, price, idea = nil)

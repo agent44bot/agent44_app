@@ -11,6 +11,18 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_name
+    user = Current.user
+    return redirect_to(root_path) unless user
+
+    name = params[:display_name].to_s.strip
+    if user.update(display_name: name.presence)
+      redirect_to settings_path, notice: name.present? ? "Name updated." : "Name cleared."
+    else
+      redirect_to settings_path, alert: user.errors.full_messages.first || "Couldn't update name."
+    end
+  end
+
   def update_email
     user = Current.user
     new_email = params[:email_address].to_s.strip

@@ -39,7 +39,7 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
     assert_difference -> { AiCallLog.where(source: "workspace_ai_assist").count }, 1 do
       post workspace_draft_suggest_path(workspace_slug: @ws.slug), params: { topic: "tokens at rest" }
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert_match "tokens at rest", @captured_prompt
     assert_match "Builder energy", @captured_prompt
 
@@ -56,7 +56,7 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
       sign_in_as(@owner)
       post workspace_draft_suggest_path(workspace_slug: @ws.slug), params: { topic: "x" }
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert_match /Draft suggestion ready/, flash[:notice]
   end
 

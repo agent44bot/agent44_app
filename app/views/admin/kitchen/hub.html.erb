@@ -1,0 +1,180 @@
+<% content_for(:title, "NY Kitchen") %>
+
+<%
+  social_href = @nyk_workspace ? nyk_social_path : workspaces_path
+
+  # Agent-presence dot: pulsing green = recently active, solid green =
+  # on-cadence, gray = stale (no recent activity).
+  agent_dot = ->(state) {
+    case state
+    when :running    then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.7)]" title="Running now"></span>).html_safe
+    when :on_cadence then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500" title="On cadence"></span>).html_safe
+    else                  %(<span class="inline-block w-2 h-2 rounded-full bg-gray-600" title="Idle / stale"></span>).html_safe
+    end
+  }
+
+  # Format minutes for the work-time meter. < 60 stays in minutes;
+  # otherwise Xh Ym.
+  humanize_minutes = ->(min) {
+    return "0 min" if min.to_i.zero?
+    return "#{min} min" if min < 60
+    hours = min / 60
+    rem   = min % 60
+    rem.positive? ? "#{hours}h #{rem}m" : "#{hours}h"
+  }
+
+  smoke_status_color = if @hub_smoke_last.nil?            then "text-gray-500"
+                      elsif @hub_smoke_last.passed?      then "text-green-400"
+                      else                                    "text-red-400"
+                      end
+  smoke_status_label = if @hub_smoke_last.nil?       then "No runs yet"
+                      elsif @hub_smoke_last.passed? then "✓ Passed"
+                      else                                "🚨 Failed"
+                      end
+  fail_rate_color = @hub_smoke_fail_rate_30d >= 20 ? "text-red-400" :
+                    @hub_smoke_fail_rate_30d >= 5  ? "text-amber-400" :
+                                                     "text-green-400"
+%>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+     data-controller="collapsible"
+     data-collapsible-collapsed-value="true"
+     data-collapsible-scroll-on-expand-value="true">
+  <div class="flex justify-end mb-6 text-sm">
+    <%= link_to workspaces_path, class: "text-gray-500 hover:text-gray-300 transition" do %>
+      ← All workspaces
+    <% end %>
+  </div>
+
+  <div class="mb-8">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
+      <div class="flex items-center gap-2">
+        <% if authenticated? && Current.session.user.admin? %>
+          <%= link_to nyk_billing_path,
+                class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Billing</span>
+          <% end %>
+        <% end %>
+        <% if @nyk_workspace %>
+          <button type="button"
+                  data-action="click->collapsible#toggle"
+                  aria-label="Workspace settings"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+            </svg>
+          </button>
+        <% end %>
+      </div>
+    </div>
+    <p class="text-gray-400 mt-1">4 agents working NY Kitchen.</p>
+  </div>
+
+  <% if @nyk_workspace %>
+    <div data-collapsible-target="body">
+      <%= render "workspaces/team",
+            workspace:       @nyk_workspace,
+            memberships:     @nyk_memberships,
+            invitations:     @nyk_invitations,
+            social_accounts: @nyk_social_accounts,
+            my_role:         @nyk_my_role %>
+    </div>
+  <% end %>
+
+  <%# Same card chrome for every agent — equal padding, equal height (via
+      auto-rows-fr + h-full), description line under the title. Card body
+      uses flex-col so the status stats sit at the bottom regardless of
+      varying content length. %>
+  <% card_class   = "block h-full flex flex-col bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-7 transition group" %>
+  <% desc_class   = "text-sm text-gray-400 mb-4" %>
+  <% stats_class  = "space-y-1.5 text-sm mt-auto" %>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
+    <%= link_to nyk_list_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📋</span>
+          <h2 class="text-lg font-bold text-white">List Agent</h2>
+          <%= agent_dot.call(@hub_agent_status[:list]) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
+      <div class="<%= stats_class %>">
+        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
+        <% if @hub_events_updated %>
+          <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= link_to social_href, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📣</span>
+          <h2 class="text-lg font-bold text-white">Social Agent</h2>
+          <%= agent_dot.call(@hub_agent_status[:social]) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <p class="<%= desc_class %>">Drafts and posts to your connected social accounts. Hand off a class with one click.</p>
+      <div class="<%= stats_class %>">
+        <% if @nyk_workspace %>
+          <% platforms = @nyk_workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort %>
+          <% if platforms.any? %>
+            <div class="text-gray-300"><%= platforms.join(" · ") %> connected</div>
+          <% else %>
+            <div class="text-gray-500">No platforms connected yet</div>
+          <% end %>
+          <div class="text-gray-500"><%= pluralize(@nyk_workspace.workspace_posts.count, "post") %> total</div>
+        <% else %>
+          <div class="text-gray-500">No NY Kitchen workspace yet</div>
+          <div class="text-gray-500">Click to set one up</div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= link_to nyk_test_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🔁</span>
+          <h2 class="text-lg font-bold text-white">Test Agent</h2>
+          <%= agent_dot.call(@hub_agent_status[:test]) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
+      <div class="<%= stats_class %>">
+        <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last %> <%= time_ago_in_words(@hub_smoke_last.started_at) %> ago<% end %></div>
+        <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
+        <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
+      </div>
+    <% end %>
+
+    <%= link_to nyk_data_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🕷️</span>
+          <h2 class="text-lg font-bold text-white">Data Agent</h2>
+          <%= agent_dot.call(@hub_agent_status[:data]) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <p class="<%= desc_class %>">Snapshots the calendar every three hours — feeds the List Agent and powers ticket-change alerts.</p>
+      <div class="<%= stats_class %>">
+        <% if @hub_scrape_last %>
+          <div class="text-green-400 font-semibold">✓ Last snapshot <%= time_ago_in_words(@hub_scrape_last.started_at) %> ago</div>
+        <% else %>
+          <div class="text-gray-500 font-semibold">No snapshots yet</div>
+        <% end %>
+        <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_scrape_total_minutes) %> · <%= @hub_scrape_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_scrape_cost_total %><% end %></div>
+      </div>
+    <% end %>
+
+  </div>
+
+</div>

@@ -18,6 +18,27 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Settings"
   end
 
+  test "PATCH update_name sets display_name and shows success flash" do
+    sign_in_as @user
+    patch update_name_settings_path, params: { display_name: "Rich D" }
+    assert_redirected_to settings_path
+    assert_equal "Name updated.", flash[:notice]
+    assert_equal "Rich D", @user.reload.display_name
+  end
+
+  test "PATCH update_name with blank value clears display_name" do
+    @user.update!(display_name: "Existing")
+    sign_in_as @user
+    patch update_name_settings_path, params: { display_name: "   " }
+    assert_redirected_to settings_path
+    assert_nil @user.reload.display_name
+  end
+
+  test "PATCH update_name redirects when unauthenticated" do
+    patch update_name_settings_path, params: { display_name: "Anon" }
+    assert_redirected_to new_session_path
+  end
+
   test "POST verify_password returns 204 for matching password" do
     sign_in_as @user
     post verify_password_settings_path,

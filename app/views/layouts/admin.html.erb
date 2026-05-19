@@ -78,14 +78,14 @@
 
   <!-- Flash messages -->
   <% if notice.present? %>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+    <div data-controller="flash" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
       <div class="rounded-lg bg-green-50 border border-green-200 p-4">
         <p class="text-sm text-green-800"><%= notice %></p>
       </div>
     </div>
   <% end %>
   <% if alert.present? %>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+    <div data-controller="flash" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
       <div class="rounded-lg bg-red-50 border border-red-200 p-4">
         <p class="text-sm text-red-800"><%= alert %></p>
       </div>
