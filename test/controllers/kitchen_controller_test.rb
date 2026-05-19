@@ -212,7 +212,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     end
     body = JSON.parse(response.body)
     assert body["ok"]
-    assert_equal "/workspaces/#{ws.slug}/social#drafts", body["workspace_url"]
+    draft = WorkspaceDraft.last
+    assert_equal "/workspaces/#{ws.slug}/drafts/#{draft.id}/edit", body["workspace_url"]
     assert_equal "NY Kitchen",              body["workspace_name"]
 
     draft = WorkspaceDraft.last
@@ -221,7 +222,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal "draft", draft.status
   end
 
-  test "send_to_workspace returns /nykitchen/social URL for the NYK workspace" do
+  test "send_to_workspace returns the draft's edit URL for the NYK workspace" do
     admin = User.create!(email_address: "snd-nyk-#{SecureRandom.hex(4)}@example.com", role: "admin")
     ws    = Workspace.create!(name: "NYK", owner: admin, slug: "nykitchen")
     ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@nyk", external_id: SecureRandom.hex(4),
@@ -230,7 +231,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     post "/nykitchen/send_to_workspace",
          params: { text: "hi", event_url: "https://nykitchen.com/event/y", workspace_slug: "nykitchen" }
-    assert_equal "/nykitchen/social#drafts", JSON.parse(response.body)["workspace_url"]
+    draft = WorkspaceDraft.last
+    assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit",
+                 JSON.parse(response.body)["workspace_url"]
   end
 
   test "send_to_workspace rejects unauthenticated requests" do

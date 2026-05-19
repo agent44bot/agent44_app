@@ -2,9 +2,9 @@ require_relative "system_test_helper"
 require_relative "pages/base_page"
 require_relative "pages/kitchen_page"
 
-# End-to-end: admin opens an event preview on /nykitchen/list, clicks
-# "Hand off to Agent", and ends up on /nykitchen/social#drafts with the
-# new draft visible. Catches regressions in any of:
+# End-to-end: admin clicks 'Send to Social Agent' on an event row and
+# lands on the draft's edit page (/workspaces/:slug/drafts/:id/edit)
+# with the draft persisted in draft mode. Catches regressions in any of:
 #   - The button rendering (admin? + sendable_workspaces gate in event_card)
 #   - The Stimulus social-post controller binding sendToWorkspace
 #   - The kitchen_controller#send_to_workspace endpoint
@@ -56,16 +56,13 @@ class HandoffToSocialAgentSystemTest < SystemTestCase
            "Pre-condition: no draft for the test event before handoff"
 
     btn.click
-    50.times { break if @page.url =~ %r{/(nykitchen/social|workspaces/nykitchen/social)}; sleep 0.1 }
+    50.times { break if @page.url =~ %r{/workspaces/nykitchen/drafts/\d+/edit}; sleep 0.1 }
 
-    # The redirect should land on /nykitchen/social (the alias that renders
-    # the composer in-place under the agents-hub URL shape) with the
-    # #drafts fragment so the page scrolls past the empty Compose box
-    # to the just-created draft.
-    assert_match %r{/nykitchen/social\b}, @page.url,
-                 "Expected to land on /nykitchen/social after handoff, got #{@page.url}"
-    assert @page.url.include?("#drafts"),
-           "Expected URL fragment #drafts so the page jumps to the new draft, got #{@page.url}"
+    # The redirect drops Lora directly into the draft's edit page so she
+    # can tweak + publish without an intermediate scroll through the
+    # composer's drafts list.
+    assert_match %r{/workspaces/nykitchen/drafts/\d+/edit}, @page.url,
+                 "Expected to land on the draft edit page after handoff, got #{@page.url}"
 
     # The draft itself was persisted in draft mode.
     ActiveRecord::Base.connection.clear_query_cache
@@ -75,10 +72,8 @@ class HandoffToSocialAgentSystemTest < SystemTestCase
     assert_equal "draft",   draft.status,       "Draft should be in draft mode (not published)"
     assert_match(/Whiskey/, draft.body,         "Draft body should carry the event content forward")
 
-    # And the page Lora lands on actually surfaces the draft so she can
-    # edit / publish it without hunting for it.
+    # And the edit page actually loads the draft body for editing.
     body_text = @page.text_content("body").to_s
-    assert_match(/Drafts/i, body_text, "Drafts section should be visible on the composer page")
-    assert_match(/Whiskey/,  body_text, "The just-created draft body should appear on the page")
+    assert_match(/Whiskey/, body_text, "Draft body should be loaded on the edit page")
   end
 end
