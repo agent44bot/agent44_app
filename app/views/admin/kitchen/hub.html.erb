@@ -16,7 +16,9 @@
                                                      "text-green-400"
 %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+     data-controller="collapsible"
+     data-collapsible-collapsed-value="true">
   <div class="flex items-center gap-3 mb-6 text-sm">
     <%= link_to workspaces_path, class: "text-gray-500 hover:text-gray-300 transition" do %>
       ← All workspaces
@@ -35,6 +37,16 @@
             </svg>
             <span>Billing</span>
           <% end %>
+        <% end %>
+        <% if @nyk_workspace %>
+          <button type="button"
+                  data-action="click->collapsible#toggle"
+                  aria-label="Workspace settings"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+            </svg>
+          </button>
         <% end %>
       </div>
     </div>
@@ -129,11 +141,13 @@
   </div>
 
   <% if @nyk_workspace %>
-    <%= render "workspaces/team",
-          workspace:       @nyk_workspace,
-          memberships:     @nyk_memberships,
-          invitations:     @nyk_invitations,
-          social_accounts: @nyk_social_accounts,
-          my_role:         @nyk_my_role %>
+    <div data-collapsible-target="body">
+      <%= render "workspaces/team",
+            workspace:       @nyk_workspace,
+            memberships:     @nyk_memberships,
+            invitations:     @nyk_invitations,
+            social_accounts: @nyk_social_accounts,
+            my_role:         @nyk_my_role %>
+    </div>
   <% end %>
 </div>
