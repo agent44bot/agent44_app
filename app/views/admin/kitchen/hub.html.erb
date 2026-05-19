@@ -176,23 +176,6 @@
       </div>
     </div>
 
-    <%= link_to nyk_test_path, class: card_class do %>
-      <div class="flex items-start justify-between mb-2">
-        <div class="flex items-center gap-2">
-          <span class="text-2xl">🔁</span>
-          <h2 class="text-lg font-bold text-white">Test Agent</h2>
-          <%= agent_dot.call(@hub_agent_status[:test]) %>
-        </div>
-        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
-      </div>
-      <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
-      <div class="<%= stats_class %>">
-        <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last_finished %> <%= time_ago_in_words(@hub_smoke_last_finished.started_at) %> ago<% end %></div>
-        <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
-        <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
-      </div>
-    <% end %>
-
     <%= link_to nyk_data_path, class: card_class do %>
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
@@ -210,6 +193,23 @@
           <div class="text-gray-500 font-semibold">No snapshots yet</div>
         <% end %>
         <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_scrape_total_minutes) %> · <%= @hub_scrape_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_scrape_cost_total %><% end %></div>
+      </div>
+    <% end %>
+
+    <%= link_to nyk_test_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🔁</span>
+          <h2 class="text-lg font-bold text-white">Test Agent</h2>
+          <%= agent_dot.call(@hub_agent_status[:test]) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
+      <div class="<%= stats_class %>">
+        <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last_finished %> <%= time_ago_in_words(@hub_smoke_last_finished.started_at) %> ago<% end %></div>
+        <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
+        <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
       </div>
     <% end %>
 
