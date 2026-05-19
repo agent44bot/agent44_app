@@ -85,10 +85,17 @@
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <%= link_to nyk_list_path,
-          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
-      <div class="flex items-start justify-between mb-3">
+  <%# Same card chrome for every agent — equal padding, equal height (via
+      auto-rows-fr + h-full), description line under the title. Card body
+      uses flex-col so the status stats sit at the bottom regardless of
+      varying content length. %>
+  <% card_class   = "block h-full flex flex-col bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-7 transition group" %>
+  <% desc_class   = "text-sm text-gray-400 mb-4" %>
+  <% stats_class  = "space-y-1.5 text-sm mt-auto" %>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
+    <%= link_to nyk_list_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
           <span class="text-2xl">📋</span>
           <h2 class="text-lg font-bold text-white">List Agent</h2>
@@ -96,7 +103,8 @@
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-      <div class="space-y-1 text-sm">
+      <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
+      <div class="<%= stats_class %>">
         <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
         <% if @hub_events_updated %>
           <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
@@ -104,9 +112,8 @@
       </div>
     <% end %>
 
-    <%= link_to social_href,
-          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
-      <div class="flex items-start justify-between mb-3">
+    <%= link_to social_href, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
           <span class="text-2xl">📣</span>
           <h2 class="text-lg font-bold text-white">Social Agent</h2>
@@ -114,7 +121,8 @@
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-      <div class="space-y-1 text-sm">
+      <p class="<%= desc_class %>">Drafts and posts to your connected social accounts. Hand off a class with one click.</p>
+      <div class="<%= stats_class %>">
         <% if @nyk_workspace %>
           <% platforms = @nyk_workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort %>
           <% if platforms.any? %>
@@ -130,9 +138,8 @@
       </div>
     <% end %>
 
-    <%= link_to nyk_test_path,
-          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
-      <div class="flex items-start justify-between mb-3">
+    <%= link_to nyk_test_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
           <span class="text-2xl">🔁</span>
           <h2 class="text-lg font-bold text-white">Test Agent</h2>
@@ -140,16 +147,16 @@
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-      <div class="space-y-1 text-sm">
+      <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
+      <div class="<%= stats_class %>">
         <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last %> <%= time_ago_in_words(@hub_smoke_last.started_at) %> ago<% end %></div>
         <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
         <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
       </div>
     <% end %>
 
-    <%= link_to nyk_data_path,
-          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
-      <div class="flex items-start justify-between mb-3">
+    <%= link_to nyk_data_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
           <span class="text-2xl">🕷️</span>
           <h2 class="text-lg font-bold text-white">Data Agent</h2>
@@ -157,7 +164,8 @@
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-      <div class="space-y-1 text-sm">
+      <p class="<%= desc_class %>">Snapshots the calendar every three hours — feeds the List Agent and powers ticket-change alerts.</p>
+      <div class="<%= stats_class %>">
         <% if @hub_scrape_last %>
           <div class="text-green-400 font-semibold">✓ Last snapshot <%= time_ago_in_words(@hub_scrape_last.started_at) %> ago</div>
         <% else %>
