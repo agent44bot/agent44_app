@@ -122,6 +122,14 @@
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
       <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
+      <div class="flex-1 flex items-center justify-center py-3">
+        <div class="text-center">
+          <div class="text-3xl font-black text-white tabular-nums">
+            <%= @hub_tickets_sold_today.nil? ? "—" : @hub_tickets_sold_today %>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-1">tickets sold today</div>
+        </div>
+      </div>
       <div class="<%= stats_class %>">
         <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
         <% if @hub_events_updated %>

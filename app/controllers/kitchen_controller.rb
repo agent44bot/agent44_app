@@ -407,6 +407,10 @@ class KitchenController < ApplicationController
     snapshot = KitchenSnapshot.latest
     @hub_events_total    = snapshot ? snapshot.kitchen_events.upcoming.count : 0
     @hub_events_updated  = snapshot&.taken_on
+    # Tickets sold since yesterday's snapshot. Only meaningful when the
+    # latest snapshot was taken today — otherwise it'd be reporting a
+    # delta from two days ago, not "today".
+    @hub_tickets_sold_today = (snapshot&.taken_on == Date.current) ? snapshot.tickets_sold_today : nil
 
     nav    = SmokeTestRun.nyk_nav
     scrape = SmokeTestRun.nyk_scrape
