@@ -128,13 +128,23 @@
       <p class="<%= desc_class %>">Drafts and posts to your connected social accounts. Hand off a class with one click.</p>
       <div class="<%= stats_class %>">
         <% if @nyk_workspace %>
-          <% platforms = @nyk_workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort %>
-          <% if platforms.any? %>
-            <div class="text-gray-300"><%= platforms.join(" · ") %> connected</div>
+          <% connected   = @nyk_workspace.social_accounts.active.pluck(:platform).uniq %>
+          <% all_present = @nyk_workspace.social_accounts.pluck(:platform).uniq %>
+          <% missing     = %w[x bluesky threads facebook] - all_present %>
+          <% if connected.any? %>
+            <div class="text-gray-300"><%= connected.map(&:capitalize).sort.join(" · ") %> connected</div>
           <% else %>
             <div class="text-gray-500">No platforms connected yet</div>
           <% end %>
           <div class="text-gray-500"><%= pluralize(@nyk_workspace.workspace_posts.count, "post") %> total</div>
+          <% if missing.any? %>
+            <div class="text-orange-400/90 group-hover:text-orange-300 transition pt-0.5">
+              + Connect <%= missing.map(&:capitalize).join(", ") %>
+              <span class="text-gray-600">· Instagram coming soon</span>
+            </div>
+          <% elsif all_present.exclude?("instagram") %>
+            <div class="text-gray-600 pt-0.5">Instagram coming soon</div>
+          <% end %>
         <% else %>
           <div class="text-gray-500">No NY Kitchen workspace yet</div>
           <div class="text-gray-500">Click to set one up</div>
