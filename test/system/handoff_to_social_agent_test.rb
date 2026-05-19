@@ -59,14 +59,27 @@ class HandoffToSocialAgentSystemTest < SystemTestCase
     btn.click
     50.times { break if @page.url =~ %r{/(nykitchen/social|workspaces/nykitchen/social)}; sleep 0.1 }
 
-    assert_match %r{/(nykitchen/social|workspaces/nykitchen/social)}, @page.url,
-                 "Expected to land on the Social Agent composer after handoff"
+    # The redirect should land on /nykitchen/social (the alias that renders
+    # the composer in-place under the agents-hub URL shape) with the
+    # #drafts fragment so the page scrolls past the empty Compose box
+    # to the just-created draft.
+    assert_match %r{/nykitchen/social\b}, @page.url,
+                 "Expected to land on /nykitchen/social after handoff, got #{@page.url}"
+    assert @page.url.include?("#drafts"),
+           "Expected URL fragment #drafts so the page jumps to the new draft, got #{@page.url}"
 
+    # The draft itself was persisted in draft mode.
     ActiveRecord::Base.connection.clear_query_cache
     draft = WorkspaceDraft.find_by(source_url: test_url)
     assert draft, "Expected a WorkspaceDraft for #{test_url} to exist after handoff"
     assert_equal @ws.id,    draft.workspace_id, "Draft should belong to the NYK workspace"
     assert_equal "draft",   draft.status,       "Draft should be in draft mode (not published)"
     assert_match(/Whiskey/, draft.body,         "Draft body should carry the event content forward")
+
+    # And the page Lora lands on actually surfaces the draft so she can
+    # edit / publish it without hunting for it.
+    body_text = @page.text_content("body").to_s
+    assert_match(/Drafts/i, body_text, "Drafts section should be visible on the composer page")
+    assert_match(/Whiskey/,  body_text, "The just-created draft body should appear on the page")
   end
 end
