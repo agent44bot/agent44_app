@@ -104,6 +104,32 @@
       </div>
     <% end %>
 
+    <%= link_to social_href,
+          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📣</span>
+          <h2 class="text-lg font-bold text-white">Social Agent</h2>
+          <%= agent_dot.call(@hub_agent_status[:social]) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <div class="space-y-1 text-sm">
+        <% if @nyk_workspace %>
+          <% platforms = @nyk_workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort %>
+          <% if platforms.any? %>
+            <div class="text-gray-300"><%= platforms.join(" · ") %> connected</div>
+          <% else %>
+            <div class="text-gray-500">No platforms connected yet</div>
+          <% end %>
+          <div class="text-gray-500"><%= pluralize(@nyk_workspace.workspace_posts.count, "post") %> total</div>
+        <% else %>
+          <div class="text-gray-500">No NY Kitchen workspace yet</div>
+          <div class="text-gray-500">Click to set one up</div>
+        <% end %>
+      </div>
+    <% end %>
+
     <%= link_to nyk_test_path,
           class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
       <div class="flex items-start justify-between mb-3">
@@ -141,31 +167,6 @@
       </div>
     <% end %>
 
-    <%= link_to social_href,
-          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
-      <div class="flex items-start justify-between mb-3">
-        <div class="flex items-center gap-2">
-          <span class="text-2xl">📣</span>
-          <h2 class="text-lg font-bold text-white">Social Agent</h2>
-          <%= agent_dot.call(@hub_agent_status[:social]) %>
-        </div>
-        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
-      </div>
-      <div class="space-y-1 text-sm">
-        <% if @nyk_workspace %>
-          <% platforms = @nyk_workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort %>
-          <% if platforms.any? %>
-            <div class="text-gray-300"><%= platforms.join(" · ") %> connected</div>
-          <% else %>
-            <div class="text-gray-500">No platforms connected yet</div>
-          <% end %>
-          <div class="text-gray-500"><%= pluralize(@nyk_workspace.workspace_posts.count, "post") %> total</div>
-        <% else %>
-          <div class="text-gray-500">No NY Kitchen workspace yet</div>
-          <div class="text-gray-500">Click to set one up</div>
-        <% end %>
-      </div>
-    <% end %>
   </div>
 
 </div>
