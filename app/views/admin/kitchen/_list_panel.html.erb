@@ -1,0 +1,77 @@
+      <% @weeks.each_with_index do |week, week_index| %>
+        <% next if week[:events].empty? %>
+        <section id="week-<%= week_index %>"
+                 data-kitchen-filter-target="section"
+                 data-controller="collapsible"
+                 data-collapsible-collapsed-value="true"
+                 class="mb-8">
+          <%
+            total    = week[:events].size
+            statuses = week[:events].map(&:availability_status)
+            sold     = statuses.count { |s| s == "soldout" || s == "closed" }
+            avail    = statuses.count { |s| s == "instock" || s == "limited" }
+
+            # Capacity-weighted %: sum of tickets sold over sum of capacity,
+            # across events where capacity is known. KitchenEvent#tickets_total
+            # uses a three-tier fallback (live cap → snapshotted cap →
+            # observed-high-water proxy). Falls back to the old class-count
+            # ratio when no event in the week qualifies (rare).
+            priced_events  = week[:events].select(&:capacity_known?)
+            proxy_events   = priced_events.select(&:capacity_via_proxy?)
+            tickets_total  = priced_events.sum(&:tickets_total)
+            tickets_sold   = priced_events.sum(&:tickets_sold)
+            denom          = sold + avail
+
+            sold_pct = if tickets_total.positive?
+              (tickets_sold.to_f / tickets_total * 100).round
+            elsif denom.positive?
+              (sold.to_f / denom * 100).round
+            else
+              0
+            end
+
+            pct_sold       = sold_pct
+            pct_avail      = 100 - sold_pct
+            sold_pct_color = sold_pct >= 60 ? "text-red-400"
+                           : sold_pct >= 25 ? "text-amber-400"
+                           :                   "text-gray-500"
+            sold_tooltip   = if priced_events.any?
+              proxy_note = proxy_events.any? ? " (#{proxy_events.size} use observed baseline as capacity proxy — biased low)" : ""
+              "#{tickets_sold} of #{tickets_total} tickets sold across #{priced_events.size} of #{total} classes#{proxy_note}"
+            else
+              "No capacity data — falling back to class-count ratio (#{sold} of #{denom} classes sold out)"
+            end
+          %>
+          <button type="button"
+                  data-action="click->collapsible#toggle"
+                  class="w-full text-left border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-lg font-bold text-white min-w-0 truncate">
+                <%= week[:label] %>
+                <span class="text-gray-500 font-normal">(<%= total %>)</span>
+              </span>
+              <div class="flex items-center gap-3 shrink-0">
+                <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
+                <svg data-collapsible-target="icon"
+                     class="w-5 h-5 text-gray-500 transition-transform"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+            <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
+              <% if sold > 0 %>
+                <div class="bg-red-500 h-full" style="width: <%= pct_sold %>%" title="<%= sold %> sold out / closed"></div>
+              <% end %>
+              <% if avail > 0 %>
+                <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>
+              <% end %>
+            </div>
+          </button>
+          <div data-collapsible-target="body" class="space-y-3">
+            <% week[:events].each do |e| %>
+              <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
