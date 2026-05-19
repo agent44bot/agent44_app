@@ -13,8 +13,9 @@ Rails.application.routes.draw do
   resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
   resource :settings, only: [ :show, :destroy ] do
-    post :verify_password
+    post  :verify_password
     patch :update_email
+    patch :update_name
   end
   get "email_verification", to: "email_verifications#show", as: :email_verification
   post "email_verification/resend", to: "email_verifications#resend", as: :resend_email_verification
