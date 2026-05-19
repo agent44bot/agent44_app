@@ -1,7 +1,7 @@
 <% content_for(:title, "NY Kitchen") %>
 
 <%
-  social_href = @nyk_workspace ? workspace_path(@nyk_workspace.slug) : workspaces_path
+  social_href = @nyk_workspace ? social_workspace_path(@nyk_workspace.slug) : workspaces_path
 
   smoke_status_color = if @hub_smoke_last.nil?            then "text-gray-500"
                       elsif @hub_smoke_last.passed?      then "text-green-400"

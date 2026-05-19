@@ -1,7 +1,7 @@
 class WorkspacesController < ApplicationController
   include FleetSocialAccess
-  before_action :load_workspace,    only: [:show, :update, :destroy, :refresh_metrics]
-  before_action :require_member,    only: [:show, :refresh_metrics]
+  before_action :load_workspace,    only: [:show, :social, :update, :destroy, :refresh_metrics]
+  before_action :require_member,    only: [:show, :social, :refresh_metrics]
   before_action :require_admin,     only: [:update, :destroy]
   # New / Create stay site-admin-only — workspace members can use existing
   # workspaces (and accept invitations into them) but creating brand new
@@ -20,7 +20,7 @@ class WorkspacesController < ApplicationController
   def create
     @workspace = Workspace.new(workspace_params.merge(owner: current_user))
     if @workspace.save
-      redirect_to workspace_path(@workspace.slug), notice: "Workspace created."
+      redirect_to social_workspace_path(@workspace.slug), notice: "Workspace created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -28,9 +28,9 @@ class WorkspacesController < ApplicationController
 
   def update
     if @workspace.update(workspace_params)
-      redirect_to workspace_path(@workspace.slug), notice: "Workspace updated."
+      redirect_to social_workspace_path(@workspace.slug), notice: "Workspace updated."
     else
-      redirect_to workspace_path(@workspace.slug), alert: "Update failed: #{@workspace.errors.full_messages.to_sentence}"
+      redirect_to social_workspace_path(@workspace.slug), alert: "Update failed: #{@workspace.errors.full_messages.to_sentence}"
     end
   end
 
@@ -45,10 +45,24 @@ class WorkspacesController < ApplicationController
   # fresh numbers immediately instead of waiting for the next :23.
   def refresh_metrics
     count = RefreshSocialMetricsJob.new.perform(workspace_id: @workspace.id, force: true)
-    redirect_to workspace_path(@workspace.slug), notice: "Refreshed metrics on #{count} #{'post'.pluralize(count)}."
+    redirect_to social_workspace_path(@workspace.slug), notice: "Refreshed metrics on #{count} #{'post'.pluralize(count)}."
   end
 
+  # Workspace agents hub. Today every workspace has just one agent (Social),
+  # but the hub gives a consistent shape so future agents (analytics, alerts,
+  # etc.) can join the fleet here. NY Kitchen has a richer 4-agent hub at
+  # /nykitchen — redirect there so there's one canonical NYK destination.
   def show
+    return redirect_to(nykitchen_path, status: 301) if @workspace.slug == "ny-kitchen"
+
+    @my_role  = @workspace.role_for(current_user)
+    @writer   = %w[owner admin editor].include?(@my_role)
+    @platforms_connected = @workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort
+    @posts_total         = @workspace.workspace_posts.count
+    @last_post_at        = @workspace.workspace_posts.maximum(:posted_at) || @workspace.workspace_posts.maximum(:created_at)
+  end
+
+  def social
     @memberships  = @workspace.memberships.includes(:user).order(:created_at)
     @invitations  = @workspace.invitations.pending.order(created_at: :desc)
     @social_accounts = @workspace.social_accounts.order(:platform, :handle)
@@ -81,7 +95,7 @@ class WorkspacesController < ApplicationController
 
   def require_admin
     return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
-    redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can do that."
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can do that."
   end
 
   def require_site_admin

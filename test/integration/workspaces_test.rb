@@ -43,7 +43,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
       post workspaces_path, params: { workspace: { name: "Brand New", description: "hi", timezone: "Eastern Time (US & Canada)" } }
     end
     ws = Workspace.order(:created_at).last
-    assert_redirected_to workspace_path(ws.slug)
+    assert_redirected_to social_workspace_path(ws.slug)
     assert_equal "owner", ws.role_for(@owner)
   end
 
@@ -107,7 +107,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     ws = Workspace.create!(name: "TZWS", owner: @owner, timezone: "UTC")
     sign_in_as(@owner)
     patch workspace_path(ws.slug), params: { workspace: { timezone: "Eastern Time (US & Canada)" } }
-    assert_redirected_to workspace_path(ws.slug)
+    assert_redirected_to social_workspace_path(ws.slug)
     assert_equal "Eastern Time (US & Canada)", ws.reload.timezone
   end
 
@@ -117,5 +117,35 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     sign_in_as(@viewer)
     patch workspace_path(ws.slug), params: { workspace: { timezone: "Eastern Time (US & Canada)" } }
     assert_equal "UTC", ws.reload.timezone
+  end
+
+  # --- Workspace agents hub --------------------------------------------------
+
+  test "show renders a workspace hub with a Social Agent card" do
+    ws = Workspace.create!(name: "Hub WS", owner: @owner)
+    sign_in_as(@owner)
+    get workspace_path(ws.slug)
+    assert_response :success
+    assert_match /Social Agent/,       response.body
+    assert_match /No platforms connected yet/, response.body
+    # Hub links to the social composer, not back to itself.
+    assert_match %r{href="/workspaces/#{ws.slug}/social"}, response.body
+  end
+
+  test "show 301-redirects ny-kitchen to /nykitchen so there's one NYK destination" do
+    ws = Workspace.create!(name: "NY Kitchen", owner: @owner, slug: "ny-kitchen")
+    sign_in_as(@owner)
+    get workspace_path(ws.slug)
+    assert_redirected_to nykitchen_path
+    assert_equal 301, response.status
+  end
+
+  test "social renders the composer with the timezone form" do
+    ws = Workspace.create!(name: "Social WS", owner: @owner)
+    sign_in_as(@owner)
+    get social_workspace_path(ws.slug)
+    assert_response :success
+    # The composer page shows the timezone select (owners only).
+    assert_match %r{name="workspace\[timezone\]"}, response.body
   end
 end

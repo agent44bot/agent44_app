@@ -16,34 +16,34 @@ class WorkspacePostsController < ApplicationController
         end
 
       if result && !result.ok?
-        return redirect_to workspace_path(@workspace.slug),
+        return redirect_to social_workspace_path(@workspace.slug),
                            alert: "Couldn't delete from #{post.platform.titleize} (#{result.error}). Row kept so you can retry."
       end
     end
 
     post.destroy!
-    redirect_to workspace_path(@workspace.slug), notice: "Post removed."
+    redirect_to social_workspace_path(@workspace.slug), notice: "Post removed."
   end
 
   def create
     body = params[:body].to_s.strip
     if body.blank?
-      return redirect_to workspace_path(@workspace.slug), alert: "Post body can't be empty."
+      return redirect_to social_workspace_path(@workspace.slug), alert: "Post body can't be empty."
     end
 
     requested = Array(params[:target_platforms]).map(&:to_s) & SocialAccount::PLATFORMS
     if requested.empty?
-      return redirect_to workspace_path(@workspace.slug), alert: "Pick at least one platform to post to."
+      return redirect_to social_workspace_path(@workspace.slug), alert: "Pick at least one platform to post to."
     end
 
     result = WorkspacePosts::Dispatcher.new(@workspace, author: current_user, body: body, platforms: requested).dispatch
 
     if result.all_ok?
-      redirect_to workspace_path(@workspace.slug), notice: "Posted — #{result.successes.join(' · ')}"
+      redirect_to social_workspace_path(@workspace.slug), notice: "Posted — #{result.successes.join(' · ')}"
     elsif result.all_bad?
-      redirect_to workspace_path(@workspace.slug), alert: "All posts failed — #{result.failures.join(' · ')}"
+      redirect_to social_workspace_path(@workspace.slug), alert: "All posts failed — #{result.failures.join(' · ')}"
     else
-      redirect_to workspace_path(@workspace.slug),
+      redirect_to social_workspace_path(@workspace.slug),
                   alert: "Partial: posted to #{result.successes.size}, failed #{result.failures.size}. #{result.failures.join(' · ')}"
     end
   end
@@ -57,7 +57,7 @@ class WorkspacePostsController < ApplicationController
   def require_writer
     membership = @workspace.memberships.find_by(user_id: current_user.id)
     return if membership&.writer?
-    redirect_to workspace_path(@workspace.slug), alert: "Only workspace writers can post."
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace writers can post."
   end
 
   def current_user

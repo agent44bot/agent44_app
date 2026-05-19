@@ -41,7 +41,7 @@ class BlueskyAccountsController < ApplicationController
     )
     account.save!
 
-    redirect_to workspace_path(@workspace.slug), notice: "Connected Bluesky account @#{result.handle}."
+    redirect_to social_workspace_path(@workspace.slug), notice: "Connected Bluesky account @#{result.handle}."
   end
 
   private
@@ -52,7 +52,7 @@ class BlueskyAccountsController < ApplicationController
 
   def require_admin
     return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
-    redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
   end
 
   def current_user

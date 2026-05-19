@@ -206,7 +206,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     end
     body = JSON.parse(response.body)
     assert body["ok"]
-    assert_equal "/workspaces/#{ws.slug}", body["workspace_url"]
+    assert_equal "/workspaces/#{ws.slug}/social", body["workspace_url"]
     assert_equal "NY Kitchen",              body["workspace_name"]
 
     draft = WorkspaceDraft.last

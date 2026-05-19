@@ -29,7 +29,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
     assert_difference -> { WorkspacePost.count }, 1 do
       post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "hello world", target_platforms: ["x"] }
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
 
     wp = WorkspacePost.last
     assert_equal "posted", wp.status
@@ -85,11 +85,11 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
       body: "see me", status: "posted", remote_id: "1", remote_url: "https://x.com/m/status/1", posted_at: Time.current)
 
     sign_in_as(@owner)
-    get workspace_path(@ws.slug)
+    get social_workspace_path(@ws.slug)
     assert_match %r{workspaces/#{@ws.slug}/posts/\d+}, response.body, "owner should see delete form"
 
     sign_in_as(@viewer)
-    get workspace_path(@ws.slug)
+    get social_workspace_path(@ws.slug)
     refute_match %r{workspaces/#{@ws.slug}/posts/\d+}, response.body, "viewer should NOT see delete form"
   end
 

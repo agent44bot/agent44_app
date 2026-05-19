@@ -15,7 +15,7 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
       post workspace_invitations_path(workspace_slug: @ws.slug),
            params: { email: "new@example.com", role: "editor" }
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert_match /Invite created/, flash[:notice]
   end
 
@@ -37,7 +37,7 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
     assert_difference -> { @ws.memberships.count }, 1 do
       post workspace_invitation_accept_path(token: inv.token)
     end
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert_equal "editor", @ws.role_for(@teammate)
   end
 

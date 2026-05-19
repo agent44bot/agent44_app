@@ -6,7 +6,7 @@ module Oauth
 
     def connect
       unless ::X::Oauth.configured?
-        redirect_to workspace_path(@workspace.slug),
+        redirect_to social_workspace_path(@workspace.slug),
                     alert: "X OAuth not configured. Add x.oauth_client_id and x.oauth_client_secret to Rails credentials."
         return
       end
@@ -45,10 +45,10 @@ module Oauth
         redirect_uri:  oauth_x_callback_url,
         code_verifier: stash["verifier"].to_s
       )
-      return halt(workspace_path(workspace.slug), "Token exchange failed: #{token.error}") unless token.ok?
+      return halt(social_workspace_path(workspace.slug), "Token exchange failed: #{token.error}") unless token.ok?
 
       me = ::X::Oauth.me(access_token: token.access_token)
-      return halt(workspace_path(workspace.slug), "Couldn't fetch X profile: #{me.error}") unless me.ok?
+      return halt(social_workspace_path(workspace.slug), "Couldn't fetch X profile: #{me.error}") unless me.ok?
 
       account = workspace.social_accounts.find_or_initialize_by(platform: "x", external_id: me.id)
       account.assign_attributes(
@@ -64,7 +64,7 @@ module Oauth
       )
       account.save!
 
-      redirect_to workspace_path(workspace.slug), notice: "Connected X account #{account.handle}."
+      redirect_to social_workspace_path(workspace.slug), notice: "Connected X account #{account.handle}."
     end
 
     private
@@ -75,7 +75,7 @@ module Oauth
 
     def require_admin
       return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
-      redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
+      redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
     end
 
     def current_user

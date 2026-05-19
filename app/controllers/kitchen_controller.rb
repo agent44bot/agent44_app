@@ -128,7 +128,7 @@ class KitchenController < ApplicationController
     render json: {
       ok:             true,
       draft_id:       draft.id,
-      workspace_url:  workspace_path(ws.slug),
+      workspace_url:  social_workspace_path(ws.slug),
       workspace_name: ws.name
     }
   rescue => e

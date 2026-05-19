@@ -1,374 +1,40 @@
 <% content_for :title, @workspace.name %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-bold text-white"><%= @workspace.name %></h1>
-      <p class="text-xs text-gray-500 font-mono mt-1">/<%= @workspace.slug %> · <%= @workspace.timezone %></p>
-    </div>
-    <div class="flex items-center gap-4">
-      <% if @workspace.slug == "ny-kitchen" %>
-        <%= link_to "← NY Kitchen", nykitchen_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
-      <% end %>
-      <%= link_to "← All workspaces", workspaces_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
-    </div>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="flex items-center gap-3 mb-6 text-sm">
+    <%= link_to workspaces_path, class: "text-gray-500 hover:text-gray-300 transition" do %>
+      ← All workspaces
+    <% end %>
   </div>
 
-  <% if %w[owner admin].include?(@my_role) %>
-    <%= form_with model: @workspace, url: workspace_path(@workspace.slug), method: :patch, local: true,
-                  class: "mb-6 flex flex-wrap items-center gap-2" do |f| %>
-      <label class="text-xs text-gray-500 uppercase tracking-wide">Timezone</label>
-      <%= f.time_zone_select :timezone,
-          ActiveSupport::TimeZone.us_zones,
-          { default: @workspace.timezone },
-          { class: "rounded-md bg-gray-900 border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" } %>
-      <%= f.submit "Save", class: "text-xs text-gray-300 hover:text-white px-3 py-1 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
-    <% end %>
-  <% end %>
+  <div class="mb-8">
+    <h1 class="text-3xl font-black text-white tracking-tight"><%= @workspace.name %></h1>
+    <p class="text-gray-400 mt-1">
+      <span class="text-xs text-gray-500 font-mono">/<%= @workspace.slug %></span>
+      &middot; <%= @workspace.timezone %>
+    </p>
+  </div>
 
-  <% if @workspace.description.present? %>
-    <p class="text-sm text-gray-300 mb-8 whitespace-pre-wrap"><%= @workspace.description %></p>
-  <% end %>
-
-  <% if @writer %>
-    <section class="mb-10">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Compose</h2>
-      <% if @connected_platforms.any? %>
-        <% draft_text  = flash[:draft_text].to_s %>
-        <% draft_topic = flash[:draft_topic].to_s %>
-        <% min_len     = @connected_platforms.include?("x") ? 280 : 300 %>
-        <div class="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3">
-          <% if draft_text.present? %>
-            <p class="text-xs text-orange-400">✨ AI-suggested draft below — edit, then post.</p>
-          <% end %>
-
-          <%= form_with url: workspace_draft_suggest_path(workspace_slug: @workspace.slug), local: true, class: "space-y-2" do %>
-            <div class="flex flex-wrap gap-2">
-              <%= text_field_tag :topic, draft_topic, placeholder: "What should AI draft about? (optional)",
-                  class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
-              <%= submit_tag "✨ Draft with AI",
-                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
-            </div>
-          <% end %>
-
-          <%= form_with url: workspace_posts_path(workspace_slug: @workspace.slug), local: true, class: "space-y-3" do |f| %>
-            <%= f.text_area :body, rows: 3, maxlength: min_len, required: true,
-                value: draft_text.presence,
-                placeholder: "Write your post, or use ✨ Draft with AI above",
-                class: "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none font-mono text-sm" %>
-
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              <span class="text-xs text-gray-500 uppercase tracking-wide">Post to:</span>
-              <% if @x_account %>
-                <label class="flex items-center gap-2 text-gray-300">
-                  <%= check_box_tag "target_platforms[]", "x", true, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
-                  X <span class="text-xs text-gray-500"><%= @x_account.handle %></span>
-                </label>
-              <% end %>
-              <% if @bluesky_account %>
-                <label class="flex items-center gap-2 text-gray-300">
-                  <%= check_box_tag "target_platforms[]", "bluesky", true, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
-                  Bluesky <span class="text-xs text-gray-500"><%= @bluesky_account.handle %></span>
-                </label>
-              <% end %>
-              <% if @threads_account %>
-                <label class="flex items-center gap-2 text-gray-300">
-                  <%= check_box_tag "target_platforms[]", "threads", true, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
-                  Threads <span class="text-xs text-gray-500"><%= @threads_account.handle %></span>
-                </label>
-              <% end %>
-              <% if @facebook_account %>
-                <label class="flex items-center gap-2 text-gray-300">
-                  <%= check_box_tag "target_platforms[]", "facebook", true, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
-                  Facebook <span class="text-xs text-gray-500"><%= @facebook_account.handle %></span>
-                </label>
-              <% end %>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
-              <label class="text-xs text-gray-500 uppercase tracking-wide">Schedule for:</label>
-              <%= datetime_field_tag :scheduled_for, nil,
-                  class: "rounded-md bg-black border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" %>
-              <span class="text-xs text-gray-500">(<%= @workspace.timezone %>) — leave blank to post now or save as draft</span>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-1">
-              <%= submit_tag "Save draft", name: "commit", value: "save",
-                  formaction: workspace_drafts_path(workspace_slug: @workspace.slug),
-                  formnovalidate: true,
-                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
-              <%= submit_tag "Schedule", name: "commit", value: "schedule",
-                  formaction: workspace_drafts_path(workspace_slug: @workspace.slug),
-                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
-              <%= f.submit "Post now",
-                  formnovalidate: true,
-                  data: { turbo_confirm: "Post to the selected platforms now?" },
-                  class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
-            </div>
-          <% end %>
-        </div>
-
-        <% if @scheduled_drafts.any? %>
-          <h3 class="text-xs uppercase tracking-wide text-gray-500 mt-6 mb-2">Scheduled</h3>
-          <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-            <% @scheduled_drafts.each do |d| %>
-              <div class="px-4 py-3">
-                <div class="flex items-center justify-between mb-1 gap-3">
-                  <p class="text-xs text-gray-500 truncate">
-                    <%= d.author.display_identifier %> · fires <%= d.scheduled_for.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p %Z") %> · <%= Array(d.target_platforms).map(&:titleize).join(", ") %>
-                  </p>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <%= button_to "Post now", publish_workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
-                        method: :post, form: { data: { turbo_confirm: "Publish this draft right now?" } },
-                        class: "text-xs text-orange-400 hover:text-orange-300 px-2 py-1 border border-orange-900 rounded-md cursor-pointer" %>
-                    <%= button_to workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
-                        method: :delete, form: { data: { turbo_confirm: "Cancel this scheduled post?" } },
-                        class: "p-1 text-gray-500 hover:text-red-400 cursor-pointer", title: "Delete" do %>
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
-                    <% end %>
-                  </div>
-                </div>
-                <p class="text-sm text-white whitespace-pre-wrap break-words"><%= d.body %></p>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-
-        <% if @drafts.any? %>
-          <h3 class="text-xs uppercase tracking-wide text-gray-500 mt-6 mb-2">Drafts</h3>
-          <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-            <% @drafts.each do |d| %>
-              <div class="px-4 py-3">
-                <div class="flex items-center justify-between mb-1 gap-3">
-                  <p class="text-xs text-gray-500 truncate">
-                    <%= d.author.display_identifier %> · saved <%= d.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %> · <%= Array(d.target_platforms).map(&:titleize).join(", ") %>
-                  </p>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <%= link_to "Edit", edit_workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
-                        class: "text-xs text-gray-300 hover:text-white px-2 py-1 border border-gray-700 rounded-md hover:border-orange-500" %>
-                    <%= button_to "Post now", publish_workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
-                        method: :post, form: { data: { turbo_confirm: "Publish this draft now?" } },
-                        class: "text-xs text-orange-400 hover:text-orange-300 px-2 py-1 border border-orange-900 rounded-md cursor-pointer" %>
-                    <%= button_to workspace_draft_path(workspace_slug: @workspace.slug, id: d.id),
-                        method: :delete, form: { data: { turbo_confirm: "Delete this draft?" } },
-                        class: "p-1 text-gray-500 hover:text-red-400 cursor-pointer", title: "Delete" do %>
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
-                    <% end %>
-                  </div>
-                </div>
-                <p class="text-sm text-white whitespace-pre-wrap break-words"><%= d.body %></p>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
-          <p class="text-gray-400 text-sm">Connect a social account below to start posting.</p>
-        </div>
-      <% end %>
-
-      <% if @posts.any? %>
-        <div class="flex items-center justify-between mt-6 mb-2">
-          <h3 class="text-xs uppercase tracking-wide text-gray-500">Recent posts</h3>
-          <%= button_to refresh_metrics_workspace_path(@workspace.slug),
-              method: :post,
-              class: "text-xs text-gray-400 hover:text-orange-400 cursor-pointer flex items-center gap-1",
-              title: "Pull latest impressions / likes / reposts from X + Bluesky now" do %>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            Refresh metrics
-          <% end %>
-        </div>
-        <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-          <% @posts.each do |p| %>
-            <div class="px-4 py-3">
-              <div class="flex items-center justify-between mb-1 gap-3">
-                <p class="text-xs text-gray-500 truncate">
-                  <%= p.author.display_identifier %> · <%= p.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %>
-                </p>
-                <div class="flex items-center gap-3 shrink-0">
-                  <% if p.posted? && p.remote_url.present? %>
-                    <% label = case p.platform
-                       when "bluesky"  then "View on Bluesky →"
-                       when "threads"  then "View on Threads →"
-                       when "facebook" then "View on Facebook →"
-                       else                 "View on X →"
-                       end %>
-                    <%= link_to label, p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
-                  <% elsif p.failed? %>
-                    <span class="text-xs text-red-400" title="<%= p.error %>">failed</span>
-                  <% else %>
-                    <span class="text-xs text-gray-500"><%= p.status %></span>
-                  <% end %>
-                  <% if @writer %>
-                    <%= button_to workspace_post_path(workspace_slug: @workspace.slug, id: p.id),
-                        method: :delete,
-                        form: { data: { turbo_confirm: p.posted? ? "Delete this tweet from X and remove it from the list?" : "Remove this row?" } },
-                        class: "text-gray-500 hover:text-red-400 cursor-pointer",
-                        title: p.posted? ? "Delete from X + remove" : "Remove" do %>
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
-                      </svg>
-                    <% end %>
-                  <% end %>
-                </div>
-              </div>
-              <p class="text-sm text-white whitespace-pre-wrap break-words"><%= p.body %></p>
-              <% if p.failed? && p.error.present? %>
-                <p class="text-xs text-red-500 mt-1 font-mono break-words"><%= p.error %></p>
-              <% end %>
-              <% if p.posted? && p.metrics_synced_at.present? %>
-                <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                  <% if p.platform == "x" %>
-                    <span title="impressions">👁 <%= number_with_delimiter(p.impressions) %></span>
-                  <% end %>
-                  <span title="likes">❤️ <%= p.likes %></span>
-                  <span title="<%= p.platform == 'x' ? 'retweets' : 'reposts' %>">🔁 <%= p.reposts %></span>
-                  <span title="replies">💬 <%= p.replies %></span>
-                  <% if p.quotes.positive? %><span title="quotes">📝 <%= p.quotes %></span><% end %>
-                  <% if p.platform == "x" && p.bookmarks.positive? %><span title="bookmarks">🔖 <%= p.bookmarks %></span><% end %>
-                  <span class="text-gray-700" title="last refreshed <%= p.metrics_synced_at %>">updated <%= time_ago_in_words(p.metrics_synced_at) %> ago</span>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-    </section>
-  <% end %>
-
-  <section class="mb-10">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Members</h2>
-    <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-      <% @memberships.each do |m| %>
-        <div class="flex items-center justify-between px-4 py-3">
-          <div class="min-w-0">
-            <p class="text-sm text-white truncate"><%= m.user.display_identifier %></p>
-            <% if m.user.email_address.present? %>
-              <p class="text-xs text-gray-500 truncate"><%= m.user.email_address %></p>
-            <% end %>
-          </div>
-          <span class="text-xs uppercase tracking-wide text-gray-400"><%= m.role %></span>
-        </div>
-      <% end %>
-    </div>
-  </section>
-
-  <% if %w[owner admin].include?(@my_role) %>
-    <section class="mb-10">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Invite a teammate</h2>
-      <%= form_with url: workspace_invitations_path(workspace_slug: @workspace.slug), local: true, class: "flex flex-wrap gap-2" do |f| %>
-        <%= f.email_field :email, required: true, placeholder: "boss@magenta.com",
-            class: "flex-1 min-w-[220px] rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none" %>
-        <%= f.select :role, [["editor","editor"],["admin","admin"],["viewer","viewer"]], {},
-            class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2" %>
-        <%= f.submit "Send invite", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
-      <% end %>
-
-      <% if @invitations.any? %>
-        <div class="mt-4 rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-          <% @invitations.each do |inv| %>
-            <div class="flex items-center justify-between px-4 py-3 gap-3">
-              <div class="min-w-0">
-                <p class="text-sm text-white truncate"><%= inv.email %></p>
-                <p class="text-xs text-gray-500 truncate">
-                  <%= inv.role %> · expires <%= inv.expires_at.in_time_zone(@workspace.timezone).strftime("%b %-d") %>
-                </p>
-                <p class="text-[11px] text-gray-600 font-mono break-all mt-1">
-                  <%= workspace_invitation_view_url(token: inv.token) %>
-                </p>
-              </div>
-              <%= button_to "Revoke", workspace_invitation_path(workspace_slug: @workspace.slug, id: inv.id),
-                  method: :delete, form: { data: { turbo_confirm: "Revoke this invite?" } },
-                  class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-    </section>
-  <% end %>
-
-  <section>
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400">Connected accounts</h2>
-      <% if %w[owner admin].include?(@my_role) %>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <%= link_to social_workspace_path(@workspace.slug),
+          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
+      <div class="flex items-start justify-between mb-3">
         <div class="flex items-center gap-2">
-          <% unless @x_account %>
-            <%= button_to "Connect X",
-                workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),
-                method: :post,
-                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-          <% end %>
-          <% unless @bluesky_account %>
-            <%= link_to "Connect Bluesky",
-                new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),
-                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold" %>
-          <% end %>
-          <% unless @threads_account %>
-            <%= button_to "Connect Threads",
-                workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug),
-                method: :post,
-                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-          <% end %>
-          <% unless @facebook_account %>
-            <%= button_to "Connect Facebook",
-                workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug),
-                method: :post,
-                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-          <% end %>
+          <span class="text-2xl">📣</span>
+          <h2 class="text-lg font-bold text-white">Social Agent</h2>
         </div>
-      <% end %>
-    </div>
-
-    <% if @social_accounts.empty? %>
-      <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
-        <p class="text-gray-400 text-sm">No social accounts connected yet.</p>
-        <% if %w[owner admin].include?(@my_role) %>
-          <p class="text-gray-600 text-xs mt-1">Tap "Connect X" above to link an X account.</p>
-        <% end %>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-    <% else %>
-      <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-        <% @social_accounts.each do |acct| %>
-          <div class="flex items-center justify-between px-4 py-3 gap-3">
-            <div class="min-w-0">
-              <p class="text-sm text-white truncate"><%= acct.label %></p>
-              <p class="text-xs text-gray-500"><%= acct.platform %><% if acct.token_expires_at.present? %> · token expires <%= acct.token_expires_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %><% end %></p>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-xs uppercase tracking-wide <%= acct.status == 'active' ? 'text-green-400' : 'text-yellow-400' %>"><%= acct.status %></span>
-              <% if %w[owner admin].include?(@my_role) %>
-                <%= button_to "Disconnect", workspace_social_account_path(workspace_slug: @workspace.slug, id: acct.id),
-                    method: :delete, form: { data: { turbo_confirm: "Disconnect #{acct.label}?" } },
-                    class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
-              <% end %>
-            </div>
-          </div>
+      <div class="space-y-1 text-sm">
+        <% if @platforms_connected.any? %>
+          <div class="text-gray-300"><%= @platforms_connected.join(" · ") %> connected</div>
+        <% else %>
+          <div class="text-gray-500">No platforms connected yet</div>
         <% end %>
+        <div class="text-gray-500">
+          <%= pluralize(@posts_total, "post") %><% if @last_post_at %> · last <%= time_ago_in_words(@last_post_at) %> ago<% end %>
+        </div>
       </div>
     <% end %>
-  </section>
-
-  <% if %w[owner admin].include?(@my_role) %>
-    <section class="mt-12 pt-6 border-t border-red-950">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-red-500 mb-3">Danger zone</h2>
-      <div class="rounded-lg border border-red-900 bg-red-950/20 p-4 flex flex-wrap items-center justify-between gap-3">
-        <div class="min-w-0">
-          <p class="text-sm text-white">Delete this workspace</p>
-          <p class="text-xs text-gray-400 mt-1">
-            Removes <%= @workspace.name %> and all <%= pluralize(@memberships.size, "member") %>,
-            <%= pluralize(@invitations.size, "pending invite") %>,
-            <%= pluralize(@social_accounts.size, "connected account") %>, and
-            <%= pluralize(@workspace.workspace_posts.count, "post") %>. Cannot be undone.
-          </p>
-        </div>
-        <%= button_to "Delete workspace",
-            workspace_path(@workspace.slug),
-            method: :delete,
-            form: { data: { turbo_confirm: "Permanently delete '#{@workspace.name}' and everything in it? This cannot be undone." } },
-            class: "inline-flex items-center px-4 py-2 rounded-md bg-red-900 hover:bg-red-800 text-white text-sm font-semibold cursor-pointer" %>
-      </div>
-    </section>
-  <% end %>
+  </div>
 </div>

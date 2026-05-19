@@ -38,14 +38,14 @@
         <% if ws_status %>
           <span>&middot;</span>
           <% if ws_status[:kind] == :posted %>
-            <%= link_to workspace_path(ws_status[:workspace_slug]),
+            <%= link_to social_workspace_path(ws_status[:workspace_slug]),
                         class: "text-green-500 hover:text-green-400 transition",
                         title: "Open #{ws_status[:workspace_name]} workspace" do %>
               ✓ Posted <%= time_ago_in_words(ws_status[:time]) %> ago
               <span class="text-gray-500">to <%= ws_status[:platforms].map(&:titleize).join(' + ') %></span>
             <% end %>
           <% else %>
-            <%= link_to workspace_path(ws_status[:workspace_slug]),
+            <%= link_to social_workspace_path(ws_status[:workspace_slug]),
                         class: "text-gray-400 hover:text-gray-300 transition",
                         title: "Open #{ws_status[:workspace_name]} workspace" do %>
               ✓ Drafted <%= time_ago_in_words(ws_status[:time]) %> ago

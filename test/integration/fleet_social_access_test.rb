@@ -97,7 +97,7 @@ class FleetSocialAccessTest < ActionDispatch::IntegrationTest
     assert_response :success, "invitation view must be reachable even for non-members"
 
     post workspace_invitation_accept_path(token: inv.token)
-    assert_redirected_to workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
     assert @ws.member?(invitee), "invitee should be a member after accept"
   end
 

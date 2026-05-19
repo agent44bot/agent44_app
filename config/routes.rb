@@ -58,6 +58,7 @@ Rails.application.routes.draw do
 
   resources :workspaces, only: [ :index, :new, :create, :show, :update, :destroy ], param: :slug do
     member do
+      get  :social
       post :refresh_metrics
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"

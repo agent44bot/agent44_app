@@ -6,7 +6,7 @@ module Oauth
 
     def connect
       unless ::Facebook::Oauth.configured?
-        redirect_to workspace_path(@workspace.slug),
+        redirect_to social_workspace_path(@workspace.slug),
                     alert: "Facebook OAuth not configured. Add facebook.client_id and facebook.client_secret to Rails credentials."
         return
       end
@@ -34,15 +34,15 @@ module Oauth
       return halt(workspaces_path, "Workspace not found.") unless workspace
 
       short = ::Facebook::Oauth.exchange_code(code: params[:code], redirect_uri: oauth_facebook_callback_url)
-      return halt(workspace_path(workspace.slug), "Code exchange failed: #{short.error}") unless short.ok?
+      return halt(social_workspace_path(workspace.slug), "Code exchange failed: #{short.error}") unless short.ok?
 
       long = ::Facebook::Oauth.exchange_for_long_lived_user(short_token: short.access_token)
-      return halt(workspace_path(workspace.slug), "Long-lived token exchange failed: #{long.error}") unless long.ok?
+      return halt(social_workspace_path(workspace.slug), "Long-lived token exchange failed: #{long.error}") unless long.ok?
 
       pages = ::Facebook::Oauth.pages(user_token: long.access_token)
-      return halt(workspace_path(workspace.slug), "Couldn't fetch Pages: #{pages.error}") unless pages.ok?
+      return halt(social_workspace_path(workspace.slug), "Couldn't fetch Pages: #{pages.error}") unless pages.ok?
       if pages.pages.empty?
-        return halt(workspace_path(workspace.slug),
+        return halt(social_workspace_path(workspace.slug),
                     "No Facebook Pages found for that account. Create one at facebook.com/pages/create first.")
       end
 
@@ -64,7 +64,7 @@ module Oauth
 
       msg = pages.pages.size > 1 ? "Connected Facebook Page “#{page.name}” (you manage #{pages.pages.size} pages — reconnect to pick another)." \
                                  : "Connected Facebook Page “#{page.name}”."
-      redirect_to workspace_path(workspace.slug), notice: msg
+      redirect_to social_workspace_path(workspace.slug), notice: msg
     end
 
     private
@@ -75,7 +75,7 @@ module Oauth
 
     def require_admin
       return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
-      redirect_to workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
+      redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can connect accounts."
     end
 
     def current_user
