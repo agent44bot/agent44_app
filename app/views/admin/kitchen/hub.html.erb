@@ -54,6 +54,17 @@
     <p class="text-gray-400 mt-1">4 agents working the NY Kitchen calendar.</p>
   </div>
 
+  <% if @nyk_workspace %>
+    <div data-collapsible-target="body">
+      <%= render "workspaces/team",
+            workspace:       @nyk_workspace,
+            memberships:     @nyk_memberships,
+            invitations:     @nyk_invitations,
+            social_accounts: @nyk_social_accounts,
+            my_role:         @nyk_my_role %>
+    </div>
+  <% end %>
+
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <%= link_to nyk_list_path,
           class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
@@ -141,14 +152,4 @@
     <% end %>
   </div>
 
-  <% if @nyk_workspace %>
-    <div data-collapsible-target="body">
-      <%= render "workspaces/team",
-            workspace:       @nyk_workspace,
-            memberships:     @nyk_memberships,
-            invitations:     @nyk_invitations,
-            social_accounts: @nyk_social_accounts,
-            my_role:         @nyk_my_role %>
-    </div>
-  <% end %>
 </div>

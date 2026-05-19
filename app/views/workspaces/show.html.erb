@@ -28,6 +28,15 @@
     </button>
   </div>
 
+  <div data-collapsible-target="body">
+    <%= render "team",
+          workspace:       @workspace,
+          memberships:     @memberships,
+          invitations:     @invitations,
+          social_accounts: @social_accounts,
+          my_role:         @my_role %>
+  </div>
+
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <%= link_to social_workspace_path(@workspace.slug),
           class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
@@ -49,14 +58,5 @@
         </div>
       </div>
     <% end %>
-  </div>
-
-  <div data-collapsible-target="body">
-    <%= render "team",
-          workspace:       @workspace,
-          memberships:     @memberships,
-          invitations:     @invitations,
-          social_accounts: @social_accounts,
-          my_role:         @my_role %>
   </div>
 </div>
