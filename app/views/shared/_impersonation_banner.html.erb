@@ -1,0 +1,10 @@
+<% if Current.session&.impersonating? %>
+  <div class="bg-amber-500 text-amber-950 px-4 py-2 text-sm font-semibold flex items-center justify-between gap-3 sticky top-0 z-[60]">
+    <span class="truncate">
+      🎭 Viewing as <span class="font-bold"><%= Current.user.display_identifier %></span>
+      <span class="text-amber-900/70 font-medium">(admin: <%= Current.real_user.display_identifier %>)</span>
+    </span>
+    <%= button_to "Stop", stop_impersonating_path, method: :delete,
+          class: "shrink-0 inline-flex items-center px-3 py-1 rounded-md bg-amber-950 text-amber-100 hover:bg-amber-900 text-xs font-semibold cursor-pointer" %>
+  </div>
+<% end %>

@@ -24,6 +24,7 @@ class SettingsController < ApplicationController
   end
 
   def update_email
+    return if forbid_impersonation!
     user = Current.user
     new_email = params[:email_address].to_s.strip
 
@@ -46,6 +47,7 @@ class SettingsController < ApplicationController
   # Email/password users must enter their password; Nostr-only users (no
   # password_digest) must type the literal phrase "DELETE" to confirm.
   def destroy
+    return if forbid_impersonation!
     user = Current.user
     return redirect_to(root_path) unless user
 

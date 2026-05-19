@@ -10,6 +10,11 @@ Rails.application.routes.draw do
   # DevSessionsController#create returns 404 outside Rails.env.development?,
   # so the route is safe to expose in prod — it just always 404s there.
   post "dev/login_as/:user_id", to: "dev_sessions#create", as: :dev_login_as
+
+  # Admin "view-as" impersonation. The actor must be a real admin; the
+  # target must not be an admin. ImpersonationLog records every start/stop.
+  post   "impersonate/:user_id", to: "impersonations#create",  as: :impersonate
+  delete "impersonate",          to: "impersonations#destroy", as: :stop_impersonating
   resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
   resource :settings, only: [ :show, :destroy ] do

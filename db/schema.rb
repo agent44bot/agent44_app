@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_201600) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -122,6 +122,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
     t.index ["job_id"], name: "index_hidden_jobs_on_job_id"
     t.index ["user_id", "job_id"], name: "index_hidden_jobs_on_user_id_and_job_id", unique: true
     t.index ["user_id"], name: "index_hidden_jobs_on_user_id"
+  end
+
+  create_table "impersonation_logs", force: :cascade do |t|
+    t.integer "actor_id", null: false
+    t.datetime "created_at", null: false
+    t.string "event", null: false
+    t.string "ip_address"
+    t.integer "target_id", null: false
+    t.index ["actor_id"], name: "index_impersonation_logs_on_actor_id"
+    t.index ["created_at"], name: "index_impersonation_logs_on_created_at"
+    t.index ["target_id"], name: "index_impersonation_logs_on_target_id"
   end
 
   create_table "job_sources", force: :cascade do |t|
@@ -326,10 +337,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
 
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "impersonated_user_id"
     t.string "ip_address"
     t.datetime "updated_at", null: false
     t.string "user_agent"
     t.integer "user_id", null: false
+    t.index ["impersonated_user_id"], name: "index_sessions_on_impersonated_user_id"
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
@@ -540,6 +553,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
   add_foreign_key "fleet_requests", "users"
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"
+  add_foreign_key "impersonation_logs", "users", column: "actor_id"
+  add_foreign_key "impersonation_logs", "users", column: "target_id"
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
@@ -549,6 +564,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
   add_foreign_key "saved_jobs", "jobs"
   add_foreign_key "saved_jobs", "users"
   add_foreign_key "sessions", "users"
+  add_foreign_key "sessions", "users", column: "impersonated_user_id"
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
   add_foreign_key "workspace_drafts", "users", column: "author_id"
