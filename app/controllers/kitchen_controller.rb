@@ -362,7 +362,9 @@ class KitchenController < ApplicationController
     @smoke_status = %w[passed failed].include?(params[:status]) ? params[:status] : "all"
     @smoke_days   = 30
 
-    windowed_scope = nav_scope.where("started_at >= ?", @smoke_days.days.ago)
+    # Exclude in-flight ("running") rows from the table — they're transient
+    # and will land as passed/failed when the run finishes.
+    windowed_scope = nav_scope.finished.where("started_at >= ?", @smoke_days.days.ago)
     table_scope    = case @smoke_status
                      when "passed" then windowed_scope.where(status: "passed")
                      when "failed" then windowed_scope.where(status: "failed")
@@ -479,6 +481,9 @@ class KitchenController < ApplicationController
   DATA_CADENCE = 4.hours    # scrapes every 3 hours, +1h slack
   LIST_CADENCE = 30.hours   # snapshot taken_on is per-day, allow a stale day before going gray
   SOCIAL_CADENCE = 7.days
+  # Past this, a "running" row is treated as orphaned (the client crashed
+  # before PATCHing the result back) so the dot stops pulsing.
+  RUNNING_MAX_AGE = 15.minutes
 
   def list_agent_status
     return :stale unless @hub_events_updated
@@ -508,7 +513,9 @@ class KitchenController < ApplicationController
   #   "on cadence" (i.e. healthy enough to be solid green)
   def agent_status_from_runs(last_run, last_finished, cadence)
     return :stale  unless last_run || last_finished
-    return :running if last_run&.running?
+    if last_run&.running? && Time.current - last_run.started_at < RUNNING_MAX_AGE
+      return :running
+    end
     return :failed  if last_finished&.failed?
     return :stale   unless last_finished
     Time.current - last_finished.started_at < cadence ? :on_cadence : :stale
