@@ -2,13 +2,18 @@ require_relative "system_test_helper"
 require_relative "pages/base_page"
 require_relative "pages/kitchen_page"
 
-# End-to-end: admin clicks 'Send to Social Agent' on an event row and
-# lands on the draft's edit page (/workspaces/:slug/drafts/:id/edit)
-# with the draft persisted in draft mode. Catches regressions in any of:
-#   - The button rendering (admin? + sendable_workspaces gate in event_card)
-#   - The Stimulus social-post controller binding sendToWorkspace
-#   - The kitchen_controller#send_to_workspace endpoint
-#   - The JSON response shape (workspace_url) the JS uses for the redirect
+# End-to-end: signed-in workspace member clicks 'Send to Social Agent'
+# on an event row and lands on the draft's edit page
+# (/workspaces/:slug/drafts/:id/edit) with the draft persisted in draft
+# mode. Catches regressions in any of:
+#   - The button rendering (sendable_workspaces present on event_card)
+#   - The Stimulus social-post controller binding sendToWorkspace +
+#     falling back to buildPost() / workspaceSlugValue when there's no
+#     inline preview
+#   - The kitchen_controller#send_to_workspace endpoint (now member-
+#     based authorization, not admin-only)
+#   - The JSON response shape (workspace_url → draft edit URL) the JS
+#     uses for the redirect
 class HandoffToSocialAgentSystemTest < SystemTestCase
   setup do
     @kitchen = KitchenPage.new(@page, BASE_URL) if @page
@@ -36,7 +41,7 @@ class HandoffToSocialAgentSystemTest < SystemTestCase
     end
   end
 
-  test "admin can hand off an event post to the Social Agent" do
+  test "one-click Send to Social Agent creates a draft and lands on its edit page" do
     @page.goto("#{BASE_URL}/session/new")
     @page.fill("input[name='email_address']", @admin.email_address)
     @page.fill("input[name='password']",      "password123")

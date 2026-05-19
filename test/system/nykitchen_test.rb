@@ -5,9 +5,27 @@ require_relative "pages/kitchen_page"
 class NykitchenSystemTest < SystemTestCase
   setup do
     @kitchen = KitchenPage.new(@page, BASE_URL) if @page
+
+    # /nykitchen/list now requires sign-in; create a member admin so the
+    # post-pivot tests can exercise the agents-hub list view.
+    @admin = User.find_or_create_by!(email_address: "nyk-sys@nyk.test") do |u|
+      u.role     = "admin"
+      u.password = "password123"
+    end
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @admin }
+    ws.memberships.find_or_create_by!(user: @admin) { |m| m.role = "owner" }
   end
 
-  test "kitchen page loads and shows event cards" do
+  def sign_in_admin
+    @page.goto("#{BASE_URL}/session/new")
+    @page.fill("input[name='email_address']", @admin.email_address)
+    @page.fill("input[name='password']",      "password123")
+    @page.click("button[type='submit']")
+    sleep 0.5
+  end
+
+  test "kitchen list page loads and shows event cards" do
+    sign_in_admin
     @kitchen.visit
 
     assert_equal 200, @kitchen.response_status
@@ -16,6 +34,7 @@ class NykitchenSystemTest < SystemTestCase
   end
 
   test "filter chips work" do
+    sign_in_admin
     @kitchen.visit
     @kitchen.expand_filter
 
@@ -29,56 +48,6 @@ class NykitchenSystemTest < SystemTestCase
       assert_equal "instock", card.get_attribute("data-status"),
         "Expected only 'instock' cards after filtering"
     end
-  end
-
-  test "preview post panel expands and shows draft text" do
-    @kitchen.visit
-    @kitchen.expand_first_week
-    @kitchen.open_preview
-
-    assert @kitchen.preview_panel, "Expected preview panel to be visible"
-    assert_match(/New York Kitchen/, @kitchen.preview_text)
-    assert_match(/#NewYorkKitchen/, @kitchen.preview_text)
-  end
-
-  test "preview post text is editable" do
-    @kitchen.visit
-    @kitchen.expand_first_week
-    @kitchen.open_preview
-
-    el = @kitchen.preview_text_element
-    assert el, "Expected preview text element"
-    assert_equal "true", el.get_attribute("contenteditable")
-  end
-
-  test "save draft button appears after editing text" do
-    @kitchen.visit
-    @kitchen.expand_first_week
-    @kitchen.open_preview
-
-    # Save button should be hidden initially
-    save_btn = @kitchen.save_button
-    assert save_btn, "Expected save draft button in preview panel"
-    assert save_btn.evaluate("el => el.classList.contains('hidden')"), "Save button should be hidden before editing"
-
-    # Type into the preview text to trigger markDirty
-    @kitchen.preview_text_element.click
-    @page.keyboard.type(" test edit")
-    sleep 0.3
-
-    # Save button should now be visible
-    refute save_btn.evaluate("el => el.classList.contains('hidden')"), "Save button should be visible after editing"
-  end
-
-  test "enhance with AI button exists but is not clicked in tests" do
-    @kitchen.visit
-    @kitchen.expand_first_week
-    @kitchen.open_preview
-
-    btn = @kitchen.enhance_button
-    assert btn, "Expected 'Enhance with AI' button in preview panel"
-    assert_match(/Enhance with AI/, btn.text_content)
-    # NOTE: We intentionally do NOT click this button to avoid Anthropic API costs
   end
 
   test "admin kitchen redirects to nykitchen" do
