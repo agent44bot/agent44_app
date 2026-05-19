@@ -19,6 +19,9 @@ class KitchenController < ApplicationController
     end
     load_hub_summary
     @nyk_workspace = nyk_workspace_for(Current.session&.user)
+    # Team management is rendered below the agent cards for members; load
+    # the workspace data so the partial can render.
+    load_nyk_team_data if @nyk_workspace
     render "admin/kitchen/hub", layout: "application"
   end
 
@@ -244,6 +247,16 @@ class KitchenController < ApplicationController
   def nyk_workspace_for(user)
     return nil unless user
     user.workspaces.find { |w| w.slug.to_s.include?("kitchen") || w.name.to_s.downcase.include?("kitchen") }
+  end
+
+  # Loads the locals needed by workspaces/_team partial when rendering on
+  # the NYK hub. Only called when @nyk_workspace is present (i.e. the
+  # signed-in user is a member of the NY Kitchen workspace).
+  def load_nyk_team_data
+    @nyk_memberships     = @nyk_workspace.memberships.includes(:user).order(:created_at)
+    @nyk_invitations     = @nyk_workspace.invitations.pending.order(created_at: :desc)
+    @nyk_social_accounts = @nyk_workspace.social_accounts.order(:platform, :handle)
+    @nyk_my_role         = @nyk_workspace.role_for(Current.session&.user)
   end
 
   # List Agent data — events, weeks, filter counts, workspace status.

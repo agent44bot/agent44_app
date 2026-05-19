@@ -37,4 +37,11 @@
       </div>
     <% end %>
   </div>
+
+  <%= render "team",
+        workspace:       @workspace,
+        memberships:     @memberships,
+        invitations:     @invitations,
+        social_accounts: @social_accounts,
+        my_role:         @my_role %>
 </div>

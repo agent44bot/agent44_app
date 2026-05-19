@@ -127,4 +127,13 @@
       </div>
     <% end %>
   </div>
+
+  <% if @nyk_workspace %>
+    <%= render "workspaces/team",
+          workspace:       @nyk_workspace,
+          memberships:     @nyk_memberships,
+          invitations:     @nyk_invitations,
+          social_accounts: @nyk_social_accounts,
+          my_role:         @nyk_my_role %>
+  <% end %>
 </div>

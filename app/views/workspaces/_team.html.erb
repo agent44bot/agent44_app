@@ -1,0 +1,84 @@
+<%# Workspace-level team management: members list + invite form + danger zone.
+    Rendered on the workspace hub (/workspaces/:slug) and the NYK agents hub
+    (/nykitchen) so workspace admins can manage their team without going into
+    the Social Agent composer.
+
+    Locals:
+      workspace        — the Workspace
+      memberships      — workspace.memberships.includes(:user).order(:created_at)
+      invitations      — workspace.invitations.pending.order(created_at: :desc)
+      social_accounts  — workspace.social_accounts.order(:platform, :handle)
+      my_role          — workspace.role_for(current_user)
+%>
+<% admin = %w[owner admin].include?(my_role) %>
+
+<section class="mt-12 mb-10">
+  <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Members</h2>
+  <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+    <% memberships.each do |m| %>
+      <div class="flex items-center justify-between px-4 py-3">
+        <div class="min-w-0">
+          <p class="text-sm text-white truncate"><%= m.user.display_identifier %></p>
+          <% if m.user.email_address.present? %>
+            <p class="text-xs text-gray-500 truncate"><%= m.user.email_address %></p>
+          <% end %>
+        </div>
+        <span class="text-xs uppercase tracking-wide text-gray-400"><%= m.role %></span>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<% if admin %>
+  <section class="mb-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Invite a teammate</h2>
+    <%= form_with url: workspace_invitations_path(workspace_slug: workspace.slug), local: true, class: "flex flex-wrap gap-2" do |f| %>
+      <%= f.email_field :email, required: true, placeholder: "boss@magenta.com",
+          class: "flex-1 min-w-[220px] rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+      <%= f.select :role, [["editor","editor"],["admin","admin"],["viewer","viewer"]], {},
+          class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2" %>
+      <%= f.submit "Send invite", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+
+    <% if invitations.any? %>
+      <div class="mt-4 rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+        <% invitations.each do |inv| %>
+          <div class="flex items-center justify-between px-4 py-3 gap-3">
+            <div class="min-w-0">
+              <p class="text-sm text-white truncate"><%= inv.email %></p>
+              <p class="text-xs text-gray-500 truncate">
+                <%= inv.role %> · expires <%= inv.expires_at.in_time_zone(workspace.timezone).strftime("%b %-d") %>
+              </p>
+              <p class="text-[11px] text-gray-600 font-mono break-all mt-1">
+                <%= workspace_invitation_view_url(token: inv.token) %>
+              </p>
+            </div>
+            <%= button_to "Revoke", workspace_invitation_path(workspace_slug: workspace.slug, id: inv.id),
+                method: :delete, form: { data: { turbo_confirm: "Revoke this invite?" } },
+                class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="mt-12 pt-6 border-t border-red-950">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-red-500 mb-3">Danger zone</h2>
+    <div class="rounded-lg border border-red-900 bg-red-950/20 p-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-sm text-white">Delete this workspace</p>
+        <p class="text-xs text-gray-400 mt-1">
+          Removes <%= workspace.name %> and all <%= pluralize(memberships.size, "member") %>,
+          <%= pluralize(invitations.size, "pending invite") %>,
+          <%= pluralize(social_accounts.size, "connected account") %>, and
+          <%= pluralize(workspace.workspace_posts.count, "post") %>. Cannot be undone.
+        </p>
+      </div>
+      <%= button_to "Delete workspace",
+          workspace_path(workspace.slug),
+          method: :delete,
+          form: { data: { turbo_confirm: "Permanently delete '#{workspace.name}' and everything in it? This cannot be undone." } },
+          class: "inline-flex items-center px-4 py-2 rounded-md bg-red-900 hover:bg-red-800 text-white text-sm font-semibold cursor-pointer" %>
+    </div>
+  </section>
+<% end %>

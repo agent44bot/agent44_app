@@ -59,6 +59,11 @@ class WorkspacesController < ApplicationController
     @platforms_connected = @workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort
     @posts_total         = @workspace.workspace_posts.count
     @last_post_at        = @workspace.workspace_posts.maximum(:posted_at) || @workspace.workspace_posts.maximum(:created_at)
+
+    # Team management lives on the workspace hub now (was on /social).
+    @memberships     = @workspace.memberships.includes(:user).order(:created_at)
+    @invitations     = @workspace.invitations.pending.order(created_at: :desc)
+    @social_accounts = @workspace.social_accounts.order(:platform, :handle)
   end
 
   def social
