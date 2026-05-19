@@ -326,10 +326,15 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match /Scrapes/,      response.body
   end
 
-  test "nyk_social_path 301s to the NYK workspace social composer" do
+  test "nyk_social_path renders the NYK workspace composer in-place" do
+    admin = User.create!(email_address: "nyk-social-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = admin }
+    Workspace.find_by(slug: "nykitchen").tap { |w| w.memberships.find_or_create_by!(user: admin, role: "owner") }
+    sign_in_as(admin)
     get nyk_social_path
-    assert_redirected_to "/workspaces/nykitchen/social"
-    assert_equal 301, response.status
+    assert_response :success
+    # The composer view renders, not a redirect — URL stays /nykitchen/social.
+    assert_match %r{name="workspace\[timezone\]"}, response.body
   end
 
   test "nyk_list_path renders breadcrumbs above the list" do
