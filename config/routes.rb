@@ -54,8 +54,6 @@ Rails.application.routes.draw do
 
   get "notifications", to: "notifications#index"
 
-  resources :fleet_requests, only: [ :create ]
-
   resources :workspaces, only: [ :index, :new, :create, :show, :update, :destroy ], param: :slug do
     member do
       get  :social

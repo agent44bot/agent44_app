@@ -7,11 +7,6 @@ class PagesController < ApplicationController
   ].freeze
 
   def home
-    if authenticated? && Current.session.user.role.to_s == "member"
-      render_member_dashboard
-      return
-    end
-
     real_agents = Agent.ordered.to_a
     @agents = (authenticated? && Current.session.user.admin?) ? real_agents : []
 
@@ -51,11 +46,4 @@ class PagesController < ApplicationController
     render layout: "admin"
   end
 
-  private
-
-  def render_member_dashboard
-    @services       = FleetRequest::SERVICES
-    @latest_request = Current.session.user.fleet_requests.recent.first
-    render "pages/member_dashboard"
-  end
 end
