@@ -15,6 +15,16 @@
     end
   }
 
+  # Renders the small "#207" badge (with optional pet name) next to
+  # an agent's title. Returns "" if @workspace_agents doesn't have the
+  # kind (anonymous viewer of /nykitchen, no workspace yet).
+  agent_badge = ->(kind) {
+    a = @workspace_agents[kind.to_s]
+    return "".html_safe unless a
+    name_part = a.display_name.present? ? %(<span class="text-orange-300/90 font-semibold">#{ERB::Util.h(a.display_name)}</span> · ) : ""
+    %(<span class="ml-1 text-xs text-gray-500 font-mono">#{name_part}##{a.agent_number}</span>).html_safe
+  }
+
   # Public profile URL for a connected social account, used by the
   # Social Agent card on the hub. Returns "#" for platforms we can't
   # construct one for so the link still renders harmlessly.
@@ -93,7 +103,7 @@
   </div>
 
   <% if @nyk_workspace %>
-    <div data-collapsible-target="body">
+    <div data-collapsible-target="body" class="mb-8">
       <%= render "workspaces/team",
             workspace:       @nyk_workspace,
             memberships:     @nyk_memberships,
@@ -117,6 +127,7 @@
         <div class="flex items-center gap-2">
           <span class="text-2xl">📋</span>
           <h2 class="text-lg font-bold text-white">List Agent</h2>
+          <%= agent_badge.call(:list) %>
           <%= agent_dot.call(@hub_agent_status[:list]) %>
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
@@ -143,6 +154,7 @@
         <%= link_to social_href, class: "flex items-center gap-2 group/title" do %>
           <span class="text-2xl">📣</span>
           <h2 class="text-lg font-bold text-white group-hover/title:text-orange-400 transition">Social Agent</h2>
+          <%= agent_badge.call(:social) %>
           <%= agent_dot.call(@hub_agent_status[:social]) %>
         <% end %>
         <%= link_to social_href, class: "text-gray-600 hover:text-orange-400 transition" do %>→<% end %>
@@ -181,6 +193,7 @@
         <div class="flex items-center gap-2">
           <span class="text-2xl">🕷️</span>
           <h2 class="text-lg font-bold text-white">Data Agent</h2>
+          <%= agent_badge.call(:data) %>
           <%= agent_dot.call(@hub_agent_status[:data]) %>
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
@@ -201,6 +214,7 @@
         <div class="flex items-center gap-2">
           <span class="text-2xl">🔁</span>
           <h2 class="text-lg font-bold text-white">Test Agent</h2>
+          <%= agent_badge.call(:test) %>
           <%= agent_dot.call(@hub_agent_status[:test]) %>
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>

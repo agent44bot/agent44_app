@@ -9,6 +9,7 @@ class Workspace < ApplicationRecord
   has_many :social_accounts,   dependent: :destroy
   has_many :workspace_posts,   dependent: :destroy
   has_many :workspace_drafts,  dependent: :destroy
+  has_many :workspace_agents,  dependent: :destroy
 
   validates :name, presence: true, length: { maximum: 100 }
   validates :slug, presence: true, uniqueness: true,
@@ -33,6 +34,18 @@ class Workspace < ApplicationRecord
 
   def member?(user)
     role_for(user).present?
+  end
+
+  # WorkspaceAgent row for the given kind ("list", "social", "data",
+  # "test"), auto-assigning a random unused 3-digit ID on first access.
+  # Subsequent calls return the same row, so the badge number is stable.
+  # Used for "#207" badges and optional pet names on the NYK hub +
+  # agent detail pages.
+  def agent_for(kind)
+    workspace_agents.find_or_create_by!(kind: kind.to_s) do |a|
+      taken = workspace_agents.pluck(:agent_number)
+      a.agent_number = (((100..999).to_a - taken).sample) || (100..999).to_a.sample
+    end
   end
 
   # Site admins always see pricing. Workspace members see it when the

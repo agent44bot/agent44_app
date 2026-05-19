@@ -85,7 +85,9 @@ class BillingVisibilityToggleTest < ActionDispatch::IntegrationTest
   def hub_card_for(agent, body)
     case agent
     when :test
-      body[/Test Agent.*?Data Agent/m].to_s
+      # Test Agent is the last card; grep from its title to end-of-document
+      # so the regex doesn't depend on card-ordering.
+      body[/Test Agent.*\z/m].to_s
     end
   end
 end

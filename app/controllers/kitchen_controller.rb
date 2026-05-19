@@ -41,6 +41,29 @@ class KitchenController < ApplicationController
     render "admin/kitchen/data", layout: "application"
   end
 
+  # PATCH /nykitchen/agents/:kind  — workspace owner/admin renames an
+  # agent (sets WorkspaceAgent#display_name). Pass display_name="" to
+  # clear. Anyone else gets a redirect with an alert.
+  def rename_agent
+    kind = params[:kind].to_s
+    unless WorkspaceAgent::KINDS.include?(kind)
+      redirect_to nykitchen_path, alert: "Unknown agent." and return
+    end
+    workspace = Workspace.find_by(slug: "nykitchen")
+    role = workspace&.role_for(Current.user)
+    unless workspace && %w[owner admin].include?(role)
+      redirect_to nykitchen_path, alert: "Only workspace admins can rename agents." and return
+    end
+    agent = workspace.agent_for(kind)
+    name = params[:display_name].to_s.strip
+    if agent.update(display_name: name.presence)
+      label = agent.display_name.presence || "##{agent.agent_number}"
+      redirect_back fallback_location: nykitchen_path, notice: "Renamed to #{label}."
+    else
+      redirect_back fallback_location: nykitchen_path, alert: agent.errors.full_messages.first || "Couldn't rename."
+    end
+  end
+
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot
@@ -252,6 +275,12 @@ class KitchenController < ApplicationController
   def set_common_view_state
     @admin = authenticated? && (Current.user.admin? || Current.user.reviewer?)
     @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.user) || false
+    # The NYK workspace itself (slug 'nykitchen'). All four agent pages
+    # need it so the WorkspaceAgent badge + pet-name can render in the
+    # title row. Anonymous viewers (hub only) get nil.
+    @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
+    @workspace_agents = @nyk_workspace ? %w[list social data test].index_with { |k| @nyk_workspace.agent_for(k) } : {}
+    @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
   end
 
   # The user's NYK-flavored workspace, if any — backs the Social Agent card

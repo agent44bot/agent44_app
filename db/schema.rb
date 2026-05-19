@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_201600) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_212000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -443,6 +443,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_201600) do
     t.string "youtube_id"
   end
 
+  create_table "workspace_agents", force: :cascade do |t|
+    t.integer "agent_number", null: false
+    t.datetime "created_at", null: false
+    t.string "display_name"
+    t.string "kind", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "agent_number"], name: "index_workspace_agents_on_workspace_id_and_agent_number", unique: true
+    t.index ["workspace_id", "kind"], name: "index_workspace_agents_on_workspace_id_and_kind", unique: true
+    t.index ["workspace_id"], name: "index_workspace_agents_on_workspace_id"
+  end
+
   create_table "workspace_drafts", force: :cascade do |t|
     t.integer "author_id", null: false
     t.text "body", null: false
@@ -567,6 +579,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_201600) do
   add_foreign_key "sessions", "users", column: "impersonated_user_id"
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
+  add_foreign_key "workspace_agents", "workspaces"
   add_foreign_key "workspace_drafts", "users", column: "author_id"
   add_foreign_key "workspace_drafts", "workspaces"
   add_foreign_key "workspace_invitations", "users", column: "accepted_by_id"

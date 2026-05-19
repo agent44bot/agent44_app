@@ -52,6 +52,7 @@ Rails.application.routes.draw do
   post "nykitchen/send_to_workspace", to: "kitchen#send_to_workspace"
   get  "nykitchen/billing",                 to: "nyk_billing#show", as: :nyk_billing
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
+  patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"
   resources :posts, only: [ :index, :show ], path: "pulse"
