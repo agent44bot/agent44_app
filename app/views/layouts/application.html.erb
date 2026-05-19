@@ -136,12 +136,8 @@
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
-            <% if !Current.session.user.admin? %>
-              <%= link_to "Workspaces", workspaces_path, class: "text-sm text-gray-300 hover:text-orange-400 transition" %>
-              <% if Current.session.user.workspace_memberships.joins(:workspace).where(workspaces: { slug: "nykitchen" }).exists? %>
-                <%= link_to "NY Kitchen", nykitchen_path, class: "text-sm text-gray-300 hover:text-orange-400 transition" %>
-              <% end %>
-            <% end %>
+            <%# Non-admin nav is intentionally bare — breadcrumbs inside
+                /workspaces and /nykitchen handle back-navigation. %>
             <% if Current.session.user.admin? %>
               <!-- Admin dropdown -->
               <div class="relative" data-controller="nav">
@@ -194,11 +190,8 @@
         <% if !authenticated? || Current.session.user.admin? %>
           <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% end %>
-        <% if authenticated? %>
+        <% if authenticated? && Current.session.user.admin? %>
           <%= link_to "Workspaces", workspaces_path, class: "block px-3 py-2 rounded-md text-base font-medium text-orange-500 hover:bg-gray-800" %>
-          <% if !Current.session.user.admin? && Current.session.user.workspace_memberships.joins(:workspace).where(workspaces: { slug: "nykitchen" }).exists? %>
-            <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
-          <% end %>
         <% end %>
         <% if authenticated? && Current.session.user.admin? %>
           <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
