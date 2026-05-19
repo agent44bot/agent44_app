@@ -40,6 +40,21 @@
       <%= f.submit "Send invite", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
     <% end %>
 
+    <dl class="mt-3 text-xs text-gray-500 space-y-1">
+      <div class="flex gap-2">
+        <dt class="text-gray-400 font-semibold w-14 shrink-0">Admin</dt>
+        <dd>Invite teammates, connect social accounts, delete the workspace.</dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="text-gray-400 font-semibold w-14 shrink-0">Editor</dt>
+        <dd>Compose, schedule, and post.</dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="text-gray-400 font-semibold w-14 shrink-0">Viewer</dt>
+        <dd>Read-only access.</dd>
+      </div>
+    </dl>
+
     <% if invitations.any? %>
       <div class="mt-4 rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
         <% invitations.each do |inv| %>
