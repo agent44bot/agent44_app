@@ -410,6 +410,51 @@ class KitchenController < ApplicationController
     @hub_scrape_last      = scrape.recent.first
     @hub_scrape_total     = scrape.count
     @hub_scrape_cost_total = scrape.sum(:cost_dollars)
+
+    @hub_agent_status = {
+      list:   list_agent_status,
+      test:   test_agent_status,
+      data:   data_agent_status,
+      social: social_agent_status
+    }
+  end
+
+  # Agent presence: :running (pulsing dot), :on_cadence (solid green),
+  # :stale (gray). Cadence windows derive from each agent's typical
+  # cron/run interval — see the SmokeTestFailureNotificationJob comments
+  # and the GitHub Actions schedules.
+  RUN_WINDOW   = 5.minutes  # how long after a run we still consider it "running"
+  TEST_CADENCE = 90.minutes # smoke runs every ~hour, +30min slack
+  DATA_CADENCE = 4.hours    # scrapes every 3 hours, +1h slack
+  LIST_CADENCE = 30.hours   # snapshot taken_on is per-day, allow a stale day before going gray
+  SOCIAL_CADENCE = 7.days
+
+  def list_agent_status
+    return :stale unless @hub_events_updated
+    age = Date.current - @hub_events_updated
+    age <= (LIST_CADENCE / 1.day) ? :on_cadence : :stale
+  end
+
+  def test_agent_status
+    presence_for(@hub_smoke_last&.started_at, TEST_CADENCE)
+  end
+
+  def data_agent_status
+    presence_for(@hub_scrape_last&.started_at, DATA_CADENCE)
+  end
+
+  def social_agent_status
+    return :stale unless @nyk_workspace
+    last = @nyk_workspace.workspace_posts.maximum(:posted_at)
+    presence_for(last, SOCIAL_CADENCE, run_window: nil)
+  end
+
+  def presence_for(timestamp, cadence, run_window: RUN_WINDOW)
+    return :stale unless timestamp
+    age = Time.current - timestamp
+    return :running    if run_window && age < run_window
+    return :on_cadence if age < cadence
+    :stale
   end
 
   def build_enhance_prompt(draft, name, description, date, price, idea = nil)
