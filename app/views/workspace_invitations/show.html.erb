@@ -13,9 +13,9 @@
       Expires <%= @invitation.expires_at.in_time_zone(@invitation.workspace.timezone).strftime("%b %-d") %>
     </p>
 
-    <% if Current.session.user.email_address.present? && Current.session.user.email_address.downcase != @invitation.email.downcase %>
+    <% if Current.user.email_address.present? && Current.user.email_address.downcase != @invitation.email.downcase %>
       <p class="text-xs text-yellow-400 mt-3">
-        Heads up: this invite was sent to <%= @invitation.email %> but you're signed in as <%= Current.session.user.email_address %>.
+        Heads up: this invite was sent to <%= @invitation.email %> but you're signed in as <%= Current.user.email_address %>.
       </p>
     <% end %>
 

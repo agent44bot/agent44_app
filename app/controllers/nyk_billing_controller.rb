@@ -36,7 +36,7 @@ class NykBillingController < ApplicationController
   private
 
   def require_visible
-    return if Current.session&.user&.admin?
+    return if Current.user&.admin?
     redirect_to "/nykitchen", alert: "Not available yet."
   end
 end

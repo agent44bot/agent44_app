@@ -15,7 +15,7 @@ module Api
         if params.key?(:user_id)
           device_token.user_id = resolve_user_id(params[:user_id])
         elsif authenticated?
-          device_token.user_id = Current.session.user.id
+          device_token.user_id = Current.user.id
         end
         device_token.save!
 

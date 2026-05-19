@@ -41,7 +41,7 @@ class ApplicationController < ActionController::Base
   # Signed-out users are unaffected — they can hit the marketing home.
   def enforce_workspace_scope
     return unless authenticated?
-    return if Current.session&.user&.admin?
+    return if Current.user&.admin?
     path = request.path
     return if WORKSPACE_ALLOWED_PREFIXES.any? { |prefix| path == prefix || path.start_with?("#{prefix}/") }
     redirect_to "/workspaces"

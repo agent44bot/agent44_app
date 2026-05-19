@@ -53,7 +53,7 @@ class WorkspaceInvitationsController < ApplicationController
   end
 
   def current_user
-    Current.session.user
+    Current.user
   end
 
   def accept_url(invitation)

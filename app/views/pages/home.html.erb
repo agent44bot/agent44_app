@@ -43,7 +43,7 @@
   <%# Agent status — mobile: stacked above hero, desktop: pinned top-left %>
   <% mock_header = "AI Agents" %>
 
-  <% show_mock_fleet = !Current.session&.user&.admin? %>
+  <% show_mock_fleet = !Current.user&.admin? %>
 
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 md:py-24 relative">
 

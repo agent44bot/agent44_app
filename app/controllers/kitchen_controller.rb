@@ -18,7 +18,7 @@ class KitchenController < ApplicationController
     when "list"    then return redirect_to(nyk_list_path, status: 301)
     end
     load_hub_summary
-    @nyk_workspace = nyk_workspace_for(Current.session&.user)
+    @nyk_workspace = nyk_workspace_for(Current.user)
     # Team management is rendered below the agent cards for members; load
     # the workspace data so the partial can render.
     load_nyk_team_data if @nyk_workspace
@@ -26,7 +26,7 @@ class KitchenController < ApplicationController
   end
 
   def list
-    @sendable_workspaces = sendable_workspaces_for(Current.session&.user)
+    @sendable_workspaces = sendable_workspaces_for(Current.user)
     load_events_data
     render "admin/kitchen/list", layout: "application"
   end
@@ -44,7 +44,7 @@ class KitchenController < ApplicationController
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot
-    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
+    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.user) || false
     render layout: "application"
   end
 
@@ -93,13 +93,13 @@ class KitchenController < ApplicationController
 
     enhanced = response.content.first.text
 
-    AiCallLogger.log!(response, model: "claude-haiku-4-5-20251001", source: "nyk_enhance", user: Current.session&.user)
+    AiCallLogger.log!(response, model: "claude-haiku-4-5-20251001", source: "nyk_enhance", user: Current.user)
 
     log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
     log.enhanced_text = enhanced
     log.save!
 
-    Current.session&.user&.increment!(:ai_enhances_used)
+    Current.user&.increment!(:ai_enhances_used)
 
     render json: { enhanced: enhanced }
   rescue Anthropic::Errors::APIError => e
@@ -112,13 +112,13 @@ class KitchenController < ApplicationController
   # preview text, target all that workspace's connected platforms, status=draft
   # so the admin can review + post from /workspaces/:slug.
   def send_to_workspace
-    return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.session&.user
+    return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.user
 
     slug = params[:workspace_slug].to_s
     # Membership IS the authorization — user.workspaces only includes
     # workspaces they're a member of, so a non-member lookup returns nil
     # and we 404 below.
-    ws   = Current.session.user.workspaces.find_by(slug: slug)
+    ws   = Current.user.workspaces.find_by(slug: slug)
     return render json: { error: "workspace_not_found", slug: slug }, status: :not_found unless ws
 
     body = params[:text].to_s.strip
@@ -131,7 +131,7 @@ class KitchenController < ApplicationController
     return render json: { error: "no_platforms" }, status: :unprocessable_entity if platforms.empty?
 
     draft = ws.workspace_drafts.create!(
-      author:           Current.session.user,
+      author:           Current.user,
       body:             body,
       target_platforms: platforms,
       image_url:        params[:image_url].to_s.presence,
@@ -250,8 +250,8 @@ class KitchenController < ApplicationController
   end
 
   def set_common_view_state
-    @admin = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer?)
-    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
+    @admin = authenticated? && (Current.user.admin? || Current.user.reviewer?)
+    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.user) || false
   end
 
   # The user's NYK-flavored workspace, if any — backs the Social Agent card
@@ -268,7 +268,7 @@ class KitchenController < ApplicationController
     @nyk_memberships     = @nyk_workspace.memberships.includes(:user).order(:created_at)
     @nyk_invitations     = @nyk_workspace.invitations.pending.order(created_at: :desc)
     @nyk_social_accounts = @nyk_workspace.social_accounts.order(:platform, :handle)
-    @nyk_my_role         = @nyk_workspace.role_for(Current.session&.user)
+    @nyk_my_role         = @nyk_workspace.role_for(Current.user)
   end
 
   # List Agent data — events, weeks, filter counts, workspace status.
@@ -311,7 +311,7 @@ class KitchenController < ApplicationController
 
       event_urls = @events.map(&:url)
       @post_logs = SocialPostLog.where(event_url: event_urls).index_by(&:event_url)
-      @workspace_status_by_url = workspace_status_for(Current.session&.user, event_urls)
+      @workspace_status_by_url = workspace_status_for(Current.user, event_urls)
     else
       @events = []
       @weeks = []

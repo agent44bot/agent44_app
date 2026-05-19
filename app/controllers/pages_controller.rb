@@ -8,7 +8,7 @@ class PagesController < ApplicationController
 
   def home
     real_agents = Agent.ordered.to_a
-    @agents = (authenticated? && Current.session.user.admin?) ? real_agents : []
+    @agents = (authenticated? && Current.user.admin?) ? real_agents : []
 
     # Mock "fleet" — smoke-and-mirrors. Shown to the public as the agents list,
     # stacked under the real team list for admins. Statuses animate client-side.
@@ -28,14 +28,14 @@ class PagesController < ApplicationController
     @nyk_total_runs = nyk_runs.count
     @nyk_pass_rate = nyk_runs.any? ? (nyk_runs.where(status: "passed").count.to_f / nyk_runs.count * 100).round : nil
     @nyk_total_cost = nyk_runs.sum(:cost_dollars)
-    @can_see_nyk_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
+    @can_see_nyk_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.user) || false
   end
 
   def privacy
   end
 
   def lab
-    unless authenticated? && Current.session.user.admin?
+    unless authenticated? && Current.user.admin?
       redirect_to root_path, alert: "Not found." and return
     end
     @ai_demand_meter = Job.ai_demand_meter

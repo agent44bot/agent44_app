@@ -50,7 +50,7 @@
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
       <div class="flex items-center gap-2">
-        <% if authenticated? && Current.session.user.admin? %>
+        <% if authenticated? && Current.user.admin? %>
           <%= link_to nyk_billing_path,
                 class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

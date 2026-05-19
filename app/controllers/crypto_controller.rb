@@ -18,10 +18,10 @@ class CryptoController < ApplicationController
     @secfirst_count = base.security_first.count
 
     # User data for save/hide
-    saved = Current.session.user.saved_jobs.index_by(&:job_id)
+    saved = Current.user.saved_jobs.index_by(&:job_id)
     @saved_job_ids = saved.keys.to_set
     @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
-    @hidden_job_ids = Current.session.user.hidden_jobs.pluck(:job_id).to_set
+    @hidden_job_ids = Current.user.hidden_jobs.pluck(:job_id).to_set
 
     # Current tab's jobs
     @jobs = case @tab
@@ -74,7 +74,7 @@ class CryptoController < ApplicationController
   private
 
   def require_admin
-    unless authenticated? && Current.session.user.admin?
+    unless authenticated? && Current.user.admin?
       redirect_to root_path, alert: "Not found."
     end
   end

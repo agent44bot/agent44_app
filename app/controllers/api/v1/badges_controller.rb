@@ -13,7 +13,7 @@ module Api
       def clear
         return render(json: { error: "unauthorized" }, status: :unauthorized) unless authenticated?
 
-        user = Current.session.user
+        user = Current.user
         user.notifications.unread.update_all(read_at: Time.current)
         ApnsPusher.clear_badge_for(user)
 
@@ -26,7 +26,7 @@ module Api
       def peek
         return render(json: { error: "unauthorized" }, status: :unauthorized) unless authenticated?
 
-        user = Current.session.user
+        user = Current.user
         unread = user.notifications.unread.recent
         latest = unread.first
         render json: {

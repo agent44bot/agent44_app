@@ -137,7 +137,7 @@
         <!-- Right: Auth -->
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
-            <% if Current.session.user.admin? %>
+            <% if Current.user.admin? %>
               <!-- Admin dropdown -->
               <div class="relative" data-controller="nav">
                 <button type="button" data-action="click->nav#toggle" aria-label="Admin menu"
@@ -160,7 +160,7 @@
                   <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white" %>
                 </div>
               </div>
-              <%= link_to Current.session.user.display_identifier, settings_path,
+              <%= link_to Current.user.display_identifier, settings_path,
                     class: "text-sm text-gray-400 hover:text-orange-400 transition truncate max-w-[180px]" %>
               <%= button_to "Sign Out", session_path, method: :delete,
                     class: "text-sm font-medium text-gray-500 hover:text-orange-400 transition" %>
@@ -172,7 +172,7 @@
                   <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                   </svg>
-                  <span class="text-sm truncate max-w-[140px]"><%= Current.session.user.display_identifier %></span>
+                  <span class="text-sm truncate max-w-[140px]"><%= Current.user.display_identifier %></span>
                 </button>
                 <div data-nav-target="menu" class="hidden absolute right-0 mt-2 w-48 rounded-lg bg-gray-900 border border-gray-800 shadow-xl py-1 z-50">
                   <%= link_to "Workspaces", workspaces_path, class: "block px-4 py-2 text-sm font-medium text-orange-500 hover:bg-gray-800" %>
@@ -204,13 +204,13 @@
     <!-- Mobile menu -->
     <div class="hidden md:hidden" data-nav-target="menu">
       <div class="px-4 pt-2 pb-4 space-y-1 border-t border-gray-800">
-        <% if !authenticated? || Current.session.user.admin? %>
+        <% if !authenticated? || Current.user.admin? %>
           <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% end %>
         <% if authenticated? %>
           <%= link_to "Workspaces", workspaces_path, class: "block px-3 py-2 rounded-md text-base font-medium text-orange-500 hover:bg-gray-800" %>
         <% end %>
-        <% if authenticated? && Current.session.user.admin? %>
+        <% if authenticated? && Current.user.admin? %>
           <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "Crypto", crypto_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
@@ -223,11 +223,11 @@
         <% end %>
         <div class="border-t border-gray-800 pt-2">
           <% if authenticated? %>
-            <% if Current.session.user.admin? %>
+            <% if Current.user.admin? %>
               <%= link_to "Saved Jobs", saved_jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
               <%= link_to "Dashboard", admin_dashboard_path, class: "block px-3 py-2 rounded-md text-base font-medium text-orange-600 hover:bg-gray-800" %>
             <% end %>
-            <%= link_to Current.session.user.display_identifier, settings_path,
+            <%= link_to Current.user.display_identifier, settings_path,
                   class: "block px-3 py-2 text-sm text-gray-400 hover:bg-gray-800 rounded-md" %>
             <%= link_to "Settings", settings_path,
                   class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
@@ -243,7 +243,7 @@
   </nav>
 
   <!-- Email verification banner -->
-  <% if !Rails.env.development? && authenticated? && Current.session.user.email_address.present? && !Current.session.user.email_verified? %>
+  <% if !Rails.env.development? && authenticated? && Current.user.email_address.present? && !Current.user.email_verified? %>
     <div class="bg-amber-900/30 border-b border-amber-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-2">
         <p class="text-sm text-amber-300">Please verify your email. Check your inbox for a verification link.</p>

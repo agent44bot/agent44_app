@@ -69,7 +69,7 @@
           <%= link_to "Home", root_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
           <%= link_to "Jobs", jobs_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
           <span class="text-gray-400">|</span>
-          <span class="text-sm text-gray-500"><%= Current.session.user.display_identifier %></span>
+          <span class="text-sm text-gray-500"><%= Current.user.display_identifier %></span>
           <%= button_to "Sign Out", session_path, method: :delete,
                 class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
         </div>

@@ -11,7 +11,7 @@ module Admin
     end
 
     def create
-      @post = Current.session.user.posts.build(post_params)
+      @post = Current.user.posts.build(post_params)
       if @post.save
         redirect_to admin_posts_path, notice: "Post created."
       else

@@ -15,8 +15,8 @@ class EmailVerificationsController < ApplicationController
   end
 
   def resend
-    if authenticated? && Current.session.user.email_address.present? && !Current.session.user.email_verified?
-      Current.session.user.send_verification_email
+    if authenticated? && Current.user.email_address.present? && !Current.user.email_verified?
+      Current.user.send_verification_email
       redirect_back fallback_location: root_path, notice: "Verification email sent."
     else
       redirect_to root_path

@@ -11,7 +11,7 @@ module Trackable
     return unless request.get? || request.method == "HEAD"
     return if controller_path.start_with?("admin", "api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
-    return if Current.session&.user&.admin?
+    return if Current.user&.admin?
     return if bot_request?
 
     session_id = cookies[:visitor_sid]
@@ -25,7 +25,7 @@ module Trackable
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
       referrer: request.referrer,
-      user_id: Current.session&.user&.id,
+      user_id: Current.user&.id,
       session_id: session_id
     )
   end

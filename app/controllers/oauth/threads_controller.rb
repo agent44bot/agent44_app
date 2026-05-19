@@ -69,7 +69,7 @@ module Oauth
     end
 
     def current_user
-      Current.session.user
+      Current.user
     end
 
     def halt(path, message)

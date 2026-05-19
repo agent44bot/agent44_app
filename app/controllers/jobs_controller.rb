@@ -22,10 +22,10 @@ class JobsController < ApplicationController
 
     # Load user data early so counts can reflect hidden jobs
     if authenticated?
-      saved = Current.session.user.saved_jobs.index_by(&:job_id)
+      saved = Current.user.saved_jobs.index_by(&:job_id)
       @saved_job_ids = saved.keys.to_set
       @applied_jobs = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
-      @hidden_job_ids = Current.session.user.hidden_jobs.pluck(:job_id).to_set
+      @hidden_job_ids = Current.user.hidden_jobs.pluck(:job_id).to_set
     else
       @saved_job_ids = Set.new
       @applied_jobs = {}
@@ -121,11 +121,11 @@ class JobsController < ApplicationController
     @job = Job.includes(:job_sources).find(params[:id])
 
     if authenticated?
-      if !Current.session.user.email_verified?
+      if !Current.user.email_verified?
         redirect_to jobs_path, alert: "Please verify your email to view job details. Check your inbox for a verification link."
         return
       end
-      @saved_job = Current.session.user.saved_jobs.find_by(job: @job)
+      @saved_job = Current.user.saved_jobs.find_by(job: @job)
       @saved = @saved_job.present?
       @applied = @saved_job&.applied?
     else
