@@ -233,12 +233,30 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/nykitchen/social#drafts", JSON.parse(response.body)["workspace_url"]
   end
 
-  test "send_to_workspace rejects non-admin" do
-    member = User.create!(email_address: "snd-m-#{SecureRandom.hex(4)}@example.com", role: "member")
-    sign_in_as(member)
+  test "send_to_workspace rejects unauthenticated requests" do
+    sign_out
     post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "any" }
-    assert_response :forbidden
-    assert_equal "admin_only", JSON.parse(response.body)["error"]
+    # The before-action redirects unauthenticated requests to /session/new.
+    assert_response :redirect
+    assert_match %r{/session/new}, response.location
+  end
+
+  test "send_to_workspace accepts non-admin workspace members" do
+    owner = User.create!(email_address: "snd-o-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws    = Workspace.create!(name: "Member WS", owner: owner)
+    ws.social_accounts.create!(platform: "x", connected_by: owner, handle: "@m",
+      external_id: SecureRandom.hex(4), access_token: "AT", refresh_token: "RT",
+      token_expires_at: 2.hours.from_now, status: "active")
+
+    member = User.create!(email_address: "snd-mem-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: member, role: "editor")
+
+    sign_in_as(member)
+    assert_difference -> { WorkspaceDraft.count }, 1 do
+      post "/nykitchen/send_to_workspace",
+           params: { text: "Hi from a member", event_url: "https://nykitchen.com/event/y", workspace_slug: ws.slug }
+    end
+    assert JSON.parse(response.body)["ok"]
   end
 
   test "send_to_workspace 404s when slug doesn't match a workspace the admin belongs to" do
@@ -267,31 +285,24 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal "no_platforms", JSON.parse(response.body)["error"]
   end
 
-  test "index renders the workspace picker for admin with kitchen-slugged first" do
-    admin = User.create!(email_address: "snd-i-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    a = Workspace.create!(name: "Aardvark Brand", owner: admin)
-    a.social_accounts.create!(platform: "x", connected_by: admin, handle: "@a", external_id: "1",
+  test "event card uses kitchen-slugged workspace as the default Send to Social Agent destination" do
+    user = User.create!(email_address: "snd-i-#{SecureRandom.hex(4)}@example.com", role: "user")
+    a = Workspace.create!(name: "Aardvark Brand", owner: user)
+    a.social_accounts.create!(platform: "x", connected_by: user, handle: "@a", external_id: "1",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
-    k = Workspace.create!(name: "NY Kitchen Co", owner: admin)
-    k.social_accounts.create!(platform: "x", connected_by: admin, handle: "@k", external_id: "2",
+    k = Workspace.create!(name: "NY Kitchen Co", owner: user)
+    k.social_accounts.create!(platform: "x", connected_by: user, handle: "@k", external_id: "2",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
-    no_accounts = Workspace.create!(name: "Empty WS", owner: admin)
-    # An event so the partial actually renders
     create_event("Pasta 101", 2.days.from_now, "InStock")
 
-    sign_in_as(admin)
+    sign_in_as(user)
     get nyk_list_path
     assert_response :success
 
-    # The picker is a <select name="workspace_slug"> with <option>s
-    assert_match %r{<select[^>]*name="workspace_slug"}, response.body
-    assert_match %r{<option[^>]*value="#{k.slug}"[^>]*>NY Kitchen Co</option>}, response.body
-    assert_match %r{<option[^>]*value="#{a.slug}"[^>]*>Aardvark Brand</option>}, response.body
-    refute_match no_accounts.slug, response.body
-
-    # Kitchen-slugged workspace appears first (positional check via index in body)
-    assert response.body.index(%(value="#{k.slug}")) < response.body.index(%(value="#{a.slug}")),
-      "kitchen-slugged workspace should sort first as the natural default"
+    # The event card bakes the default workspace slug into a data attribute
+    # that the social-post Stimulus controller reads when firing the handoff.
+    # Kitchen-slugged workspace sorts first.
+    assert_match %r{data-social-post-workspace-slug-value="#{k.slug}"}, response.body
   end
 
   # --- Agents hub coverage --------------------------------------------------

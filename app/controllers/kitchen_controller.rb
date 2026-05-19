@@ -112,11 +112,12 @@ class KitchenController < ApplicationController
   # preview text, target all that workspace's connected platforms, status=draft
   # so the admin can review + post from /workspaces/:slug.
   def send_to_workspace
-    unless Current.session&.user&.admin?
-      return render json: { error: "admin_only" }, status: :forbidden
-    end
+    return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.session&.user
 
     slug = params[:workspace_slug].to_s
+    # Membership IS the authorization — user.workspaces only includes
+    # workspaces they're a member of, so a non-member lookup returns nil
+    # and we 404 below.
     ws   = Current.session.user.workspaces.find_by(slug: slug)
     return render json: { error: "workspace_not_found", slug: slug }, status: :not_found unless ws
 
@@ -229,13 +230,13 @@ class KitchenController < ApplicationController
     status
   end
 
-  # Workspaces the signed-in admin can pick as the destination for
-  # "Send to workspace". We only include workspaces with at least one
+  # Workspaces the signed-in user can pick as the destination for the
+  # Social Agent handoff. We only include workspaces with at least one
   # active social account (otherwise the draft can't fan out anywhere).
   # Sort: workspaces whose slug includes "kitchen" first (so the NYK page
   # naturally defaults to the NYK workspace), then alphabetical.
   def sendable_workspaces_for(user)
-    return [] unless user&.admin?
+    return [] unless user
     user.workspaces
         .joins(:social_accounts)
         .where(social_accounts: { status: "active" })

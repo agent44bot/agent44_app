@@ -45,11 +45,10 @@ class HandoffToSocialAgentSystemTest < SystemTestCase
 
     @kitchen.visit
     @kitchen.expand_first_week
-    @kitchen.open_preview
 
     btn = @kitchen.handoff_button
-    assert btn, "Expected 'Hand off to Agent' button in the open preview panel"
-    assert_match(/hand off to agent/i, btn.text_content)
+    assert btn, "Expected 'Send to Social Agent' button on the event row"
+    assert_match(/send to social agent/i, btn.text_content)
 
     test_url = "https://nykitchen.com/event/handoff-test"
     ActiveRecord::Base.connection.clear_query_cache
