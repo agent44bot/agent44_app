@@ -9,7 +9,12 @@ export default class extends Controller {
   static targets = ["body", "icon"]
   static values = {
     collapsed:       { type: Boolean, default: false },
-    mobileCollapsed: { type: Boolean, default: false }
+    mobileCollapsed: { type: Boolean, default: false },
+    // Opt-in: when expanding, scroll the body into view. For toggles
+    // whose trigger lives far from the body (kebab top-right, body
+    // below the fold) so mobile users don't have to scroll to find
+    // what they just opened.
+    scrollOnExpand:  { type: Boolean, default: false }
   }
 
   connect() {
@@ -24,6 +29,9 @@ export default class extends Controller {
     const collapsed = this.bodyTarget.classList.toggle("hidden")
     if (this.hasIconTarget) {
       this.iconTarget.classList.toggle("-rotate-90", collapsed)
+    }
+    if (!collapsed && this.scrollOnExpandValue) {
+      this.bodyTarget.scrollIntoView({ behavior: "smooth", block: "start" })
     }
   }
 }
