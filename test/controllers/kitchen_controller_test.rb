@@ -326,6 +326,12 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match /Scrapes/,      response.body
   end
 
+  test "nyk_social_path 301s to the NYK workspace social composer" do
+    get nyk_social_path
+    assert_redirected_to "/workspaces/nykitchen/social"
+    assert_equal 301, response.status
+  end
+
   test "nyk_list_path renders breadcrumbs above the list" do
     create_event("Pasta 101", 2.days.from_now, "InStock")
     get nyk_list_path
