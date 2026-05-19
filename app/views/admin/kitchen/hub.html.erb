@@ -1,0 +1,130 @@
+<% content_for(:title, "NY Kitchen") %>
+
+<%
+  social_href = @nyk_workspace ? workspace_path(@nyk_workspace.slug) : workspaces_path
+
+  smoke_status_color = if @hub_smoke_last.nil?            then "text-gray-500"
+                      elsif @hub_smoke_last.passed?      then "text-green-400"
+                      else                                    "text-red-400"
+                      end
+  smoke_status_label = if @hub_smoke_last.nil?       then "No runs yet"
+                      elsif @hub_smoke_last.passed? then "✓ Passed"
+                      else                                "🚨 Failed"
+                      end
+  fail_rate_color = @hub_smoke_fail_rate_30d >= 20 ? "text-red-400" :
+                    @hub_smoke_fail_rate_30d >= 5  ? "text-amber-400" :
+                                                     "text-green-400"
+%>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="flex items-center gap-3 mb-6 text-sm">
+    <%= link_to workspaces_path, class: "text-gray-500 hover:text-gray-300 transition" do %>
+      ← All workspaces
+    <% end %>
+  </div>
+
+  <div class="mb-8">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
+      <div class="flex items-center gap-2">
+        <% if authenticated? && Current.session.user.admin? %>
+          <%= link_to nyk_billing_path,
+                class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Billing</span>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+    <p class="text-gray-400 mt-1">4 agents working the NY Kitchen calendar.</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <%= link_to nyk_list_path,
+          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📋</span>
+          <h2 class="text-lg font-bold text-white">List Agent</h2>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <div class="space-y-1 text-sm">
+        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
+        <% if @hub_events_updated %>
+          <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= link_to nyk_test_path,
+          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🔁</span>
+          <h2 class="text-lg font-bold text-white">Test Agent</h2>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <div class="space-y-1 text-sm">
+        <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last %> <%= time_ago_in_words(@hub_smoke_last.started_at) %> ago<% end %></div>
+        <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
+        <% if @can_see_pricing %>
+          <div class="text-gray-500"><%= @hub_smoke_total %> runs · $<%= "%.2f" % @hub_smoke_cost_total %> total</div>
+        <% else %>
+          <div class="text-gray-500"><%= @hub_smoke_total %> runs</div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= link_to nyk_data_path,
+          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🕷️</span>
+          <h2 class="text-lg font-bold text-white">Data Agent</h2>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <div class="space-y-1 text-sm">
+        <% if @hub_scrape_last %>
+          <div class="text-green-400 font-semibold">✓ Last snapshot <%= time_ago_in_words(@hub_scrape_last.started_at) %> ago</div>
+        <% else %>
+          <div class="text-gray-500 font-semibold">No snapshots yet</div>
+        <% end %>
+        <% if @can_see_pricing %>
+          <div class="text-gray-500"><%= @hub_scrape_total %> runs · $<%= "%.2f" % @hub_scrape_cost_total %> total</div>
+        <% else %>
+          <div class="text-gray-500"><%= @hub_scrape_total %> runs</div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= link_to social_href,
+          class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📣</span>
+          <h2 class="text-lg font-bold text-white">Social Agent</h2>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <div class="space-y-1 text-sm">
+        <% if @nyk_workspace %>
+          <% platforms = @nyk_workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort %>
+          <% if platforms.any? %>
+            <div class="text-gray-300"><%= platforms.join(" · ") %> connected</div>
+          <% else %>
+            <div class="text-gray-500">No platforms connected yet</div>
+          <% end %>
+          <div class="text-gray-500"><%= pluralize(@nyk_workspace.workspace_posts.count, "post") %> total</div>
+        <% else %>
+          <div class="text-gray-500">No NY Kitchen workspace yet</div>
+          <div class="text-gray-500">Click to set one up</div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

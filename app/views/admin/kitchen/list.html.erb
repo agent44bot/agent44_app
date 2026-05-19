@@ -1,18 +1,15 @@
-<% content_for(:title, "NY Kitchen Classes") %>
+<% content_for(:title, "NY Kitchen · List Agent") %>
 
 <% content_for(:head) do %>
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
-     data-controller="tabs kitchen-filter"
-     data-tabs-active-classes-value="text-orange-400 border-orange-400"
-     data-tabs-inactive-classes-value="text-gray-500 border-transparent">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10" data-controller="kitchen-filter">
+  <%= render "admin/kitchen/breadcrumbs" %>
 
-  <!-- Header -->
   <div class="mb-6">
     <div class="flex items-center justify-between gap-2 flex-wrap">
-      <h1 class="text-3xl font-black text-white tracking-tight">NY Kitchen</h1>
+      <h1 class="text-3xl font-black text-white tracking-tight">List Agent</h1>
       <div class="flex items-center gap-2">
         <% if authenticated? && Current.session.user.admin? %>
           <%= link_to nyk_billing_path,
@@ -24,7 +21,7 @@
           <% end %>
         <% end %>
         <button data-controller="clipboard" data-action="click->clipboard#copy"
-                data-clipboard-url-value="<%= nykitchen_url %>"
+                data-clipboard-url-value="<%= nyk_list_url %>"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
@@ -44,7 +41,6 @@
 
   <% if @events.any? && Setting.time("nyk.filter_card_hidden_at").nil? %>
     <%
-      # [status, label, active_classes, inactive_classes]
       chips = [
         ["all",     "All",                 "bg-orange-500 text-white",           "bg-gray-800 text-gray-400 hover:bg-gray-700"],
         ["instock", "Available",           "bg-green-700 text-green-100",        "bg-green-900/40 text-green-400 hover:bg-green-900/60"],
@@ -57,8 +53,7 @@
     <section class="mb-5"
              data-controller="collapsible nyk-filter-tracker"
              data-nyk-filter-tracker-url-value="<%= api_v1_nyk_filter_expanded_path %>"
-             data-collapsible-collapsed-value="true"
-             data-tabs-chrome-for="0">
+             data-collapsible-collapsed-value="true">
       <button type="button"
               data-action="click->collapsible#toggle click->nyk-filter-tracker#track"
               class="w-full flex items-center justify-between gap-3 bg-gray-900 rounded-lg border border-gray-800 px-4 py-3 text-left hover:border-gray-700 transition">
@@ -87,108 +82,28 @@
     </section>
   <% end %>
 
-  <!-- Tabs -->
-  <div class="flex gap-1 mb-6 border-b border-gray-700">
-    <button data-tabs-target="tab" data-tab-index="0" data-tab-name="list" data-action="click->tabs#select"
-            class="px-4 py-2 text-sm font-semibold border-b-2 text-orange-400 border-orange-400 transition">
-      List
-    </button>
-    <button data-tabs-target="tab" data-tab-index="1" data-tab-name="smoke" data-action="click->tabs#select"
-            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
-      Smoke
-    </button>
-    <button data-tabs-target="tab" data-tab-index="2" data-tab-name="scrapes" data-action="click->tabs#select"
-            class="px-4 py-2 text-sm font-semibold border-b-2 text-gray-500 border-transparent hover:text-gray-300 transition">
-      Scrapes
-    </button>
-  </div>
-
   <% if @events.empty? %>
     <div class="bg-gray-900 rounded-xl p-8 text-center">
       <p class="text-gray-400">No events scraped yet. The scraper runs every 3 hours.</p>
     </div>
   <% else %>
-
-    <!-- List View -->
-    <div data-tabs-target="panel">
-      <%= render "admin/kitchen/list_panel" %>
-    </div>
-
-    <!-- Smoke Tab -->
-    <div data-tabs-target="panel" class="hidden">
-      <%= render "admin/kitchen/test_panel" %>
-    </div>
-
-    <!-- Scrapes Tab -->
-    <div data-tabs-target="panel" class="hidden">
-      <%= render "admin/kitchen/data_panel" %>
-    </div>
-
+    <%= render "admin/kitchen/list_panel" %>
   <% end %>
 </div>
 
 <%= javascript_tag nonce: true do %>
-// Inline fallback for tab switching — works before Stimulus/importmap loads.
+// Deep-link: #week-N scrolls to and expands that week section.
 (function() {
-  var root = document.querySelector('[data-controller*="tabs"]');
-  if (!root) return;
-  var tabs = root.querySelectorAll('[data-tab-index]');
-  var panels = root.querySelectorAll('[data-tabs-target="panel"]');
-  var chromes = root.querySelectorAll('[data-tabs-chrome-for]');
-  var activeClasses = (root.dataset.tabsActiveClassesValue || 'text-orange-400 border-orange-400').split(' ');
-  var inactiveClasses = (root.dataset.tabsInactiveClassesValue || 'text-gray-500 border-transparent').split(' ');
-
-  function selectTab(index) {
-    tabs.forEach(function(tab, i) {
-      if (i === index) {
-        activeClasses.forEach(function(c) { tab.classList.add(c); });
-        inactiveClasses.forEach(function(c) { tab.classList.remove(c); });
-      } else {
-        activeClasses.forEach(function(c) { tab.classList.remove(c); });
-        inactiveClasses.forEach(function(c) { tab.classList.add(c); });
-      }
-    });
-    panels.forEach(function(panel, i) {
-      panel.classList.toggle('hidden', i !== index);
-    });
-    chromes.forEach(function(el) {
-      var indices = el.dataset.tabsChromeFor.split(' ');
-      el.classList.toggle('hidden', indices.indexOf(String(index)) === -1);
-    });
-  }
-
-  tabs.forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      selectTab(parseInt(tab.dataset.tabIndex));
-    });
-  });
-
-  // Pre-Stimulus paint: ?tab=<name> selects the matching tab so we don't
-  // flash the default (List) before Stimulus connects.
-  var tabParam = new URLSearchParams(window.location.search).get('tab');
-  if (tabParam) {
-    var byName = -1;
-    tabs.forEach(function(t, i) {
-      if (t.dataset.tabName === tabParam.toLowerCase()) byName = i;
-    });
-    if (byName !== -1) selectTab(byName);
-  }
-
-  // Deep-link: #week-N scrolls to and expands that week section (List tab)
   var hash = window.location.hash;
   if (hash && hash.match(/^#week-\d+$/)) {
-    // Ensure List tab is active (index 0)
-    selectTab(0);
     var section = document.getElementById(hash.slice(1));
     if (section) {
-      // Expand if collapsed
       var body = section.querySelector('[data-collapsible-target="body"]');
       var icon = section.querySelector('[data-collapsible-target="icon"]');
       if (body && body.classList.contains('hidden')) {
         body.classList.remove('hidden');
         if (icon) icon.classList.remove('-rotate-90');
       }
-      // Scroll into view after a short delay for layout
       setTimeout(function() {
         section.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);

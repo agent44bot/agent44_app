@@ -15,7 +15,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Cheese Class", this_week + 2.hours, "SoldOut")
     create_event("Baking Basics", this_week + 3.hours, "Limited")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "div.bg-red-500"
@@ -28,7 +28,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Event A", next_monday.to_time + 10.hours, "InStock")
     create_event("Event B", next_monday.to_time + 14.hours, "InStock")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     # Find the week section containing these events
@@ -47,7 +47,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Sold B", next_monday.to_time + 14.hours, "SoldOut")
     create_event("Closed C", next_monday.to_time + 16.hours, "Closed")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "section[id^='week-']" do |sections|
@@ -65,7 +65,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Available 2", this_week + 1.hour, "InStock")
     create_event("Gone", this_week + 2.hours, "SoldOut")
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "div.bg-red-500[title='1 sold out / closed']"
@@ -79,7 +79,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Sold Out Class", this_week, "SoldOut")
     create_event("Private Event", this_week + 1.hour, "")  # empty = "other"
 
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_select "section[id^='week-']" do |sections|
@@ -99,7 +99,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       create_event("This Week Event", 1.day.from_now, "InStock")
       create_event("Next Week Event", 7.days.from_now, "InStock")
 
-      get nykitchen_path
+      get nyk_list_path
       assert_response :success
 
       assert_select "section#week-0"
@@ -167,7 +167,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       status: "posted", remote_id: "1", posted_at: 30.minutes.ago)
 
     sign_in_as(admin)
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     assert_match /✓ Drafted/, response.body
@@ -186,7 +186,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "kitchen_customer")
     sign_in_as(laura)
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
     refute_match /✓ Drafted/, response.body
     refute_match /✓ Posted/,  response.body
@@ -262,7 +262,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Pasta 101", 2.days.from_now, "InStock")
 
     sign_in_as(admin)
-    get nykitchen_path
+    get nyk_list_path
     assert_response :success
 
     # The picker is a <select name="workspace_slug"> with <option>s
@@ -274,6 +274,63 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     # Kitchen-slugged workspace appears first (positional check via index in body)
     assert response.body.index(%(value="#{k.slug}")) < response.body.index(%(value="#{a.slug}")),
       "kitchen-slugged workspace should sort first as the natural default"
+  end
+
+  # --- Agents hub coverage --------------------------------------------------
+
+  test "hub renders four agent cards" do
+    create_event("Pasta 101", 2.days.from_now, "InStock")
+    get nykitchen_path
+    assert_response :success
+    assert_match /List Agent/,   response.body
+    assert_match /Test Agent/,   response.body
+    assert_match /Data Agent/,   response.body
+    assert_match /Social Agent/, response.body
+  end
+
+  test "hub redirects legacy ?tab=smoke to /nykitchen/test" do
+    get nykitchen_path(tab: "smoke")
+    assert_redirected_to nyk_test_path
+    assert_equal 301, response.status
+  end
+
+  test "hub redirects legacy ?tab=smoke&status=failed preserving the status param" do
+    get nykitchen_path(tab: "smoke", status: "failed")
+    assert_redirected_to nyk_test_path(status: "failed")
+  end
+
+  test "hub redirects legacy ?tab=scrapes to /nykitchen/data" do
+    get nykitchen_path(tab: "scrapes")
+    assert_redirected_to nyk_data_path
+    assert_equal 301, response.status
+  end
+
+  test "hub redirects legacy ?tab=list to /nykitchen/list" do
+    get nykitchen_path(tab: "list")
+    assert_redirected_to nyk_list_path
+  end
+
+  test "nyk_test_path renders smoke content with breadcrumbs" do
+    get nyk_test_path
+    assert_response :success
+    assert_match /Test Agent/,    response.body
+    assert_match /← NY Kitchen/,  response.body
+    assert_match /Smoke Tests/,   response.body
+  end
+
+  test "nyk_data_path renders scrapes content with breadcrumbs" do
+    get nyk_data_path
+    assert_response :success
+    assert_match /Data Agent/,   response.body
+    assert_match /← NY Kitchen/, response.body
+    assert_match /Scrapes/,      response.body
+  end
+
+  test "nyk_list_path renders breadcrumbs above the list" do
+    create_event("Pasta 101", 2.days.from_now, "InStock")
+    get nyk_list_path
+    assert_response :success
+    assert_match /← NY Kitchen/, response.body
   end
 
   private

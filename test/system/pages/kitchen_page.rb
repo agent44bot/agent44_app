@@ -2,6 +2,10 @@ require_relative "base_page"
 
 class KitchenPage < BasePage
   def visit
+    super("/nykitchen/list")
+  end
+
+  def visit_hub
     super("/nykitchen")
   end
 
