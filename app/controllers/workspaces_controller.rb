@@ -1,12 +1,8 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,    only: [:show, :social, :update, :destroy, :refresh_metrics]
+  before_action :load_workspace,    only: [:show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing]
   before_action :require_member,    only: [:show, :social, :refresh_metrics]
   before_action :require_admin,     only: [:update, :destroy]
-  # New / Create stay site-admin-only — workspace members can use existing
-  # workspaces (and accept invitations into them) but creating brand new
-  # workspaces is still an admin concern.
-  before_action :require_site_admin, only: [:new, :create]
-
+  before_action :require_site_admin, only: [:new, :create, :toggle_pricing]
   def index
     @workspaces = current_user.workspaces.active.order(:name)
     @owned_count = current_user.owned_workspaces.active.count
@@ -37,6 +33,15 @@ class WorkspacesController < ApplicationController
     name = @workspace.name
     @workspace.destroy!
     redirect_to workspaces_path, notice: "Deleted workspace #{name}."
+  end
+
+  # Site-admin toggle: flips whether workspace members see $ amounts
+  # on agent pages. Default off matches the previous admin-only behavior.
+  def toggle_pricing
+    @workspace.update!(pricing_visible_to_members: !@workspace.pricing_visible_to_members)
+    state = @workspace.pricing_visible_to_members? ? "shown to members" : "hidden from members"
+    redirect_back fallback_location: workspace_path(@workspace.slug),
+                  notice: "Pricing #{state}."
   end
 
   # Manual one-click refresh for the metrics row under Recent posts.

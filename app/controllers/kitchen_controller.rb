@@ -44,7 +44,7 @@ class KitchenController < ApplicationController
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot
-    @can_see_pricing = authenticated? && Current.session.user.admin?
+    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
     render layout: "application"
   end
 
@@ -239,7 +239,7 @@ class KitchenController < ApplicationController
 
   def set_common_view_state
     @admin = authenticated? && (Current.session.user.admin? || Current.session.user.reviewer?)
-    @can_see_pricing = authenticated? && Current.session.user.admin?
+    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
   end
 
   # The user's NYK-flavored workspace, if any — backs the Social Agent card

@@ -77,6 +77,22 @@
     <% end %>
   </section>
 
+  <% if Current.session&.user&.admin? %>
+    <section class="mb-10">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Site admin</h2>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div class="min-w-0">
+          <p class="text-sm text-white">Show billing to members</p>
+          <p class="text-xs text-gray-500 mt-0.5">When on, workspace members see $ amounts on agent pages.</p>
+        </div>
+        <%= button_to (workspace.pricing_visible_to_members? ? "On" : "Off"),
+              toggle_pricing_workspace_path(workspace.slug),
+              method: :post,
+              class: "px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition #{workspace.pricing_visible_to_members? ? 'bg-green-700 text-green-100 hover:bg-green-600' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}" %>
+      </div>
+    </section>
+  <% end %>
+
   <section class="mt-12 pt-6 border-t border-red-950">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-red-500 mb-3">Danger zone</h2>
     <div class="rounded-lg border border-red-900 bg-red-950/20 p-4 flex flex-wrap items-center justify-between gap-3">

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_135101) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_180608) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -522,6 +522,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_135101) do
     t.text "description"
     t.string "name", null: false
     t.integer "owner_id", null: false
+    t.boolean "pricing_visible_to_members", default: false, null: false
     t.text "settings"
     t.string "slug", null: false
     t.string "source_url"

@@ -28,7 +28,7 @@ class PagesController < ApplicationController
     @nyk_total_runs = nyk_runs.count
     @nyk_pass_rate = nyk_runs.any? ? (nyk_runs.where(status: "passed").count.to_f / nyk_runs.count * 100).round : nil
     @nyk_total_cost = nyk_runs.sum(:cost_dollars)
-    @can_see_nyk_pricing = authenticated? && Current.session.user.admin?
+    @can_see_nyk_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.session&.user) || false
   end
 
   def privacy

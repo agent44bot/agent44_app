@@ -140,6 +140,44 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert_equal 301, response.status
   end
 
+  test "site admin can toggle pricing visibility on a workspace" do
+    ws = Workspace.create!(name: "Toggle WS", owner: @owner)
+    sign_in_as(@owner)
+    refute ws.pricing_visible_to_members?
+    assert_difference -> { ws.reload.pricing_visible_to_members? ? 1 : 0 }, 1 do
+      post toggle_pricing_workspace_path(ws.slug)
+    end
+    assert ws.reload.pricing_visible_to_members?
+    post toggle_pricing_workspace_path(ws.slug)
+    refute ws.reload.pricing_visible_to_members?
+  end
+
+  test "non-site-admin cannot toggle pricing visibility" do
+    workspace_admin = User.create!(email_address: "wa-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.create!(name: "No Toggle WS", owner: @owner)
+    ws.memberships.create!(user: workspace_admin, role: "admin")
+    sign_in_as(workspace_admin)
+    post toggle_pricing_workspace_path(ws.slug)
+    refute ws.reload.pricing_visible_to_members?
+    assert_redirected_to workspaces_path
+  end
+
+  test "Workspace#pricing_visible_for? gates by membership when toggle is on" do
+    member  = User.create!(email_address: "m-#{SecureRandom.hex(4)}@example.com", role: "user")
+    outside = User.create!(email_address: "o-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.create!(name: "Gated WS", owner: @owner, pricing_visible_to_members: true)
+    ws.memberships.create!(user: member, role: "editor")
+
+    assert ws.pricing_visible_for?(@owner),         "site admin always sees pricing"
+    assert ws.pricing_visible_for?(member),         "members see pricing when toggle is on"
+    refute ws.pricing_visible_for?(outside),        "non-members never see pricing"
+    refute ws.pricing_visible_for?(nil),            "anonymous never sees pricing"
+
+    ws.update!(pricing_visible_to_members: false)
+    refute ws.pricing_visible_for?(member.reload), "members don't see pricing when toggle is off"
+    assert ws.pricing_visible_for?(@owner),        "site admin still sees pricing"
+  end
+
   test "social renders the composer with the timezone form" do
     ws = Workspace.create!(name: "Social WS", owner: @owner)
     sign_in_as(@owner)

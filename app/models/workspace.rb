@@ -35,6 +35,14 @@ class Workspace < ApplicationRecord
     role_for(user).present?
   end
 
+  # Site admins always see pricing. Workspace members see it when the
+  # workspace-level toggle is on. Non-members never see it.
+  def pricing_visible_for?(user)
+    return false unless user
+    return true if user.admin?
+    pricing_visible_to_members? && member?(user)
+  end
+
   private
 
   def generate_slug
