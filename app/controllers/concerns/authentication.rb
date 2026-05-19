@@ -35,9 +35,12 @@ module Authentication
     end
 
     def after_authentication_url
-      stored = session.delete(:return_to_after_authenticating)
-      return "/nykitchen" if Current.session&.user&.kitchen_only?
-      stored || root_url
+      # Everyone lands on /workspaces post-login — it's the agents-fleet home.
+      # Honor a deep-link return-to only when present (e.g. clicked a
+      # workspace-scoped URL while signed out). kitchen_only users can
+      # access /workspaces (it's in KITCHEN_ALLOWED_PREFIXES); from there
+      # NY Kitchen → /workspaces/ny-kitchen → 301 → /nykitchen.
+      session.delete(:return_to_after_authenticating) || workspaces_url
     end
 
     def start_new_session_for(user)
