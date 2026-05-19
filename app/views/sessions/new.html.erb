@@ -10,10 +10,13 @@
 
     <% if Rails.env.development? %>
       <% dev_base = User.where.not(email_address: nil).where.not("email_address LIKE ?", "%@example.com").order(:id) %>
+      <%# Show admins, reviewers, users-with-workspace-memberships, and one
+          vanilla user so each role-shape is reachable from the dev picker. %>
       <% dev_users = dev_base.where(role: "admin").to_a +
                      dev_base.where(role: "reviewer").to_a +
-                     dev_base.where(role: "kitchen_customer").to_a +
-                     dev_base.where.not(role: [ "admin", "reviewer", "kitchen_customer" ]).limit(1).to_a %>
+                     dev_base.where(role: "user").joins(:workspace_memberships).distinct.to_a +
+                     dev_base.where(role: "user").where.missing(:workspace_memberships).limit(1).to_a %>
+      <% dev_users.uniq! %>
       <% if dev_users.any? %>
         <div class="mb-6 bg-amber-950/40 border border-amber-800/60 rounded-xl p-4">
           <div class="flex items-center gap-2 mb-3">
@@ -34,8 +37,8 @@
                     <span class="text-[10px] font-semibold uppercase text-amber-400">admin</span>
                   <% elsif u.reviewer? %>
                     <span class="text-[10px] font-semibold uppercase text-purple-400">reviewer</span>
-                  <% elsif u.kitchen_only? %>
-                    <span class="text-[10px] font-semibold uppercase text-orange-400">kitchen</span>
+                  <% elsif (ws = u.workspaces.first) %>
+                    <span class="text-[10px] font-semibold uppercase text-orange-400"><%= ws.name %></span>
                   <% else %>
                     <span class="text-[10px] font-semibold uppercase text-gray-500">user</span>
                   <% end %>

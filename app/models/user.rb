@@ -43,15 +43,6 @@ class User < ApplicationRecord
     role == "reviewer"
   end
 
-  # Customers scoped to the NY Kitchen workspace. Distinguishable from a
-  # regular 'user' for email recipient targeting (NYK failure videos) and
-  # NYK pricing visibility. The non-admin navigation sandbox lives in
-  # ApplicationController#enforce_workspace_scope — it's role-agnostic
-  # past 'admin'.
-  def kitchen_only?
-    role == "kitchen_customer"
-  end
-
   def email_verified?
     email_verified_at.present?
   end

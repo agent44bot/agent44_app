@@ -184,7 +184,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     ws.workspace_drafts.create!(author: admin, body: "draft body",
       target_platforms: %w[x], source_url: event.url)
 
-    laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "kitchen_customer")
+    laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "user")
     sign_in_as(laura)
     get nyk_list_path
     assert_response :success

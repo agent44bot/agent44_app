@@ -1,30 +1,29 @@
 class SmokeTestFailureNotificationJob < ApplicationJob
   queue_as :default
 
-  # Called after a smoke test run fails
-  # Sends iOS push notifications to:
-  #   - All admin users
-  #   - All kitchen_customer users (if it's a NY Kitchen test)
+  # Called after a smoke test run fails. Sends iOS push notifications to
+  # all admins, plus members of the workspace the test belongs to
+  # (today: ny-kitchen for any nyk_* run).
   def perform(smoke_test_run_id)
     run = SmokeTestRun.find_by(id: smoke_test_run_id)
     return unless run&.failed?
 
-    notify_admins!(run)
-    notify_kitchen_users!(run) if nyk_test?(run)
+    notified_ids = Set.new
+    User.where(role: "admin").find_each do |user|
+      send_ios_notification(user, run)
+      notified_ids << user.id
+    end
+
+    workspace_for(run)&.users&.where&.not(id: notified_ids)&.find_each do |user|
+      send_ios_notification(user, run)
+    end
   end
 
   private
 
-  def notify_admins!(run)
-    User.where(role: "admin").find_each do |user|
-      send_ios_notification(user, run)
-    end
-  end
-
-  def notify_kitchen_users!(run)
-    User.where(role: "kitchen_customer").find_each do |user|
-      send_ios_notification(user, run)
-    end
+  def workspace_for(run)
+    return Workspace.find_by(slug: "ny-kitchen") if run.name.to_s.start_with?("nyk_")
+    nil
   end
 
   def send_ios_notification(user, run)
@@ -45,10 +44,6 @@ class SmokeTestFailureNotificationJob < ApplicationJob
     )
   rescue => e
     Rails.logger.error("SmokeTestFailureNotificationJob failed for user #{user.id}, run #{run.id}: #{e.message}")
-  end
-
-  def nyk_test?(run)
-    run.name.to_s.start_with?("nyk_")
   end
 
   def truncate_body(summary, error_message)

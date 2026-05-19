@@ -37,7 +37,6 @@ class NykBillingController < ApplicationController
 
   def require_visible
     return if Current.session&.user&.admin?
-    return if ENV["NYK_BILLING_VISIBLE"].to_s == "true" && Current.session&.user&.kitchen_only?
     redirect_to "/nykitchen", alert: "Not available yet."
   end
 end

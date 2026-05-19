@@ -193,9 +193,8 @@ module Api
       # Sends one Telegram + creates one user-less notification record (for the
       # admin activity log), then sends a per-user APNs push to each kitchen
       # recipient so each recipient's iOS app icon badge tracks their own
-      # unread count. Recipients are admins + kitchen_customers — small
-      # hardcoded set today (Rich + Lora). When the audience grows, swap to
-      # role-based discovery.
+      # unread count. Recipients are admins + members of the ny-kitchen
+      # workspace (today: Rich + Lora).
       def broadcast_kitchen_alert(title:, body:, apns_url:, apns_subtitle:)
         Notification.notify!(
           level: "info",
@@ -222,7 +221,9 @@ module Api
       end
 
       def kitchen_recipients
-        User.where(role: %w[admin kitchen_customer]).where.not(email_address: nil)
+        admin_ids = User.where(role: "admin").pluck(:id)
+        member_ids = Workspace.find_by(slug: "ny-kitchen")&.users&.pluck(:id) || []
+        User.where(id: admin_ids + member_ids).where.not(email_address: nil)
       end
 
       def serialize_change(c)
