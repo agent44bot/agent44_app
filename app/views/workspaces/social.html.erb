@@ -50,9 +50,14 @@
   <% end %>
 
   <% if @writer %>
-    <section class="mb-10">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Compose</h2>
-      <% if @connected_platforms.any? %>
+    <% if @connected_platforms.any? %>
+    <details class="mb-10 group">
+      <summary class="cursor-pointer list-none inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200 transition select-none">
+        <span class="text-orange-400 group-open:rotate-45 transition-transform text-base leading-none">+</span>
+        <span class="group-open:hidden">New post</span>
+        <span class="hidden group-open:inline">Hide compose</span>
+      </summary>
+      <div class="mt-4">
         <% draft_text  = flash[:draft_text].to_s %>
         <% draft_topic = flash[:draft_topic].to_s %>
         <% min_len     = @connected_platforms.include?("x") ? 280 : 300 %>
@@ -126,6 +131,13 @@
             </div>
           <% end %>
         </div>
+      </div>
+    </details>
+    <% else %>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center mb-10">
+        <p class="text-gray-400 text-sm">Connect a social account below to start posting.</p>
+      </div>
+    <% end %>
 
         <% if @scheduled_drafts.any? %>
           <h3 class="text-xs uppercase tracking-wide text-gray-500 mt-6 mb-2">Scheduled</h3>
@@ -180,11 +192,6 @@
             <% end %>
           </div>
         <% end %>
-      <% else %>
-        <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
-          <p class="text-gray-400 text-sm">Connect a social account below to start posting.</p>
-        </div>
-      <% end %>
 
       <% if @posts.any? %>
         <div class="flex items-center justify-between mt-6 mb-2">
@@ -254,7 +261,6 @@
           <% end %>
         </div>
       <% end %>
-    </section>
   <% end %>
 
   <section>
