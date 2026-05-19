@@ -135,10 +135,16 @@ class KitchenController < ApplicationController
       status:           "draft"
     )
 
+    # For the NYK workspace, prefer the /nykitchen/social alias so the URL
+    # bar stays inside the agents-hub shape after the handoff. Other
+    # workspaces redirect to their canonical /workspaces/:slug/social.
+    # #drafts anchor scrolls Lora past the empty Compose box to her
+    # just-created draft.
+    target_url = (ws.slug == "nykitchen" ? nyk_social_path : social_workspace_path(ws.slug)) + "#drafts"
     render json: {
       ok:             true,
       draft_id:       draft.id,
-      workspace_url:  social_workspace_path(ws.slug),
+      workspace_url:  target_url,
       workspace_name: ws.name
     }
   rescue => e

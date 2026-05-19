@@ -212,13 +212,25 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     end
     body = JSON.parse(response.body)
     assert body["ok"]
-    assert_equal "/workspaces/#{ws.slug}/social", body["workspace_url"]
+    assert_equal "/workspaces/#{ws.slug}/social#drafts", body["workspace_url"]
     assert_equal "NY Kitchen",              body["workspace_name"]
 
     draft = WorkspaceDraft.last
     assert_equal "Chef's Table Sat 6pm — 1 seat left", draft.body
     assert_equal %w[x], draft.target_platforms
     assert_equal "draft", draft.status
+  end
+
+  test "send_to_workspace returns /nykitchen/social URL for the NYK workspace" do
+    admin = User.create!(email_address: "snd-nyk-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws    = Workspace.create!(name: "NYK", owner: admin, slug: "nykitchen")
+    ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@nyk", external_id: SecureRandom.hex(4),
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
+    sign_in_as(admin)
+
+    post "/nykitchen/send_to_workspace",
+         params: { text: "hi", event_url: "https://nykitchen.com/event/y", workspace_slug: "nykitchen" }
+    assert_equal "/nykitchen/social#drafts", JSON.parse(response.body)["workspace_url"]
   end
 
   test "send_to_workspace rejects non-admin" do
