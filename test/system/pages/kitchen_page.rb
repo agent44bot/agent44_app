@@ -45,4 +45,16 @@ class KitchenPage < BasePage
     preview_button&.click
     sleep 0.3
   end
+
+  # The filter chips and week sections start collapsed; tests that interact
+  # with their contents must expand first.
+  def expand_filter
+    page.query_selector("[data-nyk-filter-tracker-url-value] > button")&.click
+    sleep 0.2
+  end
+
+  def expand_first_week
+    page.query_selector("[data-kitchen-filter-target='section'] > button")&.click
+    sleep 0.2
+  end
 end

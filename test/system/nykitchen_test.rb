@@ -17,6 +17,7 @@ class NykitchenSystemTest < SystemTestCase
 
   test "filter chips work" do
     @kitchen.visit
+    @kitchen.expand_filter
 
     chip = @kitchen.filter_chip("instock")
     assert chip, "Expected 'Available' filter chip on the page"
@@ -32,6 +33,7 @@ class NykitchenSystemTest < SystemTestCase
 
   test "preview post panel expands and shows draft text" do
     @kitchen.visit
+    @kitchen.expand_first_week
     @kitchen.open_preview
 
     assert @kitchen.preview_panel, "Expected preview panel to be visible"
@@ -41,6 +43,7 @@ class NykitchenSystemTest < SystemTestCase
 
   test "preview post text is editable" do
     @kitchen.visit
+    @kitchen.expand_first_week
     @kitchen.open_preview
 
     el = @kitchen.preview_text_element
@@ -50,6 +53,7 @@ class NykitchenSystemTest < SystemTestCase
 
   test "save draft button appears after editing text" do
     @kitchen.visit
+    @kitchen.expand_first_week
     @kitchen.open_preview
 
     # Save button should be hidden initially
@@ -68,6 +72,7 @@ class NykitchenSystemTest < SystemTestCase
 
   test "enhance with AI button exists but is not clicked in tests" do
     @kitchen.visit
+    @kitchen.expand_first_week
     @kitchen.open_preview
 
     btn = @kitchen.enhance_button
