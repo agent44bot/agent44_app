@@ -1,5 +1,12 @@
 class KitchenController < ApplicationController
-  allow_unauthenticated_access
+  # Only the hub is publicly viewable — anonymous visitors can preview the
+  # NY Kitchen agents fleet (so Lora can share /nykitchen with her boss),
+  # but every card click requires sign-in/sign-up. The four agent pages
+  # (list/test/data + the /nykitchen/social alias which routes to
+  # workspaces#social), the POST endpoints (social_post_log, enhance_post,
+  # send_to_workspace, trigger_smoke), and the digest/download actions all
+  # gate via the default require_authentication.
+  allow_unauthenticated_access only: [:hub]
 
   before_action :set_common_view_state, only: %i[hub list test data]
 

@@ -4,6 +4,12 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   setup do
     @today = Date.today
     @snapshot = KitchenSnapshot.create!(taken_on: @today)
+    # Most tests visit /nykitchen/{list,test,data,digests} which require
+    # auth. Default to a signed-in admin so tests can focus on the page
+    # behavior; tests covering the auth gate or specific roles sign in
+    # their own user explicitly.
+    @default_user = User.create!(email_address: "kctrl-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    sign_in_as(@default_user)
   end
 
   test "week headers show availability bar with red and green only" do
@@ -277,6 +283,31 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   end
 
   # --- Agents hub coverage --------------------------------------------------
+
+  test "anonymous visitor sees the hub (shareable)" do
+    sign_out
+    get nykitchen_path
+    assert_response :success
+    assert_match /List Agent/, response.body
+  end
+
+  test "anonymous click on List bounces to sign-in" do
+    sign_out
+    get nyk_list_path
+    assert_redirected_to %r{/session/new}
+  end
+
+  test "anonymous click on Test bounces to sign-in" do
+    sign_out
+    get nyk_test_path
+    assert_redirected_to %r{/session/new}
+  end
+
+  test "anonymous click on Data bounces to sign-in" do
+    sign_out
+    get nyk_data_path
+    assert_redirected_to %r{/session/new}
+  end
 
   test "hub renders four agent cards" do
     create_event("Pasta 101", 2.days.from_now, "InStock")
