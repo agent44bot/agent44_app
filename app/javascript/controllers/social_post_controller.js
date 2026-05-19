@@ -31,11 +31,11 @@ export default class extends Controller {
     if (isHidden) {
       this.previewTextTarget.textContent = this.enhancedTextValue || this.buildPost()
       panel.classList.remove("hidden")
-      this.toggleBtnTarget.textContent = "Hide preview"
+      this.toggleBtnTarget.textContent = "Hide"
       this._maybeShowIdeaCallout()
     } else {
       panel.classList.add("hidden")
-      this.toggleBtnTarget.textContent = "Preview post"
+      this.toggleBtnTarget.textContent = "Send to Social Agent"
     }
   }
 

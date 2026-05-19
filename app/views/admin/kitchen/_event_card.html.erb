@@ -56,7 +56,7 @@
           <span>&middot;</span>
           <button data-action="social-post#toggle" data-social-post-target="toggleBtn"
                   class="text-blue-400 hover:text-blue-300 transition cursor-pointer">
-            Preview post
+            Send to Social Agent
           </button>
           <% if post_log&.copied? %>
             <span>&middot;</span>
@@ -156,7 +156,7 @@
                 class: "#{@sendable_workspaces.size == 1 ? 'hidden' : ''} bg-gray-700 border border-gray-600 text-white text-xs rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-orange-500" %>
             <button data-action="social-post#sendToWorkspace" data-social-post-target="sendToWorkspaceBtn"
                     class="px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold transition cursor-pointer">
-              Send to workspace
+              Hand off to Agent
             </button>
           </div>
         <% end %>
