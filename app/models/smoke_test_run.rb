@@ -1,5 +1,8 @@
 class SmokeTestRun < ApplicationRecord
-  STATUSES = %w[passed failed].freeze
+  # "running" rows are created when a smoke/scrape kicks off and patched
+  # to passed/failed when it finishes. Lets the hub show actual in-flight
+  # state (pulsing dot) instead of guessing from started_at age.
+  STATUSES = %w[running passed failed].freeze
   COST_PER_MINUTE = 0.00044 # $0.00044/min
 
   has_one_attached :video
@@ -25,6 +28,12 @@ class SmokeTestRun < ApplicationRecord
   def failed?
     status == "failed"
   end
+
+  def running?
+    status == "running"
+  end
+
+  scope :finished, -> { where.not(status: "running") }
 
   def kind
     name.to_s.start_with?("nyk_scrape") ? "scrape" : "nav"

@@ -411,17 +411,22 @@ class KitchenController < ApplicationController
     nav    = SmokeTestRun.nyk_nav
     scrape = SmokeTestRun.nyk_scrape
 
+    # Most-recent row (incl. running rows) for presence-dot logic.
     @hub_smoke_last       = nav.recent.first
-    @hub_smoke_total      = nav.count
+    # Most-recent FINISHED row for the headline "Passed N ago" line — we
+    # don't want a momentary in-flight row to wipe out the last result.
+    @hub_smoke_last_finished = nav.finished.recent.first
+    @hub_smoke_total      = nav.finished.count
     @hub_smoke_failed_30d = nav.where("started_at >= ?", 30.days.ago).where(status: "failed").count
-    @hub_smoke_runs_30d   = nav.where("started_at >= ?", 30.days.ago).count
+    @hub_smoke_runs_30d   = nav.finished.where("started_at >= ?", 30.days.ago).count
     @hub_smoke_fail_rate_30d = @hub_smoke_runs_30d.zero? ? 0.0 :
       (@hub_smoke_failed_30d.to_f / @hub_smoke_runs_30d * 100).round(1)
     @hub_smoke_cost_total    = nav.sum(:cost_dollars)
     @hub_smoke_total_minutes = (nav.sum(:duration_ms) / 60_000.0).round
 
     @hub_scrape_last         = scrape.recent.first
-    @hub_scrape_total        = scrape.count
+    @hub_scrape_last_finished = scrape.finished.recent.first
+    @hub_scrape_total        = scrape.finished.count
     @hub_scrape_cost_total   = scrape.sum(:cost_dollars)
     @hub_scrape_total_minutes = (scrape.sum(:duration_ms) / 60_000.0).round
 
@@ -433,11 +438,10 @@ class KitchenController < ApplicationController
     }
   end
 
-  # Agent presence: :running (pulsing dot), :on_cadence (solid green),
-  # :stale (gray). Cadence windows derive from each agent's typical
-  # cron/run interval — see the SmokeTestFailureNotificationJob comments
-  # and the GitHub Actions schedules.
-  RUN_WINDOW   = 5.minutes  # how long after a run we still consider it "running"
+  # Agent presence: :running (pulsing green dot, run in flight),
+  # :failed (solid red dot, last finished run failed — sustained until a
+  # passing run lands), :on_cadence (solid green, within cadence window),
+  # :stale (gray, no recent run).
   TEST_CADENCE = 90.minutes # smoke runs every ~hour, +30min slack
   DATA_CADENCE = 4.hours    # scrapes every 3 hours, +1h slack
   LIST_CADENCE = 30.hours   # snapshot taken_on is per-day, allow a stale day before going gray
@@ -450,25 +454,31 @@ class KitchenController < ApplicationController
   end
 
   def test_agent_status
-    presence_for(@hub_smoke_last&.started_at, TEST_CADENCE)
+    agent_status_from_runs(@hub_smoke_last, @hub_smoke_last_finished, TEST_CADENCE)
   end
 
   def data_agent_status
-    presence_for(@hub_scrape_last&.started_at, DATA_CADENCE)
+    agent_status_from_runs(@hub_scrape_last, @hub_scrape_last_finished, DATA_CADENCE)
   end
 
   def social_agent_status
     return :stale unless @nyk_workspace
     last = @nyk_workspace.workspace_posts.maximum(:posted_at)
-    presence_for(last, SOCIAL_CADENCE, run_window: nil)
+    return :stale unless last
+    Time.current - last < SOCIAL_CADENCE ? :on_cadence : :stale
   end
 
-  def presence_for(timestamp, cadence, run_window: RUN_WINDOW)
-    return :stale unless timestamp
-    age = Time.current - timestamp
-    return :running    if run_window && age < run_window
-    return :on_cadence if age < cadence
-    :stale
+  # Smoke/scrape presence: a SmokeTestRun row exists for each kickoff.
+  # - last_run: most recent row (may be status=running, i.e. in flight)
+  # - last_finished: most recent passed/failed row, ignoring running ones
+  # - cadence: how recently a finished run must have landed to count as
+  #   "on cadence" (i.e. healthy enough to be solid green)
+  def agent_status_from_runs(last_run, last_finished, cadence)
+    return :stale  unless last_run || last_finished
+    return :running if last_run&.running?
+    return :failed  if last_finished&.failed?
+    return :stale   unless last_finished
+    Time.current - last_finished.started_at < cadence ? :on_cadence : :stale
   end
 
   def build_enhance_prompt(draft, name, description, date, price, idea = nil)

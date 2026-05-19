@@ -3,11 +3,13 @@
 <%
   social_href = @nyk_workspace ? nyk_social_path : workspaces_path
 
-  # Agent-presence dot: pulsing green = recently active, solid green =
+  # Agent-presence dot: pulsing green = actively running, solid red =
+  # last finished run failed (sustained until next pass), solid green =
   # on-cadence, gray = stale (no recent activity).
   agent_dot = ->(state) {
     case state
     when :running    then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.7)]" title="Running now"></span>).html_safe
+    when :failed     then %(<span class="inline-block w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" title="Last run failed"></span>).html_safe
     when :on_cadence then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500" title="On cadence"></span>).html_safe
     else                  %(<span class="inline-block w-2 h-2 rounded-full bg-gray-600" title="Idle / stale"></span>).html_safe
     end
@@ -23,13 +25,15 @@
     rem.positive? ? "#{hours}h #{rem}m" : "#{hours}h"
   }
 
-  smoke_status_color = if @hub_smoke_last.nil?            then "text-gray-500"
-                      elsif @hub_smoke_last.passed?      then "text-green-400"
-                      else                                    "text-red-400"
+  # Headline label uses the last *finished* row so an in-flight run
+  # doesn't blank out "Passed N ago".
+  smoke_status_color = if @hub_smoke_last_finished.nil?            then "text-gray-500"
+                      elsif @hub_smoke_last_finished.passed?      then "text-green-400"
+                      else                                              "text-red-400"
                       end
-  smoke_status_label = if @hub_smoke_last.nil?       then "No runs yet"
-                      elsif @hub_smoke_last.passed? then "✓ Passed"
-                      else                                "🚨 Failed"
+  smoke_status_label = if @hub_smoke_last_finished.nil?       then "No runs yet"
+                      elsif @hub_smoke_last_finished.passed? then "✓ Passed"
+                      else                                        "🚨 Failed"
                       end
   fail_rate_color = @hub_smoke_fail_rate_30d >= 20 ? "text-red-400" :
                     @hub_smoke_fail_rate_30d >= 5  ? "text-amber-400" :
@@ -149,7 +153,7 @@
       </div>
       <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
       <div class="<%= stats_class %>">
-        <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last %> <%= time_ago_in_words(@hub_smoke_last.started_at) %> ago<% end %></div>
+        <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last_finished %> <%= time_ago_in_words(@hub_smoke_last_finished.started_at) %> ago<% end %></div>
         <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
         <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
       </div>
@@ -166,8 +170,8 @@
       </div>
       <p class="<%= desc_class %>">Snapshots the calendar every three hours — feeds the List Agent and powers ticket-change alerts.</p>
       <div class="<%= stats_class %>">
-        <% if @hub_scrape_last %>
-          <div class="text-green-400 font-semibold">✓ Last snapshot <%= time_ago_in_words(@hub_scrape_last.started_at) %> ago</div>
+        <% if @hub_scrape_last_finished %>
+          <div class="text-green-400 font-semibold">✓ Last snapshot <%= time_ago_in_words(@hub_scrape_last_finished.started_at) %> ago</div>
         <% else %>
           <div class="text-gray-500 font-semibold">No snapshots yet</div>
         <% end %>

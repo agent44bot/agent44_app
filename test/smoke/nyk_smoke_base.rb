@@ -50,6 +50,9 @@ class NykSmokeBase < ActiveSupport::TestCase
     @calendar_url_at_failure = nil
     @user_agent = nil
     @started_at = Time.now
+    # Beacon a "running" SmokeTestRun row so the NYK hub can pulse the
+    # dot while we're in flight. PATCHed to passed/failed in post_result.
+    @run_id = post_run_start
     update_vlad_status("busy", "NY Kitchen smoke test")
   end
 
@@ -394,6 +397,47 @@ class NykSmokeBase < ActiveSupport::TestCase
   # API: post run + snapshot, upload video
   # ---------------------------------------------------------------------------
 
+  # Create a "running" row up front so the hub can pulse the dot while
+  # the test is in flight. Best-effort — if it fails, we just skip the
+  # beacon and post_result will fall back to a single POST at the end.
+  def post_run_start
+    token = ENV["API_TOKEN"]
+    return nil if token.to_s.empty?
+
+    body = {
+      name: self.class::TEST_NAME,
+      status: "running",
+      started_at: @started_at.iso8601
+    }.to_json
+
+    uri = URI("#{API_URL}/api/v1/smoke_runs")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 5
+    http.read_timeout = 10
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{token}"
+    req["Content-Type"] = "application/json"
+    req.body = body
+
+    res = http.request(req)
+    if res.is_a?(Net::HTTPSuccess)
+      data = JSON.parse(res.body) rescue {}
+      puts "  📡 smoke-run start beacon → ##{data['id']}"
+      data["id"]
+    else
+      puts "  ⚠  smoke-run start beacon → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
+      nil
+    end
+  rescue => e
+    puts "  ⚠  smoke-run start beacon error: #{e.class}: #{e.message}"
+    nil
+  end
+
+  # When a "running" row was beaconed at start, PATCH it with the final
+  # status. If not (older clients / beacon failed), fall back to a fresh
+  # POST so we still record the result.
   def post_result(status:, summary: nil, error_message: nil)
     token = ENV["API_TOKEN"]
     if token.to_s.empty?
@@ -414,13 +458,21 @@ class NykSmokeBase < ActiveSupport::TestCase
       console_errors: console_errors
     }.compact.to_json
 
-    uri = URI("#{API_URL}/api/v1/smoke_runs")
+    uri = if @run_id
+      URI("#{API_URL}/api/v1/smoke_runs/#{@run_id}")
+    else
+      URI("#{API_URL}/api/v1/smoke_runs")
+    end
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == "https"
     http.open_timeout = 5
     http.read_timeout = 10
 
-    req = Net::HTTP::Post.new(uri)
+    req = if @run_id
+      Net::HTTP::Patch.new(uri)
+    else
+      Net::HTTP::Post.new(uri)
+    end
     req["Authorization"] = "Bearer #{token}"
     req["Content-Type"] = "application/json"
     req.body = body
@@ -428,14 +480,14 @@ class NykSmokeBase < ActiveSupport::TestCase
     res = http.request(req)
     if res.is_a?(Net::HTTPSuccess)
       data = JSON.parse(res.body) rescue {}
-      puts "  📬 smoke-run posted to #{API_URL} (#{status})"
+      puts "  📬 smoke-run finalized (#{status}) → ##{data['id']}"
       return data["id"]
     else
-      puts "  ⚠  smoke-run POST → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
+      puts "  ⚠  smoke-run final post → HTTP #{res.code}: #{res.body.to_s[0, 200]}"
     end
     nil
   rescue => e
-    puts "  ⚠  smoke-run POST error: #{e.class}: #{e.message}"
+    puts "  ⚠  smoke-run final post error: #{e.class}: #{e.message}"
     nil
   end
 
