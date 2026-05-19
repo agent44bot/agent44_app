@@ -15,6 +15,20 @@
     end
   }
 
+  # Public profile URL for a connected social account, used by the
+  # Social Agent card on the hub. Returns "#" for platforms we can't
+  # construct one for so the link still renders harmlessly.
+  platform_profile_url = ->(acct) {
+    handle = acct.handle.to_s.delete_prefix("@")
+    case acct.platform
+    when "x"        then "https://x.com/#{handle}"
+    when "bluesky"  then "https://bsky.app/profile/#{handle}"
+    when "threads"  then "https://www.threads.net/@#{handle}"
+    when "facebook" then "https://www.facebook.com/#{handle}"
+    else                 "#"
+    end
+  }
+
   # Format minutes for the work-time meter. < 60 stays in minutes;
   # otherwise Xh Ym.
   humanize_minutes = ->(min) {
@@ -116,41 +130,54 @@
       </div>
     <% end %>
 
-    <%= link_to social_href, class: card_class do %>
+    <div class="<%= card_class.sub('block ', '') %>">
       <div class="flex items-start justify-between mb-2">
-        <div class="flex items-center gap-2">
+        <%= link_to social_href, class: "flex items-center gap-2 group/title" do %>
           <span class="text-2xl">📣</span>
-          <h2 class="text-lg font-bold text-white">Social Agent</h2>
+          <h2 class="text-lg font-bold text-white group-hover/title:text-orange-400 transition">Social Agent</h2>
           <%= agent_dot.call(@hub_agent_status[:social]) %>
-        </div>
-        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+        <% end %>
+        <%= link_to social_href, class: "text-gray-600 hover:text-orange-400 transition" do %>→<% end %>
       </div>
       <p class="<%= desc_class %>">Drafts and posts to your connected social accounts. Hand off a class with one click.</p>
       <div class="<%= stats_class %>">
         <% if @nyk_workspace %>
-          <% connected   = @nyk_workspace.social_accounts.active.pluck(:platform).uniq %>
+          <% connected   = @nyk_workspace.social_accounts.active.order(:platform).to_a %>
           <% all_present = @nyk_workspace.social_accounts.pluck(:platform).uniq %>
-          <% missing     = %w[x bluesky threads facebook] - all_present %>
+          <% missing     = %w[facebook threads] - all_present %>
+
           <% if connected.any? %>
-            <div class="text-gray-300"><%= connected.map(&:capitalize).sort.join(" · ") %> connected</div>
-          <% else %>
-            <div class="text-gray-500">No platforms connected yet</div>
+            <div class="text-xs uppercase tracking-wide text-gray-500">Connected</div>
+            <% connected.each do |acct| %>
+              <%= link_to platform_profile_url.call(acct), target: "_blank", rel: "noopener",
+                    class: "flex items-center justify-between text-gray-200 hover:text-orange-400 transition" do %>
+                <span><%= acct.platform.capitalize %></span>
+                <span class="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+              <% end %>
+            <% end %>
           <% end %>
-          <div class="text-gray-500"><%= pluralize(@nyk_workspace.workspace_posts.count, "post") %> total</div>
-          <% if missing.any? %>
-            <div class="text-orange-400/90 group-hover:text-orange-300 transition pt-0.5">
-              + Connect <%= missing.map(&:capitalize).join(", ") %>
-              <span class="text-gray-600">· Instagram coming soon</span>
-            </div>
-          <% elsif all_present.exclude?("instagram") %>
-            <div class="text-gray-600 pt-0.5">Instagram coming soon</div>
+
+          <% if missing.any? || all_present.exclude?("instagram") %>
+            <div class="text-xs uppercase tracking-wide text-gray-500 pt-2">To configure</div>
+            <% if all_present.exclude?("instagram") %>
+              <div class="flex items-center justify-between text-gray-500">
+                <span>Instagram</span>
+                <span class="text-xs text-gray-600 italic">coming soon</span>
+              </div>
+            <% end %>
+            <% missing.each do |platform| %>
+              <%= link_to social_href, class: "flex items-center justify-between text-orange-400/90 hover:text-orange-300 transition" do %>
+                <span><%= platform.capitalize %></span>
+                <span class="text-xs text-orange-500/70">+ connect</span>
+              <% end %>
+            <% end %>
           <% end %>
         <% else %>
           <div class="text-gray-500">No NY Kitchen workspace yet</div>
           <div class="text-gray-500">Click to set one up</div>
         <% end %>
       </div>
-    <% end %>
+    </div>
 
     <%= link_to nyk_test_path, class: card_class do %>
       <div class="flex items-start justify-between mb-2">
