@@ -52,7 +52,7 @@ class WorkspacesController < ApplicationController
   # etc.) can join the fleet here. NY Kitchen has a richer 4-agent hub at
   # /nykitchen — redirect there so there's one canonical NYK destination.
   def show
-    return redirect_to(nykitchen_path, status: 301) if @workspace.slug == "ny-kitchen"
+    return redirect_to(nykitchen_path, status: 301) if @workspace.slug == "nykitchen"
 
     @my_role  = @workspace.role_for(current_user)
     @writer   = %w[owner admin editor].include?(@my_role)

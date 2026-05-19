@@ -2,7 +2,7 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="flex items-center gap-3 mb-6 text-sm">
-    <% if @workspace.slug == "ny-kitchen" %>
+    <% if @workspace.slug == "nykitchen" %>
       <%= link_to "← NY Kitchen", nykitchen_path, class: "text-gray-400 hover:text-orange-400 transition" %>
     <% else %>
       <%= link_to "← #{@workspace.name}", workspace_path(@workspace.slug), class: "text-gray-400 hover:text-orange-400 transition" %>

@@ -22,7 +22,7 @@ class SmokeTestFailureNotificationJob < ApplicationJob
   private
 
   def workspace_for(run)
-    return Workspace.find_by(slug: "ny-kitchen") if run.name.to_s.start_with?("nyk_")
+    return Workspace.find_by(slug: "nykitchen") if run.name.to_s.start_with?("nyk_")
     nil
   end
 

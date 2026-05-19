@@ -138,7 +138,7 @@
           <% if authenticated? %>
             <% if !Current.session.user.admin? %>
               <%= link_to "Workspaces", workspaces_path, class: "text-sm text-gray-300 hover:text-orange-400 transition" %>
-              <% if Current.session.user.workspace_memberships.joins(:workspace).where(workspaces: { slug: "ny-kitchen" }).exists? %>
+              <% if Current.session.user.workspace_memberships.joins(:workspace).where(workspaces: { slug: "nykitchen" }).exists? %>
                 <%= link_to "NY Kitchen", nykitchen_path, class: "text-sm text-gray-300 hover:text-orange-400 transition" %>
               <% end %>
             <% end %>
@@ -196,7 +196,7 @@
         <% end %>
         <% if authenticated? %>
           <%= link_to "Workspaces", workspaces_path, class: "block px-3 py-2 rounded-md text-base font-medium text-orange-500 hover:bg-gray-800" %>
-          <% if !Current.session.user.admin? && Current.session.user.workspace_memberships.joins(:workspace).where(workspaces: { slug: "ny-kitchen" }).exists? %>
+          <% if !Current.session.user.admin? && Current.session.user.workspace_memberships.joins(:workspace).where(workspaces: { slug: "nykitchen" }).exists? %>
             <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <% end %>
         <% end %>

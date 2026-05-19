@@ -133,7 +133,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
   end
 
   test "show 301-redirects ny-kitchen to /nykitchen so there's one NYK destination" do
-    ws = Workspace.create!(name: "NY Kitchen", owner: @owner, slug: "ny-kitchen")
+    ws = Workspace.create!(name: "NY Kitchen", owner: @owner, slug: "nykitchen")
     sign_in_as(@owner)
     get workspace_path(ws.slug)
     assert_redirected_to nykitchen_path

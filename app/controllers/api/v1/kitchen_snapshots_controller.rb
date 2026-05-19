@@ -222,7 +222,7 @@ module Api
 
       def kitchen_recipients
         admin_ids = User.where(role: "admin").pluck(:id)
-        member_ids = Workspace.find_by(slug: "ny-kitchen")&.users&.pluck(:id) || []
+        member_ids = Workspace.find_by(slug: "nykitchen")&.users&.pluck(:id) || []
         User.where(id: admin_ids + member_ids).where.not(email_address: nil)
       end
 

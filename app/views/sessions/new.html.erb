@@ -37,8 +37,10 @@
                     <span class="text-[10px] font-semibold uppercase text-amber-400">admin</span>
                   <% elsif u.reviewer? %>
                     <span class="text-[10px] font-semibold uppercase text-purple-400">reviewer</span>
-                  <% elsif (ws = u.workspaces.first) %>
-                    <span class="text-[10px] font-semibold uppercase text-orange-400"><%= ws.name %></span>
+                  <% elsif (ws_list = u.workspaces.to_a).any? %>
+                    <span class="text-[10px] font-semibold uppercase text-orange-400">
+                      /<%= ws_list.first.slug %><% if ws_list.size > 1 %> +<%= ws_list.size - 1 %><% end %>
+                    </span>
                   <% else %>
                     <span class="text-[10px] font-semibold uppercase text-gray-500">user</span>
                   <% end %>
