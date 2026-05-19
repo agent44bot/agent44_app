@@ -405,11 +405,13 @@ class KitchenController < ApplicationController
     @hub_smoke_runs_30d   = nav.where("started_at >= ?", 30.days.ago).count
     @hub_smoke_fail_rate_30d = @hub_smoke_runs_30d.zero? ? 0.0 :
       (@hub_smoke_failed_30d.to_f / @hub_smoke_runs_30d * 100).round(1)
-    @hub_smoke_cost_total = nav.sum(:cost_dollars)
+    @hub_smoke_cost_total    = nav.sum(:cost_dollars)
+    @hub_smoke_total_minutes = (nav.sum(:duration_ms) / 60_000.0).round
 
-    @hub_scrape_last      = scrape.recent.first
-    @hub_scrape_total     = scrape.count
-    @hub_scrape_cost_total = scrape.sum(:cost_dollars)
+    @hub_scrape_last         = scrape.recent.first
+    @hub_scrape_total        = scrape.count
+    @hub_scrape_cost_total   = scrape.sum(:cost_dollars)
+    @hub_scrape_total_minutes = (scrape.sum(:duration_ms) / 60_000.0).round
 
     @hub_agent_status = {
       list:   list_agent_status,

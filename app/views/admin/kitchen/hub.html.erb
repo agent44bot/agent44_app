@@ -13,6 +13,16 @@
     end
   }
 
+  # Format minutes for the work-time meter. < 60 stays in minutes;
+  # otherwise Xh Ym.
+  humanize_minutes = ->(min) {
+    return "0 min" if min.to_i.zero?
+    return "#{min} min" if min < 60
+    hours = min / 60
+    rem   = min % 60
+    rem.positive? ? "#{hours}h #{rem}m" : "#{hours}h"
+  }
+
   smoke_status_color = if @hub_smoke_last.nil?            then "text-gray-500"
                       elsif @hub_smoke_last.passed?      then "text-green-400"
                       else                                    "text-red-400"
@@ -61,7 +71,7 @@
         <% end %>
       </div>
     </div>
-    <p class="text-gray-400 mt-1">4 agents working the NY Kitchen calendar.</p>
+    <p class="text-gray-400 mt-1">4 agents working NY Kitchen.</p>
   </div>
 
   <% if @nyk_workspace %>
@@ -107,11 +117,7 @@
       <div class="space-y-1 text-sm">
         <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last %> <%= time_ago_in_words(@hub_smoke_last.started_at) %> ago<% end %></div>
         <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
-        <% if @can_see_pricing %>
-          <div class="text-gray-500"><%= @hub_smoke_total %> runs · $<%= "%.2f" % @hub_smoke_cost_total %> total</div>
-        <% else %>
-          <div class="text-gray-500"><%= @hub_smoke_total %> runs</div>
-        <% end %>
+        <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
       </div>
     <% end %>
 
@@ -131,11 +137,7 @@
         <% else %>
           <div class="text-gray-500 font-semibold">No snapshots yet</div>
         <% end %>
-        <% if @can_see_pricing %>
-          <div class="text-gray-500"><%= @hub_scrape_total %> runs · $<%= "%.2f" % @hub_scrape_cost_total %> total</div>
-        <% else %>
-          <div class="text-gray-500"><%= @hub_scrape_total %> runs</div>
-        <% end %>
+        <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_scrape_total_minutes) %> · <%= @hub_scrape_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_scrape_cost_total %><% end %></div>
       </div>
     <% end %>
 
