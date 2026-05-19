@@ -1,6 +1,5 @@
 module Oauth
   class XController < ApplicationController
-    include FleetSocialAccess
     before_action :load_workspace, only: :connect
     before_action :require_admin,  only: :connect
 

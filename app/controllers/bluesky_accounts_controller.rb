@@ -2,7 +2,6 @@
 # is a plain form. We exchange the credentials for a session immediately to
 # verify they're valid, then store the resulting JWTs.
 class BlueskyAccountsController < ApplicationController
-  include FleetSocialAccess
   before_action :load_workspace
   before_action :require_admin
 

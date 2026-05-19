@@ -6,13 +6,19 @@
       <h1 class="text-2xl font-bold text-white">Workspaces</h1>
       <p class="text-sm text-gray-400 mt-1">Each workspace manages one brand's social accounts and drafts.</p>
     </div>
-    <%= link_to "New workspace", new_workspace_path,
-        class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
+    <% if Current.session.user.admin? %>
+      <%= link_to "New workspace", new_workspace_path,
+          class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
+    <% end %>
   </div>
 
   <% if @workspaces.empty? %>
     <div class="rounded-lg bg-gray-900 border border-gray-800 p-8 text-center">
-      <p class="text-gray-400">No workspaces yet. Create one to get started.</p>
+      <% if Current.session.user.admin? %>
+        <p class="text-gray-400">No workspaces yet. Create one to get started.</p>
+      <% else %>
+        <p class="text-gray-400">Workspaces are by invitation — ask an admin to invite you.</p>
+      <% end %>
     </div>
   <% else %>
     <div class="space-y-3">

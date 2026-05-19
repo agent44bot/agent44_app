@@ -1,9 +1,4 @@
 class WorkspaceInvitationsController < ApplicationController
-  include FleetSocialAccess
-  # Invitees haven't accepted yet — they may not be admins and have no
-  # workspace memberships, so the FleetSocialAccess gate would bounce them
-  # to root. Exempt the two actions that only need a valid invitation token.
-  skip_before_action :require_fleet_social_access, only: [:show, :accept]
   before_action :load_workspace,  only: [:create, :destroy]
   before_action :require_admin,   only: [:create, :destroy]
 

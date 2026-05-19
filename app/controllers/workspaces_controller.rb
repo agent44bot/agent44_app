@@ -1,5 +1,4 @@
 class WorkspacesController < ApplicationController
-  include FleetSocialAccess
   before_action :load_workspace,    only: [:show, :social, :update, :destroy, :refresh_metrics]
   before_action :require_member,    only: [:show, :social, :refresh_metrics]
   before_action :require_admin,     only: [:update, :destroy]
