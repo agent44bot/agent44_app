@@ -187,7 +187,11 @@
     </div>
     <% else %>
       <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center mb-10">
-        <p class="text-gray-400 text-sm">Connect a social account below to start posting.</p>
+        <% if %w[owner admin].include?(@my_role) %>
+          <p class="text-gray-400 text-sm">No social accounts connected yet. Open the <span aria-hidden="true">⋮</span> menu in the top right to connect X, Bluesky, Threads, or Facebook.</p>
+        <% else %>
+          <p class="text-gray-400 text-sm">No social accounts connected yet. Ask a workspace admin to connect X, Bluesky, Threads, or Facebook.</p>
+        <% end %>
       </div>
     <% end %>
 
