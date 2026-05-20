@@ -183,7 +183,9 @@ class NykSmokeBase < ActiveSupport::TestCase
     before_url = page.url
     before_event_ids = capture_events(page).map { |e| e[:id] }.sort
     record_step(kind: "click", direction: direction)
-    page.locator(nav_selector(direction)).first.click
+    scroll_calendar_into_view(page)
+    nav_button = page.locator(nav_selector(direction)).first
+    nav_button.click
 
     if DEBUG_NAV
       page.wait_for_timeout(3000)
@@ -209,6 +211,7 @@ class NykSmokeBase < ActiveSupport::TestCase
     end
     page.wait_for_load_state("networkidle", timeout: 5_000) rescue nil
     page.wait_for_timeout(NAV_WAIT_MS)
+    scroll_calendar_into_view(page)
 
     final_title = read_month_title(page)
     final_ids   = capture_events(page).map { |e| e[:id] }.sort
@@ -230,6 +233,20 @@ class NykSmokeBase < ActiveSupport::TestCase
   # calendar nav arrows can't be clicked. We hide only the popup-modal
   # elements by ID prefix — broader selectors (.dialog-widget) broke TEC's
   # AJAX event rendering entirely.
+  # Pins the calendar grid to the top of the viewport. TEC's live_refresh
+  # tends to re-snap the page to the top after an arrow click, hiding the
+  # grid behind the hero — this keeps the grid in frame for the headful
+  # debugging run (and screenshots/videos).
+  def scroll_calendar_into_view(page)
+    page.evaluate(<<~JS)
+      (function() {
+        var el = document.querySelector('.tribe-events-calendar-month, .tribe-events-c-nav, .tribe-events-header');
+        if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' });
+      })();
+    JS
+    page.wait_for_timeout(150)
+  end
+
   def dismiss_newsletter_popup(page)
     page.evaluate(<<~JS)
       (function() {
