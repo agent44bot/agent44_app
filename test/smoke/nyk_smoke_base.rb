@@ -161,17 +161,43 @@ class NykSmokeBase < ActiveSupport::TestCase
   end
 
   # See nyk_calendar_nav_test.rb for original docs. Returns array of
-  # { id:, title: } symbol-key hashes, deduped by ID.
+  # { id:, title: } symbol-key hashes, deduped by ID. Excludes events that
+  # live in trailing-days cells (TEC renders the previous/next month's
+  # overflow days in row 1 / last row) — those cells get dropped by TEC's
+  # live_refresh on arrow-nav return, which is a known TEC bug and not
+  # what this round-trip test is meant to catch.
+  #
+  # Filter compares each event's containing day-cell <time datetime="YYYY-MM-DD">
+  # against the YYYY-MM parsed from the month-title text. The `--other-month`
+  # class on day cells is unreliable post-live_refresh (TEC mangles it on the
+  # newly-rendered grid), but the datetime attr stays correct.
   def capture_events(page)
     raw = page.evaluate(<<~JS) || []
-      Array.from(document.querySelectorAll('.tribe-events-calendar-month__calendar-event')).map(el => {
-        const idMatch = el.className.match(/post-(\\d+)/);
-        const linkEl = el.querySelector('.tribe-events-calendar-month__calendar-event-title-link, .tribe-events-calendar-month__calendar-event-title');
-        return {
-          id: idMatch ? idMatch[1] : null,
-          title: linkEl ? linkEl.textContent.trim().replace(/\\s+/g, ' ') : ''
-        };
-      }).filter(e => e.id);
+      (function() {
+        var titleEl = document.querySelector('.tribe-events-c-top-bar__datepicker-button, .tribe-events-calendar-month__header-title');
+        var monthStr = titleEl ? titleEl.textContent.trim() : '';
+        var m = monthStr.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{4})/i);
+        var currentYM = null;
+        if (m) {
+          var monthIdx = ['january','february','march','april','may','june','july','august','september','october','november','december'].indexOf(m[1].toLowerCase());
+          if (monthIdx >= 0) currentYM = m[2] + '-' + String(monthIdx + 1).padStart(2, '0');
+        }
+        return Array.from(document.querySelectorAll('.tribe-events-calendar-month__calendar-event')).filter(el => {
+          if (!currentYM) return true;
+          const dayCell = el.closest('.tribe-events-calendar-month__day');
+          if (!dayCell) return true;
+          const timeEl = dayCell.querySelector('time[datetime]');
+          if (!timeEl) return true;
+          return timeEl.getAttribute('datetime').startsWith(currentYM);
+        }).map(el => {
+          const idMatch = el.className.match(/post-(\\d+)/);
+          const linkEl = el.querySelector('.tribe-events-calendar-month__calendar-event-title-link, .tribe-events-calendar-month__calendar-event-title');
+          return {
+            id: idMatch ? idMatch[1] : null,
+            title: linkEl ? linkEl.textContent.trim().replace(/\\s+/g, ' ') : ''
+          };
+        }).filter(e => e.id);
+      })()
     JS
     raw
       .map { |e| { id: e["id"].to_s, title: e["title"].to_s } }
