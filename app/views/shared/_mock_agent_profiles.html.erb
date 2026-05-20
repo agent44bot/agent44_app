@@ -6,11 +6,11 @@
      data-controller="mock-agents"
      data-mock-agents-visible-count-value="<%= visible_count %>"
      data-mock-agents-tasks-value='<%= [
-       "scanning catalog", "drafting social post", "watching checkout flow",
+       "running unit tests", "scanning dependencies", "linting changes",
        "retrying smoke run", "parsing JSON-LD", "queueing retry",
        "flushing cache", "running diff", "tracing event", "replaying session",
-       "generating thumbnail", "warming edge", "checking cert", "polling feed",
-       "restarting…"
+       "checking deploy logs", "warming edge", "checking TLS cert",
+       "polling endpoint", "restarting…"
      ].to_json %>'>
   <p class="text-[10px] font-semibold uppercase tracking-wider text-green-400 mb-2"><%= header %></p>
   <%# Reserve full height (10 rows × 20px + spacing) so rows entering/exiting
@@ -24,6 +24,7 @@
            style="max-height: 20px;">
         <span class="inline-block h-2 w-2 rounded-full shrink-0 bg-green-400 animate-pulse" data-dot></span>
         <span class="text-[11px] text-emerald-300 shrink-0" data-name><%= agent.name %></span>
+        <span class="text-[9px] text-green-500 shrink-0" data-role><%= agent.role %></span>
         <span class="text-[8px] text-amber-500 italic min-w-0 truncate" data-task style="display:none"></span>
       </div>
     <% end %>

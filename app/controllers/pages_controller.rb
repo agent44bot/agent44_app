@@ -2,13 +2,15 @@ class PagesController < ApplicationController
   allow_unauthenticated_access
 
   MOCK_AGENT_ROLES = [
-    "Scout", "Email Copywriter", "Watchtower", "Social Media Copywriter", "Crawler",
-    "Digest", "Secret Agent", "Analyzer", "QA Runner", "Replayer"
+    "Smoke Runner", "QA Engineer", "Linter", "Profiler", "Log Watcher",
+    "Crawler", "Replayer", "Deploy Bot", "DB Migrator", "API Monitor"
   ].freeze
 
   def home
-    real_agents = Agent.ordered.to_a
-    @agents = (authenticated? && Current.user.admin?) ? real_agents : []
+    # The personalized agent list (Vlad / Ripley / …) used to be admin-only on
+    # the marketing home; we hide it from everyone now so all visitors —
+    # signed-in admin or anonymous — see the same generic fleet below.
+    @agents = []
 
     # Mock "fleet" — smoke-and-mirrors. Shown to the public as the agents list,
     # stacked under the real team list for admins. Statuses animate client-side.
