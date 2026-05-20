@@ -12,6 +12,34 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/session/new}
   end
 
+  test "non-admin with one workspace lands directly in it" do
+    member = User.create!(email_address: "solo-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.create!(name: "Solo", owner: @owner)
+    ws.memberships.create!(user: member, role: "editor")
+
+    sign_in_as(member)
+    get workspaces_path
+    assert_redirected_to workspace_path(ws.slug)
+  end
+
+  test "force=1 lets a single-workspace member still see the list" do
+    member = User.create!(email_address: "solo-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.create!(name: "Solo", owner: @owner)
+    ws.memberships.create!(user: member, role: "editor")
+
+    sign_in_as(member)
+    get workspaces_path(force: 1)
+    assert_response :success
+    assert_match ws.name, response.body
+  end
+
+  test "site admin with one workspace still sees the list" do
+    Workspace.create!(name: "Only", owner: @owner)
+    sign_in_as(@owner)
+    get workspaces_path
+    assert_response :success
+  end
+
   test "user sees only workspaces they're a member of" do
     mine   = Workspace.create!(name: "Mine",   owner: @owner)
     theirs = Workspace.create!(name: "Theirs", owner: @outside)

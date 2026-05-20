@@ -6,6 +6,13 @@ class WorkspacesController < ApplicationController
   def index
     @workspaces = current_user.workspaces.active.order(:name)
     @owned_count = current_user.owned_workspaces.active.count
+
+    # Single-workspace members (e.g. Lora @ NY Kitchen) land directly in their
+    # workspace instead of seeing a one-row list. Site admins always see the
+    # full list; ?force=1 is the escape hatch from the hamburger menu.
+    if @workspaces.size == 1 && !current_user.admin? && params[:force].blank?
+      redirect_to workspace_path(@workspaces.first.slug) and return
+    end
   end
 
   def new
