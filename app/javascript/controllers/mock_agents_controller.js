@@ -1,51 +1,51 @@
 import { Controller } from "@hotwired/stimulus"
 
 const ROLE_POOL = [
-  "Scout", "Email Copywriter", "Watchtower", "Social Media Copywriter",
-  "Crawler", "Digest", "Analyzer", "QA Runner", "Replayer",
-  "Kitchen Watcher", "Cart Smoke", "Cert Watcher", "Edge Warmer",
-  "Pricing Diff", "Image Gen", "OCR Bot", "Sentiment", "Sitemap Crawler",
-  "Form Filler", "Inbox Reaper", "Calendar Hawk", "Stock Sniper",
-  "Receipt Reader", "Translator", "Link Checker", "Heatmap Watch",
-  "Latency Probe", "DNS Sentinel", "Bot Tail", "Coupon Sniffer"
+  "Smoke Runner", "QA Engineer", "Linter", "Profiler", "Log Watcher",
+  "Crawler", "Replayer", "Deploy Bot", "DB Migrator", "API Monitor",
+  "Cert Watcher", "Edge Warmer", "Link Checker", "Latency Probe",
+  "DNS Sentinel", "Sitemap Crawler", "Cache Warmer", "Health Probe",
+  "Error Tracer", "Build Bot", "Test Runner", "PR Reviewer",
+  "Dependency Bot", "Schema Diff", "Heap Profiler", "Queue Watcher",
+  "Webhook Replayer", "Uptime Probe", "Sentry Triager", "Migration Bot"
 ]
 
 const FIXED_ROLES = {
-  "002": "Email Copywriter",
-  "004": "Social Media Copywriter",
-  "007": "Secret Agent"
+  "001": "Smoke Runner",
+  "002": "QA Engineer",
+  "007": "Security Scanner"
 }
 
 const SPECIAL_TASKS = {
   "007": [
-    "martini, shaken, not stirred",
-    "tailing mark through Monte Carlo",
-    "decoding MI6 cipher",
-    "evading pursuit in Aston Martin",
-    "scaling alpine ridge",
-    "briefing M",
-    "checking Q's new gadget",
-    "losing a tail in Istanbul"
-  ],
-  "004": [
-    "drafting an Instagram post",
-    "drafting a Facebook post",
-    "drafting a TikTok caption",
-    "writing a LinkedIn post",
-    "polishing a caption",
-    "generating hashtags",
-    "A/B testing two headlines",
-    "scheduling tomorrow's feed"
+    "running CVE scan",
+    "rotating API key",
+    "auditing IAM roles",
+    "checking signed cookies",
+    "diffing CSP headers",
+    "probing for SSRF",
+    "auditing dependency tree",
+    "verifying TLS chain"
   ],
   "002": [
-    "drafting a welcome email",
-    "writing newsletter intro",
-    "A/B testing subject lines",
-    "drafting cart abandonment email",
-    "writing promo blast",
-    "scheduling drip sequence",
-    "proofreading newsletter",
-    "tagging CTAs"
+    "running unit tests",
+    "running smoke suite",
+    "comparing baseline screenshots",
+    "rerunning a flake",
+    "writing a regression test",
+    "filing a flaky-test issue",
+    "bisecting a failure",
+    "tagging CI flake"
+  ],
+  "001": [
+    "starting smoke run",
+    "loading calendar page",
+    "round-tripping event grid",
+    "diffing class list",
+    "capturing console errors",
+    "saving page source",
+    "uploading run artifact",
+    "alerting on regression"
   ]
 }
 
@@ -106,6 +106,7 @@ export default class extends Controller {
     row.innerHTML = `
       <span class="inline-block h-2 w-2 rounded-full shrink-0 bg-green-400 animate-pulse" data-dot></span>
       <span class="text-[11px] text-green-400 shrink-0" data-name>${id}</span>
+      <span class="text-[9px] text-green-500 shrink-0" data-role>${agent.role}</span>
       <span class="text-[8px] text-amber-500 italic min-w-0 truncate" data-task style="display:none"></span>
     `
     return row
