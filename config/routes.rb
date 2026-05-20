@@ -132,7 +132,7 @@ Rails.application.routes.draw do
         post :run
       end
     end
-    resources :users, only: [ :index ]
+    resources :users, only: [ :index, :destroy ]
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [ :show ]
     get "kitchen", to: redirect("/nykitchen", status: 301)
