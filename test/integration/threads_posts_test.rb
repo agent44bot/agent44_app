@@ -6,7 +6,7 @@ class ThreadsPostsTest < ActionDispatch::IntegrationTest
     @ws    = Workspace.create!(name: "Threads Posts WS", owner: @owner)
     @th    = @ws.social_accounts.create!(
       platform: "threads", connected_by: @owner,
-      handle: "@agent44labs", display_name: "Agent 44 Labs",
+      handle: "@agent44labs", display_name: "Agent44 Labs",
       external_id: "777",
       access_token: "LONG-AT",
       token_expires_at: 60.days.from_now, status: "active"

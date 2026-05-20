@@ -7,6 +7,6 @@ class WorkspaceInvitationMailer < ApplicationMailer
     @expires_at = invitation.expires_at
 
     mail to: invitation.email,
-         subject: "#{@inviter.display_identifier} invited you to #{@workspace.name} on Agent 44 Labs"
+         subject: "#{@inviter.display_identifier} invited you to #{@workspace.name} on Agent44 Labs"
   end
 end

@@ -41,7 +41,7 @@ class ThreadsOauthTest < ActionDispatch::IntegrationTest
       when Threads::Oauth::LONG_LIVED_URL
         ["200", { "access_token" => "LONG-AT", "expires_in" => 5_184_000 }] # 60d
       when Threads::Oauth::ME_URL
-        ["200", { "id" => "777", "username" => "agent44labs", "name" => "Agent 44 Labs" }]
+        ["200", { "id" => "777", "username" => "agent44labs", "name" => "Agent44 Labs" }]
       else
         raise "unexpected #{url}"
       end
