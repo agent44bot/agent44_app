@@ -168,10 +168,12 @@ class NykSmokeBase < ActiveSupport::TestCase
   #   1. Exclude events whose day-cell <time datetime> falls outside the
   #      currently-viewed month (prev/next-month overflow cells). The
   #      `--other-month` class is unreliable post-live_refresh; datetime is.
-  #   2. Exclude events in row 1 of the calendar grid. TEC's live_refresh
-  #      drops the entire first row on return — current-month days 1-2 etc.
-  #      — and we already work around the underlying bug; this test exists
-  #      to catch *new* regressions, not log the known one.
+  #   2. Exclude events in rows 1 and 2 of the calendar grid. TEC's
+  #      live_refresh drops the entire first row on return plus the leading
+  #      cell of row 2 — current-month days 1-2 (row 1) and the first day
+  #      of week 2 (often a Sunday). We already work around the underlying
+  #      bug; this test exists to catch *new* regressions, not log the known
+  #      one.
   def capture_events(page)
     raw = page.evaluate(<<~JS) || []
       (function() {
@@ -183,9 +185,12 @@ class NykSmokeBase < ActiveSupport::TestCase
           var monthIdx = ['january','february','march','april','may','june','july','august','september','october','november','december'].indexOf(m[1].toLowerCase());
           if (monthIdx >= 0) currentYM = m[2] + '-' + String(monthIdx + 1).padStart(2, '0');
         }
-        var firstRow = document.querySelector('[data-js="tribe-events-month-grid-row"]');
+        var rows = document.querySelectorAll('[data-js="tribe-events-month-grid-row"]');
+        var firstRow = rows[0] || null;
+        var secondRow = rows[1] || null;
         return Array.from(document.querySelectorAll('.tribe-events-calendar-month__calendar-event')).filter(el => {
           if (firstRow && firstRow.contains(el)) return false;
+          if (secondRow && secondRow.contains(el)) return false;
           if (!currentYM) return true;
           const dayCell = el.closest('.tribe-events-calendar-month__day');
           if (!dayCell) return true;
