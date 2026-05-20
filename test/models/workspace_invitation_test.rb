@@ -41,6 +41,23 @@ class WorkspaceInvitationTest < ActiveSupport::TestCase
     assert_raises(RuntimeError) { inv.accept!(teammate) }
   end
 
+  test "accept! refuses a user whose email doesn't match the invitation" do
+    invitee   = User.create!(email_address: "right-#{SecureRandom.hex(4)}@example.com")
+    bystander = User.create!(email_address: "wrong-#{SecureRandom.hex(4)}@example.com")
+    inv = @ws.invitations.create!(invited_by: @owner, email: invitee.email_address, role: "editor")
+
+    assert_raises(WorkspaceInvitation::EmailMismatch) { inv.accept!(bystander) }
+    assert_nil inv.reload.accepted_at, "mismatched accept must not consume the invitation"
+    refute @ws.memberships.exists?(user_id: bystander.id)
+  end
+
+  test "accept! is case-insensitive on the email match" do
+    invitee = User.create!(email_address: "Mixed-#{SecureRandom.hex(4)}@Example.com")
+    inv = @ws.invitations.create!(invited_by: @owner, email: invitee.email_address.upcase, role: "editor")
+    assert_nothing_raised { inv.accept!(invitee) }
+    assert inv.reload.accepted?
+  end
+
   test "two pending invitations for the same workspace+email are rejected" do
     @ws.invitations.create!(invited_by: @owner, email: "dup@example.com", role: "editor")
     second = @ws.invitations.build(invited_by: @owner, email: "dup@example.com", role: "editor")

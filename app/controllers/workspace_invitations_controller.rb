@@ -31,6 +31,9 @@ class WorkspaceInvitationsController < ApplicationController
     redirect_to social_workspace_path(invitation.workspace.slug), notice: "Joined #{invitation.workspace.name}."
   rescue ActiveRecord::RecordNotFound
     redirect_to workspaces_path, alert: "Invitation not found."
+  rescue WorkspaceInvitation::EmailMismatch
+    redirect_to workspace_invitation_view_path(token: invitation.token),
+                alert: "This invitation was sent to #{invitation.email}. Sign out and sign in with that email to accept."
   rescue => e
     redirect_to workspaces_path, alert: "Could not accept: #{e.message}"
   end

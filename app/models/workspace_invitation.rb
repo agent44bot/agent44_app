@@ -23,12 +23,20 @@ class WorkspaceInvitation < ApplicationRecord
   def expired?   = !accepted? && !revoked? && expires_at && expires_at <= Time.current
   def pending?   = !accepted? && !revoked? && !expired?
 
+  class EmailMismatch < StandardError; end
+
   def accept!(user)
     raise "Invitation no longer accepting" unless pending?
+    raise EmailMismatch, "Invitation was sent to #{email}" unless email_matches?(user)
     transaction do
       workspace.memberships.find_or_create_by!(user_id: user.id) { |m| m.role = role }
       update!(accepted_at: Time.current, accepted_by: user)
     end
+  end
+
+  def email_matches?(user)
+    return false if user&.email_address.blank?
+    user.email_address.downcase == email.downcase
   end
 
   def revoke!

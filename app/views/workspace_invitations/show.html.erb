@@ -13,15 +13,19 @@
       Expires <%= @invitation.expires_at.in_time_zone(@invitation.workspace.timezone).strftime("%b %-d") %>
     </p>
 
-    <% if Current.user.email_address.present? && Current.user.email_address.downcase != @invitation.email.downcase %>
-      <p class="text-xs text-yellow-400 mt-3">
-        Heads up: this invite was sent to <%= @invitation.email %> but you're signed in as <%= Current.user.email_address %>.
+    <% mismatched = Current.user.email_address.blank? || Current.user.email_address.downcase != @invitation.email.downcase %>
+    <% if mismatched %>
+      <p class="text-sm text-yellow-400 mt-4">
+        This invitation was sent to <strong><%= @invitation.email %></strong>,
+        but you're signed in as <strong><%= Current.user.email_address.presence || "another account" %></strong>.
       </p>
+      <%= button_to "Sign out", session_path, method: :delete,
+            class: "mt-4 w-full inline-flex justify-center items-center px-4 py-2 rounded-md bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold cursor-pointer" %>
+    <% else %>
+      <%= button_to "Accept invitation",
+          workspace_invitation_accept_path(token: @invitation.token),
+          method: :post,
+          class: "mt-6 w-full inline-flex justify-center items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
     <% end %>
-
-    <%= button_to "Accept invitation",
-        workspace_invitation_accept_path(token: @invitation.token),
-        method: :post,
-        class: "mt-6 w-full inline-flex justify-center items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
   </div>
 </div>

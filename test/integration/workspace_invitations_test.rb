@@ -43,6 +43,30 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
     assert_equal "editor", @ws.role_for(@teammate)
   end
 
+  test "POST accept refuses a signed-in user whose email doesn't match" do
+    bystander = User.create!(email_address: "winv-by-#{SecureRandom.hex(4)}@example.com")
+    inv = @ws.invitations.create!(invited_by: @owner, email: "intended@example.com", role: "editor")
+    sign_in_as(bystander)
+    assert_no_difference -> { @ws.memberships.count } do
+      post workspace_invitation_accept_path(token: inv.token)
+    end
+    assert_redirected_to workspace_invitation_view_path(token: inv.token)
+    assert_match /sent to intended@example.com/, flash[:alert]
+    assert_nil inv.reload.accepted_at
+  end
+
+  test "GET show hides the Accept button on email mismatch" do
+    bystander = User.create!(email_address: "winv-bv-#{SecureRandom.hex(4)}@example.com")
+    inv = @ws.invitations.create!(invited_by: @owner, email: "someone-else@example.com", role: "editor")
+    sign_in_as(bystander)
+    get workspace_invitation_view_path(token: inv.token)
+    assert_response :success
+    # Button text appears in <title> too — assert specifically on the button form action.
+    refute_match %r{action="/invitations/[^"]+/accept"}, response.body, "Accept button must be hidden when emails mismatch"
+    assert_match %r{someone-else@example.com}, response.body
+    assert_match %r{Sign out}, response.body
+  end
+
   test "expired invitation is rejected at view time" do
     inv = @ws.invitations.create!(invited_by: @owner, email: @teammate.email_address, role: "editor")
     inv.update_columns(expires_at: 1.hour.ago)
