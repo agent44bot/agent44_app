@@ -43,6 +43,39 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
     assert_equal "editor", @ws.role_for(@teammate)
   end
 
+  test "signup auto-accepts pending invitations matching the new user's email" do
+    invitee_email = "auto-#{SecureRandom.hex(4)}@example.com"
+    @ws.invitations.create!(invited_by: @owner, email: invitee_email, role: "editor")
+
+    assert_difference -> { User.where(email_address: invitee_email).count }, 1 do
+      assert_difference -> { @ws.memberships.count }, 1 do
+        post registration_path, params: { user: {
+          email_address: invitee_email,
+          password: "AutoAccept2026!",
+          password_confirmation: "AutoAccept2026!"
+        } }
+      end
+    end
+    new_user = User.find_by!(email_address: invitee_email)
+    assert_redirected_to workspace_path(@ws.slug)
+    assert_match /You've joined/, flash[:notice]
+    assert_equal "editor", @ws.role_for(new_user)
+  end
+
+  test "signup does not auto-accept invitations addressed to a different email" do
+    @ws.invitations.create!(invited_by: @owner, email: "someoneelse@example.com", role: "editor")
+    bystander_email = "bystander-#{SecureRandom.hex(4)}@example.com"
+
+    assert_no_difference -> { @ws.memberships.count } do
+      post registration_path, params: { user: {
+        email_address: bystander_email,
+        password: "Bystander2026!",
+        password_confirmation: "Bystander2026!"
+      } }
+    end
+    refute_match /You've joined/, flash[:notice].to_s
+  end
+
   test "POST accept refuses a signed-in user whose email doesn't match" do
     bystander = User.create!(email_address: "winv-by-#{SecureRandom.hex(4)}@example.com")
     inv = @ws.invitations.create!(invited_by: @owner, email: "intended@example.com", role: "editor")
