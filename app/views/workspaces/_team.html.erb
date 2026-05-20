@@ -81,22 +81,39 @@
     <% billing_on = workspace.pricing_visible_to_members? %>
     <section class="mb-10">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Site admin</h2>
-      <div class="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-        <div class="min-w-0">
-          <p class="text-sm text-white">Show billing to members</p>
-          <p class="text-xs text-gray-500 mt-0.5">When on, workspace members see $ amounts on agent pages.</p>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="text-xs font-semibold uppercase <%= billing_on ? 'text-gray-500' : 'text-gray-300' %>">Off</span>
-          <%= button_to toggle_pricing_workspace_path(workspace.slug),
-                method: :post,
-                form_class: "inline-flex",
-                data: { test: "billing-toggle" },
-                aria: { label: "Show billing to members", checked: billing_on.to_s },
-                class: "relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer #{billing_on ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}" do %>
-            <span class="absolute inline-block h-5 w-5 rounded-full bg-white shadow transition transform <%= billing_on ? 'translate-x-5' : 'translate-x-0.5' %>"></span>
+      <div class="space-y-2">
+        <% if workspace.slug == "nykitchen" %>
+          <%= link_to nyk_billing_path,
+                class: "rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between gap-3 flex-wrap hover:border-gray-700 hover:bg-gray-850 transition" do %>
+            <div class="min-w-0">
+              <p class="text-sm text-white">View billing</p>
+              <p class="text-xs text-gray-500 mt-0.5">Workspace spend, plan, and usage history.</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 text-gray-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-sm">→</span>
+            </div>
           <% end %>
-          <span class="text-xs font-semibold uppercase <%= billing_on ? 'text-green-400' : 'text-gray-500' %>">On</span>
+        <% end %>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div class="min-w-0">
+            <p class="text-sm text-white">Show billing to members</p>
+            <p class="text-xs text-gray-500 mt-0.5">When on, workspace members see $ amounts on agent pages.</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs font-semibold uppercase <%= billing_on ? 'text-gray-500' : 'text-gray-300' %>">Off</span>
+            <%= button_to toggle_pricing_workspace_path(workspace.slug),
+                  method: :post,
+                  form_class: "inline-flex",
+                  data: { test: "billing-toggle" },
+                  aria: { label: "Show billing to members", checked: billing_on.to_s },
+                  class: "relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer #{billing_on ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}" do %>
+              <span class="absolute inline-block h-5 w-5 rounded-full bg-white shadow transition transform <%= billing_on ? 'translate-x-5' : 'translate-x-0.5' %>"></span>
+            <% end %>
+            <span class="text-xs font-semibold uppercase <%= billing_on ? 'text-green-400' : 'text-gray-500' %>">On</span>
+          </div>
         </div>
       </div>
     </section>
