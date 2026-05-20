@@ -30,7 +30,10 @@ class SmokeTestFailureNotificationJob < ApplicationJob
     title = "NY Kitchen test failed"
     subtitle = run.kind.capitalize
     body = truncate_body(run.summary, run.error_message)
-    url = "/smoke_runs/#{run.id}"
+    # Test Agent hub on the NYK workspace — closest page that lists recent
+    # smoke runs with their failure summaries. There is no per-run detail
+    # page yet (the old /smoke_runs/:id deep link was a 404).
+    url = "/nykitchen/test"
 
     Notification.notify!(
       level:        "error",
