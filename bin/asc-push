@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Push App Store Connect metadata (and optionally screenshots) for Agent44Labs.
+#
+# Usage:
+#   bin/asc-push                  # metadata only (description, copyright, review notes, …)
+#   bin/asc-push --screenshots    # screenshots only (uploads fastlane/screenshots/**)
+#   bin/asc-push --verify         # dry-run: validate metadata against ASC without pushing
+#
+# Reads API key from env (preferred) or ~/.appstoreconnect/.
+# Required env (or in ~/.appstoreconnect/env.sh):
+#   APP_STORE_CONNECT_KEY_ID
+#   APP_STORE_CONNECT_ISSUER_ID
+#   APP_STORE_CONNECT_KEY_PATH  (defaults to ~/.appstoreconnect/AuthKey_<KEY_ID>.p8)
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# Source key env if present.
+if [[ -f "$HOME/.appstoreconnect/env.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.appstoreconnect/env.sh"
+fi
+
+LANE="push_metadata"
+case "${1:-}" in
+  --screenshots) LANE="push_screenshots" ;;
+  --verify)      LANE="verify_metadata"  ;;
+  ""|--metadata) LANE="push_metadata"    ;;
+  *) echo "Unknown flag: $1"; exit 2 ;;
+esac
+
+exec fastlane "$LANE"

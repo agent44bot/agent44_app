@@ -1,0 +1,68 @@
+default_platform(:ios)
+
+# App Store Connect API key locations.
+# Override via env vars; defaults assume ~/.appstoreconnect/AuthKey_<KEY_ID>.p8
+ASC_KEY_ID     = ENV.fetch("APP_STORE_CONNECT_KEY_ID")     { nil }
+ASC_ISSUER_ID  = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")  { nil }
+ASC_KEY_PATH   = ENV.fetch("APP_STORE_CONNECT_KEY_PATH")   {
+  ASC_KEY_ID ? File.expand_path("~/.appstoreconnect/AuthKey_#{ASC_KEY_ID}.p8") : nil
+}
+
+def asc_key
+  missing = []
+  missing << "APP_STORE_CONNECT_KEY_ID"    unless ASC_KEY_ID
+  missing << "APP_STORE_CONNECT_ISSUER_ID" unless ASC_ISSUER_ID
+  missing << "APP_STORE_CONNECT_KEY_PATH"  unless ASC_KEY_PATH && File.exist?(ASC_KEY_PATH)
+  unless missing.empty?
+    UI.user_error!("Missing #{missing.join(', ')}. Set them in env or ~/.appstoreconnect/.")
+  end
+
+  app_store_connect_api_key(
+    key_id:      ASC_KEY_ID,
+    issuer_id:   ASC_ISSUER_ID,
+    key_filepath: ASC_KEY_PATH,
+    in_house:    false
+  )
+end
+
+platform :ios do
+  desc "Push metadata only (description, copyright, review notes, etc.)"
+  lane :push_metadata do
+    deliver(
+      api_key:               asc_key,
+      skip_binary_upload:    true,
+      skip_screenshots:      true,
+      skip_metadata:         false,
+      force:                 true,
+      precheck_include_in_app_purchases: false
+    )
+  end
+
+  desc "Push screenshots only"
+  lane :push_screenshots do
+    deliver(
+      api_key:               asc_key,
+      skip_binary_upload:    true,
+      skip_screenshots:      false,
+      skip_metadata:         true,
+      overwrite_screenshots: true,
+      force:                 true
+    )
+  end
+
+  desc "Verify metadata against ASC without pushing"
+  lane :verify_metadata do
+    deliver(
+      api_key:            asc_key,
+      skip_binary_upload: true,
+      skip_screenshots:   true,
+      verify_only:        true,
+      force:              true
+    )
+  end
+
+  desc "One-time: pull current ASC metadata into fastlane/metadata/"
+  lane :pull_metadata do
+    sh "fastlane deliver download_metadata --api_key_path #{ASC_KEY_PATH} --force"
+  end
+end

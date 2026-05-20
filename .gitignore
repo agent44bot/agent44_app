@@ -52,3 +52,9 @@ db/development.sqlite3
 
 # Claude Code runtime lock file
 .claude/scheduled_tasks.lock
+
+# Fastlane output (metadata text files are committed; reports/screenshots are not)
+/fastlane/report.xml
+/fastlane/Preview.html
+/fastlane/screenshots/
+/fastlane/test_output/

@@ -1,0 +1,11 @@
+Agent44 Labs runs a fleet of always-on AI agents that monitor your site, test your features, post your content, and watch your data — 24/7, while you sleep. No overhead, no headcount, no missed alerts.
+
+What your fleet does:
+• Smoke testing — automated end-to-end checks of your most important user journeys, with diagnostic emails when something breaks
+• Calendar & content monitoring — scheduled scrapes of business-critical pages, push-notified the moment something drops
+• AI-enhanced social posts — turn raw event details into ready-to-share copy, powered by Claude
+• Live agent fleet — watch your agents working in real time
+
+Built for solo operators and small businesses who can't justify full QA, social, or analyst hires — but can't afford to fly blind either.
+
+Sign in instantly with Face ID. Get push alerts the moment something breaks. Resume normal life.

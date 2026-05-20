@@ -1,0 +1,16 @@
+app_identifier "com.agent44labs.app"
+
+# Don't auto-submit for App Review — manual submit from ASC after metadata pushes.
+submit_for_review false
+
+# Don't overwrite screenshots unless explicitly pushing them.
+skip_screenshots true
+
+# Don't upload a binary from this command.
+skip_binary_upload true
+
+# Force without confirmation prompts (we're scripted).
+force true
+
+# Languages we ship metadata for.
+languages ["en-US"]

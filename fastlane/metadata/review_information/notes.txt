@@ -1,0 +1,23 @@
+VIDEO ATTACHED (agent44-deletion-flow.mp4): account creation/sign-in → Settings → Delete account → confirmation flow on iPhone simulator. The Settings overflow on iPhone 17 Pro Max in build 26 is fixed in build 27.
+
+DEMO ACCOUNT
+The credentials above are a real, pre-verified account. Sign in with email + password from the sign-in screen.
+
+WHAT TO TEST
+1. Tap "Sign In" → enter the credentials → home screen with the live agent fleet and the animated corner-web showing agent activity.
+2. Settings (top-right user menu) → review the profile and the "Delete account" card to test in-app account deletion (Guideline 5.1.1(v)).
+3. Sign out and (optional) sign back in via Face ID — convenience on top of email login, not required for review.
+
+ABOUT THE APP
+Agent44 Labs is a control panel for AI agents that monitor websites and run automated tests for small businesses. The home screen shows a fleet of AI agents with live status; the agents power smoke tests, content monitoring, and AI-assisted social posts for paying customers.
+
+All branding in the app — Agent44 Labs / Agent44Labs — is first-party. Agent44Labs is the developer's own brand and Apple Developer team name. There are no third-party brands represented in the app's user-facing surfaces.
+
+FACE ID
+Convenience on top of email login. Credential lives in the device keychain, never transmitted.
+
+PUSH NOTIFICATIONS
+APNs alerts when monitored sites break.
+
+CONTACT
+richdownie@gmail.com
