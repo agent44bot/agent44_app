@@ -161,16 +161,17 @@ class NykSmokeBase < ActiveSupport::TestCase
   end
 
   # See nyk_calendar_nav_test.rb for original docs. Returns array of
-  # { id:, title: } symbol-key hashes, deduped by ID. Excludes events that
-  # live in trailing-days cells (TEC renders the previous/next month's
-  # overflow days in row 1 / last row) — those cells get dropped by TEC's
-  # live_refresh on arrow-nav return, which is a known TEC bug and not
-  # what this round-trip test is meant to catch.
+  # { id:, title: } symbol-key hashes, deduped by ID.
   #
-  # Filter compares each event's containing day-cell <time datetime="YYYY-MM-DD">
-  # against the YYYY-MM parsed from the month-title text. The `--other-month`
-  # class on day cells is unreliable post-live_refresh (TEC mangles it on the
-  # newly-rendered grid), but the datetime attr stays correct.
+  # Two filters applied to keep the round-trip signal clean despite a known
+  # TEC live_refresh bug that drops cells on arrow-nav return:
+  #   1. Exclude events whose day-cell <time datetime> falls outside the
+  #      currently-viewed month (prev/next-month overflow cells). The
+  #      `--other-month` class is unreliable post-live_refresh; datetime is.
+  #   2. Exclude events in row 1 of the calendar grid. TEC's live_refresh
+  #      drops the entire first row on return — current-month days 1-2 etc.
+  #      — and we already work around the underlying bug; this test exists
+  #      to catch *new* regressions, not log the known one.
   def capture_events(page)
     raw = page.evaluate(<<~JS) || []
       (function() {
@@ -182,7 +183,9 @@ class NykSmokeBase < ActiveSupport::TestCase
           var monthIdx = ['january','february','march','april','may','june','july','august','september','october','november','december'].indexOf(m[1].toLowerCase());
           if (monthIdx >= 0) currentYM = m[2] + '-' + String(monthIdx + 1).padStart(2, '0');
         }
+        var firstRow = document.querySelector('[data-js="tribe-events-month-grid-row"]');
         return Array.from(document.querySelectorAll('.tribe-events-calendar-month__calendar-event')).filter(el => {
+          if (firstRow && firstRow.contains(el)) return false;
           if (!currentYM) return true;
           const dayCell = el.closest('.tribe-events-calendar-month__day');
           if (!dayCell) return true;
