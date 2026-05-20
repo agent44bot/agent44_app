@@ -9,8 +9,9 @@ class WorkspaceInvitationsController < ApplicationController
       role:       params[:role].presence_in(%w[admin editor viewer]) || "editor"
     )
     if invitation.save
+      WorkspaceInvitationMailer.invite(invitation).deliver_later
       redirect_to social_workspace_path(@workspace.slug),
-                  notice: "Invite created. Share link: #{accept_url(invitation)}"
+                  notice: "Invite sent to #{invitation.email}."
     else
       redirect_to social_workspace_path(@workspace.slug),
                   alert: "Couldn't invite: #{invitation.errors.full_messages.to_sentence}"

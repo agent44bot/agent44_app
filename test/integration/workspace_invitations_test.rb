@@ -9,14 +9,16 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
     @ws.memberships.create!(user: @editor, role: "editor")
   end
 
-  test "admin can create an invitation" do
+  test "admin can create an invitation and an email is queued" do
     sign_in_as(@owner)
-    assert_difference -> { WorkspaceInvitation.count }, 1 do
-      post workspace_invitations_path(workspace_slug: @ws.slug),
-           params: { email: "new@example.com", role: "editor" }
+    assert_enqueued_emails(1) do
+      assert_difference -> { WorkspaceInvitation.count }, 1 do
+        post workspace_invitations_path(workspace_slug: @ws.slug),
+             params: { email: "new@example.com", role: "editor" }
+      end
     end
     assert_redirected_to social_workspace_path(@ws.slug)
-    assert_match /Invite created/, flash[:notice]
+    assert_match /Invite sent to new@example.com/, flash[:notice]
   end
 
   test "editor (non-admin) cannot create an invitation" do
