@@ -341,6 +341,10 @@ class KitchenController < ApplicationController
       event_urls = @events.map(&:url)
       @post_logs = SocialPostLog.where(event_url: event_urls).index_by(&:event_url)
       @workspace_status_by_url = workspace_status_for(Current.user, event_urls)
+
+      # Day-of-week ticket sales: 6-week historical avg vs this week's actuals.
+      @dow_avg       = KitchenSnapshot.tickets_sold_by_wday
+      @dow_this_week = KitchenSnapshot.tickets_sold_this_week_by_wday
     else
       @events = []
       @weeks = []
@@ -442,6 +446,21 @@ class KitchenController < ApplicationController
     # latest snapshot was taken today — otherwise it'd be reporting a
     # delta from two days ago, not "today".
     @hub_tickets_sold_today = (snapshot&.taken_on == Date.current) ? snapshot.tickets_sold_today : nil
+
+    # Linear pace vs daily average, within an 8am–8pm operating window.
+    # `expected_by_now` is what we'd expect to have sold by this hour if
+    # sales tracked the daily average linearly across the window. Before
+    # 8am there's nothing to compare against.
+    @hub_tickets_sold_avg = KitchenSnapshot.tickets_sold_daily_avg
+    if @hub_tickets_sold_today && @hub_tickets_sold_avg
+      now = Time.current
+      hour_frac = (now.hour + now.min / 60.0 - 8.0) / 12.0
+      hour_frac = hour_frac.clamp(0.0, 1.0)
+      expected_by_now = @hub_tickets_sold_avg * hour_frac
+      @hub_tickets_expected_by_now = expected_by_now.round(1)
+      @hub_tickets_pace_pct = expected_by_now.positive? ?
+        ((@hub_tickets_sold_today / expected_by_now - 1) * 100).round : nil
+    end
 
     nav    = SmokeTestRun.nyk_nav
     scrape = SmokeTestRun.nyk_scrape

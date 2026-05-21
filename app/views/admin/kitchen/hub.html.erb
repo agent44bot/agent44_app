@@ -90,7 +90,7 @@
         <% end %>
       </div>
     </div>
-    <p class="text-gray-400 mt-1">4 agents working NY Kitchen.</p>
+    <p class="text-gray-400 mt-1">NY Kitchen Agent Team — <%= pluralize(WorkspaceAgent::KINDS.size, "helper") %> on the job.</p>
   </div>
 
   <% if @nyk_workspace %>
@@ -130,6 +130,20 @@
             <%= @hub_tickets_sold_today.nil? ? "—" : @hub_tickets_sold_today %>
           </div>
           <div class="text-xs uppercase tracking-wide text-gray-500 mt-1">tickets sold today</div>
+          <% if @hub_tickets_pace_pct %>
+            <% pace_color, pace_label =
+                 if @hub_tickets_pace_pct >= 10
+                   ["text-green-400", "#{@hub_tickets_pace_pct}% above daily pace"]
+                 elsif @hub_tickets_pace_pct <= -10
+                   ["text-red-400",   "#{@hub_tickets_pace_pct.abs}% below daily pace"]
+                 else
+                   ["text-gray-500",  "on daily pace"]
+                 end %>
+            <div class="text-xs <%= pace_color %> mt-1 tabular-nums"
+                 title="Expected ~<%= @hub_tickets_expected_by_now %> sold by now if today tracked the 14-day daily average (<%= @hub_tickets_sold_avg %>) linearly across an 8am–8pm window.">
+              <%= pace_label %>
+            </div>
+          <% end %>
         </div>
       </div>
       <div class="<%= stats_class %>">
