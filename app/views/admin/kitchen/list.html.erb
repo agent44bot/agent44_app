@@ -36,6 +36,22 @@
       <p class="text-gray-400">No events scraped yet. The scraper runs every 3 hours.</p>
     </div>
   <% else %>
+    <% if @dow_avg && @dow_avg.values.sum.positive? %>
+      <% dow_avg_json  = (0..6).map { |w| @dow_avg[w]       || 0 }.to_json %>
+      <% dow_week_json = (0..6).map { |w| @dow_this_week[w]            }.to_json %>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6"
+           data-controller="dow-chart"
+           data-dow-chart-avg-value="<%= dow_avg_json %>"
+           data-dow-chart-week-value="<%= dow_week_json %>">
+        <div class="flex items-baseline justify-between mb-3">
+          <h2 class="text-sm font-semibold text-white">Sales by day of week</h2>
+          <span class="text-xs text-gray-500">Last 6 weeks</span>
+        </div>
+        <div class="relative h-48">
+          <canvas data-dow-chart-target="canvas"></canvas>
+        </div>
+      </div>
+    <% end %>
     <%= render "admin/kitchen/list_panel" %>
   <% end %>
 </div>

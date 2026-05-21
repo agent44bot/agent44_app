@@ -6,7 +6,7 @@
       kind:  "list" | "social" | "data" | "test"
 %>
 <% agent = @workspace_agents[kind.to_s] %>
-<% can_rename = agent && %w[owner admin].include?(@my_workspace_role) %>
+<% can_rename = false # rename UI hidden for now %>
 <div class="flex items-center gap-3 flex-wrap" <% if can_rename %>data-controller="collapsible" data-collapsible-collapsed-value="true"<% end %>>
   <h1 class="text-3xl font-black text-white tracking-tight"><%= title %></h1>
   <% if agent %>
