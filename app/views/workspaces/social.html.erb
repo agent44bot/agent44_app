@@ -52,58 +52,51 @@
       <% end %>
 
       <div>
-        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Connected accounts</h2>
-          <div class="flex flex-wrap items-center gap-2">
-            <% unless @x_account %>
-              <%= button_to "Connect X",
-                  workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),
-                  method: :post,
-                  class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-            <% end %>
-            <% unless @bluesky_account %>
-              <%= link_to "Connect Bluesky",
-                  new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),
-                  class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold" %>
-            <% end %>
-            <% unless @threads_account %>
-              <%= button_to "Connect Threads",
-                  workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug),
-                  method: :post,
-                  class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-            <% end %>
-            <% unless @facebook_account %>
-              <%= button_to "Connect Facebook",
-                  workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug),
-                  method: :post,
-                  class: "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black border border-gray-700 hover:border-orange-500 text-white text-xs font-semibold cursor-pointer" %>
-            <% end %>
-          </div>
-        </div>
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Connected accounts</h2>
 
-        <% if @social_accounts.empty? %>
-          <div class="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-            <p class="text-gray-400 text-sm">No social accounts connected yet.</p>
-            <p class="text-gray-600 text-xs mt-1">Tap a Connect button above to link an account.</p>
-          </div>
-        <% else %>
-          <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-            <% @social_accounts.each do |acct| %>
-              <div class="flex items-center justify-between px-4 py-3 gap-3">
-                <div class="min-w-0">
-                  <p class="text-sm text-white truncate"><%= acct.label %></p>
-                  <p class="text-xs text-gray-500"><%= acct.platform %><% if acct.token_expires_at.present? %> · token expires <%= acct.token_expires_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %><% end %></p>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-xs uppercase tracking-wide <%= acct.status == 'active' ? 'text-green-400' : 'text-yellow-400' %>"><%= acct.status %></span>
-                  <%= button_to "Disconnect", workspace_social_account_path(workspace_slug: @workspace.slug, id: acct.id),
-                      method: :delete, form: { data: { turbo_confirm: "Disconnect #{acct.label}?" } },
-                      class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
-                </div>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+          <% @social_accounts.each do |acct| %>
+            <div class="flex items-center justify-between px-4 py-3 gap-3">
+              <div class="min-w-0">
+                <p class="text-sm text-white truncate"><%= acct.label %></p>
+                <p class="text-xs text-gray-500"><%= acct.platform %><% if acct.token_expires_at.present? %> · token expires <%= acct.token_expires_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %><% end %></p>
               </div>
-            <% end %>
-          </div>
-        <% end %>
+              <div class="flex items-center gap-3">
+                <span class="text-xs uppercase tracking-wide <%= acct.status == 'active' ? 'text-green-400' : 'text-yellow-400' %>"><%= acct.status %></span>
+                <%= button_to "Disconnect", workspace_social_account_path(workspace_slug: @workspace.slug, id: acct.id),
+                    method: :delete, form: { data: { turbo_confirm: "Disconnect #{acct.label}?" } },
+                    class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
+              </div>
+            </div>
+          <% end %>
+
+          <%# Unconnected platforms — each gets a row with a Connect CTA.
+              Gate on @social_accounts (any status), not @x_account etc.
+              (which are .active-only) so a needs_reauth row above doesn't
+              also surface here. %>
+          <% platforms_with_account = @social_accounts.map(&:platform).to_set %>
+          <% [
+               ["X",        "x",        workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),       :post],
+               ["Bluesky",  "bluesky",  new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),   :get],
+               ["Threads",  "threads",  workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug), :post],
+               ["Facebook", "facebook", workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug), :post]
+             ].each do |name, platform, path, method| %>
+            <% next if platforms_with_account.include?(platform) %>
+            <div class="flex items-center justify-between px-4 py-3 gap-3">
+              <div class="min-w-0">
+                <p class="text-sm text-gray-300"><%= name %></p>
+                <p class="text-xs text-gray-600">not connected</p>
+              </div>
+              <% if method == :get %>
+                <%= link_to "Connect", path,
+                    class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md inline-block" %>
+              <% else %>
+                <%= button_to "Connect", path, method: method,
+                    class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
   <% end %>
