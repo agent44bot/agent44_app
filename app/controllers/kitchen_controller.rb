@@ -41,17 +41,71 @@ class KitchenController < ApplicationController
     render "admin/kitchen/data", layout: "application"
   end
 
-  # Public, no-auth display for the tasting-room TV. Cycles through
-  # currently-available classes; the page meta-refreshes every 10 min
-  # to pick up new scrapes.
+  # Allow the Display Agent settings page to preview the live monitor
+  # output in an iframe. The default app-wide CSP sets frame-ancestors 'none'.
+  content_security_policy(only: :display) do |policy|
+    policy.frame_ancestors :self
+  end
+
+  # Public, no-auth screen for the tasting-room display monitor.
+  # Cycles through currently-available classes; the page meta-refreshes
+  # periodically. Honors the Display Agent's settings on the NYK workspace.
+  # When visibility is "private", requires a matching ?token=… param.
   def display
+    @agent = nyk_display_agent
+    if @agent.setting(:visibility) == "private" &&
+       params[:token].to_s != @agent.setting(:share_token).to_s
+      head :not_found and return
+    end
     snapshot = KitchenSnapshot.latest
     available = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
-    @events = available.first(5)
+    @events = available.first(@agent.setting(:slide_count).to_i)
     @available_total = available.size
     @last_updated = snapshot&.taken_on
     render "admin/kitchen/display", layout: false
   end
+
+  # Display Agent settings: configuration form + share URL + preview.
+  def display_settings
+    @agent = nyk_display_agent
+    @workspace = Workspace.find_by(slug: "nykitchen")
+    @my_workspace_role = @workspace&.role_for(Current.user)
+    @workspace_agents = WorkspaceAgent::KINDS.index_with { |k| @workspace&.agent_for(k) }
+    render "admin/kitchen/display_settings", layout: "application"
+  end
+
+  def update_display_settings
+    workspace = Workspace.find_by(slug: "nykitchen")
+    unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
+      redirect_to nyk_display_settings_path, alert: "Only workspace admins can change Display settings." and return
+    end
+    agent = workspace.agent_for("display")
+    permitted = params.require(:settings).permit(
+      :visibility, :slide_count, :advance_seconds, :refresh_minutes,
+      :show_price, :show_spots, :show_end_time, :show_image
+    ).to_h
+    permitted["visibility"] = "public" unless %w[public private].include?(permitted["visibility"])
+    %w[show_price show_spots show_end_time show_image].each do |k|
+      permitted[k] = ActiveModel::Type::Boolean.new.cast(permitted[k]) if permitted.key?(k)
+    end
+    %w[slide_count advance_seconds refresh_minutes].each do |k|
+      permitted[k] = permitted[k].to_i if permitted.key?(k)
+    end
+    agent.update_settings(permitted)
+    # First-time toggle to private without a token: generate one now.
+    agent.share_token_or_generate! if permitted["visibility"] == "private"
+    redirect_to nyk_display_settings_path, notice: "Display settings saved."
+  end
+
+  def rotate_display_token
+    workspace = Workspace.find_by(slug: "nykitchen")
+    unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
+      redirect_to nyk_display_settings_path, alert: "Only workspace admins can rotate the token." and return
+    end
+    workspace.agent_for("display").rotate_share_token!
+    redirect_to nyk_display_settings_path, notice: "Share link regenerated. The old link no longer works."
+  end
+
 
   # PATCH /nykitchen/agents/:kind  — workspace owner/admin renames an
   # agent (sets WorkspaceAgent#display_name). Pass display_name="" to
@@ -291,12 +345,17 @@ class KitchenController < ApplicationController
     # need it so the WorkspaceAgent badge + pet-name can render in the
     # title row. Anonymous viewers (hub only) get nil.
     @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
-    @workspace_agents = @nyk_workspace ? %w[list social data test].index_with { |k| @nyk_workspace.agent_for(k) } : {}
+    @workspace_agents = @nyk_workspace ? WorkspaceAgent::KINDS.index_with { |k| @nyk_workspace.agent_for(k) } : {}
     @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
   end
 
   # The user's NYK-flavored workspace, if any — backs the Social Agent card
   # on the hub. Falls back to nil; the card then links to /workspaces.
+  def nyk_display_agent
+    Workspace.find_by(slug: "nykitchen")&.agent_for("display") ||
+      WorkspaceAgent.new(kind: "display", settings: {})
+  end
+
   def nyk_workspace_for(user)
     return nil unless user
     user.workspaces.find { |w| w.slug.to_s.include?("kitchen") || w.name.to_s.downcase.include?("kitchen") }

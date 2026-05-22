@@ -401,6 +401,149 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match /← NY Kitchen/, response.body
   end
 
+  # ----- Display Agent (/nykitchen/display + /nykitchen/display/settings) -----
+
+  test "display: public, no auth, filters out sold-out events" do
+    create_event("Available Pasta",  3.days.from_now, "InStock")
+    create_event("Limited Wine",     4.days.from_now, "Limited")
+    create_event("Sold Out Cheese",  5.days.from_now, "SoldOut")
+    create_event("Closed Baking",    6.days.from_now, "Closed")
+
+    delete session_path # sign out — display is public
+    get nyk_display_path
+    assert_response :success
+    assert_match "Available Pasta",  response.body
+    assert_match "Limited Wine",     response.body
+    refute_match "Sold Out Cheese",  response.body, "Sold-out events must not render on the display"
+    refute_match "Closed Baking",    response.body, "Closed events must not render on the display"
+  end
+
+  test "display: caps at slide_count setting" do
+    7.times { |i| create_event("Class #{i}", (i + 1).days.from_now, "InStock") }
+    nyk_display_agent.update_settings(slide_count: 3)
+
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    # 3 slides actually rendered; "Class 6" exists but should be omitted.
+    assert_match "Class 0", response.body
+    assert_match "Class 2", response.body
+    refute_match "Class 6", response.body
+    # Header should show "Next 3 of 7"
+    assert_match(/Next 3 of 7/, response.body)
+  end
+
+  test "display: private mode returns 404 without a token" do
+    create_event("Hidden Class", 3.days.from_now, "InStock")
+    nyk_display_agent.update_settings(visibility: "private")
+    nyk_display_agent.rotate_share_token!
+
+    delete session_path
+    get nyk_display_path
+    assert_response :not_found
+  end
+
+  test "display: private mode 404s with a wrong token" do
+    create_event("Hidden Class", 3.days.from_now, "InStock")
+    nyk_display_agent.update_settings(visibility: "private")
+    nyk_display_agent.rotate_share_token!
+
+    delete session_path
+    get nyk_display_path(token: "nope")
+    assert_response :not_found
+  end
+
+  test "display: private mode succeeds with the right token" do
+    create_event("Hidden Class", 3.days.from_now, "InStock")
+    nyk_display_agent.update_settings(visibility: "private")
+    token = nyk_display_agent.rotate_share_token!
+
+    delete session_path
+    get nyk_display_path(token: token)
+    assert_response :success
+    assert_match "Hidden Class", response.body
+  end
+
+  test "display: show_price=false hides price even when event has one" do
+    @snapshot.kitchen_events.create!(
+      url: "https://nykitchen.com/events/pricey",
+      name: "Pricey Class", start_at: 3.days.from_now,
+      availability: "InStock", price: "190.00"
+    )
+    nyk_display_agent.update_settings(show_price: false)
+
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    refute_match "$190.00", response.body
+    refute_match "190.00",  response.body
+  end
+
+  test "display_settings: requires authentication" do
+    delete session_path
+    get nyk_display_settings_path
+    assert_response :redirect # /session/new
+  end
+
+  test "update_display_settings: owner can save" do
+    nyk_workspace.memberships.find_or_create_by!(user: @default_user) { |m| m.role = "owner" }
+
+    patch nyk_display_settings_path, params: {
+      settings: { slide_count: 9, advance_seconds: 15, refresh_minutes: 30,
+                  show_price: "1", show_spots: "0", show_end_time: "1", show_image: "1",
+                  visibility: "public" }
+    }
+    assert_redirected_to nyk_display_settings_path
+
+    agent = nyk_display_agent
+    assert_equal 9,     agent.setting(:slide_count)
+    assert_equal false, agent.setting(:show_spots)
+    assert_equal true,  agent.setting(:show_image)
+  end
+
+  test "update_display_settings: non-admin gets alerted, settings unchanged" do
+    # nyk_workspace is owned by @default_user (auto-membership as owner).
+    # Sign in a different user with only a "member" workspace role.
+    member = User.create!(email_address: "kc-mem-#{SecureRandom.hex(4)}@example.com")
+    nyk_workspace.memberships.create!(user: member, role: "viewer")
+    sign_in_as(member)
+    original = nyk_display_agent.setting(:slide_count)
+
+    patch nyk_display_settings_path, params: { settings: { slide_count: 99 } }
+    assert_redirected_to nyk_display_settings_path
+    assert_equal "Only workspace admins can change Display settings.", flash[:alert]
+
+    assert_equal original, nyk_display_agent.reload.setting(:slide_count)
+  end
+
+  test "update_display_settings: flipping to private generates a share token" do
+    nyk_workspace.memberships.find_or_create_by!(user: @default_user) { |m| m.role = "owner" }
+
+    patch nyk_display_settings_path, params: { settings: { visibility: "private" } }
+    assert_redirected_to nyk_display_settings_path
+
+    assert_equal "private", nyk_display_agent.setting(:visibility)
+    assert nyk_display_agent.setting(:share_token).present?, "Token should auto-generate"
+  end
+
+  test "rotate_display_token: owner gets a new token, old one stops working" do
+    nyk_workspace.memberships.find_or_create_by!(user: @default_user) { |m| m.role = "owner" }
+    nyk_display_agent.update_settings(visibility: "private")
+    old_token = nyk_display_agent.share_token_or_generate!
+
+    post nyk_display_rotate_token_path
+    assert_redirected_to nyk_display_settings_path
+
+    new_token = nyk_display_agent.reload.setting(:share_token)
+    refute_equal old_token, new_token
+
+    # Old token should now 404.
+    create_event("Hidden", 3.days.from_now, "InStock")
+    delete session_path
+    get nyk_display_path(token: old_token)
+    assert_response :not_found
+  end
+
   private
 
   def create_event(name, start_at, availability)
@@ -410,5 +553,16 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       start_at: start_at,
       availability: availability
     )
+  end
+
+  def nyk_workspace
+    @nyk_workspace ||= Workspace.find_or_create_by!(slug: "nykitchen") do |w|
+      w.name = "NY Kitchen"
+      w.owner = @default_user
+    end
+  end
+
+  def nyk_display_agent
+    nyk_workspace.agent_for("display")
   end
 end

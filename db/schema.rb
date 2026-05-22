@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_212000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_22_154149) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -448,6 +448,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_212000) do
     t.datetime "created_at", null: false
     t.string "display_name"
     t.string "kind", null: false
+    t.json "settings", default: {}, null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["workspace_id", "agent_number"], name: "index_workspace_agents_on_workspace_id_and_agent_number", unique: true

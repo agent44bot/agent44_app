@@ -26,6 +26,9 @@ class ScrapeKitchenJob < ApplicationJob
       if info
         e[:spots_left] = info[:spots_left]
         e[:capacity]   = info[:capacity]
+        # Detail-page image as a fallback when the calendar JSON-LD
+        # didn't include one (which is currently always).
+        e[:image_url] ||= info[:image_url]
         if info[:closed]
           e[:availability] = "Closed"
         elsif info[:spots_left] && info[:spots_left] > 0

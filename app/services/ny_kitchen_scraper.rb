@@ -38,15 +38,20 @@ class NyKitchenScraper
     seen.values.filter_map { |raw| normalize(raw) }
   end
 
-  # Scrape an event detail page for live ticket availability.
-  # Returns { spots_left:, capacity:, closed: } or nil.
+  # Scrape an event detail page for live ticket availability + image.
+  # Returns { spots_left:, capacity:, closed:, image_url: } or nil.
+  # The image_url is extracted from the page's og:image / twitter:image /
+  # JSON-LD as a fallback because the calendar listing's JSON-LD often
+  # omits the image field for newer events.
   def fetch_availability(url)
     return nil if url.nil? || url.empty?
     html = get(url)
     return nil unless html
 
+    image_url = extract_event_image(html)
+
     if html.include?("Tickets are no longer available")
-      return { spots_left: 0, capacity: nil, closed: true }
+      return { spots_left: 0, capacity: nil, closed: true, image_url: image_url }
     end
 
     blocks = html.split(/class="[^"]*tribe-tickets__tickets-item[ "][^"]*"/)[1..] || []
@@ -89,7 +94,27 @@ class NyKitchenScraper
       end
     end
 
-    { spots_left: spots_left, capacity: cap_known ? capacity : nil }
+    { spots_left: spots_left, capacity: cap_known ? capacity : nil, image_url: image_url }
+  end
+
+  # Pull the event page's primary image. Priority:
+  #   1. og:image meta tag (most reliable on NY Kitchen pages)
+  #   2. twitter:image meta tag
+  #   3. image field on a JSON-LD Event block (some templates set it here)
+  def extract_event_image(html)
+    if (m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)) ||
+       (m = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i))
+      return m[1]
+    end
+    if (m = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i))
+      return m[1]
+    end
+    extract_jsonld_events(html).each do |raw|
+      img = Array(raw["image"]).first || raw["image"]
+      url = img.is_a?(Hash) ? img["url"] : img.to_s.presence
+      return url if url
+    end
+    nil
   end
 
   private
