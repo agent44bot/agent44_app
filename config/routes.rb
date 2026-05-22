@@ -40,9 +40,13 @@ Rails.application.routes.draw do
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
-  # Public, no-auth display for the tasting-room TV. Cycles through
-  # currently-available classes; auto-refreshes data periodically.
-  get "nykitchen/display", to: "kitchen#display", as: :nyk_display
+  # Public, no-auth screen for the tasting-room display monitor.
+  # Cycles currently-available classes; auto-refreshes periodically.
+  get  "nykitchen/display", to: "kitchen#display", as: :nyk_display
+  # Display Agent admin: hub-card detail page with config form.
+  get   "nykitchen/display/settings", to: "kitchen#display_settings",        as: :nyk_display_settings
+  patch "nykitchen/display/settings", to: "kitchen#update_display_settings"
+  post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
   # /nykitchen/social renders the NYK workspace's social composer in-place
   # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
   # WorkspacesController#social by baking the slug in as a default param.

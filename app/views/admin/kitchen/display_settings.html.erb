@@ -1,0 +1,140 @@
+<% content_for(:title, "NY Kitchen · Display Agent") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <%= render "admin/kitchen/breadcrumbs" %>
+
+  <div class="mb-6">
+    <%= render "admin/kitchen/agent_title", title: "Display Agent", kind: "display" %>
+    <p class="text-gray-400 mt-1">
+      Cycles your live classes on a TV screen for walk-in customers.
+      Sold-out classes are automatically filtered out.
+    </p>
+  </div>
+
+  <% can_edit = @workspace && %w[owner admin].include?(@my_workspace_role) %>
+
+  <%# Share URL — private mode bakes the token into the URL %>
+  <% is_private = @agent.setting(:visibility) == "private" %>
+  <% display_url = if is_private && @agent.setting(:share_token).present?
+                     nyk_display_url(token: @agent.setting(:share_token))
+                   else
+                     nyk_display_url
+                   end %>
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6"
+       data-controller="clipboard"
+       data-clipboard-url-value="<%= display_url %>">
+    <div class="flex items-baseline justify-between mb-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Display URL</h2>
+      <span class="text-xs <%= is_private ? 'text-amber-400' : 'text-green-400' %> uppercase tracking-wide font-semibold">
+        <%= is_private ? "🔒 Private" : "🌐 Public" %>
+      </span>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <code class="flex-1 min-w-0 text-sm text-orange-300 bg-black/40 border border-gray-800 rounded-md px-3 py-2 truncate font-mono"><%= display_url %></code>
+      <%= link_to "Open ↗", display_url, target: "_blank", rel: "noopener",
+            class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200" %>
+      <button type="button" data-action="click->clipboard#copy"
+              class="inline-flex items-center px-3 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-sm font-semibold text-white cursor-pointer">
+        <span data-clipboard-target="label">Share</span>
+      </button>
+    </div>
+    <p class="text-xs text-gray-500 mt-3">
+      <% if is_private %>
+        Only people with this exact URL (with the token) can view. Anyone trying the URL without the token gets a 404.
+        <% if can_edit %>
+          <%= button_to "Regenerate share link", nyk_display_rotate_token_path,
+                method: :post,
+                form: { data: { turbo_confirm: "The old link will stop working immediately. Continue?" } },
+                class: "ml-1 text-xs text-amber-400 hover:text-amber-300 underline cursor-pointer inline" %>
+        <% end %>
+      <% else %>
+        Anyone with this URL can view. Open it in the tasting-room TV's browser, then full-screen it (F11 on most browsers).
+      <% end %>
+    </p>
+  </div>
+
+  <%# Settings form — admin/owner only %>
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-4">Settings</h2>
+    <% if can_edit %>
+      <%= form_with url: nyk_display_settings_path, method: :patch, local: true, class: "space-y-5" do %>
+        <div>
+          <span class="text-xs uppercase tracking-wide text-gray-500">Visibility</span>
+          <div class="mt-2 flex gap-2">
+            <% %w[public private].each do |val| %>
+              <label class="flex-1 cursor-pointer">
+                <%= radio_button_tag "settings[visibility]", val, @agent.setting(:visibility) == val,
+                      class: "peer sr-only" %>
+                <span class="block px-3 py-2 rounded-md border border-gray-700 text-sm text-gray-300 text-center peer-checked:border-orange-500 peer-checked:bg-orange-950/40 peer-checked:text-white transition">
+                  <%= val == "public" ? "🌐 Public — anyone with URL" : "🔒 Private — requires token in URL" %>
+                </span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <label class="block">
+            <span class="text-xs uppercase tracking-wide text-gray-500">Slides to show</span>
+            <%= select_tag "settings[slide_count]",
+                  options_for_select([3, 5, 7, 10, 15], @agent.setting(:slide_count)),
+                  class: "mt-1 w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+          </label>
+          <label class="block">
+            <span class="text-xs uppercase tracking-wide text-gray-500">Seconds per slide</span>
+            <%= select_tag "settings[advance_seconds]",
+                  options_for_select([5, 8, 10, 15, 20, 30], @agent.setting(:advance_seconds)),
+                  class: "mt-1 w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+          </label>
+          <label class="block">
+            <span class="text-xs uppercase tracking-wide text-gray-500">Refresh data every (min)</span>
+            <%= select_tag "settings[refresh_minutes]",
+                  options_for_select([5, 10, 15, 30, 60], @agent.setting(:refresh_minutes)),
+                  class: "mt-1 w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+          </label>
+        </div>
+
+        <div class="pt-4 border-t border-gray-800">
+          <span class="text-xs uppercase tracking-wide text-gray-500 block mb-3">Slide fields</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
+            <% [
+                 [:show_price, "Show price"],
+                 [:show_spots, "Show spots remaining"],
+                 [:show_end_time, "Show end time"],
+                 [:show_image, "Show class image (when available)"]
+               ].each do |key, label| %>
+              <label class="flex items-center gap-3 text-sm text-gray-300 cursor-pointer">
+                <%= hidden_field_tag "settings[#{key}]", "0" %>
+                <%= check_box_tag "settings[#{key}]", "1", @agent.setting(key),
+                      class: "w-4 h-4 rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+                <span><%= label %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <%= submit_tag "Save settings",
+                class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-sm font-semibold text-white cursor-pointer" %>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-gray-500">
+        Only workspace owners and admins can change Display settings.
+      </p>
+    <% end %>
+  </div>
+
+  <%# Preview %>
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div class="flex items-baseline justify-between mb-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Preview</h2>
+      <span class="text-xs text-gray-600">Live · same view the TV shows</span>
+    </div>
+    <% preview_src = is_private && @agent.setting(:share_token).present? ? nyk_display_path(token: @agent.setting(:share_token)) : nyk_display_path %>
+    <div class="rounded-lg overflow-hidden border border-gray-800 bg-black" style="aspect-ratio: 16 / 9;">
+      <iframe src="<%= preview_src %>" class="w-full h-full" loading="lazy"
+              title="Display Agent preview"></iframe>
+    </div>
+  </div>
+</div>
