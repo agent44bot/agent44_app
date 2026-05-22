@@ -47,6 +47,8 @@ Rails.application.routes.draw do
   get   "nykitchen/display/settings", to: "kitchen#display_settings",        as: :nyk_display_settings
   patch "nykitchen/display/settings", to: "kitchen#update_display_settings"
   post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
+  # Printer-friendly list of the same N classes the display cycles. Admin-only.
+  get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
   # /nykitchen/social renders the NYK workspace's social composer in-place
   # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
   # WorkspacesController#social by baking the slug in as a default param.

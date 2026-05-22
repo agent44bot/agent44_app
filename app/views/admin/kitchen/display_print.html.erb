@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NY Kitchen · Upcoming Classes (print)</title>
+  <style>
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #fff;
+      color: #111;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.4;
+    }
+    .sheet { max-width: 7.5in; margin: 0.5in auto; padding: 0 0.25in; }
+    .header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding-bottom: 12px; border-bottom: 2px solid #111; margin-bottom: 18px;
+    }
+    .brand { font-size: 20pt; font-weight: 800; letter-spacing: 0.01em; }
+    .brand .accent { color: #c2410c; }
+    .meta { font-size: 9pt; color: #555; }
+    .event {
+      padding: 14px 0; border-bottom: 1px solid #ddd;
+      page-break-inside: avoid;
+    }
+    .event:last-child { border-bottom: 0; }
+    .name { font-size: 13pt; font-weight: 700; margin-bottom: 6px; }
+    .details {
+      display: grid; grid-template-columns: max-content 1fr;
+      column-gap: 16px; row-gap: 3px;
+      font-size: 10pt; color: #333;
+    }
+    .label { color: #777; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.06em; padding-top: 1px; }
+    .value { font-size: 10pt; }
+    .footer {
+      margin-top: 24px; padding-top: 12px; border-top: 1px solid #ddd;
+      font-size: 9pt; color: #777; text-align: center;
+    }
+    .empty {
+      text-align: center; padding: 60px 0; color: #777; font-size: 12pt;
+    }
+    .actions {
+      margin-bottom: 18px; display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn {
+      display: inline-block; padding: 6px 14px; font-size: 10pt;
+      border: 1px solid #444; background: #fff; color: #111;
+      border-radius: 4px; cursor: pointer; text-decoration: none;
+    }
+    .btn-primary { background: #111; color: #fff; border-color: #111; }
+    @media print {
+      .actions { display: none; }
+      .sheet  { margin: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="actions">
+      <a class="btn" href="<%= nyk_display_settings_path %>">← Back</a>
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
+    </div>
+
+    <div class="header">
+      <div class="brand">NY Kitchen <span class="accent">· Upcoming Classes</span></div>
+      <div class="meta">
+        <%= @events.size %> upcoming<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
+      </div>
+    </div>
+
+    <% if @events.any? %>
+      <% @events.each do |event| %>
+        <% start = event.start_at %>
+        <% time_str = start.strftime("%-l:%M %p") %>
+        <% time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if event.end_at.present? %>
+        <% venue = event.venue.presence || "New York Kitchen, Canandaigua" %>
+        <div class="event">
+          <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
+          <div class="details">
+            <span class="label">Date</span><span class="value"><%= start.strftime("%A, %B %-d, %Y") %></span>
+            <span class="label">Time</span><span class="value"><%= time_str %></span>
+            <% if event.price.present? %>
+              <% price = event.price.to_s.strip %>
+              <% price = "$#{price}" unless price.match?(/[$£€]/) %>
+              <span class="label">Price</span><span class="value"><%= price %></span>
+            <% end %>
+            <span class="label">Where</span><span class="value"><%= venue %></span>
+            <% if event.spots_left.present? && event.spots_left > 0 %>
+              <span class="label">Spots</span><span class="value"><%= event.spots_left %> remaining</span>
+            <% end %>
+            <span class="label">Reserve</span><span class="value"><%= event.url %></span>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty">No upcoming classes right now. Check back at nykitchen.com.</div>
+    <% end %>
+
+    <div class="footer">
+      Reserve any class at <strong>nykitchen.com</strong>
+    </div>
+  </div>
+</body>
+</html>

@@ -97,6 +97,17 @@ class KitchenController < ApplicationController
     redirect_to nyk_display_settings_path, notice: "Display settings saved."
   end
 
+  # Printable handout of the next N available classes (N = same slide_count
+  # as the public display). Admin-only — meant for staff use.
+  def display_print
+    @agent = nyk_display_agent
+    snapshot = KitchenSnapshot.latest
+    available = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
+    @events = available.first(@agent.setting(:slide_count).to_i)
+    @last_updated = snapshot&.taken_on
+    render "admin/kitchen/display_print", layout: false
+  end
+
   def rotate_display_token
     workspace = Workspace.find_by(slug: "nykitchen")
     unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
