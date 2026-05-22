@@ -58,7 +58,7 @@
   <div class="sheet">
     <div class="actions">
       <a class="btn" href="<%= nyk_display_settings_path %>">← Back</a>
-      <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
+      <button id="print-btn" type="button" class="btn btn-primary">🖨 Print</button>
     </div>
 
     <div class="header">
@@ -100,5 +100,13 @@
       Reserve any class at <strong>nykitchen.com</strong>
     </div>
   </div>
+
+  <%# Inline event handlers (onclick=) are blocked by the app's CSP nonce
+      policy, so attach via a nonced <script> instead. %>
+  <%= javascript_tag nonce: true do %>
+    document.getElementById("print-btn")?.addEventListener("click", function() {
+      window.print();
+    });
+  <% end %>
 </body>
 </html>
