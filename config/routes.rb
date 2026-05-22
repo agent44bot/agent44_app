@@ -40,6 +40,9 @@ Rails.application.routes.draw do
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
+  # Public, no-auth display for the tasting-room TV. Cycles through
+  # currently-available classes; auto-refreshes data periodically.
+  get "nykitchen/display", to: "kitchen#display", as: :nyk_display
   # /nykitchen/social renders the NYK workspace's social composer in-place
   # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
   # WorkspacesController#social by baking the slug in as a default param.
