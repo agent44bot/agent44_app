@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <%# Pull fresh data every 10 minutes. The slideshow keeps cycling
+      between refreshes from the JS below. %>
+  <meta http-equiv="refresh" content="600">
+  <title>NY Kitchen · What's Coming Up</title>
+  <style>
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    .page {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 4vh 6vw;
+    }
+    .header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: 2vh;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .brand {
+      font-size: clamp(20px, 2.4vw, 36px);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .brand .accent { color: #ea580c; }
+    .header .meta {
+      font-size: clamp(12px, 1vw, 16px);
+      color: #6b7280;
+      font-variant-numeric: tabular-nums;
+    }
+    .stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .slide.active { display: block; animation: fade 0.6s ease-out; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .slide .name {
+      font-size: clamp(32px, 5.4vw, 92px);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      margin-bottom: 4vh;
+    }
+    .details {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 2vh 4vw;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(18px, 2.6vw, 44px);
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .details .icon  { font-size: 1.1em; text-align: right; }
+    .details .value { text-align: left; }
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 2vh;
+      border-top: 1px solid #1f1f1f;
+      font-size: clamp(12px, 1.1vw, 18px);
+      color: #6b7280;
+    }
+    .pulse {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 8px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+    .empty {
+      text-align: center;
+      color: #6b7280;
+      font-size: clamp(22px, 2.6vw, 40px);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="brand">NY Kitchen <span class="accent">· What's Coming Up</span></div>
+      <div class="meta">
+        <span class="pulse"></span>
+        <span>Next <%= @events.size %> of <%= @available_total %> available<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></span>
+      </div>
+    </header>
+
+    <main class="stage">
+      <% if @events.any? %>
+        <% @events.each_with_index do |event, i| %>
+          <% start = event.start_at %>
+          <% date_str = start.strftime("%A, %B %-d") %>
+          <% time_str = start.strftime("%-l:%M %p") %>
+          <% time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if event.end_at.present? %>
+          <% venue = event.venue.presence || "New York Kitchen, Canandaigua" %>
+          <article class="slide<%= ' active' if i == 0 %>">
+            <h1 class="name"><%= event.name.presence || "Class at NY Kitchen" %></h1>
+            <div class="details">
+              <span class="icon">📅</span><span class="value"><%= date_str %></span>
+              <span class="icon">⏰</span><span class="value"><%= time_str %></span>
+              <% if event.price.present? %>
+                <% price = event.price.to_s.strip %>
+                <% price = "$#{price}" unless price.match?(/[$£€]/) %>
+                <span class="icon">💵</span><span class="value"><%= price %></span>
+              <% end %>
+              <span class="icon">📍</span><span class="value"><%= venue %></span>
+              <% if event.spots_left.present? && event.spots_left > 0 %>
+                <span class="icon">⚡</span><span class="value"><%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left</span>
+              <% end %>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty">
+          New classes coming soon.<br>
+          Check back at nykitchen.com.
+        </div>
+      <% end %>
+    </main>
+
+    <footer class="footer">
+      <span>Visit <strong>nykitchen.com</strong> to reserve</span>
+      <span>Auto-refreshes every 10 min</span>
+    </footer>
+  </div>
+
+  <%= javascript_tag nonce: true do %>
+    // Cycle through slides every 10s. Pure CSS class swap — no Stimulus
+    // needed since this page runs no app JS stack.
+    (function() {
+      var slides = document.querySelectorAll('.slide');
+      if (slides.length < 2) return;
+      var i = 0;
+      setInterval(function() {
+        slides[i].classList.remove('active');
+        i = (i + 1) % slides.length;
+        slides[i].classList.add('active');
+      }, 10000);
+    })();
+  <% end %>
+</body>
+</html>

@@ -6,7 +6,7 @@ class KitchenController < ApplicationController
   # workspaces#social), the POST endpoints (social_post_log, enhance_post,
   # send_to_workspace, trigger_smoke), and the digest/download actions all
   # gate via the default require_authentication.
-  allow_unauthenticated_access only: [:hub]
+  allow_unauthenticated_access only: [:hub, :display]
 
   before_action :set_common_view_state, only: %i[hub list test data]
 
@@ -39,6 +39,18 @@ class KitchenController < ApplicationController
   def data
     load_scrape_data
     render "admin/kitchen/data", layout: "application"
+  end
+
+  # Public, no-auth display for the tasting-room TV. Cycles through
+  # currently-available classes; the page meta-refreshes every 10 min
+  # to pick up new scrapes.
+  def display
+    snapshot = KitchenSnapshot.latest
+    available = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
+    @events = available.first(5)
+    @available_total = available.size
+    @last_updated = snapshot&.taken_on
+    render "admin/kitchen/display", layout: false
   end
 
   # PATCH /nykitchen/agents/:kind  — workspace owner/admin renames an
