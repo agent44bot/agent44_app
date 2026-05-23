@@ -153,6 +153,112 @@
   </div>
 </section>
 
+<!-- How it works -->
+<section id="how-it-works" class="border-t border-gray-800 bg-gray-950">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+    <div class="mb-12 sm:mb-16">
+      <p class="text-xs font-mono uppercase tracking-[0.2em] text-orange-400 mb-2">How it works</p>
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+        From signup to working agents in <span class="text-orange-500">under a minute</span>.
+      </h2>
+      <p class="mt-3 text-base text-gray-400 max-w-2xl">
+        Real example: NY Kitchen runs four always-on agents that watch their calendar, snapshot data, post to social, and smoke-test the site — 24/7, for pennies a day.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
+      <!-- Step 1: Plug in -->
+      <div class="relative">
+        <div class="flex items-baseline gap-3 mb-3">
+          <span class="text-2xl font-black text-orange-500 font-mono">01</span>
+          <h3 class="text-lg sm:text-xl font-bold text-white">Plug in your business</h3>
+        </div>
+        <p class="text-sm text-gray-400 leading-relaxed mb-5">
+          Sign up, name your workspace, connect the accounts you want agents to work in (X, Bluesky, Threads, Facebook). 60 seconds.
+        </p>
+        <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40">
+          <%= image_tag "marketing/step1-signup.png", alt: "Create an account screen", class: "w-full h-auto block" %>
+        </div>
+      </div>
+
+      <!-- Step 2: They work 24/7 -->
+      <div class="relative">
+        <div class="flex items-baseline gap-3 mb-3">
+          <span class="text-2xl font-black text-orange-500 font-mono">02</span>
+          <h3 class="text-lg sm:text-xl font-bold text-white">They work 24/7</h3>
+        </div>
+        <p class="text-sm text-gray-400 leading-relaxed mb-5">
+          Agents run on their own cadence: scrape every few hours, smoke-test hourly, draft and post on schedule. You see green dots when everything's healthy.
+        </p>
+        <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40">
+          <%= image_tag "marketing/step2-nykitchen.png", alt: "NY Kitchen workspace dashboard with four active agents", class: "w-full h-auto block" %>
+        </div>
+      </div>
+
+      <!-- Step 3: Real results -->
+      <div class="relative">
+        <div class="flex items-baseline gap-3 mb-3">
+          <span class="text-2xl font-black text-orange-500 font-mono">03</span>
+          <h3 class="text-lg sm:text-xl font-bold text-white">Real results, live</h3>
+        </div>
+        <p class="text-sm text-gray-400 leading-relaxed mb-5">
+          Tickets sold, posts published, regressions caught. Pulled from NY Kitchen's live workspace — these aren't mockups.
+        </p>
+        <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40 p-6 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+            <div class="flex items-center gap-2">
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span class="text-xs font-mono uppercase tracking-wide text-green-400">Live · NY Kitchen</span>
+            </div>
+            <span class="text-xs text-gray-600">today</span>
+          </div>
+
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Tickets sold</p>
+            <p class="text-4xl font-black text-white">26</p>
+            <p class="text-xs text-gray-600 mt-1">List Agent · across 85 upcoming classes</p>
+          </div>
+
+          <div class="pt-3 border-t border-gray-800">
+            <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Social Agent posted</p>
+            <div class="rounded-lg bg-black/40 border border-gray-800 px-3 py-2.5">
+              <p class="text-xs text-gray-300 leading-relaxed">
+                Chef's Table Class is happening Friday, May 22 at 6 PM. Learn real techniques, eat incredible food…
+              </p>
+              <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                <span>X · Bluesky</span>
+                <span class="text-gray-700">·</span>
+                <span class="text-green-400">posted</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-800 grid grid-cols-2 gap-3">
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wide">Smoke</p>
+              <p class="text-sm font-semibold text-green-400 mt-0.5">✓ Passed 32m ago</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wide">Snapshot</p>
+              <p class="text-sm font-semibold text-green-400 mt-0.5">✓ 31m ago</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-12 sm:mt-16 text-center">
+      <a href="/nykitchen" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gray-800 rounded-full hover:bg-gray-700 transition border border-gray-700">
+        See NY Kitchen's live workspace
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
 <% if false # Hidden for now — bring back later %>
 <!-- Services -->
 <section id="services" class="border-t border-gray-800">
