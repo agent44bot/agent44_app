@@ -113,6 +113,22 @@
   <% stats_class  = "space-y-1.5 text-sm mt-auto" %>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
+    <%= link_to nyk_ask_path, class: card_class do %>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">💬</span>
+          <h2 class="text-lg font-bold text-white">Super Agent</h2>
+          <%= agent_badge.call(:ask) %>
+        </div>
+        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
+      </div>
+      <p class="<%= desc_class %>">Ask questions about your classes — sold-outs, sales trends, what's coming up. Answers from the latest snapshot.</p>
+      <div class="<%= stats_class %>">
+        <div class="text-gray-300">Try: <span class="text-gray-400">"What sold out this week?"</span></div>
+        <div class="text-gray-500 truncate font-mono text-xs"><%= nyk_ask_path %></div>
+      </div>
+    <% end %>
+
     <%= link_to nyk_list_path, class: card_class do %>
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
@@ -247,22 +263,6 @@
         <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last_finished %> <%= time_ago_in_words(@hub_smoke_last_finished.started_at) %> ago<% end %></div>
         <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
         <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
-      </div>
-    <% end %>
-
-    <%= link_to nyk_ask_path, class: card_class do %>
-      <div class="flex items-start justify-between mb-2">
-        <div class="flex items-center gap-2">
-          <span class="text-2xl">💬</span>
-          <h2 class="text-lg font-bold text-white">Super Agent</h2>
-          <%= agent_badge.call(:ask) %>
-        </div>
-        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
-      </div>
-      <p class="<%= desc_class %>">Ask questions about your classes — sold-outs, sales trends, what's coming up. Answers from the latest snapshot.</p>
-      <div class="<%= stats_class %>">
-        <div class="text-gray-300">Try: <span class="text-gray-400">"What sold out this week?"</span></div>
-        <div class="text-gray-500 truncate font-mono text-xs"><%= nyk_ask_path %></div>
       </div>
     <% end %>
 
