@@ -30,27 +30,31 @@
       <div data-super-chat-target="empty" class="text-center text-gray-500 text-sm">
         <p class="mb-3">Ask anything about your upcoming classes.</p>
         <div class="flex flex-wrap justify-center gap-2 mt-4">
-          <button type="button" data-action="click->super-chat#useExample"
-                  data-example="What classes sold out this week?"
-                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
-            What classes sold out this week?
-          </button>
-          <button type="button" data-action="click->super-chat#useExample"
-                  data-example="Which upcoming classes are almost sold out?"
-                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
-            Which are almost sold out?
-          </button>
-          <button type="button" data-action="click->super-chat#useExample"
-                  data-example="How are weekend classes doing compared to weekdays?"
-                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
-            Weekend vs weekday demand?
-          </button>
-          <button type="button" data-action="click->super-chat#useExample"
-                  data-example="What's selling fastest right now?"
-                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
-            What's selling fastest?
-          </button>
+          <% @chip_prompts.each do |q| %>
+            <button type="button" data-action="click->super-chat#useExample"
+                    data-example="<%= q %>"
+                    class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
+              <%= q %>
+            </button>
+          <% end %>
         </div>
+
+        <% if @can_edit_chips %>
+          <details class="mt-8 inline-block text-left">
+            <summary class="cursor-pointer text-xs text-gray-500 hover:text-orange-400 list-none">
+              ✏ Edit examples
+            </summary>
+            <%= form_with url: nyk_ask_examples_path, method: :post, local: true, class: "mt-3 space-y-2" do %>
+              <%= text_area_tag :chip_prompts, @chip_prompts.join("\n"), rows: 4,
+                    class: "block w-80 rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-normal",
+                    placeholder: "One question per line (up to 4)" %>
+              <div class="flex items-center gap-2">
+                <%= submit_tag "Save", class: "text-xs px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer border-0" %>
+                <span class="text-xs text-gray-600">Blank = restore defaults from snapshot</span>
+              </div>
+            <% end %>
+          </details>
+        <% end %>
       </div>
     </div>
 

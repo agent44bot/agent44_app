@@ -40,8 +40,9 @@ Rails.application.routes.draw do
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
-  get  "nykitchen/ask",         to: "kitchen#ask",         as: :nyk_ask
-  post "nykitchen/ask/message", to: "kitchen#ask_message", as: :nyk_ask_message
+  get  "nykitchen/ask",          to: "kitchen#ask",                as: :nyk_ask
+  post "nykitchen/ask/message",  to: "kitchen#ask_message",        as: :nyk_ask_message
+  post "nykitchen/ask/examples", to: "kitchen#update_ask_examples", as: :nyk_ask_examples
   # Public, no-auth screen for the tasting-room display monitor.
   # Cycles currently-available classes; auto-refreshes periodically.
   get  "nykitchen/display", to: "kitchen#display", as: :nyk_display

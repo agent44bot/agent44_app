@@ -45,8 +45,24 @@ class KitchenController < ApplicationController
   # holds the conversation in-browser; each turn POSTs the full history to
   # #ask_message, which calls KitchenAi::AskAgent.
   def ask
-    @last_snapshot_taken_on = KitchenSnapshot.latest&.taken_on
+    snapshot = KitchenSnapshot.latest
+    @last_snapshot_taken_on = snapshot&.taken_on
+    ask_agent = @nyk_workspace&.agent_for("ask")
+    custom = Array(ask_agent&.setting(:chip_prompts)).compact_blank
+    @chip_prompts = custom.any? ? custom.first(4) : dynamic_chip_prompts(snapshot)
+    @can_edit_chips = %w[owner admin].include?(@my_workspace_role)
     render "admin/kitchen/ask", layout: "application"
+  end
+
+  def update_ask_examples
+    workspace = Workspace.find_by(slug: "nykitchen")
+    unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
+      redirect_to nyk_ask_path, alert: "Only workspace admins can edit examples." and return
+    end
+    prompts = params[:chip_prompts].to_s
+                .split(/\r?\n/).map(&:strip).reject(&:blank?).first(4)
+    workspace.agent_for("ask").update_settings(chip_prompts: prompts)
+    redirect_to nyk_ask_path, notice: "Examples saved."
   end
 
   def ask_message
@@ -312,6 +328,48 @@ class KitchenController < ApplicationController
   end
 
   private
+
+  # Empty-state chip suggestions for Super Agent. When workspace admins
+  # haven't pinned their own, build 4 that reference real upcoming classes
+  # from the latest snapshot — proves Super Agent talks about the actual
+  # calendar, not generic Q&A.
+  def dynamic_chip_prompts(snapshot)
+    fallback = [
+      "What classes sold out this week?",
+      "Which are almost sold out?",
+      "What's selling fastest right now?",
+      "How are weekend classes doing vs weekdays?"
+    ]
+    return fallback unless snapshot
+
+    upcoming = snapshot.kitchen_events.upcoming.to_a
+    return fallback if upcoming.empty?
+
+    chips = []
+
+    almost = upcoming.select { |e| !e.sold_out? && e.spots_left.present? && e.spots_left.between?(1, 5) }
+    if (pick = almost.sample)
+      chips << "How is the #{chip_class_label(pick)} class selling?"
+    end
+
+    if (pick = upcoming.select(&:sold_out?).sample)
+      chips << "Why did #{chip_class_label(pick)} sell out?"
+    end
+
+    chips << "What sold out this week?"
+    chips << "How are weekend classes doing vs weekdays?"
+
+    chips.uniq.first(4)
+  end
+
+  # Trim trailing date suffixes like " 5/23/26" or "Class 5/23" so the
+  # chip reads naturally instead of repeating the date.
+  def chip_class_label(event)
+    name = event.name.to_s
+    name = name.sub(/\s*[-–—:]?\s*Class\s*\d{1,2}\/\d{1,2}(\/\d{2,4})?\s*$/i, "")
+    name = name.sub(/\s*\(?\d{1,2}\/\d{1,2}(\/\d{2,4})?\)?\s*$/, "")
+    name.truncate(40)
+  end
 
   # Per-event "this URL has been queued/posted in a workspace" lookup, for
   # the kitchen list. Returns a hash keyed by event URL with the row state:
