@@ -1,0 +1,71 @@
+<% content_for(:title, "NY Kitchen · Super Agent") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <%= render "admin/kitchen/breadcrumbs" %>
+
+  <div class="mb-6">
+    <%= render "admin/kitchen/agent_title", title: "Super Agent", kind: "ask" %>
+    <p class="text-gray-400 mt-1">Ask questions about your classes — sold-outs, sales trends, what's coming up.</p>
+  </div>
+
+  <div data-controller="super-chat"
+       data-super-chat-endpoint-value="<%= nyk_ask_message_path %>"
+       class="rounded-2xl border border-gray-800 bg-gray-950 overflow-hidden flex flex-col"
+       style="height: calc(100vh - 280px); min-height: 500px;">
+
+    <div data-super-chat-target="messages"
+         class="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div data-super-chat-target="empty" class="text-center text-gray-500 text-sm">
+        <p class="mb-3">Ask anything about your upcoming classes.</p>
+        <div class="flex flex-wrap justify-center gap-2 mt-4">
+          <button type="button" data-action="click->super-chat#useExample"
+                  data-example="What classes sold out this week?"
+                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
+            What classes sold out this week?
+          </button>
+          <button type="button" data-action="click->super-chat#useExample"
+                  data-example="Which upcoming classes are almost sold out?"
+                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
+            Which are almost sold out?
+          </button>
+          <button type="button" data-action="click->super-chat#useExample"
+                  data-example="How are weekend classes doing compared to weekdays?"
+                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
+            Weekend vs weekday demand?
+          </button>
+          <button type="button" data-action="click->super-chat#useExample"
+                  data-example="What's selling fastest right now?"
+                  class="text-xs px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 hover:border-orange-500 text-gray-300 cursor-pointer">
+            What's selling fastest?
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <form data-super-chat-target="form"
+          data-action="submit->super-chat#submit"
+          class="border-t border-gray-800 bg-gray-900/70 p-3 flex gap-2">
+      <input type="text"
+             data-super-chat-target="input"
+             placeholder="Ask about your classes..."
+             autocomplete="off"
+             class="flex-1 rounded-md bg-gray-950 border border-gray-800 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none">
+      <button type="submit"
+              data-super-chat-target="send"
+              class="px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-sm font-semibold text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+        Send
+      </button>
+    </form>
+  </div>
+
+  <% if @last_snapshot_taken_on %>
+    <p class="text-xs text-gray-600 mt-3">
+      Answers are based on calendar data from <%= @last_snapshot_taken_on.strftime("%A, %b %-d") %>.
+      Refresh the page after the next Data Agent snapshot to pick up newer data.
+    </p>
+  <% else %>
+    <p class="text-xs text-amber-500 mt-3">
+      No calendar snapshot yet — Super Agent has nothing to answer from. Wait for the Data Agent's next run.
+    </p>
+  <% end %>
+</div>

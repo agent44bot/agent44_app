@@ -1,5 +1,5 @@
 class WorkspaceAgent < ApplicationRecord
-  KINDS = %w[list social data test display].freeze
+  KINDS = %w[list social data test display ask].freeze
 
   # Per-kind setting defaults. Used by `setting(key)` so callers can read
   # without checking whether a value has been persisted yet.

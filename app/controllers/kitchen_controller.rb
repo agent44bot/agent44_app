@@ -8,7 +8,7 @@ class KitchenController < ApplicationController
   # gate via the default require_authentication.
   allow_unauthenticated_access only: [:hub, :display]
 
-  before_action :set_common_view_state, only: %i[hub list test data]
+  before_action :set_common_view_state, only: %i[hub list test data ask]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -39,6 +39,29 @@ class KitchenController < ApplicationController
   def data
     load_scrape_data
     render "admin/kitchen/data", layout: "application"
+  end
+
+  # Super Agent — chat surface for read-only Q&A about NYK classes. The view
+  # holds the conversation in-browser; each turn POSTs the full history to
+  # #ask_message, which calls KitchenAi::AskAgent.
+  def ask
+    @last_snapshot_taken_on = KitchenSnapshot.latest&.taken_on
+    render "admin/kitchen/ask", layout: "application"
+  end
+
+  def ask_message
+    return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.user
+
+    messages = params[:messages]
+    messages = messages.is_a?(Array) ? messages.map { |m| m.to_unsafe_h.symbolize_keys } : []
+
+    result = KitchenAi::AskAgent.new(user: Current.user).ask(messages)
+
+    if result.ok?
+      render json: { reply: result.reply }
+    else
+      render json: { error: result.error }, status: 502
+    end
   end
 
   # Allow the Display Agent settings page to preview the live monitor
