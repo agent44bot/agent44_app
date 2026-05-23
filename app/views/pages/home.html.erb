@@ -166,6 +166,9 @@
       </p>
     </div>
 
+    <% phone_frame   = "max-w-[260px] mx-auto rounded-[2rem] border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40" %>
+    <% phone_image   = "w-full h-auto block" %>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
       <!-- Step 1: Plug in -->
       <div class="relative">
@@ -176,8 +179,8 @@
         <p class="text-sm text-gray-400 leading-relaxed mb-5">
           Sign up, name your workspace, connect the accounts you want agents to work in (X, Bluesky, Threads, Facebook). 60 seconds.
         </p>
-        <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40">
-          <%= image_tag "marketing/step1-signup.png", alt: "Create an account screen", class: "w-full h-auto block" %>
+        <div class="<%= phone_frame %>">
+          <%= image_tag "marketing/iphone-home.png", alt: "Agent44 Labs home screen on iPhone with the live AI agents fleet", class: phone_image %>
         </div>
       </div>
 
@@ -190,8 +193,8 @@
         <p class="text-sm text-gray-400 leading-relaxed mb-5">
           Agents run on their own cadence: scrape every few hours, smoke-test hourly, draft and post on schedule. You see green dots when everything's healthy.
         </p>
-        <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40">
-          <%= image_tag "marketing/step2-nykitchen.png", alt: "NY Kitchen workspace dashboard with four active agents", class: "w-full h-auto block" %>
+        <div class="<%= phone_frame %>">
+          <%= image_tag "marketing/iphone-nyk-hub.png", alt: "NY Kitchen workspace on iPhone with five active Agent44 Labs agents", class: phone_image %>
         </div>
       </div>
 
@@ -204,48 +207,8 @@
         <p class="text-sm text-gray-400 leading-relaxed mb-5">
           Tickets sold, posts published, regressions caught. Pulled from NY Kitchen's live workspace — these aren't mockups.
         </p>
-        <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden shadow-2xl shadow-black/40 p-6 space-y-4">
-          <div class="flex items-center justify-between pb-3 border-b border-gray-800">
-            <div class="flex items-center gap-2">
-              <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <span class="text-xs font-mono uppercase tracking-wide text-green-400">Live · NY Kitchen</span>
-            </div>
-            <span class="text-xs text-gray-600">today</span>
-          </div>
-
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Tickets sold</p>
-            <p class="text-4xl font-black text-white">26</p>
-            <p class="text-xs text-gray-600 mt-1">List Agent · across 85 upcoming classes</p>
-          </div>
-
-          <div class="pt-3 border-t border-gray-800">
-            <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Social Agent posted</p>
-            <div class="rounded-lg bg-black/40 border border-gray-800 px-3 py-2.5">
-              <p class="text-xs text-gray-300 leading-relaxed">
-                Chef's Table Class is happening Friday, May 22 at 6 PM. Learn real techniques, eat incredible food…
-              </p>
-              <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                <span>X · Bluesky</span>
-                <span class="text-gray-700">·</span>
-                <span class="text-green-400">posted</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="pt-3 border-t border-gray-800 grid grid-cols-2 gap-3">
-            <div>
-              <p class="text-xs text-gray-500 uppercase tracking-wide">Smoke</p>
-              <p class="text-sm font-semibold text-green-400 mt-0.5">✓ Passed 32m ago</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500 uppercase tracking-wide">Snapshot</p>
-              <p class="text-sm font-semibold text-green-400 mt-0.5">✓ 31m ago</p>
-            </div>
-          </div>
+        <div class="<%= phone_frame %>">
+          <%= image_tag "marketing/iphone-list.png", alt: "List Agent on iPhone showing tickets-sold trend and weekly sell-through for NY Kitchen", class: phone_image %>
         </div>
       </div>
     </div>
