@@ -41,12 +41,13 @@ platform :ios do
   desc "Push screenshots only"
   lane :push_screenshots do
     deliver(
-      api_key:               asc_key,
-      skip_binary_upload:    true,
-      skip_screenshots:      false,
-      skip_metadata:         true,
-      overwrite_screenshots: true,
-      force:                 true
+      api_key:                    asc_key,
+      skip_binary_upload:         true,
+      skip_screenshots:           false,
+      skip_metadata:              true,
+      overwrite_screenshots:      true,
+      run_precheck_before_submit: false,
+      force:                      true
     )
   end
 
