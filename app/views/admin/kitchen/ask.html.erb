@@ -10,8 +10,20 @@
 
   <div data-controller="super-chat"
        data-super-chat-endpoint-value="<%= nyk_ask_message_path %>"
-       class="rounded-2xl border border-gray-800 bg-gray-950 overflow-hidden flex flex-col"
+       class="rounded-2xl border border-gray-800 bg-gray-950 overflow-hidden flex flex-col relative"
        style="height: calc(100vh - 280px); min-height: 500px;">
+
+    <button type="button"
+            data-super-chat-target="reset"
+            data-action="click->super-chat#reset"
+            title="Start a new chat"
+            hidden
+            class="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gray-900/80 border border-gray-800 hover:border-orange-500 text-xs text-gray-400 hover:text-orange-400 cursor-pointer backdrop-blur">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+      </svg>
+      New chat
+    </button>
 
     <div data-super-chat-target="messages"
          class="flex-1 overflow-y-auto px-4 py-6 space-y-4">

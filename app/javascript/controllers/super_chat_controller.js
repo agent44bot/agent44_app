@@ -4,11 +4,20 @@ import { Controller } from "@hotwired/stimulus"
 // memory, POSTs the history to nyk_ask_message_path each turn, appends
 // the reply. No persistence — refresh = fresh chat.
 export default class extends Controller {
-  static targets = ["messages", "input", "send", "form", "empty"]
+  static targets = ["messages", "input", "send", "form", "empty", "reset"]
   static values  = { endpoint: String }
 
   connect() {
     this.history = []
+    this.inputTarget.focus()
+  }
+
+  reset() {
+    this.history = []
+    this.messagesTarget.querySelectorAll(":scope > div:not([data-super-chat-target=empty])")
+      .forEach(el => el.remove())
+    if (this.hasEmptyTarget) this.emptyTarget.hidden = false
+    if (this.hasResetTarget) this.resetTarget.hidden = true
     this.inputTarget.focus()
   }
 
@@ -88,7 +97,8 @@ export default class extends Controller {
   }
 
   _hideEmpty() {
-    if (this.hasEmptyTarget) this.emptyTarget.remove()
+    if (this.hasEmptyTarget) this.emptyTarget.hidden = true
+    if (this.hasResetTarget) this.resetTarget.hidden = false
   }
 
   _setBusy(busy) {
