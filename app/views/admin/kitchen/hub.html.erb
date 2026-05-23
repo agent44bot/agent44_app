@@ -202,11 +202,12 @@
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-      <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically.</p>
+      <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically. Also prints a paper schedule for the counter.</p>
       <div class="<%= stats_class %>">
         <% display_agent = @workspace_agents["display"] %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
         <div class="text-gray-500 truncate font-mono text-xs"><%= nyk_display_path %></div>
+        <div class="text-gray-500">🖨 Printable schedule</div>
       </div>
     <% end %>
 
