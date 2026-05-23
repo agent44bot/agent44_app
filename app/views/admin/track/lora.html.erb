@@ -112,7 +112,12 @@
               <td class="px-4 py-2 text-gray-300 whitespace-nowrap text-xs tabular-nums">
                 <%= pv.created_at.in_time_zone(tz).strftime("%b %-d %-l:%M:%S%P") %>
               </td>
-              <td class="px-4 py-2 font-mono text-orange-300 text-xs"><%= pv.path %></td>
+              <td class="px-4 py-2 text-xs">
+                <% method = pv.method.presence || "GET" %>
+                <% badge_color = method == "GET" ? "bg-gray-800 text-gray-400" : "bg-orange-900/60 text-orange-300" %>
+                <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold mr-2 <%= badge_color %>"><%= method %></span>
+                <span class="font-mono text-orange-300"><%= pv.path %></span>
+              </td>
               <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap">
                 <%= pv.browser.presence || "?" %>
                 <span class="text-gray-600">/</span>

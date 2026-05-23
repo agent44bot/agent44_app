@@ -8,7 +8,10 @@ module Trackable
   private
 
   def track_page_view
-    return unless request.get? || request.method == "HEAD"
+    # Track any user-initiated request — GET/POST/PUT/PATCH/DELETE. Skipping
+    # OPTIONS (CORS preflights) and HEAD (link prefetches) which aren't
+    # meaningful user actions.
+    return if %w[OPTIONS HEAD].include?(request.method)
     return if controller_path.start_with?("admin", "api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
     return if Current.user&.admin?
@@ -22,6 +25,7 @@ module Trackable
 
     TrackPageViewJob.perform_later(
       path: request.path,
+      method: request.method,
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
       referrer: request.referrer,

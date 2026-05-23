@@ -1,12 +1,13 @@
 class TrackPageViewJob < ApplicationJob
   queue_as :default
 
-  def perform(path:, ip_address:, user_agent:, referrer:, user_id:, session_id:)
+  def perform(path:, ip_address:, user_agent:, referrer:, user_id:, session_id:, method: "GET")
     browser, os, device_type = parse_user_agent(user_agent)
     geo = lookup_geolocation(ip_address)
 
     PageView.create!(
       path: path,
+      method: method,
       ip_address: ip_address,
       user_agent: user_agent,
       browser: browser,
