@@ -145,6 +145,7 @@ Rails.application.routes.draw do
       end
     end
     resources :users, only: [ :index, :destroy ]
+    get "track/lora", to: "track#lora", as: :track_lora
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [ :show ]
     get "kitchen", to: redirect("/nykitchen", status: 301)
