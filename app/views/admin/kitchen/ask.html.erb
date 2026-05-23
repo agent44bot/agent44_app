@@ -5,7 +5,7 @@
 
   <div class="mb-6">
     <%= render "admin/kitchen/agent_title", title: "Super Agent", kind: "ask" %>
-    <p class="text-gray-400 mt-1">Ask questions about your classes — sold-outs, sales trends, what's coming up.</p>
+    <p class="text-gray-400 mt-1">Ask anything about NY Kitchen — classes, sales, sold-outs, agent fleet status, smoke tests, social posts.</p>
   </div>
 
   <div data-controller="super-chat"
@@ -28,7 +28,7 @@
     <div data-super-chat-target="messages"
          class="flex-1 overflow-y-auto px-4 pt-14 pb-6 space-y-4">
       <div data-super-chat-target="empty" class="text-center text-gray-500 text-sm">
-        <p class="mb-3">Ask anything about your upcoming classes.</p>
+        <p class="mb-3">Ask anything about NY Kitchen — classes, sales, agent status, smoke tests, social posts.</p>
         <div class="flex flex-wrap justify-center gap-2 mt-4">
           <% @chip_prompts.each do |q| %>
             <button type="button" data-action="click->super-chat#useExample"
@@ -40,16 +40,16 @@
         </div>
 
         <% if @can_edit_chips %>
-          <details class="mt-8 inline-block text-left">
-            <summary class="cursor-pointer text-xs text-gray-500 hover:text-orange-400 list-none">
+          <details class="mt-8 text-left max-w-2xl mx-auto">
+            <summary class="cursor-pointer text-xs text-gray-500 hover:text-orange-400 list-none text-center">
               ✏ Edit examples
             </summary>
-            <%= form_with url: nyk_ask_examples_path, method: :post, local: true, class: "mt-3 space-y-2" do %>
-              <%= text_area_tag :chip_prompts, @chip_prompts.join("\n"), rows: 4,
-                    class: "block w-80 rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-normal",
+            <%= form_with url: nyk_ask_examples_path, method: :post, local: true, class: "mt-3 space-y-3" do %>
+              <%= text_area_tag :chip_prompts, @chip_prompts.join("\n"), rows: 6, wrap: "off",
+                    class: "block w-full rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-normal leading-relaxed whitespace-pre overflow-x-auto",
                     placeholder: "One question per line (up to 4)" %>
-              <div class="flex items-center gap-2">
-                <%= submit_tag "Save", class: "text-xs px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer border-0" %>
+              <div class="flex items-center gap-3">
+                <%= submit_tag "Save", class: "text-xs px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer border-0" %>
                 <span class="text-xs text-gray-600">Blank = restore defaults from snapshot</span>
               </div>
             <% end %>
@@ -63,7 +63,7 @@
           class="border-t border-gray-800 bg-gray-900/70 p-3 flex gap-2">
       <input type="text"
              data-super-chat-target="input"
-             placeholder="Ask about your classes..."
+             placeholder="Ask about classes, agents, tests..."
              autocomplete="off"
              class="flex-1 rounded-md bg-gray-950 border border-gray-800 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none">
       <button type="submit"
