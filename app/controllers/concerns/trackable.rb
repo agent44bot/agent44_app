@@ -14,7 +14,6 @@ module Trackable
     return if %w[OPTIONS HEAD].include?(request.method)
     return if controller_path.start_with?("admin", "api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
-    return if Current.user&.admin?
     return if bot_request?
 
     session_id = cookies[:visitor_sid]

@@ -19,16 +19,14 @@ module Admin
               else              Time.at(0)
               end
 
-      # Chips for the user picker: every non-admin user with tracked
+      # Chips for the user picker: every signed-in user with tracked
       # activity, ordered by most-recent page view (capped at 12).
       tracked_user_ids = PageView.where.not(user_id: nil)
                                  .group(:user_id)
                                  .order(Arel.sql("MAX(created_at) DESC"))
                                  .limit(12)
                                  .count.keys
-      users_by_id = User.where(id: tracked_user_ids)
-                        .where.not(role: "admin")
-                        .index_by(&:id)
+      users_by_id = User.where(id: tracked_user_ids).index_by(&:id)
       @filter_users = tracked_user_ids.filter_map { |uid| users_by_id[uid] }
 
       @user = User.find_by(id: params[:user_id]) if params[:user_id].present?
@@ -65,9 +63,7 @@ module Admin
                          Arel.sql("MAX(created_at)")
                        )
 
-        users_in_window = User.where(id: rows.map(&:first))
-                              .where.not(role: "admin")
-                              .index_by(&:id)
+        users_in_window = User.where(id: rows.map(&:first)).index_by(&:id)
 
         @user_summary = rows.filter_map do |uid, hits, sessions, last_seen_at|
           user = users_in_window[uid]

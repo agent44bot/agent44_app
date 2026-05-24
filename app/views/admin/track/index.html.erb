@@ -17,9 +17,9 @@
     <% if @user %>
       Every page <strong><%= @user.email_address %></strong> hits in the app.
     <% else %>
-      Activity across every non-admin user with tracked page views.
+      Activity across every signed-in user with tracked page views.
     <% end %>
-    PageView only logs non-admin users — admin pages are not tracked.
+    <code class="text-orange-300">/admin/*</code> and <code class="text-orange-300">/api/*</code> requests are excluded — only user-facing paths are tracked.
   </p>
 
   <%# User picker chips %>
