@@ -94,8 +94,8 @@
   def fastest_row(row, n)
     e = row[:event]
     badge =
-      if row[:days_to_sellout]
-        %Q(<div style="font-size:11px;color:#b00020;font-weight:600;margin-top:2px">Sold out in #{row[:days_to_sellout]} #{"day".pluralize(row[:days_to_sellout])}</div>)
+      if e.sold_out?
+        %Q(<div style="font-size:11px;color:#b00020;font-weight:600;margin-top:2px">Sold out</div>)
       elsif e.start_at && e.start_at >= Time.current && e.spots_left
         color = e.spots_left <= 3 ? "#b35900" : "#1b6e3a"
         %Q(<div style="font-size:11px;color:#{color};font-weight:600;margin-top:2px">#{e.spots_left} left</div>)

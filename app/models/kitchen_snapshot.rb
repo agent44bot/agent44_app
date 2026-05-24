@@ -78,10 +78,10 @@ class KitchenSnapshot < ApplicationRecord
   # capacity-independent and counts only sales we actually witnessed — so a
   # class listed long before we started watching can't fake a fast pace.
   #
-  # Snapshots are daily, so pace resolves to ~day granularity: good for
-  # "filled in 3 days vs 12", not sub-day claims. `days_to_sellout` is only
-  # set when we saw the class go from open → sold out (not when we first
-  # caught it already sold out), so the "Sold out in N days" badge is honest.
+  # Snapshots are daily, so pace resolves to ~day granularity, not sub-day
+  # claims. `days_to_sellout` (set only when we watched a class go open →
+  # sold out) is used as the pace denominator and a sort tiebreak — it's not
+  # shown, since it's measured from when we started tracking, not listing.
   #
   # window_weeks bounds the snapshot lookback (nil = all history). The
   # representative event for each class is its most recent observation.

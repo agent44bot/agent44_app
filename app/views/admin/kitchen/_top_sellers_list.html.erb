@@ -24,10 +24,8 @@
                title="<%= row[:observed_sold] %> tickets sold since we started tracking">
             ~<%= row[:pace] %>/day
           </div>
-          <% if row[:days_to_sellout] %>
-            <div class="text-xs font-semibold text-red-400">
-              Sold out in <%= pluralize(row[:days_to_sellout], "day") %>
-            </div>
+          <% if e.sold_out? %>
+            <div class="text-xs font-semibold text-red-400">Sold out</div>
           <% elsif e.start_at && e.start_at >= Time.current && e.spots_left %>
             <% color = e.spots_left <= 3 ? "text-amber-400" : "text-gray-500" %>
             <div class="text-xs <%= color %>"><%= e.spots_left %> left</div>
