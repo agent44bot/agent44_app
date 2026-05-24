@@ -9,7 +9,45 @@ export default class extends Controller {
 
   connect() {
     this.history = []
-    this.inputTarget.focus()
+
+    // Keep the chat box sized to the *visible* viewport. On iOS the soft
+    // keyboard shrinks the visual viewport but not 100vh, so a viewport-tall
+    // box leaves its bottom-anchored input behind the keyboard — Safari then
+    // scrolls the whole page up to reveal it, shifting the view. Resizing the
+    // box to the visual viewport keeps the input above the keyboard, so the
+    // page never needs to scroll. Falls back to the CSS height when the
+    // VisualViewport API is missing (desktop / older browsers).
+    this._fit = this._fit.bind(this)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", this._fit)
+      window.visualViewport.addEventListener("scroll", this._fit)
+      this.inputTarget.addEventListener("focus", this._fit)
+      this.inputTarget.addEventListener("blur", this._fit)
+      this._fit()
+    }
+
+    // Don't autofocus on touch devices — it pops the keyboard (and shifts the
+    // view) on every page load / Turbo restore. Desktop keeps the convenience.
+    if (!window.matchMedia("(pointer: coarse)").matches) this.inputTarget.focus()
+  }
+
+  disconnect() {
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener("resize", this._fit)
+      window.visualViewport.removeEventListener("scroll", this._fit)
+    }
+  }
+
+  _fit() {
+    const vv = window.visualViewport
+    if (!vv) return
+    // Distance from the top of the visible viewport to the top of the box,
+    // then fill down to just shy of the viewport bottom (the keyboard top).
+    const top = this.element.getBoundingClientRect().top
+    this.element.style.minHeight = "0px" // let the inline 500px min give way
+    this.element.style.height = Math.max(vv.height - top - 8, 220) + "px"
+    // Keep the latest messages in view as the box resizes around the keyboard.
+    this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
   }
 
   reset() {

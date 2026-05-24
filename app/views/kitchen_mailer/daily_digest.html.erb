@@ -13,17 +13,28 @@
   end
 
   def spots(e)
-    # For sold out / unavailable events, show tickets sold from last-known data
-    if NyKitchenDigestBuilder.sold_out?(e[:availability]) && e[:last_known_capacity]
-      cap = e[:last_known_capacity]
-      left = e[:last_known_spots_left] || 0
-      sold = cap - left
-      text = "#{sold} of #{cap} tickets sold"
-      return %Q(<span style="font-size:11px;color:#b00020;font-weight:600">#{text}</span>)
+    cap   = e[:capacity]
+    left  = e[:spots_left]
+    lkcap = e[:last_known_capacity]
+    lkspt = e[:last_known_spots_left]
+
+    # Sold out / unavailable: show tickets sold rather than "0 left". Mirrors
+    # KitchenEvent#tickets_sold/#tickets_total three-tier fallback —
+    # live capacity → snapshotted capacity → observed high-water proxy.
+    if NyKitchenDigestBuilder.sold_out?(e[:availability])
+      text =
+        if cap
+          "#{[cap - (left || 0), 0].max} of #{cap} tickets sold"
+        elsif lkcap
+          "#{[lkcap - (lkspt || 0), 0].max} of #{lkcap} tickets sold"
+        elsif lkspt
+          # Capacity unknown — we only know a floor, so render "X+ sold".
+          "#{[lkspt - (left || 0), 0].max}+ sold"
+        end
+      return text ? %Q(<span style="font-size:11px;color:#b00020;font-weight:600">#{text}</span>) : ""
     end
 
-    return "" unless e[:spots_left]
-    left = e[:spots_left]; cap = e[:capacity]
+    return "" unless left
     color = left <= 0 ? "#b00020" : (left <= 3 ? "#b35900" : "#1b6e3a")
     text = cap ? "#{left} of #{cap} left" : "#{left} left"
     %Q(<span style="font-size:11px;color:#{color};font-weight:600">#{text}</span>)
