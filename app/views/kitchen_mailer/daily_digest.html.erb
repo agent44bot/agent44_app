@@ -86,6 +86,53 @@
     lines.join("\n")
   end
 
+  def rank_badge(n, bg, fg)
+    %Q(<span style="display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:9px;background:#{bg};color:#{fg};font-size:11px;font-weight:700;margin-right:6px">#{n}</span>)
+  end
+
+  # Selling-fastest leaderboard row. AR KitchenEvent in row[:event].
+  def fastest_row(row, n)
+    e = row[:event]
+    badge =
+      if row[:days_to_sellout]
+        %Q(<div style="font-size:11px;color:#b00020;font-weight:600;margin-top:2px">Sold out in #{row[:days_to_sellout]} #{"day".pluralize(row[:days_to_sellout])}</div>)
+      elsif e.start_at && e.start_at >= Time.current && e.spots_left
+        color = e.spots_left <= 3 ? "#b35900" : "#1b6e3a"
+        %Q(<div style="font-size:11px;color:#{color};font-weight:600;margin-top:2px">#{e.spots_left} left</div>)
+      else
+        ""
+      end
+    %Q(<li style="padding:8px 0;border-bottom:1px solid #eee;list-style:none">
+         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+           <div>#{rank_badge(n, "#fde9d7", "#b35900")}<a href="#{e.url}" style="color:#0a58ca;text-decoration:none;font-weight:600">#{e.name}</a>
+             <div style="font-size:12px;color:#666;margin-top:2px">#{e.start_at.strftime("%a %-m/%-d")}</div>
+           </div>
+           <div style="text-align:right;flex-shrink:0">
+             <strong style="color:#111;white-space:nowrap">~#{row[:pace]}/day</strong>
+             #{badge}
+           </div>
+         </div>
+       </li>)
+  end
+
+  # Needs-a-push leaderboard row. AR KitchenEvent in row[:event].
+  def needs_push_row(row, n)
+    e = row[:event]
+    seats = e.capacity ? "#{e.spots_left} of #{e.capacity} left" : "#{e.spots_left} left"
+    needed_color = row[:needed_pace] >= 5 ? "#b00020" : "#b35900"
+    %Q(<li style="padding:8px 0;border-bottom:1px solid #eee;list-style:none">
+         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+           <div>#{rank_badge(n, "#e7eefc", "#0a58ca")}<a href="#{e.url}" style="color:#0a58ca;text-decoration:none;font-weight:600">#{e.name}</a>
+             <div style="font-size:12px;color:#666;margin-top:2px">#{e.start_at.strftime("%a %-m/%-d")} &middot; in #{row[:days_until]} #{"day".pluralize(row[:days_until])} &middot; #{seats}</div>
+           </div>
+           <div style="text-align:right;flex-shrink:0">
+             <strong style="color:#{needed_color};white-space:nowrap">needs ~#{row[:needed_pace]}/day</strong>
+             <div style="font-size:11px;color:#888;margin-top:2px">selling ~#{row[:observed_pace]}/day</div>
+           </div>
+         </div>
+       </li>)
+  end
+
   def event_row(e)
     left_meta = []
     left_meta << e[:instructor] if e[:instructor]
@@ -125,6 +172,18 @@
   <a href="https://agent44labs.com/nykitchen" style="display:inline-block;background:#ea580c;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;margin-top:4px">agent44labs.com/nykitchen</a>
   <a href="https://testflight.apple.com/join/DumNGKtU" style="display:inline-block;background:#0a58ca;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;margin-top:4px;margin-left:6px">iOS App (TestFlight)</a>
 </div>
+
+<% if @selling_fastest.present? %>
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px">🔥 Selling fastest</h3>
+<ul style="padding:0;margin:0"><% @selling_fastest.each_with_index do |row, i| %><%= fastest_row(row, i + 1).html_safe %><% end %></ul>
+<p style="font-size:11px;color:#aaa;margin:6px 0 0">Tickets sold per day while we tracked each class &middot; day-level.</p>
+<% end %>
+
+<% if @needs_a_push.present? %>
+<h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin-top:24px">🧊 Needs a push</h3>
+<ul style="padding:0;margin:0"><% @needs_a_push.each_with_index do |row, i| %><%= needs_push_row(row, i + 1).html_safe %><% end %></ul>
+<p style="font-size:11px;color:#aaa;margin:6px 0 0">Behind the pace they need to fill by their date &middot; <a href="https://agent44labs.com/nykitchen/list" style="color:#0a58ca">promote on the live page &rarr;</a></p>
+<% end %>
 
 <% [
   ["Current Week", @current_week_events, "No classes this week."],
