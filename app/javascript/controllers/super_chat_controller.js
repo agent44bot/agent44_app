@@ -107,7 +107,9 @@ export default class extends Controller {
       this.history.pop() // drop the user turn so retry doesn't double-up
     } finally {
       this._setBusy(false)
-      this.inputTarget.focus()
+      // Don't re-pop the keyboard on touch after a reply — let the user read
+      // it and tap to continue. Desktop refocuses for fast back-and-forth.
+      if (!this._touch) this.inputTarget.focus()
     }
   }
 

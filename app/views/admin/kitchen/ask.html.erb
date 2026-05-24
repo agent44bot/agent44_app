@@ -65,7 +65,9 @@
              data-super-chat-target="input"
              placeholder="Ask about classes, agents, tests..."
              autocomplete="off"
-             class="flex-1 rounded-md bg-gray-950 border border-gray-800 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none">
+             <%# text-base (16px) on mobile stops iOS from auto-zooming the page
+                 when the input is focused; shrink to text-sm on desktop. %>
+             class="flex-1 rounded-md bg-gray-950 border border-gray-800 text-white px-3 py-2 text-base sm:text-sm focus:border-orange-500 focus:outline-none">
       <button type="submit"
               data-super-chat-target="send"
               class="px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-sm font-semibold text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
