@@ -12,7 +12,7 @@ module Trackable
     # OPTIONS (CORS preflights) and HEAD (link prefetches) which aren't
     # meaningful user actions.
     return if %w[OPTIONS HEAD].include?(request.method)
-    return if controller_path.start_with?("admin", "api", "rails")
+    return if controller_path.start_with?("api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
     return if bot_request?
 
