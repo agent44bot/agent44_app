@@ -28,8 +28,10 @@
         elsif lkcap
           "#{[lkcap - (lkspt || 0), 0].max} of #{lkcap} tickets sold"
         elsif lkspt
-          # Capacity unknown — we only know a floor, so render "X+ sold".
-          "#{[lkspt - (left || 0), 0].max}+ sold"
+          # Capacity unknown — we only know a floor, so render "X+ sold", but
+          # suppress a 0 floor (we never saw any inventory): it carries no info.
+          sold = [lkspt - (left || 0), 0].max
+          "#{sold}+ sold" if sold.positive?
         end
       return text ? %Q(<span style="font-size:11px;color:#b00020;font-weight:600">#{text}</span>) : ""
     end
