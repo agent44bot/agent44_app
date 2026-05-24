@@ -10,44 +10,61 @@ export default class extends Controller {
   connect() {
     this.history = []
 
-    // Keep the chat box sized to the *visible* viewport. On iOS the soft
-    // keyboard shrinks the visual viewport but not 100vh, so a viewport-tall
-    // box leaves its bottom-anchored input behind the keyboard — Safari then
-    // scrolls the whole page up to reveal it, shifting the view. Resizing the
-    // box to the visual viewport keeps the input above the keyboard, so the
-    // page never needs to scroll. Falls back to the CSS height when the
-    // VisualViewport API is missing (desktop / older browsers).
+    // On touch devices, keep the chat box sized to the *visible* viewport and
+    // pin the page to the top while typing. When the soft keyboard opens, iOS
+    // shrinks the visual viewport (not 100vh) and scrolls the whole page up to
+    // drag the bottom-anchored input above the keyboard — that's the "view
+    // shift". We instead shrink the box so the input sits just above the
+    // keyboard, then undo iOS's auto-scroll so the nav/title stay put.
+    // Desktop keeps the CSS height and autofocus.
+    this._touch = window.matchMedia("(pointer: coarse)").matches
     this._fit = this._fit.bind(this)
-    if (window.visualViewport) {
+    this._onFocus = this._onFocus.bind(this)
+    this._onBlur = this._onBlur.bind(this)
+
+    if (this._touch && window.visualViewport) {
       window.visualViewport.addEventListener("resize", this._fit)
       window.visualViewport.addEventListener("scroll", this._fit)
-      this.inputTarget.addEventListener("focus", this._fit)
-      this.inputTarget.addEventListener("blur", this._fit)
+      this.inputTarget.addEventListener("focus", this._onFocus)
+      this.inputTarget.addEventListener("blur", this._onBlur)
       this._fit()
+    } else {
+      this.inputTarget.focus()
     }
-
-    // Don't autofocus on touch devices — it pops the keyboard (and shifts the
-    // view) on every page load / Turbo restore. Desktop keeps the convenience.
-    if (!window.matchMedia("(pointer: coarse)").matches) this.inputTarget.focus()
   }
 
   disconnect() {
-    if (window.visualViewport) {
+    if (this._touch && window.visualViewport) {
       window.visualViewport.removeEventListener("resize", this._fit)
       window.visualViewport.removeEventListener("scroll", this._fit)
     }
   }
 
+  _onFocus() {
+    this._focused = true
+    // iOS reports the keyboard a beat after focus, so re-fit across the open
+    // animation to catch the shrunken viewport and cancel its auto-scroll.
+    this._fit()
+    ;[60, 160, 300, 500].forEach(ms => setTimeout(this._fit, ms))
+  }
+
+  _onBlur() {
+    this._focused = false
+    this._fit()
+  }
+
   _fit() {
     const vv = window.visualViewport
     if (!vv) return
-    // Distance from the top of the visible viewport to the top of the box,
-    // then fill down to just shy of the viewport bottom (the keyboard top).
-    const top = this.element.getBoundingClientRect().top
+    // Document-relative top of the box — stable no matter how far iOS has
+    // already scrolled the page, so the height never feeds back on itself.
+    const docTop = this.element.getBoundingClientRect().top + window.scrollY
     this.element.style.minHeight = "0px" // let the inline 500px min give way
-    this.element.style.height = Math.max(vv.height - top - 8, 220) + "px"
+    this.element.style.height = Math.max(vv.height - docTop - 8, 200) + "px"
     // Keep the latest messages in view as the box resizes around the keyboard.
     this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
+    // Undo iOS's scroll-to-focused-input so the nav/title don't slide off.
+    if (this._focused && window.scrollY !== 0) window.scrollTo(0, 0)
   }
 
   reset() {
