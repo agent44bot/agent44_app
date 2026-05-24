@@ -42,10 +42,11 @@
     <% if @needs_a_push.present? || @ended_emptiest.present? %>
       <%= render "admin/kitchen/needs_a_push" %>
     <% end %>
+    <%= render "admin/kitchen/list_panel" %>
     <% if @dow_avg && @dow_avg.values.sum.positive? %>
       <% dow_avg_json  = (0..6).map { |w| @dow_avg[w]       || 0 }.to_json %>
       <% dow_week_json = (0..6).map { |w| @dow_this_week[w]            }.to_json %>
-      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6"
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
            data-controller="dow-chart"
            data-dow-chart-avg-value="<%= dow_avg_json %>"
            data-dow-chart-week-value="<%= dow_week_json %>">
@@ -58,7 +59,6 @@
         </div>
       </div>
     <% end %>
-    <%= render "admin/kitchen/list_panel" %>
   <% end %>
 </div>
 
