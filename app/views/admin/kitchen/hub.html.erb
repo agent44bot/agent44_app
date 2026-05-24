@@ -70,9 +70,9 @@
      data-collapsible-scroll-on-expand-value="true">
   <div class="flex justify-between items-center mb-6 text-sm">
     <% if Current.user&.email_address == "botwhisperer@hey.com" %>
-      <%= link_to admin_track_lora_path(range: "today"),
+      <%= link_to admin_track_path(range: "today"),
             class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-900/40 border border-amber-800/60 text-amber-300 hover:border-amber-500 text-xs font-semibold" do %>
-        👁 Track Lora
+        👁 Track users
       <% end %>
     <% else %>
       <span></span>

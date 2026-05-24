@@ -4,10 +4,7 @@ module Admin
 
     before_action :require_owner
 
-    def lora
-      @user = User.find_by(email_address: "lora.downie@nykitchen.com")
-      return redirect_to(admin_users_path, alert: "No user with that email yet.") unless @user
-
+    def index
       tz = "Eastern Time (US & Canada)"
       now_et = Time.current.in_time_zone(tz)
       today_start = now_et.beginning_of_day.utc
@@ -22,29 +19,62 @@ module Admin
               else              Time.at(0)
               end
 
-      scope = PageView.where(user_id: @user.id)
+      # Chips for the user picker: every non-admin user with tracked
+      # activity, ordered by most-recent page view (capped at 12).
+      tracked_user_ids = PageView.where.not(user_id: nil)
+                                 .group(:user_id)
+                                 .order(Arel.sql("MAX(created_at) DESC"))
+                                 .limit(12)
+                                 .count.keys
+      users_by_id = User.where(id: tracked_user_ids)
+                        .where.not(role: "admin")
+                        .index_by(&:id)
+      @filter_users = tracked_user_ids.filter_map { |uid| users_by_id[uid] }
 
-      @page_views = scope.where("created_at >= ?", since).order(created_at: :desc).limit(500).to_a
-      @range_truncated = scope.where("created_at >= ?", since).count > 500
+      @user = User.find_by(id: params[:user_id]) if params[:user_id].present?
 
-      @counts = {
-        today: scope.where("created_at >= ?", today_start).count,
-        week:  scope.where("created_at >= ?", week_start).count,
-        d30:   scope.where("created_at >= ?", d30_start).count,
-        all:   scope.count
-      }
+      if @user
+        scope = PageView.where(user_id: @user.id)
 
-      @last_seen = scope.order(created_at: :desc).first
+        @page_views = scope.where("created_at >= ?", since).order(created_at: :desc).limit(500).to_a
+        @range_truncated = scope.where("created_at >= ?", since).count > 500
 
-      # Top paths in the selected window
-      @top_paths = scope.where("created_at >= ?", since)
-                        .group(:path)
-                        .order(Arel.sql("COUNT(*) DESC"))
-                        .limit(8)
-                        .count
+        @counts = {
+          today: scope.where("created_at >= ?", today_start).count,
+          week:  scope.where("created_at >= ?", week_start).count,
+          d30:   scope.where("created_at >= ?", d30_start).count,
+          all:   scope.count
+        }
 
-      # Distinct sessions in the selected window
-      @session_count = scope.where("created_at >= ?", since).distinct.count(:session_id)
+        @last_seen     = scope.order(created_at: :desc).first
+        @top_paths     = scope.where("created_at >= ?", since)
+                              .group(:path)
+                              .order(Arel.sql("COUNT(*) DESC"))
+                              .limit(8)
+                              .count
+        @session_count = scope.where("created_at >= ?", since).distinct.count(:session_id)
+      else
+        # Overview: hits / sessions / last-seen per tracked user in the window.
+        rows = PageView.where.not(user_id: nil)
+                       .where("created_at >= ?", since)
+                       .group(:user_id)
+                       .pluck(
+                         :user_id,
+                         Arel.sql("COUNT(*)"),
+                         Arel.sql("COUNT(DISTINCT session_id)"),
+                         Arel.sql("MAX(created_at)")
+                       )
+
+        users_in_window = User.where(id: rows.map(&:first))
+                              .where.not(role: "admin")
+                              .index_by(&:id)
+
+        @user_summary = rows.filter_map do |uid, hits, sessions, last_seen_at|
+          user = users_in_window[uid]
+          next unless user
+          { user: user, hits: hits, sessions: sessions, last_seen_at: last_seen_at }
+        end.sort_by { |row| -row[:hits] }
+      end
     end
 
     private
