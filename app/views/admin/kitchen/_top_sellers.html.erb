@@ -1,0 +1,31 @@
+<%# "Selling fastest" card. Two ranked views (built by
+    KitchenSnapshot.selling_fastest) toggled by the generic tabs
+    controller: upcoming-only (default) and all-time (past + future). %>
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6"
+     data-controller="tabs"
+     data-tabs-active-classes-value="bg-gray-700 text-white"
+     data-tabs-inactive-classes-value="text-gray-400">
+  <div class="flex items-center justify-between gap-2 mb-4">
+    <h2 class="text-sm font-semibold text-white">🔥 Selling fastest</h2>
+    <div class="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5 text-xs font-medium">
+      <button type="button" data-tabs-target="tab" data-tab-index="0" data-action="tabs#select"
+              class="px-2.5 py-1 rounded-md transition">Upcoming</button>
+      <button type="button" data-tabs-target="tab" data-tab-index="1" data-action="tabs#select"
+              class="px-2.5 py-1 rounded-md transition">All time</button>
+    </div>
+  </div>
+
+  <div data-tabs-target="panel">
+    <%= render "admin/kitchen/top_sellers_list",
+               rows: @top_sellers, empty: "No upcoming classes with enough sales data yet." %>
+  </div>
+  <div data-tabs-target="panel" class="hidden">
+    <%= render "admin/kitchen/top_sellers_list",
+               rows: @top_sellers_all, empty: "No sales history yet." %>
+  </div>
+
+  <p class="text-xs text-gray-600 mt-4">
+    Pace = tickets sold per day while we tracked each class. Daily snapshots, so it's day-level.
+    &ldquo;All time&rdquo; includes past classes.
+  </p>
+</div>

@@ -1,0 +1,117 @@
+<%# "Needs a push" card, toggled by the generic tabs controller:
+    - Upcoming (default): classes behind the pace they need to fill
+      (@needs_a_push), each deep-linking into the Social Agent draft flow.
+    - All time: past classes that ran with the most unsold seats
+      (@ended_emptiest) — a retrospective of underperformers. %>
+<% default_ws = Array(@sendable_workspaces).first %>
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6"
+     data-controller="tabs"
+     data-tabs-active-classes-value="bg-gray-700 text-white"
+     data-tabs-inactive-classes-value="text-gray-400">
+  <div class="flex items-center justify-between gap-2 mb-4">
+    <h2 class="text-sm font-semibold text-white">🧊 Needs a push</h2>
+    <div class="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5 text-xs font-medium">
+      <button type="button" data-tabs-target="tab" data-tab-index="0" data-action="tabs#select"
+              class="px-2.5 py-1 rounded-md transition">Upcoming</button>
+      <button type="button" data-tabs-target="tab" data-tab-index="1" data-action="tabs#select"
+              class="px-2.5 py-1 rounded-md transition">All time</button>
+    </div>
+  </div>
+
+  <%# Panel 0 — upcoming classes behind pace, with the Social Agent handoff. %>
+  <div data-tabs-target="panel">
+    <% if @needs_a_push.blank? %>
+      <p class="text-sm text-gray-500">Every upcoming class is on pace to fill 🎉</p>
+    <% else %>
+      <ol class="space-y-3">
+        <% @needs_a_push.each_with_index do |row, i| %>
+          <% e = row[:event] %>
+          <li class="flex items-start gap-3"
+              data-controller="social-post"
+              data-social-post-name-value="<%= e.name %>"
+              data-social-post-date-value="<%= e.start_at.strftime("%A, %B %-d") %>"
+              data-social-post-time-value="<%= e.start_at.strftime("%-I:%M %p") %><%= e.end_at ? " - #{e.end_at.strftime("%-I:%M %p")}" : "" %>"
+              data-social-post-price-value="<%= e.price %>"
+              data-social-post-spots-value="<%= e.spots_left %>"
+              data-social-post-capacity-value="<%= e.capacity %>"
+              data-social-post-url-value="<%= e.url %>"
+              data-social-post-description-value="<%= truncate(CGI.unescapeHTML(strip_tags(e.description.to_s)).gsub("&nbsp;", " ").gsub(/([ap]m)([A-Z])/, '\1 \2').gsub(/\n/, ' ').squeeze(' ').strip, length: 200, separator: '. ', omission: '.') %>"
+              data-social-post-image-url-value="<%= e.image_url %>"
+              data-social-post-log-url-value="/nykitchen/social_post_log"
+              data-social-post-enhance-url-value="/nykitchen/enhance_post"
+              <% if default_ws %>data-social-post-send-to-workspace-url-value="/nykitchen/send_to_workspace"
+              data-social-post-workspace-slug-value="<%= default_ws.slug %>"<% end %>>
+            <span class="shrink-0 w-6 h-6 mt-0.5 rounded-full bg-amber-900/50 text-amber-400 text-xs font-bold flex items-center justify-center">
+              <%= i + 1 %>
+            </span>
+            <div class="min-w-0 flex-1">
+              <a href="<%= e.url %>" target="_blank" rel="noopener"
+                 class="text-sm font-medium text-orange-400 hover:text-orange-300 transition truncate block">
+                <%= e.name %>
+              </a>
+              <div class="text-xs text-gray-500 mt-0.5">
+                <%= e.start_at.strftime("%a %-m/%-d") %> &middot; in <%= pluralize(row[:days_until], "day") %>
+                &middot; <%= e.capacity ? "#{e.spots_left} of #{e.capacity} left" : "#{e.spots_left} left" %>
+              </div>
+              <% if default_ws %>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <button data-action="social-post#sendToWorkspace"
+                          data-social-post-target="sendToWorkspaceBtn"
+                          class="px-2 py-0.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-medium transition cursor-pointer">
+                    Send to Social Agent
+                  </button>
+                  <span data-social-post-target="status" class="text-xs"></span>
+                </div>
+              <% end %>
+            </div>
+            <div class="shrink-0 text-right">
+              <% needed_color = row[:needed_pace] >= 5 ? "text-red-400" : "text-amber-400" %>
+              <div class="text-sm font-semibold <%= needed_color %>"
+                   title="Must sell ~<%= row[:needed_pace] %> tickets/day to fill by the class date">
+                needs ~<%= row[:needed_pace] %>/day
+              </div>
+              <div class="text-xs text-gray-500">selling ~<%= row[:observed_pace] %>/day</div>
+            </div>
+          </li>
+        <% end %>
+      </ol>
+      <p class="text-xs text-gray-600 mt-4">
+        Ranked by the gap between the pace each class needs to fill by its date and the pace it's actually selling at.
+      </p>
+    <% end %>
+  </div>
+
+  <%# Panel 1 — past classes that ended with the most unsold seats. %>
+  <div data-tabs-target="panel" class="hidden">
+    <% if @ended_emptiest.blank? %>
+      <p class="text-sm text-gray-500">No past classes ended with unsold seats.</p>
+    <% else %>
+      <ol class="space-y-3">
+        <% @ended_emptiest.each_with_index do |row, i| %>
+          <% e = row[:event] %>
+          <li class="flex items-start gap-3">
+            <span class="shrink-0 w-6 h-6 mt-0.5 rounded-full bg-gray-800 text-gray-400 text-xs font-bold flex items-center justify-center">
+              <%= i + 1 %>
+            </span>
+            <div class="min-w-0 flex-1">
+              <a href="<%= e.url %>" target="_blank" rel="noopener"
+                 class="text-sm font-medium text-orange-400 hover:text-orange-300 transition truncate block">
+                <%= e.name %>
+              </a>
+              <div class="text-xs text-gray-500 mt-0.5"><%= e.start_at.strftime("%a %-m/%-d") %></div>
+            </div>
+            <div class="shrink-0 text-right">
+              <div class="text-sm font-semibold text-sky-400"><%= pluralize(e.spots_left, "seat") %> unsold</div>
+              <% if e.capacity.to_i > 0 %>
+                <div class="text-xs text-gray-500">of <%= e.capacity %> &middot; <%= (e.spots_left.to_f / e.capacity * 100).round %>% empty</div>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ol>
+      <p class="text-xs text-gray-600 mt-4">
+        Past classes ranked by seats still open when we last saw them — i.e. that ran with the most empty seats.
+      </p>
+    <% end %>
+  </div>
+</div>

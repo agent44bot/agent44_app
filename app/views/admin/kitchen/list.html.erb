@@ -36,6 +36,12 @@
       <p class="text-gray-400">No events scraped yet. The scraper runs every 3 hours.</p>
     </div>
   <% else %>
+    <% if @top_sellers.present? || @top_sellers_all.present? %>
+      <%= render "admin/kitchen/top_sellers" %>
+    <% end %>
+    <% if @needs_a_push.present? || @ended_emptiest.present? %>
+      <%= render "admin/kitchen/needs_a_push" %>
+    <% end %>
     <% if @dow_avg && @dow_avg.values.sum.positive? %>
       <% dow_avg_json  = (0..6).map { |w| @dow_avg[w]       || 0 }.to_json %>
       <% dow_week_json = (0..6).map { |w| @dow_this_week[w]            }.to_json %>

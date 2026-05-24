@@ -508,11 +508,25 @@ class KitchenController < ApplicationController
       # Day-of-week ticket sales: 6-week historical avg vs this week's actuals.
       @dow_avg       = KitchenSnapshot.tickets_sold_by_wday
       @dow_this_week = KitchenSnapshot.tickets_sold_this_week_by_wday
+
+      # "Selling fastest" card — ranked by observed pace. Two views toggled
+      # client-side: upcoming-only (default) and all-time (past + future).
+      @top_sellers     = KitchenSnapshot.selling_fastest(snapshot: snapshot)
+      @top_sellers_all = KitchenSnapshot.selling_fastest(snapshot: snapshot, scope: :all, window_weeks: nil)
+
+      # "Needs a push" card: upcoming classes behind pace (default) + an
+      # all-time retrospective of past classes that ended with unsold seats.
+      @needs_a_push    = KitchenSnapshot.needs_a_push(snapshot: snapshot)
+      @ended_emptiest  = KitchenSnapshot.ended_emptiest(snapshot: snapshot)
     else
       @events = []
       @weeks = []
       @total = 0
       @sold_out = 0
+      @top_sellers = []
+      @top_sellers_all = []
+      @needs_a_push = []
+      @ended_emptiest = []
       @workspace_status_by_url = {}
       @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0, "other" => 0 }
       @post_logs = {}

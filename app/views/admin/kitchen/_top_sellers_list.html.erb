@@ -1,0 +1,39 @@
+<%# Ranked rows for one "Selling fastest" view. Locals: rows (array of
+    selling_fastest hashes), empty (message when rows is blank). %>
+<% if rows.blank? %>
+  <p class="text-sm text-gray-500"><%= empty %></p>
+<% else %>
+  <ol class="space-y-3">
+    <% rows.each_with_index do |row, i| %>
+      <% e = row[:event] %>
+      <li class="flex items-center gap-3">
+        <span class="shrink-0 w-6 h-6 rounded-full bg-orange-900/50 text-orange-400 text-xs font-bold flex items-center justify-center">
+          <%= i + 1 %>
+        </span>
+        <div class="min-w-0 flex-1">
+          <a href="<%= e.url %>" target="_blank" rel="noopener"
+             class="text-sm font-medium text-orange-400 hover:text-orange-300 transition truncate block">
+            <%= e.name %>
+          </a>
+          <div class="text-xs text-gray-500 mt-0.5">
+            <%= e.start_at.strftime("%a %-m/%-d") %><% if e.instructor %> &middot; <%= e.instructor %><% end %>
+          </div>
+        </div>
+        <div class="shrink-0 text-right">
+          <div class="text-sm font-semibold text-white"
+               title="<%= row[:observed_sold] %> tickets sold since we started tracking">
+            ~<%= row[:pace] %>/day
+          </div>
+          <% if row[:days_to_sellout] %>
+            <div class="text-xs font-semibold text-red-400">
+              Sold out in <%= pluralize(row[:days_to_sellout], "day") %>
+            </div>
+          <% elsif e.start_at && e.start_at >= Time.current && e.spots_left %>
+            <% color = e.spots_left <= 3 ? "text-amber-400" : "text-gray-500" %>
+            <div class="text-xs <%= color %>"><%= e.spots_left %> left</div>
+          <% end %>
+        </div>
+      </li>
+    <% end %>
+  </ol>
+<% end %>
