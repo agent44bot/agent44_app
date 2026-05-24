@@ -46,10 +46,13 @@ module Trackable
     nexus\s5x|mediapartners
   /ix
 
-  # Known Google crawler IPs that rotate user agents
-  BLOCKED_IPS = %w[
-    66.241.125.168
-  ].to_set.freeze
+  # IP-based block list. Empty by default — 66.241.125.168 used to live
+  # here flagged as a Google crawler, but that address is actually fly's
+  # edge proxy, and Rails surfaces it via request.remote_ip because the
+  # public-IP proxy isn't trusted by default. Blocking it silently broke
+  # PageView tracking for every real user. UA-based bot filtering below
+  # still catches actual crawlers.
+  BLOCKED_IPS = Set.new.freeze
 
   def bot_request?
     return true if BLOCKED_IPS.include?(request.remote_ip)
