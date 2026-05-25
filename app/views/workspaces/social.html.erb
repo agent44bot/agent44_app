@@ -5,10 +5,11 @@
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
   <div class="flex justify-end mb-6 text-sm">
+    <% back_btn = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" %>
     <% if @workspace.slug == "nykitchen" %>
-      <%= link_to "← NY Kitchen", nykitchen_path, class: "text-gray-400 hover:text-orange-400 transition" %>
+      <%= link_to "← NY Kitchen", nykitchen_path, class: back_btn %>
     <% else %>
-      <%= link_to "← #{@workspace.name}", workspace_path(@workspace.slug), class: "text-gray-400 hover:text-orange-400 transition" %>
+      <%= link_to "← #{@workspace.name}", workspace_path(@workspace.slug), class: back_btn %>
     <% end %>
   </div>
 
