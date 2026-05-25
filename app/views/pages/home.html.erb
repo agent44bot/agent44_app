@@ -64,6 +64,12 @@
           <%= render "shared/faceid_auth" %>
         <% end %>
 
+        <%# Download CTA — visible on the web, hidden inside the native app
+            (the script below removes .js-web-only when running in Capacitor). %>
+        <div class="mt-6 sm:mt-8">
+          <%= render "shared/app_store_badge" %>
+        </div>
+
         <% if false # Hidden for now — bring back later %>
         <div class="mt-6 sm:mt-8 flex flex-col items-start justify-start gap-4">
           <%# Face ID button — shown on mobile native when available %>
@@ -377,4 +383,19 @@
     </div>
   </div>
 </section>
+<% end %>
+
+<%# The App Store badge is meaningless inside the native app — strip any
+    .js-web-only elements when we're running in the Capacitor shell. Runs on
+    initial load and on every Turbo render so post-navigation returns stay clean. %>
+<%= javascript_tag nonce: true do %>
+(function() {
+  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+  function hideWebOnly() {
+    document.querySelectorAll('.js-web-only').forEach(function(el) { el.remove(); });
+  }
+  hideWebOnly();
+  document.addEventListener('turbo:load', hideWebOnly);
+  document.addEventListener('turbo:render', hideWebOnly);
+})();
 <% end %>
