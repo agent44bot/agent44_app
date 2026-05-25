@@ -48,6 +48,15 @@ module ApplicationHelper
     "<ul class=\"space-y-3\">#{items.map { |i| "<li class=\"flex gap-3 text-sm text-gray-300 leading-relaxed\"><span class=\"text-orange-500 mt-1 flex-shrink-0\">&#x2022;</span><span class=\"min-w-0 break-words\">#{i}</span></li>" }.join}</ul>"
   end
 
+  # Inline SVG QR code for print (no network call, scales via CSS). Used on the
+  # printable class schedule so walk-ins can scan straight to the reserve page.
+  def qr_svg(data)
+    svg = RQRCode::QRCode.new(data.to_s).as_svg(
+      use_path: true, viewbox: true, standalone: true, color: "000"
+    )
+    svg.sub(/\A<\?xml.*?\?>/m, "").html_safe
+  end
+
   def days_ago_in_words(date)
     return "recently" if date.nil?
 
