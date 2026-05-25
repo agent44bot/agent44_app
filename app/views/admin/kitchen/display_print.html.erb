@@ -36,12 +36,16 @@
     .body { flex: 1 1 auto; min-width: 0; }
     .name {
       font-size: 11pt; font-weight: 700; line-height: 1.15; margin-bottom: 3px;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
     }
     .info { font-size: 9pt; color: #333; }
     .info .sep { color: #bbb; padding: 0 2px; }
+    /* One line each so rows stay a uniform height — keeps the flyer to a
+       predictable one sheet, front and back. */
     .desc {
       font-size: 8.5pt; color: #555; margin-top: 3px; line-height: 1.25;
-      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+      display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1;
       -webkit-box-orient: vertical; overflow: hidden;
     }
     .qr { flex: 0 0 auto; text-align: center; width: 0.8in; }
@@ -82,7 +86,7 @@
     <div class="header">
       <div class="brand">NY Kitchen <span class="accent">· Upcoming Classes</span></div>
       <div class="meta-head">
-        <%= pluralize(@events.size, "class") %> · next <%= @horizon_days %> days<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
+        <%= pluralize(@events.size, "class") %><% if @more_count > 0 %> of <%= @events.size + @more_count %><% end %><% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
       </div>
     </div>
 
@@ -130,7 +134,11 @@
     <% end %>
 
     <div class="footer">
-      Scan a code to reserve, or visit <strong>nykitchen.com</strong>
+      <% if @more_count.to_i > 0 %>
+        + <%= pluralize(@more_count, "more class") %> — see the full schedule at <strong>nykitchen.com</strong>
+      <% else %>
+        Scan a code to reserve, or visit <strong>nykitchen.com</strong>
+      <% end %>
     </div>
   </div>
 

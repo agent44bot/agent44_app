@@ -28,7 +28,9 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_match "25 spots", response.body
   end
 
-  test "prints the full upcoming list, not just the TV slide_count" do
+  test "is not limited by the TV slide_count" do
+    # slide_count (the rotating-screen cap, default 5) must not truncate the
+    # printed flyer; 8 < the one-sheet cap, so all 8 show.
     8.times { |i| add_event("Class #{i}", (i + 1) * 24) }
     get nyk_display_print_path
     assert_response :success
@@ -54,25 +56,29 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_no_match(/Cla ic  Cooking/, response.body) # mangled title header dropped
   end
 
-  test "only classes within the next 60 days are printed" do
-    add_event("Soon Class",      24)              # tomorrow
-    add_event("Within Window",   50 * 24)         # ~50 days out
-    add_event("Way Out Class",   120 * 24)        # ~120 days out (September-ish)
+  test "caps to one sheet (default 16) and footer-summarizes the rest" do
+    25.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24) }
     get nyk_display_print_path
     assert_response :success
-    assert_match    "Soon Class",    response.body
-    assert_match    "Within Window", response.body
-    assert_no_match(/Way Out Class/, response.body)
-    assert_select ".event", 2
+    assert_select ".event", 16, "default flyer cap"
+    assert_match "+ 9 more classes", response.body
+    # The soonest classes are the ones kept; the latest fall off.
+    assert_match    "Class 00", response.body
+    assert_no_match(/Class 20/, response.body)
   end
 
-  test "the window is overridable with ?days=" do
-    add_event("Soon Class",    24)
-    add_event("Far Class",     90 * 24)  # ~90 days out
-    get nyk_display_print_path(days: 120)
-    assert_select ".event", 2, "?days=120 widens the window"
-    get nyk_display_print_path(days: 7)
-    assert_select ".event", 1, "?days=7 narrows it to the next week"
+  test "no footer overflow note when everything fits" do
+    3.times { |i| add_event("Class #{i}", (i + 1) * 24) }
+    get nyk_display_print_path
+    assert_select ".event", 3
+    assert_no_match(/more class/, response.body)
+  end
+
+  test "the cap is overridable with ?n=" do
+    25.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24) }
+    get nyk_display_print_path(n: 5)
+    assert_select ".event", 5
+    assert_match "+ 20 more classes", response.body
   end
 
   test "sold-out classes are excluded from the handout" do
