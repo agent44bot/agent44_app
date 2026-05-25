@@ -12,7 +12,7 @@ class KitchenEvent < ApplicationRecord
   end
 
   # Canonical status bucket for filter chips + CSS targeting.
-  # "soldout" takes priority over "closed" — Laura's request: when both
+  # "soldout" takes priority over "closed" — Lora's request: when both
   # appear on the event page, show "Sold Out" on the list.
   def availability_status
     d = availability.to_s.downcase
