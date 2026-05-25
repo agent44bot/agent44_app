@@ -61,6 +61,17 @@ class User < ApplicationRecord
     UserMailer.email_verification(self).deliver_later
   end
 
+  # Passwordless sign-in: find or create the account for this email. The
+  # email code/link the user just completed proves ownership, so the email
+  # is marked verified. Unknown emails become accounts here — this is the
+  # "sign up" half of the unified passwordless flow.
+  def self.find_or_create_for_email(email_address)
+    user = find_or_initialize_by(email_address: email_address.to_s.strip.downcase)
+    user.email_verified_at ||= Time.current
+    user.save!
+    user
+  end
+
   def display_identifier
     display_name.presence || email_address.presence || short_npub
   end

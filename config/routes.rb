@@ -17,6 +17,14 @@ Rails.application.routes.draw do
   delete "impersonate",          to: "impersonations#destroy", as: :stop_impersonating
   resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
+
+  # Passwordless sign-in (also sign-up): email → 6-digit code or magic-link
+  # button. The primary entry point; password/Nostr login lives under :session.
+  get  "sign_in",        to: "sign_ins#new",    as: :sign_in
+  post "sign_in",        to: "sign_ins#create"
+  get  "sign_in/code",   to: "sign_ins#code",   as: :sign_in_code
+  post "sign_in/verify", to: "sign_ins#verify", as: :verify_sign_in
+  get  "sign_in/link",   to: "sign_ins#link",   as: :sign_in_link
   resource :settings, only: [ :show, :destroy ] do
     post  :verify_password
     patch :update_email

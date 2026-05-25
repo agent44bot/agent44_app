@@ -1,0 +1,25 @@
+<div style="max-width:480px;margin:0 auto;font-family:-apple-system,Helvetica,Arial,sans-serif;color:#111">
+  <h2 style="font-size:20px;margin:0 0 16px">Sign in to Agent44 Labs</h2>
+
+  <p style="font-size:15px;line-height:1.5;color:#444;margin:0 0 20px">
+    Enter this code in the app to sign in:
+  </p>
+
+  <div style="font-size:34px;font-weight:800;letter-spacing:10px;text-align:center;background:#f4f4f5;border:1px solid #e4e4e7;border-radius:12px;padding:18px 0;margin:0 0 8px;color:#111">
+    <%= @code %>
+  </div>
+  <p style="font-size:12px;color:#888;text-align:center;margin:0 0 24px">
+    This code expires in 10 minutes.
+  </p>
+
+  <p style="font-size:14px;color:#444;text-align:center;margin:0 0 12px">Or, on the web:</p>
+  <p style="text-align:center;margin:0 0 28px">
+    <a href="<%= @link_url %>" style="display:inline-block;background:#ea580c;color:#fff;font-weight:600;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:10px">
+      Sign in
+    </a>
+  </p>
+
+  <p style="font-size:12px;line-height:1.5;color:#999;margin:0;border-top:1px solid #eee;padding-top:16px">
+    If you didn't try to sign in, you can safely ignore this email — no one can access your account without this code.
+  </p>
+</div>
