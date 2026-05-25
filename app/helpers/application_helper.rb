@@ -57,6 +57,19 @@ module ApplicationHelper
     svg.sub(/\A<\?xml.*?\?>/m, "").html_safe
   end
 
+  # Pull a one-line human blurb out of a scraped class description. The scrape
+  # prefixes the real text with a (sometimes character-mangled) title + a
+  # date/time header, so we drop everything up to the time range and return a
+  # clean, truncated snippet. Falls back to the whole cleaned text if no time
+  # range is found. Returns "" when there's nothing usable.
+  def class_blurb(description, length: 160)
+    clean = CGI.unescapeHTML(strip_tags(description.to_s)).gsub(/\p{Space}+/, " ").strip
+    return "" if clean.blank?
+    after = clean.split(/\d{1,2}:\d{2}\s*[ap]m\s*[-–]\s*\d{1,2}:\d{2}\s*[ap]m/i).last.to_s.strip
+    blurb = after.length >= 20 ? after : clean
+    truncate(blurb, length: length, separator: " ")
+  end
+
   def days_ago_in_words(date)
     return "recently" if date.nil?
 

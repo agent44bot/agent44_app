@@ -39,6 +39,11 @@
     }
     .info { font-size: 9pt; color: #333; }
     .info .sep { color: #bbb; padding: 0 2px; }
+    .desc {
+      font-size: 8.5pt; color: #555; margin-top: 3px; line-height: 1.25;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
     .qr { flex: 0 0 auto; text-align: center; width: 0.8in; }
     .qr svg { width: 0.72in; height: 0.72in; display: block; margin: 0 auto; }
     .qr-cap { font-size: 6pt; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
@@ -107,6 +112,10 @@
           <div class="body">
             <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
             <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
+            <% blurb = class_blurb(event.description) %>
+            <% if blurb.present? %>
+              <div class="desc"><%= blurb %></div>
+            <% end %>
           </div>
           <% if event.url.present? %>
             <div class="qr">

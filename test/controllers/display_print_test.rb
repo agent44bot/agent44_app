@@ -43,6 +43,17 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_select ".qr svg", 1
   end
 
+  test "third line shows the class blurb, with the scraped title/date header stripped" do
+    add_event("Italian Classics Cooking Class", 24,
+      description: "<p>Italian Cla ic  Cooking Cla  5/31/26</p>" \
+                   "<p>Sunday May 31 @ 5:00 pm - 7:00 pm</p>" \
+                   "<p>Join the New York Kitchen Culinary Team for a hands-on tour of regional Italian cooking.</p>")
+    get nyk_display_print_path
+    assert_response :success
+    assert_select ".desc", /Join the New York Kitchen Culinary Team/
+    assert_no_match(/Cla ic  Cooking/, response.body) # mangled title header dropped
+  end
+
   test "sold-out classes are excluded from the handout" do
     add_event("Open Class", 24)
     add_event("Gone Class", 48, availability: "SoldOut")
