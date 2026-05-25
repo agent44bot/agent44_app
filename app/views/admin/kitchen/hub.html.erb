@@ -228,7 +228,7 @@
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
-      <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically. Also prints a paper schedule for the counter.</p>
+      <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically. Also prints a paper schedule for the front desk.</p>
       <div class="<%= stats_class %>">
         <% display_agent = @workspace_agents["display"] %>
         <%# Screen liveness (private mode only — see display_agent_status).
@@ -240,14 +240,19 @@
           <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
-        <div class="text-gray-500 truncate font-mono text-xs"><%= nyk_display_path %></div>
-        <span role="button" tabindex="0"
-              data-controller="print-schedule"
-              data-print-schedule-url-value="<%= nyk_display_print_path(autoprint: 1) %>"
-              data-action="click->print-schedule#open keydown.enter->print-schedule#open"
-              class="inline-flex items-center gap-1 w-fit text-gray-400 hover:text-orange-400 transition cursor-pointer">
-          🖨 Print schedule
-        </span>
+        <%# Path on the left, Print Flyer button on the right of the same row.
+            min-w-0 lets the path truncate; shrink-0 keeps the button intact.
+            preventDefault in the controller stops the card link from firing. %>
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-gray-500 truncate min-w-0 font-mono text-xs"><%= nyk_display_path %></div>
+          <span role="button" tabindex="0"
+                data-controller="print-schedule"
+                data-print-schedule-url-value="<%= nyk_display_print_path(autoprint: 1) %>"
+                data-action="click->print-schedule#open keydown.enter->print-schedule#open"
+                class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
+            🖨 Print Flyer
+          </span>
+        </div>
       </div>
     <% end %>
 
