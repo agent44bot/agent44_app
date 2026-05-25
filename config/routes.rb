@@ -46,6 +46,9 @@ Rails.application.routes.draw do
   # Public, no-auth screen for the tasting-room display monitor.
   # Cycles currently-available classes; auto-refreshes periodically.
   get  "nykitchen/display", to: "kitchen#display", as: :nyk_display
+  # Liveness ping from the live screen (private mode only). Records last-seen
+  # so the hub's Display Agent dot reflects whether the TV is actually on.
+  post "nykitchen/display/heartbeat", to: "kitchen#display_heartbeat", as: :nyk_display_heartbeat
   # Display Agent admin: hub-card detail page with config form.
   get   "nykitchen/display/settings", to: "kitchen#display_settings",        as: :nyk_display_settings
   patch "nykitchen/display/settings", to: "kitchen#update_display_settings"

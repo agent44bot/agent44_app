@@ -544,6 +544,41 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "display_heartbeat records last_seen when the token matches the private screen URL" do
+    nyk_display_agent.update_settings(visibility: "private")
+    token = nyk_display_agent.share_token_or_generate!
+
+    assert_nil Setting.time("nyk_display:last_seen_at")
+    post nyk_display_heartbeat_path, params: { token: token }
+    assert_response :no_content
+
+    seen = Setting.time("nyk_display:last_seen_at")
+    assert_not_nil seen, "a matching heartbeat should record last-seen"
+    assert_in_delta Time.current, seen, 5.seconds
+  end
+
+  test "display_heartbeat ignores a wrong or blank token" do
+    nyk_display_agent.update_settings(visibility: "private")
+    nyk_display_agent.share_token_or_generate!
+
+    post nyk_display_heartbeat_path, params: { token: "not-the-token" }
+    assert_response :no_content
+    assert_nil Setting.time("nyk_display:last_seen_at"), "wrong token must not count as the screen"
+
+    post nyk_display_heartbeat_path
+    assert_response :no_content
+    assert_nil Setting.time("nyk_display:last_seen_at"), "blank token must not count"
+  end
+
+  test "hub shows the Display Agent live after a recent heartbeat in private mode" do
+    nyk_display_agent.update_settings(visibility: "private")
+    Setting.touch_time("nyk_display:last_seen_at")
+
+    get nykitchen_path
+    assert_response :success
+    assert_match "Screen live now", response.body
+  end
+
   private
 
   def create_event(name, start_at, availability)

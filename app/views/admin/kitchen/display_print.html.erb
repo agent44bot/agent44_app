@@ -107,6 +107,13 @@
     document.getElementById("print-btn")?.addEventListener("click", function() {
       window.print();
     });
+    // Opened straight from the hub's "Print schedule" button → pop the
+    // print dialog automatically once the sheet has rendered.
+    if (new URLSearchParams(window.location.search).has("autoprint")) {
+      window.addEventListener("load", function() {
+        setTimeout(function() { window.print(); }, 250);
+      });
+    }
   <% end %>
 </body>
 </html>

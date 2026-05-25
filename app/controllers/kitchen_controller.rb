@@ -6,7 +6,9 @@ class KitchenController < ApplicationController
   # workspaces#social), the POST endpoints (social_post_log, enhance_post,
   # send_to_workspace, trigger_smoke), and the digest/download actions all
   # gate via the default require_authentication.
-  allow_unauthenticated_access only: [:hub, :display]
+  allow_unauthenticated_access only: [:hub, :display, :display_heartbeat]
+  # The display screen pings this from a no-auth, no-CSRF-token page.
+  skip_forgery_protection only: :display_heartbeat
 
   before_action :set_common_view_state, only: %i[hub list test data ask]
 
@@ -154,6 +156,19 @@ class KitchenController < ApplicationController
     end
     workspace.agent_for("display").rotate_share_token!
     redirect_to nyk_display_settings_path, notice: "Share link regenerated. The old link no longer works."
+  end
+
+  # Liveness ping from the live display screen (fires ~every 60s from the
+  # page JS). We record last-seen ONLY when the posted token matches the
+  # Display Agent's private share_token, so the hub dot reflects the real
+  # kitchen screen being on — not a random visitor to a public URL. A blank
+  # or wrong token is silently ignored (still 204) so nothing leaks.
+  def display_heartbeat
+    token = nyk_display_agent.setting(:share_token).to_s
+    if token.present? && ActiveSupport::SecurityUtils.secure_compare(params[:token].to_s, token)
+      Setting.touch_time("nyk_display:last_seen_at")
+    end
+    head :no_content
   end
 
 
@@ -661,11 +676,13 @@ class KitchenController < ApplicationController
     @hub_scrape_cost_total   = scrape.sum(:cost_dollars)
     @hub_scrape_total_minutes = (scrape.sum(:duration_ms) / 60_000.0).round
 
+    @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
     @hub_agent_status = {
-      list:   list_agent_status,
-      test:   test_agent_status,
-      data:   data_agent_status,
-      social: social_agent_status
+      list:    list_agent_status,
+      test:    test_agent_status,
+      data:    data_agent_status,
+      social:  social_agent_status,
+      display: display_agent_status
     }
   end
 
@@ -677,6 +694,7 @@ class KitchenController < ApplicationController
   DATA_CADENCE = 4.hours    # scrapes every 3 hours, +1h slack
   LIST_CADENCE = 30.hours   # snapshot taken_on is per-day, allow a stale day before going gray
   SOCIAL_CADENCE = 7.days
+  DISPLAY_CADENCE = 3.minutes # screen pings every 60s; allow 2 missed beats
   # Past this, a "running" row is treated as orphaned (the client crashed
   # before PATCHing the result back) so the dot stops pulsing.
   RUNNING_MAX_AGE = 15.minutes
@@ -700,6 +718,18 @@ class KitchenController < ApplicationController
     last = @nyk_workspace.workspace_posts.maximum(:posted_at)
     return :stale unless last
     Time.current - last < SOCIAL_CADENCE ? :on_cadence : :stale
+  end
+
+  # Display presence is a heartbeat, not a scheduled run. Only meaningful in
+  # private mode — that's the gate the user chose: a green dot requires the
+  # tokenized screen URL to be pinging. Returns nil in public mode so the hub
+  # omits the dot entirely (we have no honest signal there). :running while a
+  # beat landed within DISPLAY_CADENCE (pulsing green = "on right now"),
+  # :stale (gray) once the screen goes dark.
+  def display_agent_status
+    return nil unless nyk_display_agent.setting(:visibility) == "private"
+    return :stale unless @hub_display_last_seen
+    Time.current - @hub_display_last_seen < DISPLAY_CADENCE ? :running : :stale
   end
 
   # Smoke/scrape presence: a SmokeTestRun row exists for each kickoff.

@@ -202,6 +202,25 @@
         slides[i].classList.add('active');
       }, <%= @agent.setting(:advance_seconds).to_i * 1000 %>);
     })();
+
+    // Liveness heartbeat: let the hub know this screen is on. Only fires when
+    // the URL carries a share token (private mode) — the server records
+    // last-seen only when it matches, so the Display Agent dot reflects the
+    // real kitchen screen, not a public-URL visitor. Beats now + every 60s.
+    (function() {
+      var token = new URLSearchParams(location.search).get('token');
+      if (!token) return;
+      function beat() {
+        fetch('<%= nyk_display_heartbeat_path %>', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'token=' + encodeURIComponent(token),
+          keepalive: true
+        }).catch(function() {});
+      }
+      beat();
+      setInterval(beat, 60000);
+    })();
   <% end %>
 </body>
 </html>
