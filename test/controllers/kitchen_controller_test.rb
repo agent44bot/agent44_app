@@ -576,7 +576,17 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     get nykitchen_path
     assert_response :success
-    assert_match "Screen live now", response.body
+    assert_match "Carousel live at NY Kitchen", response.body
+  end
+
+  test "hub shows the Display Agent red when private but no recent heartbeat" do
+    nyk_display_agent.update_settings(visibility: "private")
+    Setting.set("nyk_display:last_seen_at", 1.hour.ago.iso8601)
+
+    get nykitchen_path
+    assert_response :success
+    assert_match "Not running at NY Kitchen", response.body
+    assert_match "bg-red-500", response.body
   end
 
   private

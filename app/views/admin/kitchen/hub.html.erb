@@ -5,13 +5,14 @@
 
   # Agent-presence dot: pulsing green = actively running, solid red =
   # last finished run failed (sustained until next pass), solid green =
-  # on-cadence, gray = stale (no recent activity).
-  agent_dot = ->(state) {
+  # on-cadence, gray = stale (no recent activity). `title` overrides the
+  # hover tooltip (the Display Agent reuses :running/:failed for live/offline).
+  agent_dot = ->(state, title = nil) {
     case state
-    when :running    then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.7)]" title="Running now"></span>).html_safe
-    when :failed     then %(<span class="inline-block w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" title="Last run failed"></span>).html_safe
-    when :on_cadence then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500" title="On cadence"></span>).html_safe
-    else                  %(<span class="inline-block w-2 h-2 rounded-full bg-gray-600" title="Idle / stale"></span>).html_safe
+    when :running    then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.7)]" title="#{title || 'Running now'}"></span>).html_safe
+    when :failed     then %(<span class="inline-block w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" title="#{title || 'Last run failed'}"></span>).html_safe
+    when :on_cadence then %(<span class="inline-block w-2 h-2 rounded-full bg-green-500" title="#{title || 'On cadence'}"></span>).html_safe
+    else                  %(<span class="inline-block w-2 h-2 rounded-full bg-gray-600" title="#{title || 'Idle / stale'}"></span>).html_safe
     end
   }
 
@@ -223,19 +224,20 @@
           <span class="text-2xl">🖥</span>
           <h2 class="text-lg font-bold text-white">Display Agent</h2>
           <%= agent_badge.call(:display) %>
-          <% if @hub_agent_status[:display] %><%= agent_dot.call(@hub_agent_status[:display]) %><% end %>
+          <% if @hub_agent_status[:display] %><%= agent_dot.call(@hub_agent_status[:display], @hub_agent_status[:display] == :running ? "Carousel live at NY Kitchen" : "Carousel NOT running at NY Kitchen") %><% end %>
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
       <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically. Also prints a paper schedule for the counter.</p>
       <div class="<%= stats_class %>">
         <% display_agent = @workspace_agents["display"] %>
-        <%# Screen liveness (private mode only — see display_agent_status). %>
+        <%# Screen liveness (private mode only — see display_agent_status).
+            Red = the carousel isn't playing on the NY Kitchen screen. %>
         <% case @hub_agent_status[:display] %>
         <% when :running %>
-          <div class="text-green-400 font-semibold">● Screen live now</div>
-        <% when :stale %>
-          <div class="text-gray-500"><%= @hub_display_last_seen ? "Screen last seen #{time_ago_in_words(@hub_display_last_seen)} ago" : "Waiting for screen…" %></div>
+          <div class="text-green-400 font-semibold">● Carousel live at NY Kitchen</div>
+        <% when :failed %>
+          <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
         <div class="text-gray-500 truncate font-mono text-xs"><%= nyk_display_path %></div>

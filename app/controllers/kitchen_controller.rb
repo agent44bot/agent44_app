@@ -724,12 +724,13 @@ class KitchenController < ApplicationController
   # private mode — that's the gate the user chose: a green dot requires the
   # tokenized screen URL to be pinging. Returns nil in public mode so the hub
   # omits the dot entirely (we have no honest signal there). :running while a
-  # beat landed within DISPLAY_CADENCE (pulsing green = "on right now"),
-  # :stale (gray) once the screen goes dark.
+  # beat landed within DISPLAY_CADENCE (pulsing green = carousel live at NYK);
+  # :failed (red) once the screen goes dark — so Laura, viewing from home,
+  # sees red the moment the carousel stops playing on the NY Kitchen screen.
   def display_agent_status
     return nil unless nyk_display_agent.setting(:visibility) == "private"
-    return :stale unless @hub_display_last_seen
-    Time.current - @hub_display_last_seen < DISPLAY_CADENCE ? :running : :stale
+    return :failed unless @hub_display_last_seen
+    Time.current - @hub_display_last_seen < DISPLAY_CADENCE ? :running : :failed
   end
 
   # Smoke/scrape presence: a SmokeTestRun row exists for each kickoff.
