@@ -6,7 +6,11 @@ class KitchenController < ApplicationController
   # workspaces#social), the POST endpoints (social_post_log, enhance_post,
   # send_to_workspace, trigger_smoke), and the digest/download actions all
   # gate via the default require_authentication.
-  allow_unauthenticated_access only: [:hub, :display, :display_heartbeat]
+  # display_print is public so the hub's "Print schedule" button can open it
+  # in Safari (the only place iOS shows a print dialog — the in-app WKWebView
+  # can't) without a login wall. Same public class data as :display, no
+  # Claude/AI, so anonymous access is safe.
+  allow_unauthenticated_access only: [:hub, :display, :display_heartbeat, :display_print]
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
@@ -725,7 +729,7 @@ class KitchenController < ApplicationController
   # tokenized screen URL to be pinging. Returns nil in public mode so the hub
   # omits the dot entirely (we have no honest signal there). :running while a
   # beat landed within DISPLAY_CADENCE (pulsing green = carousel live at NYK);
-  # :failed (red) once the screen goes dark — so Laura, viewing from home,
+  # :failed (red) once the screen goes dark — so Lora, viewing from home,
   # sees red the moment the carousel stops playing on the NY Kitchen screen.
   def display_agent_status
     return nil unless nyk_display_agent.setting(:visibility) == "private"
