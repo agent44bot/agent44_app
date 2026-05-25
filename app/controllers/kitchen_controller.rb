@@ -147,9 +147,12 @@ class KitchenController < ApplicationController
   def display_print
     @agent = nyk_display_agent
     snapshot = KitchenSnapshot.latest
-    available = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
-    @events = available.first(@agent.setting(:slide_count).to_i)
+    # The printed handout shows the FULL upcoming list — independent of the
+    # TV's slide_count, which only limits the rotating on-screen carousel.
+    @events = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
     @last_updated = snapshot&.taken_on
+    # Photos default on (Lora's request); ?photos=0 prints a leaner B&W run.
+    @show_photos = params[:photos].to_s != "0"
     render "admin/kitchen/display_print", layout: false
   end
 
