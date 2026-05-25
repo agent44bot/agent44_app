@@ -82,7 +82,7 @@
     <div class="header">
       <div class="brand">NY Kitchen <span class="accent">· Upcoming Classes</span></div>
       <div class="meta-head">
-        <%= @events.size %> upcoming<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
+        <%= pluralize(@events.size, "class") %> · next <%= @horizon_days %> days<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
       </div>
     </div>
 

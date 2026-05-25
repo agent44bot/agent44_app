@@ -54,6 +54,27 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_no_match(/Cla ic  Cooking/, response.body) # mangled title header dropped
   end
 
+  test "only classes within the next 60 days are printed" do
+    add_event("Soon Class",      24)              # tomorrow
+    add_event("Within Window",   50 * 24)         # ~50 days out
+    add_event("Way Out Class",   120 * 24)        # ~120 days out (September-ish)
+    get nyk_display_print_path
+    assert_response :success
+    assert_match    "Soon Class",    response.body
+    assert_match    "Within Window", response.body
+    assert_no_match(/Way Out Class/, response.body)
+    assert_select ".event", 2
+  end
+
+  test "the window is overridable with ?days=" do
+    add_event("Soon Class",    24)
+    add_event("Far Class",     90 * 24)  # ~90 days out
+    get nyk_display_print_path(days: 120)
+    assert_select ".event", 2, "?days=120 widens the window"
+    get nyk_display_print_path(days: 7)
+    assert_select ".event", 1, "?days=7 narrows it to the next week"
+  end
+
   test "sold-out classes are excluded from the handout" do
     add_event("Open Class", 24)
     add_event("Gone Class", 48, availability: "SoldOut")
