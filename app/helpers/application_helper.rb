@@ -48,6 +48,28 @@ module ApplicationHelper
     "<ul class=\"space-y-3\">#{items.map { |i| "<li class=\"flex gap-3 text-sm text-gray-300 leading-relaxed\"><span class=\"text-orange-500 mt-1 flex-shrink-0\">&#x2022;</span><span class=\"min-w-0 break-words\">#{i}</span></li>" }.join}</ul>"
   end
 
+  # Inline SVG QR code for print (no network call, scales via CSS). Used on the
+  # printable class schedule so walk-ins can scan straight to the reserve page.
+  def qr_svg(data)
+    svg = RQRCode::QRCode.new(data.to_s).as_svg(
+      use_path: true, viewbox: true, standalone: true, color: "000"
+    )
+    svg.sub(/\A<\?xml.*?\?>/m, "").html_safe
+  end
+
+  # Pull a one-line human blurb out of a scraped class description. The scrape
+  # prefixes the real text with a (sometimes character-mangled) title + a
+  # date/time header, so we drop everything up to the time range and return a
+  # clean, truncated snippet. Falls back to the whole cleaned text if no time
+  # range is found. Returns "" when there's nothing usable.
+  def class_blurb(description, length: 160)
+    clean = CGI.unescapeHTML(strip_tags(description.to_s)).gsub(/\p{Space}+/, " ").strip
+    return "" if clean.blank?
+    after = clean.split(/\d{1,2}:\d{2}\s*[ap]m\s*[-–]\s*\d{1,2}:\d{2}\s*[ap]m/i).last.to_s.strip
+    blurb = after.length >= 20 ? after : clean
+    truncate(blurb, length: length, separator: " ")
+  end
+
   def days_ago_in_words(date)
     return "recently" if date.nil?
 

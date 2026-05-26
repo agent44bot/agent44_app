@@ -98,10 +98,17 @@ class NyKitchenScraper
   end
 
   # Pull the event page's primary image. Priority:
-  #   1. og:image meta tag (most reliable on NY Kitchen pages)
-  #   2. twitter:image meta tag
-  #   3. image field on a JSON-LD Event block (some templates set it here)
+  #   1. JSON-LD #primaryimage — the WordPress *featured* image. Most accurate
+  #      per event. og:image alone is unreliable: when no social image is set,
+  #      Yoast falls back to the site-default building shot (GTP_NYK-OUTDOORS),
+  #      which is the wrong image for the class.
+  #   2. og:image meta tag
+  #   3. twitter:image meta tag
+  #   4. image field on a JSON-LD Event block
   def extract_event_image(html)
+    if (primary = extract_primary_image(html))
+      return primary
+    end
     if (m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)) ||
        (m = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i))
       return m[1]
@@ -113,6 +120,27 @@ class NyKitchenScraper
       img = Array(raw["image"]).first || raw["image"]
       url = img.is_a?(Hash) ? img["url"] : img.to_s.presence
       return url if url
+    end
+    nil
+  end
+
+  # Resolve the JSON-LD ImageObject whose @id ends in "#primaryimage" (Yoast's
+  # designated featured image for the page) to its url. Parsed, so field order
+  # doesn't matter. Returns nil when the page has no such node.
+  def extract_primary_image(html)
+    html.scan(%r{<script[^>]*type=["']application/ld\+json["'][^>]*>(.*?)</script>}m).each do |(json)|
+      data = JSON.parse(json) rescue next
+      nodes = []
+      (data.is_a?(Array) ? data : [data]).each do |d|
+        next unless d.is_a?(Hash)
+        nodes.concat(Array(d["@graph"]))
+        nodes << d
+      end
+      img = nodes.find do |n|
+        n.is_a?(Hash) && Array(n["@type"]).include?("ImageObject") &&
+          n["@id"].to_s.end_with?("#primaryimage") && n["url"].to_s.strip.present?
+      end
+      return img["url"].strip if img
     end
     nil
   end
