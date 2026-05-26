@@ -31,6 +31,26 @@ export default class extends Controller {
     } else {
       this.inputTarget.focus()
     }
+
+    this._consumeUrlPrompt()
+  }
+
+  // Deep-link support for the hub's "morning question" card:
+  // /nykitchen/ask?q=<question>&go=1 prefills the box and (with go) auto-asks.
+  // The params are stripped afterward so a refresh = a clean chat, not a re-fire.
+  _consumeUrlPrompt() {
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get("q")
+    if (!q) return
+    const go = params.get("go")
+
+    this.inputTarget.value = q
+    params.delete("q")
+    params.delete("go")
+    const qs = params.toString()
+    history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""))
+
+    if (go) requestAnimationFrame(() => this.formTarget.requestSubmit())
   }
 
   disconnect() {

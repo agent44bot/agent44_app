@@ -24,6 +24,7 @@ class KitchenController < ApplicationController
     when "list"    then return redirect_to(nyk_list_path, status: 301)
     end
     load_hub_summary
+    @daily_prompt = morning_prompt_for(Current.user)
     @nyk_workspace = nyk_workspace_for(Current.user)
     # Team management is rendered below the agent cards for members; load
     # the workspace data so the partial can render.
@@ -464,6 +465,18 @@ class KitchenController < ApplicationController
         .joins(:social_accounts)
         .distinct
         .sort_by { |ws| [ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase] }
+  end
+
+  # Daily Super Agent "morning question" on the hub card, shown only to the
+  # trial user named in the kv setting `super_agent_daily_prompt_email`. Set
+  # that setting to roll the trial from RB → Lora (→ a list) with no deploy;
+  # blank it to turn the feature off. Returns the question string or nil.
+  def morning_prompt_for(user)
+    return nil unless user
+    trial = Setting.get("super_agent_daily_prompt_email").to_s.strip.downcase
+    return nil if trial.blank?
+    return nil unless user.email_address.to_s.strip.downcase == trial
+    KitchenAi::MorningPrompt.question
   end
 
   # Admin-only readout of Super Agent (chat) token usage + cost across a few
