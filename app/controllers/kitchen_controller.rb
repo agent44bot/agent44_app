@@ -147,17 +147,14 @@ class KitchenController < ApplicationController
   def display_print
     @agent = nyk_display_agent
     snapshot = KitchenSnapshot.latest
-    # Counter handout only needs the near term — default the next 60 days
-    # (override with ?days=N, 1..365). Classes further out (months ahead) just
-    # waste paper. Independent of the TV's slide_count, which only limits the
-    # rotating on-screen carousel.
-    @horizon_days = params[:days].present? ? params[:days].to_i.clamp(1, 365) : 60
-    horizon = @horizon_days.days.from_now.end_of_day
-    @events = if snapshot
-      snapshot.kitchen_events.upcoming.where("start_at <= ?", horizon).reject(&:sold_out?)
-    else
-      []
-    end
+    # A quick grab-and-go flyer sized to one sheet, front and back. Cap to the
+    # soonest N non-sold-out classes that fill ~2 pages (tune/override with
+    # ?n=). Anything past the cap is summarized in the footer. Independent of
+    # the TV's slide_count, which only limits the rotating on-screen carousel.
+    @print_limit = params[:n].present? ? params[:n].to_i.clamp(1, 60) : 16
+    upcoming = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
+    @events = upcoming.first(@print_limit)
+    @more_count = upcoming.size - @events.size
     @last_updated = snapshot&.taken_on
     # Photos default on (Lora's request); ?photos=0 prints a leaner B&W run.
     @show_photos = params[:photos].to_s != "0"
