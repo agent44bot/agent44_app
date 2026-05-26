@@ -4,5 +4,10 @@
 <dict>
 	<key>aps-environment</key>
 	<string>production</string>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:agent44labs.com</string>
+		<string>webcredentials:agent44labs.com</string>
+	</array>
 </dict>
 </plist>

@@ -118,6 +118,16 @@
       App.addListener('appStateChange', function(state) {
         if (state.isActive) routeFromBadgeAndClear();
       });
+      // Universal Links: a tapped agent44labs.com link (e.g. the passwordless
+      // sign-in magic link) opens the app here — route the webview to its path.
+      App.addListener('appUrlOpen', function(event) {
+        try {
+          var u = new URL(event.url);
+          if (u.hostname === 'agent44labs.com') {
+            window.location.href = u.pathname + u.search + u.hash;
+          }
+        } catch (e) {}
+      });
     }
     routeFromBadgeAndClear();
   })();
