@@ -8,4 +8,4 @@ What your fleet does:
 
 Built for solo operators and small businesses who can't justify full QA, social, or analyst hires — but can't afford to fly blind either.
 
-Sign in instantly with Face ID. Get push alerts the moment something breaks. Resume normal life.
+Sign in with just your email — we send a one-time code, no password to remember (Face ID supported too). Get push alerts the moment something breaks. Resume normal life.
