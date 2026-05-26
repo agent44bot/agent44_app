@@ -60,4 +60,19 @@ class KitchenEvent < ApplicationRecord
   def capacity_via_proxy?
     capacity.blank? && last_known_capacity.blank? && last_known_spots_left.present?
   end
+
+  # --- Revenue (face value: list price × seats) ------------------------------
+  # `price` is a string like "57.00" / "1400.00". Strip any stray formatting
+  # and parse; returns 0.0 for blank/free/garbage so sums stay safe.
+  def price_value
+    price.to_s.gsub(/[^0-9.]/, "").to_f
+  end
+
+  # Dollar value of seats sold / total / remaining. Uses tickets_sold &
+  # tickets_total (with the high-water proxy fallback), so revenue inherits the
+  # same "observed since tracking began" bias the % sold bars carry — it's
+  # directional, not accounting-grade. nil ticket counts coerce to 0.
+  def revenue_sold  = tickets_sold.to_i  * price_value
+  def revenue_total = tickets_total.to_i * price_value
+  def revenue_left  = revenue_total - revenue_sold
 end

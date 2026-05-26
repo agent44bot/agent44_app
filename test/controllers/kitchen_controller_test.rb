@@ -589,6 +589,39 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match "bg-red-500", response.body
   end
 
+  test "admin sees the revenue rollup (banner + footnote)" do
+    @snapshot.kitchen_events.create!(
+      url: "https://nykitchen.com/events/rev-admin", name: "Rev Admin",
+      start_at: 2.days.from_now, availability: "InStock",
+      price: "100.00", capacity: 10, spots_left: 4 # 6 sold, 4 left
+    )
+
+    get nyk_list_path
+    assert_response :success
+    assert_match "Total potential", response.body
+    assert_match "Left to sell", response.body
+    assert_match "Face value", response.body
+    assert_match "$1,000", response.body # total = 10 × $100
+    assert_match "$600", response.body   # sold  = 6 × $100
+  end
+
+  test "non-admin does not see the revenue rollup (admin-only for now)" do
+    @snapshot.kitchen_events.create!(
+      url: "https://nykitchen.com/events/rev-cust", name: "Rev Cust",
+      start_at: 2.days.from_now, availability: "InStock",
+      price: "100.00", capacity: 10, spots_left: 4
+    )
+
+    customer = User.create!(email_address: "cust-#{SecureRandom.hex(4)}@example.com", role: "user")
+    sign_in_as(customer)
+
+    get nyk_list_path
+    assert_response :success
+    refute_match "Total potential", response.body
+    refute_match "Left to sell", response.body
+    refute_match "Face value", response.body
+  end
+
   private
 
   def create_event(name, start_at, availability)

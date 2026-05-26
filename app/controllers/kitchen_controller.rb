@@ -552,6 +552,8 @@ class KitchenController < ApplicationController
 
   # List Agent data — events, weeks, filter counts, workspace status.
   def load_events_data
+    # Revenue figures are admin-only for now (kitchen_customers see seats, not $).
+    @show_revenue = Current.user&.admin?
     snapshot = KitchenSnapshot.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming.order(:start_at)
@@ -577,6 +579,16 @@ class KitchenController < ApplicationController
       @total = @events.size
       @sold_out = @events.count(&:sold_out?)
       @last_updated = snapshot.taken_on
+
+      # Revenue rollup (face value: list price × seats), across classes whose
+      # capacity is known. Mirrors the per-week math in _list_panel; biased low
+      # for proxy-capacity classes (see KitchenEvent#revenue_*).
+      priced_events     = @events.select(&:capacity_known?)
+      @rev_priced_count = priced_events.size
+      @rev_proxy_count  = priced_events.count(&:capacity_via_proxy?)
+      @rev_sold         = priced_events.sum(&:revenue_sold)
+      @rev_total        = priced_events.sum(&:revenue_total)
+      @rev_left         = @rev_total - @rev_sold
 
       statuses = @events.map(&:availability_status)
       @filter_counts = {
@@ -617,6 +629,9 @@ class KitchenController < ApplicationController
       @workspace_status_by_url = {}
       @filter_counts = { "all" => 0, "instock" => 0, "limited" => 0, "soldout" => 0, "closed" => 0, "other" => 0 }
       @post_logs = {}
+      @rev_priced_count = 0
+      @rev_proxy_count  = 0
+      @rev_sold = @rev_total = @rev_left = 0
     end
   end
 

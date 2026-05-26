@@ -22,6 +22,11 @@
             tickets_sold   = priced_events.sum(&:tickets_sold)
             denom          = sold + avail
 
+            # Revenue (face value) for this week — same priced_events set.
+            week_rev_sold  = priced_events.sum(&:revenue_sold)
+            week_rev_total = priced_events.sum(&:revenue_total)
+            week_rev_left  = week_rev_total - week_rev_sold
+
             sold_pct = if tickets_total.positive?
               (tickets_sold.to_f / tickets_total * 100).round
             elsif denom.positive?
@@ -67,6 +72,15 @@
                 <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>
               <% end %>
             </div>
+            <% if @show_revenue && week_rev_total.positive? %>
+              <div class="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
+                <span><span class="text-green-400 font-semibold"><%= number_to_currency(week_rev_sold, precision: 0) %></span> sold</span>
+                <span class="text-gray-600">·</span>
+                <span><span class="text-amber-400 font-semibold"><%= number_to_currency(week_rev_left, precision: 0) %></span> left</span>
+                <span class="text-gray-600">·</span>
+                <span><%= number_to_currency(week_rev_total, precision: 0) %> total</span>
+              </div>
+            <% end %>
           </button>
           <div data-collapsible-target="body" class="space-y-3">
             <% week[:events].each do |e| %>
