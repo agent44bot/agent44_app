@@ -1,10 +1,12 @@
 VIDEO ATTACHED (agent44-deletion-flow.mp4): account creation/sign-in → Settings → Delete account → confirmation flow on iPhone simulator. The Settings overflow on iPhone 17 Pro Max in build 26 is fixed in build 27.
 
 DEMO ACCOUNT
-The credentials above are a real, pre-verified account. Sign in with email + password from the sign-in screen.
+The credentials above are a real, pre-verified account.
+
+IMPORTANT — USE THE PASSWORD: The default Sign In screen is passwordless (we email a one-time code), which a reviewer can't receive. To sign in with the password above, on the Sign In screen tap the link "Prefer a password or Nostr key? Sign in here", then enter the email + password.
 
 WHAT TO TEST
-1. Tap "Sign In" → enter the credentials → home screen with the live agent fleet and the animated corner-web showing agent activity.
+1. Tap "Sign In" → tap "Prefer a password or Nostr key? Sign in here" → enter the credentials above → home screen with the live agent fleet and the animated corner-web showing agent activity.
 2. Settings (top-right user menu) → review the profile and the "Delete account" card to test in-app account deletion (Guideline 5.1.1(v)).
 3. Sign out and (optional) sign back in via Face ID — convenience on top of email login, not required for review.
 
