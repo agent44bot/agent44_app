@@ -20,9 +20,11 @@ class KitchenMorningPromptTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/(This (morning|afternoon|evening)|Tonight):/, @response.body)
     assert_match "Risotto Workshop", @response.body
-    # Card links to the ask page with the question prefilled + auto-send.
+    # The question chip links to the ask page with the prompt prefilled + auto-send,
     assert_match(/\/nykitchen\/ask\?[^"']*q=/, @response.body)
     assert_match(/go=1/, @response.body)
+    # …and the card body still offers a plain "open a fresh chat" link (no prompt).
+    assert_match %r{href="/nykitchen/ask"}, @response.body
   end
 
   test "a non-trial user sees the plain static card" do

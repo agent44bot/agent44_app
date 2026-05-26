@@ -122,34 +122,39 @@
   <% stats_class  = "space-y-1.5 text-sm mt-auto" %>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
-    <%# Card link: a smoke-failure alert (if any) takes priority, else the daily
-        question, else the plain ask page. Both alert + question auto-ask on tap. %>
-    <% super_agent_href = if @smoke_alert then nyk_ask_path(q: @smoke_alert[:prompt], go: 1)
-                          elsif @daily_prompt then nyk_ask_path(q: @daily_prompt, go: 1)
-                          else nyk_ask_path end %>
-    <%= link_to super_agent_href, class: card_class do %>
-      <div class="flex items-start justify-between mb-2">
-        <div class="flex items-center gap-2">
-          <span class="text-2xl">💬</span>
-          <h2 class="text-lg font-bold text-white">Super Agent</h2>
-          <%# Always-on availability: a steady green pulse signals "I'm here, ask anytime". %>
-          <%= agent_dot.call(:running, "Always on — ask anytime") %>
-          <%= agent_badge.call(:ask) %>
+    <%# Two click targets, not one: the card body opens a FRESH chat (no prompt
+        inserted), while the suggestion/alert below is its own chip that auto-asks
+        that specific question. Sibling links inside the card div — never nested. %>
+    <div class="<%= card_class %>">
+      <%= link_to nyk_ask_path, class: "block flex-1" do %>
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">💬</span>
+            <h2 class="text-lg font-bold text-white">Super Agent</h2>
+            <%# Always-on availability: a steady green pulse signals "I'm here, ask anytime". %>
+            <%= agent_dot.call(:running, "Always on — ask anytime") %>
+            <%= agent_badge.call(:ask) %>
+          </div>
+          <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
         </div>
-        <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
-      </div>
-      <p class="<%= desc_class %>">Ask anything about NY Kitchen — classes, sales, sold-outs, agent status, smoke tests, social posts. Super Agent reads the whole workspace.</p>
+        <p class="<%= desc_class %>">Ask anything about NY Kitchen — classes, sales, sold-outs, agent status, smoke tests, social posts. Super Agent reads the whole workspace. <span class="text-gray-500">Tap to start a fresh chat.</span></p>
+      <% end %>
       <div class="<%= stats_class %>">
+        <% chip_class = "block -mx-2 px-2 py-1 rounded-lg hover:bg-gray-800 transition" %>
         <% if @smoke_alert %>
-          <div class="text-red-400 font-semibold">⚠️ The calendar check has failed <%= @smoke_alert[:count] %> times in a row — want me to draft a note to the developer?</div>
+          <%= link_to nyk_ask_path(q: @smoke_alert[:prompt], go: 1), class: chip_class do %>
+            <span class="text-red-400 font-semibold">⚠️ The calendar check has failed <%= @smoke_alert[:count] %> times in a row — want me to draft a note to the developer?</span>
+          <% end %>
         <% elsif @daily_prompt %>
-          <div class="text-orange-300"><%= nyk_time_greeting %> <span class="text-gray-300">"<%= @daily_prompt %>"</span></div>
+          <%= link_to nyk_ask_path(q: @daily_prompt, go: 1), class: chip_class do %>
+            <span class="text-orange-300"><%= nyk_time_greeting %></span> <span class="text-gray-300">"<%= @daily_prompt %>"</span>
+          <% end %>
         <% else %>
           <div class="text-gray-300">Try: <span class="text-gray-400">"What sold out this week?"</span></div>
         <% end %>
         <div class="text-gray-500 truncate font-mono text-xs"><%= nyk_ask_path %></div>
       </div>
-    <% end %>
+    </div>
 
     <%= link_to nyk_list_path, class: card_class do %>
       <div class="flex items-start justify-between mb-2">
@@ -253,17 +258,26 @@
           <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
-        <%# Path on the left, Print Flyer button on the right of the same row.
-            min-w-0 lets the path truncate; shrink-0 keeps the button intact.
-            preventDefault in the controller stops the card link from firing. %>
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-gray-500 truncate min-w-0 font-mono text-xs"><%= nyk_display_path %></div>
+        <%# Two printouts (Lora's request): a double-sided 18-class flyer (9 per
+            side) for the front desk, and a 6-class large-font poster for the
+            bathroom stalls. preventDefault in the print-schedule controller
+            stops the surrounding card link from firing. %>
+        <div class="flex items-center gap-2 mt-2">
           <span role="button" tabindex="0"
+                title="18 classes, 9 per side — prints double-sided"
                 data-controller="print-schedule"
                 data-print-schedule-url-value="<%= nyk_display_print_path(autoprint: 1) %>"
                 data-action="click->print-schedule#open keydown.enter->print-schedule#open"
-                class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
-            🖨 Print Flyer
+                class="flex-1 justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
+            🖨 Flyer · 18
+          </span>
+          <span role="button" tabindex="0"
+                title="6 classes, large font — for the bathroom stalls"
+                data-controller="print-schedule"
+                data-print-schedule-url-value="<%= nyk_display_print_path(variant: "stall", autoprint: 1) %>"
+                data-action="click->print-schedule#open keydown.enter->print-schedule#open"
+                class="flex-1 justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
+            🖨 Stall · 6
           </span>
         </div>
       </div>
