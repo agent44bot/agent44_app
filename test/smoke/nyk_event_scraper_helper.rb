@@ -32,6 +32,11 @@ module NykEventScraperHelper
     page.wait_for_timeout(600)
 
     event_data = extract_event_from_dom(page)
+    # Resolve the image from the page's server-rendered JSON-LD (#primaryimage),
+    # falling back to og:image — the same tested logic the Ruby scraper uses, so
+    # the two scrapers share one source of truth. page.content includes the
+    # static JSON-LD that carries the per-event featured image.
+    event_data["imageUrl"] = NyKitchenScraper.new.extract_event_image(page.content) if event_data
     avail = extract_availability(page)
 
     normalize_detail(url, event_data, avail)
@@ -96,11 +101,14 @@ module NykEventScraperHelper
         const descEl = document.querySelector('.tribe-events-content');
         const description = descEl ? descEl.textContent.trim().substring(0, 500) : null;
 
-        // Event image: og:image meta tag or featured image in content
-        const ogImage = document.querySelector('meta[property="og:image"]');
-        const imageUrl = ogImage ? ogImage.getAttribute('content') : null;
+        // NOTE: the event image is deliberately NOT extracted here. og:image
+        // alone is wrong for ~4 classes (e.g. "Pinot Noir Decoded") — when no
+        // social image is set, Yoast falls back to the site-default building
+        // shot (GTP_NYK-OUTDOORS). scrape_detail_page resolves the image from
+        // the page's JSON-LD #primaryimage via NyKitchenScraper#extract_event_image,
+        // a single shared + tested code path so the two scrapers can't drift.
 
-        return { name, startAt, endAt, price, venue, description, passed, imageUrl };
+        return { name, startAt, endAt, price, venue, description, passed };
       })()
     JS
   end
