@@ -44,8 +44,13 @@ export default class extends Controller {
       const result    = await this._postJson(this.authUrlValue, this._encodeAssertion(assertion))
       window.location.href = result.redirect_to || "/"
     } catch (err) {
-      if (err?.name === "NotAllowedError") return // user cancelled
-      this._status(err.message || "Face ID sign-in failed — use your email instead.", true)
+      // NotAllowedError = cancelled OR no passkey available for this device.
+      // Don't fail silently — tell the user how to proceed.
+      if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+        this._status("No passkey available here yet. Sign in with your email below — your passkey reconnects automatically (a reboot can speed it up).", true)
+      } else {
+        this._status(err.message || "Face ID sign-in failed — use your email below.", true)
+      }
     }
   }
 

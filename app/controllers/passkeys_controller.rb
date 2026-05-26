@@ -16,7 +16,9 @@ class PasskeysController < ApplicationController
         display_name: user.display_identifier.to_s
       },
       exclude: user.credentials.pluck(:external_id),
-      authenticator_selection: { resident_key: "preferred", user_verification: "preferred" }
+      # "required" → guarantees a discoverable (resident) passkey so usernameless
+      # "Sign in with Face ID" can always find it.
+      authenticator_selection: { resident_key: "required", user_verification: "required" }
     )
     session[:passkey_reg_challenge] = options.challenge
     render json: options
