@@ -94,4 +94,64 @@ class SignInsControllerTest < ActionDispatch::IntegrationTest
     get sign_in_path
     assert_redirected_to workspaces_url
   end
+
+  # --- email normalization (guards against the duplicate-account risk) ---
+
+  test "verify normalizes email casing so it signs into the existing account, not a duplicate" do
+    existing = User.create!(email_address: "casing-#{SecureRandom.hex(4)}@example.com")
+    upper    = existing.email_address.upcase
+    _r, code = LoginCode.issue!(email_address: upper) # issue! downcases internally
+
+    assert_no_difference -> { User.count } do
+      post verify_sign_in_path, params: { email_address: upper, code: code }
+    end
+    assert_redirected_to workspaces_url
+    assert existing.reload.sessions.any?, "should sign into the existing account, not create a new one"
+  end
+
+  # --- invitation auto-accept on the passwordless path ---
+
+  test "code sign-in auto-accepts a pending workspace invitation" do
+    ws, invitee = invite_to_new_workspace
+    _r, code = LoginCode.issue!(email_address: invitee)
+
+    assert_difference -> { ws.memberships.count }, 1 do
+      post verify_sign_in_path, params: { email_address: invitee, code: code }
+    end
+    assert_redirected_to workspace_path(ws.slug)
+    assert_equal "editor", ws.role_for(User.find_by(email_address: invitee))
+  end
+
+  test "magic-link sign-in auto-accepts a pending workspace invitation" do
+    ws, invitee = invite_to_new_workspace
+    record, _code = LoginCode.issue!(email_address: invitee)
+
+    assert_difference -> { ws.memberships.count }, 1 do
+      get sign_in_link_path(token: record.generate_token_for(:link))
+    end
+    assert_redirected_to workspace_path(ws.slug)
+    assert_equal "editor", ws.role_for(User.find_by(email_address: invitee))
+  end
+
+  test "code sign-in does not accept an invitation addressed to a different email" do
+    ws, _invitee = invite_to_new_workspace
+    bystander = "bystander-#{SecureRandom.hex(4)}@example.com"
+    _r, code = LoginCode.issue!(email_address: bystander)
+
+    assert_no_difference -> { ws.memberships.count } do
+      post verify_sign_in_path, params: { email_address: bystander, code: code }
+    end
+    assert_redirected_to workspaces_url
+  end
+
+  private
+
+  # Build a workspace with a pending editor invitation; returns [workspace, invitee_email].
+  def invite_to_new_workspace
+    owner = User.create!(email_address: "inv-owner-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws    = Workspace.create!(name: "Invite WS #{SecureRandom.hex(2)}", owner: owner)
+    invitee = "invitee-#{SecureRandom.hex(4)}@example.com"
+    ws.invitations.create!(invited_by: owner, email: invitee, role: "editor")
+    [ ws, invitee ]
+  end
 end

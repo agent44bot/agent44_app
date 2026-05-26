@@ -36,6 +36,11 @@ class LoginCodeTest < ActiveSupport::TestCase
     refute record.verify(code), "correct code accepted past the attempt cap"
   end
 
+  test "verify tolerates surrounding whitespace in the submitted code" do
+    record, code = LoginCode.issue!(email_address: "ws@b.com")
+    assert record.verify("  #{code} ")
+  end
+
   test "expired and consumed codes are unusable" do
     record, code = LoginCode.issue!(email_address: "a@b.com")
     record.update!(expires_at: 1.minute.ago)
