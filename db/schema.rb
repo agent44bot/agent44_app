@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_25_134143) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_114914) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -88,6 +88,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_134143) do
     t.index ["created_at"], name: "index_ai_call_logs_on_created_at"
     t.index ["source"], name: "index_ai_call_logs_on_source"
     t.index ["user_id"], name: "index_ai_call_logs_on_user_id"
+  end
+
+  create_table "credentials", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "external_id", null: false
+    t.datetime "last_used_at"
+    t.string "nickname"
+    t.string "public_key", null: false
+    t.bigint "sign_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["external_id"], name: "index_credentials_on_external_id", unique: true
+    t.index ["user_id"], name: "index_credentials_on_user_id"
   end
 
   create_table "device_tokens", force: :cascade do |t|
@@ -441,10 +454,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_134143) do
     t.string "pubkey_hex"
     t.string "role", default: "user"
     t.datetime "updated_at", null: false
+    t.string "webauthn_id"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["email_verification_token"], name: "index_users_on_email_verification_token", unique: true
     t.index ["npub"], name: "index_users_on_npub", unique: true
     t.index ["pubkey_hex"], name: "index_users_on_pubkey_hex", unique: true
+    t.index ["webauthn_id"], name: "index_users_on_webauthn_id", unique: true
   end
 
   create_table "videos", force: :cascade do |t|
@@ -576,6 +591,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_134143) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_call_logs", "users"
+  add_foreign_key "credentials", "users"
   add_foreign_key "device_tokens", "users"
   add_foreign_key "fleet_requests", "users"
   add_foreign_key "hidden_jobs", "jobs"

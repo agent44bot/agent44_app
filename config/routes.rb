@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
   root "pages#home"
+
+  # Apple App Site Association — Universal Links + passkeys (webcredentials).
+  get "/.well-known/apple-app-site-association",
+      to: "well_known#apple_app_site_association", defaults: { format: "json" }
+
   get "lab", to: "pages#lab"
   get "privacy", to: "pages#privacy"
 
@@ -25,6 +30,14 @@ Rails.application.routes.draw do
   get  "sign_in/code",   to: "sign_ins#code",   as: :sign_in_code
   post "sign_in/verify", to: "sign_ins#verify", as: :verify_sign_in
   get  "sign_in/link",   to: "sign_ins#link",   as: :sign_in_link
+
+  # Passkeys (Face ID). Registration is signed-in (Settings); authentication is
+  # signed-out (from /sign_in). Discoverable credentials → usernameless.
+  post   "settings/passkeys/challenge", to: "passkeys#create_challenge", as: :passkey_create_challenge
+  post   "settings/passkeys",           to: "passkeys#create",           as: :passkeys
+  delete "settings/passkeys/:id",       to: "passkeys#destroy",          as: :passkey
+  post   "sign_in/passkey/challenge",   to: "passkeys#auth_challenge",   as: :passkey_auth_challenge
+  post   "sign_in/passkey",             to: "passkeys#authenticate",     as: :passkey_authenticate
   resource :settings, only: [ :show, :destroy ] do
     post  :verify_password
     patch :update_email

@@ -78,6 +78,41 @@
     </div>
   </div>
 
+  <!-- Passkeys (Face ID / Touch ID via WebAuthn). Self-hides where the device
+       has no WebAuthn support. Gives passwordless accounts biometric sign-in. -->
+  <div data-controller="passkey"
+       data-passkey-create-challenge-url-value="<%= passkey_create_challenge_path %>"
+       data-passkey-create-url-value="<%= passkeys_path %>"
+       class="mb-6 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div class="p-5">
+      <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 class="text-white font-semibold text-base">Passkeys &amp; Face ID</h2>
+          <p class="text-sm text-gray-500 mt-1">Sign in with Face ID / Touch ID — no password or emailed code needed.</p>
+        </div>
+        <button type="button" data-action="passkey#register"
+                class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer flex-shrink-0">
+          Add passkey
+        </button>
+      </div>
+      <p data-passkey-target="status" class="text-xs text-gray-400 mt-2"></p>
+
+      <% passkeys = Current.user&.credentials&.order(created_at: :desc) || [] %>
+      <% if passkeys.any? %>
+        <ul class="mt-4 divide-y divide-gray-800 border-t border-gray-800">
+          <% passkeys.each do |pk| %>
+            <li class="flex items-center justify-between py-2.5 text-sm">
+              <span class="text-gray-200"><%= pk.nickname.presence || "Passkey" %><% if pk.last_used_at %> <span class="text-gray-500 text-xs">· last used <%= time_ago_in_words(pk.last_used_at) %> ago</span><% end %></span>
+              <%= button_to "Remove", passkey_path(pk), method: :delete,
+                    form_class: "inline", data: { turbo_confirm: "Remove this passkey?" },
+                    class: "text-red-400 hover:text-red-300 text-xs font-semibold bg-transparent border-0 p-0 cursor-pointer" %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  </div>
+
   <!-- Face ID / biometrics. The inner panel flips to whichever state
        the device supports — card (Capacitor), web fallback, or unsupported. -->
   <div data-controller="biometric"
