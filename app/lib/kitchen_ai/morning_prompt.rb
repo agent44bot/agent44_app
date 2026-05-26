@@ -24,10 +24,11 @@ module KitchenAi
 
       upcoming = snap.kitchen_events.upcoming.to_a
 
-      # 1) A class about to sell out (1–3 seats left), soonest first.
+      # 1) The class closest to selling out (1–3 seats left): fewest seats first,
+      #    tie-broken by the soonest start. "Push the one about to sell out."
       tight = upcoming.reject(&:sold_out?)
                       .select { |e| e.spots_left.to_i.between?(1, 3) }
-                      .min_by { |e| e.start_at || (Time.current + 100.years) }
+                      .min_by { |e| [ e.spots_left.to_i, e.start_at || (Time.current + 100.years) ] }
       if tight
         # NYK event names already embed the date (e.g. "Risotto Workshop 5/28/26"),
         # so we don't append one — it would read as a doubled date.

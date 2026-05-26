@@ -5,14 +5,22 @@ class KitchenAi::MorningPromptTest < ActiveSupport::TestCase
     snap.kitchen_events.create!({ url: "https://nykitchen.test/#{SecureRandom.hex(3)}" }.merge(attrs))
   end
 
-  test "surfaces the soonest class that's about to sell out" do
+  test "surfaces the class closest to selling out, even if a sooner class has more seats" do
     snap = KitchenSnapshot.create!(taken_on: Date.current)
-    event(snap, name: "Pasta Workshop", availability: "InStock", spots_left: 2, start_at: 5.days.from_now)
-    event(snap, name: "Sushi Rolling",  availability: "InStock", spots_left: 1, start_at: 2.days.from_now)
+    event(snap, name: "Soon But Open", availability: "InStock", spots_left: 3, start_at: 1.day.from_now)
+    event(snap, name: "Almost Gone",   availability: "InStock", spots_left: 1, start_at: 5.days.from_now)
 
     q = KitchenAi::MorningPrompt.question
-    assert_match "Sushi Rolling", q          # soonest tight class wins over Pasta
+    assert_match "Almost Gone", q            # fewest seats wins over the sooner-but-roomier class
     assert_match "1 seat", q
+  end
+
+  test "ties on seat count break to the soonest class" do
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+    event(snap, name: "Later One Seat",  availability: "InStock", spots_left: 1, start_at: 5.days.from_now)
+    event(snap, name: "Sooner One Seat", availability: "InStock", spots_left: 1, start_at: 2.days.from_now)
+
+    assert_match "Sooner One Seat", KitchenAi::MorningPrompt.question
   end
 
   test "falls back to a sold-out nudge when nothing is nearly full" do
