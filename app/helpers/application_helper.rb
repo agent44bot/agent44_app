@@ -70,6 +70,18 @@ module ApplicationHelper
     truncate(blurb, length: length, separator: " ")
   end
 
+  # Time-of-day greeting for the Super Agent hub card, computed in Eastern time
+  # (Lora, RB, and NYK are all Eastern). Keeps the "personal briefing" feel
+  # without the hardcoded "morning" reading wrong in the afternoon.
+  def nyk_time_greeting(now = Time.current)
+    case now.in_time_zone("Eastern Time (US & Canada)").hour
+    when 5..11  then "☀️ This morning:"
+    when 12..16 then "🌤️ This afternoon:"
+    when 17..21 then "🌆 This evening:"
+    else             "🌙 Tonight:"
+    end
+  end
+
   def days_ago_in_words(date)
     return "recently" if date.nil?
 

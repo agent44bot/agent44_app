@@ -18,7 +18,7 @@ class KitchenMorningPromptTest < ActionDispatch::IntegrationTest
 
     get "/nykitchen"
     assert_response :success
-    assert_match "This morning:", @response.body
+    assert_match(/(This (morning|afternoon|evening)|Tonight):/, @response.body)
     assert_match "Risotto Workshop", @response.body
     # Card links to the ask page with the question prefilled + auto-send.
     assert_match(/\/nykitchen\/ask\?[^"']*q=/, @response.body)
@@ -31,7 +31,7 @@ class KitchenMorningPromptTest < ActionDispatch::IntegrationTest
 
     get "/nykitchen"
     assert_response :success
-    assert_no_match "This morning:", @response.body
+    assert_no_match(/(This (morning|afternoon|evening)|Tonight):/, @response.body)
     assert_match "What sold out this week?", @response.body
   end
 
@@ -40,6 +40,6 @@ class KitchenMorningPromptTest < ActionDispatch::IntegrationTest
 
     get "/nykitchen"
     assert_response :success
-    assert_no_match "This morning:", @response.body
+    assert_no_match(/(This (morning|afternoon|evening)|Tonight):/, @response.body)
   end
 end

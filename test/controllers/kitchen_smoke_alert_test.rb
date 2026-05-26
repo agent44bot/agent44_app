@@ -27,7 +27,7 @@ class KitchenSmokeAlertTest < ActionDispatch::IntegrationTest
     assert_match "failed 3 times in a row", @response.body
     assert_match(/\/nykitchen\/ask\?[^"']*q=/, @response.body)
     assert_match "go=1", @response.body
-    assert_no_match "This morning:", @response.body
+    assert_no_match(/(This (morning|afternoon|evening)|Tonight):/, @response.body)
   end
 
   test "non-trial user never sees the smoke alert" do
