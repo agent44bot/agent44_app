@@ -81,6 +81,35 @@
         </div>
       </div>
     <% end %>
+    <% if @weekly_sales.present? && @weekly_sales.sum { |w| w[:tickets] }.positive? %>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
+           data-controller="sales-bar-chart"
+           data-sales-bar-chart-tooltip-prefix-value="Week of "
+           data-sales-bar-chart-labels-value="<%= @weekly_sales.map { |w| w[:label] }.to_json %>"
+           data-sales-bar-chart-values-value="<%= @weekly_sales.map { |w| w[:tickets] }.to_json %>">
+        <div class="flex items-baseline justify-between mb-3">
+          <h2 class="text-sm font-semibold text-white">Tickets sold by week</h2>
+          <span class="text-xs text-gray-500">Since tracking began</span>
+        </div>
+        <div class="relative h-48">
+          <canvas data-sales-bar-chart-target="canvas"></canvas>
+        </div>
+      </div>
+    <% end %>
+    <% if @monthly_sales.present? && @monthly_sales.sum { |m| m[:tickets] }.positive? %>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
+           data-controller="sales-bar-chart"
+           data-sales-bar-chart-labels-value="<%= @monthly_sales.map { |m| m[:label] }.to_json %>"
+           data-sales-bar-chart-values-value="<%= @monthly_sales.map { |m| m[:tickets] }.to_json %>">
+        <div class="flex items-baseline justify-between mb-3">
+          <h2 class="text-sm font-semibold text-white">Tickets sold by month</h2>
+          <span class="text-xs text-gray-500">First month partial (tracking began mid-April)</span>
+        </div>
+        <div class="relative h-48">
+          <canvas data-sales-bar-chart-target="canvas"></canvas>
+        </div>
+      </div>
+    <% end %>
   <% end %>
 </div>
 

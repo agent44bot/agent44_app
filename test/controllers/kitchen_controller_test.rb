@@ -605,6 +605,27 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match "$600", response.body   # sold  = 6 × $100
   end
 
+  test "list page renders the weekly sales chart when there's sales history" do
+    # Latest snapshot (today, from setup) needs an upcoming event so the page
+    # renders the events branch (where the charts live), not the empty state.
+    create_event("Upcoming Class", 2.days.from_now, "InStock")
+
+    s1 = KitchenSnapshot.create!(taken_on: 8.days.ago.to_date)
+    s1.kitchen_events.create!(url: "https://nykitchen.com/wk", name: "Wk",
+                              start_at: 2.days.from_now, spots_left: 20)
+    s2 = KitchenSnapshot.create!(taken_on: 7.days.ago.to_date)
+    s2.kitchen_events.create!(url: "https://nykitchen.com/wk", name: "Wk",
+                              start_at: 2.days.from_now, spots_left: 14) # 6 sold
+
+    get nyk_list_path
+    assert_response :success
+    # Both the by-week and by-month charts use the shared sales-bar-chart controller.
+    assert_select "[data-controller='sales-bar-chart']", minimum: 2
+    assert_select "canvas[data-sales-bar-chart-target='canvas']", minimum: 2
+    assert_select "h2", text: "Tickets sold by week"
+    assert_select "h2", text: "Tickets sold by month"
+  end
+
   test "non-admin does not see the revenue rollup (admin-only for now)" do
     @snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/events/rev-cust", name: "Rev Cust",

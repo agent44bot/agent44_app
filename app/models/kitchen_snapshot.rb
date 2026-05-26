@@ -64,6 +64,41 @@ class KitchenSnapshot < ApplicationRecord
     end
   end
 
+  # Tickets sold per calendar week (Sunday-start) since tracking began,
+  # oldest → newest, capped to the last `limit_weeks`. Sums tickets_sold_today
+  # (day-over-day spots_left drops) within each week — the same observed-sales
+  # basis as the day-of-week chart, so the first tracked week reads low (we
+  # only count drops we witnessed). Returns an array of
+  # { week_start: Date, label: "May 17", tickets: Integer }.
+  def self.tickets_sold_by_week(limit_weeks: 12)
+    order(taken_on: :asc).to_a
+      .group_by { |s| s.taken_on.beginning_of_week(:sunday) }
+      .map { |week_start, snaps|
+        { week_start: week_start,
+          label:      week_start.strftime("%b %-d"),
+          tickets:    snaps.sum { |s| s.tickets_sold_today.to_i } }
+      }
+      .sort_by { |row| row[:week_start] }
+      .last(limit_weeks)
+  end
+
+  # Tickets sold per calendar month since tracking began, oldest → newest,
+  # capped to the last `limit_months`. Same observed-sales basis as
+  # tickets_sold_by_week — the first tracked month is partial (we only count
+  # drops from the day tracking started). Returns an array of
+  # { month_start: Date, label: "Apr 2026", tickets: Integer }.
+  def self.tickets_sold_by_month(limit_months: 12)
+    order(taken_on: :asc).to_a
+      .group_by { |s| s.taken_on.beginning_of_month }
+      .map { |month_start, snaps|
+        { month_start: month_start,
+          label:       month_start.strftime("%b %Y"),
+          tickets:     snaps.sum { |s| s.tickets_sold_today.to_i } }
+      }
+      .sort_by { |row| row[:month_start] }
+      .last(limit_months)
+  end
+
   # Ranks classes by how fast they're selling, for the "Selling fastest"
   # card on the List Agent page. Returns up to `limit` hashes the view
   # renders directly.

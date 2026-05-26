@@ -44,6 +44,64 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal 4.5, KitchenSnapshot.tickets_sold_daily_avg
   end
 
+  test "tickets_sold_by_week groups observed sales into Sunday-start weeks" do
+    add = ->(date, left) {
+      KitchenSnapshot.create!(taken_on: date).kitchen_events.create!(
+        url: "https://nykitchen.com/x", name: "X", start_at: 1.year.from_now, spots_left: left
+      )
+    }
+    # Week of Sun May 3: -10 then -5 = 15 sold. (First snap has no prior → 0.)
+    add.(Date.new(2026, 5, 4), 100)
+    add.(Date.new(2026, 5, 5), 90)
+    add.(Date.new(2026, 5, 6), 85)
+    # Week of Sun May 10: -5 then -2 = 7 sold (first drop is vs May 6).
+    add.(Date.new(2026, 5, 11), 80)
+    add.(Date.new(2026, 5, 12), 78)
+
+    weeks = KitchenSnapshot.tickets_sold_by_week
+
+    assert_equal [ Date.new(2026, 5, 3), Date.new(2026, 5, 10) ], weeks.map { |w| w[:week_start] }
+    assert_equal [ "May 3", "May 10" ], weeks.map { |w| w[:label] }
+    assert_equal [ 15, 7 ], weeks.map { |w| w[:tickets] }
+  end
+
+  test "tickets_sold_by_week caps to the most recent limit_weeks, oldest first" do
+    6.times do |w|
+      base = Date.new(2026, 3, 1) + (w * 7) # six distinct Sundays
+      KitchenSnapshot.create!(taken_on: base).kitchen_events.create!(
+        url: "https://nykitchen.com/x", name: "X", start_at: 1.year.from_now, spots_left: 100
+      )
+      KitchenSnapshot.create!(taken_on: base + 1).kitchen_events.create!(
+        url: "https://nykitchen.com/x", name: "X", start_at: 1.year.from_now, spots_left: 100 - (w + 1)
+      )
+    end
+
+    weeks = KitchenSnapshot.tickets_sold_by_week(limit_weeks: 3)
+    assert_equal 3, weeks.size
+    assert weeks.first[:week_start] < weeks.last[:week_start], "expected oldest → newest"
+  end
+
+  test "tickets_sold_by_month groups observed sales into calendar months" do
+    add = ->(date, left) {
+      KitchenSnapshot.create!(taken_on: date).kitchen_events.create!(
+        url: "https://nykitchen.com/x", name: "X", start_at: 1.year.from_now, spots_left: left
+      )
+    }
+    # April: -10 then -5 = 15 sold (first snap has no prior → 0).
+    add.(Date.new(2026, 4, 20), 100)
+    add.(Date.new(2026, 4, 25), 90)
+    add.(Date.new(2026, 4, 28), 85)
+    # May: -5 then -2 = 7 sold (first May drop is vs Apr 28).
+    add.(Date.new(2026, 5, 2), 80)
+    add.(Date.new(2026, 5, 9), 78)
+
+    months = KitchenSnapshot.tickets_sold_by_month
+
+    assert_equal [ Date.new(2026, 4, 1), Date.new(2026, 5, 1) ], months.map { |m| m[:month_start] }
+    assert_equal [ "Apr 2026", "May 2026" ], months.map { |m| m[:label] }
+    assert_equal [ 15, 7 ], months.map { |m| m[:tickets] }
+  end
+
   # Seed one class across `days` daily snapshots, dropping spots_left from
   # `from` to `to` linearly, flipping availability to soldout once it hits 0.
   def seed_class(url, from:, to:, days:, name: url)

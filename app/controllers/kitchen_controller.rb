@@ -608,6 +608,10 @@ class KitchenController < ApplicationController
       @dow_avg       = KitchenSnapshot.tickets_sold_by_wday
       @dow_this_week = KitchenSnapshot.tickets_sold_this_week_by_wday
 
+      # Tickets sold per week / month since tracking began — sales trend.
+      @weekly_sales  = KitchenSnapshot.tickets_sold_by_week
+      @monthly_sales = KitchenSnapshot.tickets_sold_by_month
+
       # "Selling fastest" card — ranked by observed pace. Two views toggled
       # client-side: upcoming-only (default) and all-time (past + future).
       @top_sellers     = KitchenSnapshot.selling_fastest(snapshot: snapshot)
@@ -632,6 +636,8 @@ class KitchenController < ApplicationController
       @rev_priced_count = 0
       @rev_proxy_count  = 0
       @rev_sold = @rev_total = @rev_left = 0
+      @weekly_sales = []
+      @monthly_sales = []
     end
   end
 
