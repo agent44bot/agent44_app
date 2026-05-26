@@ -9,7 +9,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
 
   test "GET /workspaces requires sign-in" do
     get workspaces_path
-    assert_redirected_to %r{/session/new}
+    assert_redirected_to %r{/sign_in}
   end
 
   test "non-admin with one workspace lands directly in it" do

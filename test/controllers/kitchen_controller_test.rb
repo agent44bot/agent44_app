@@ -239,9 +239,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   test "send_to_workspace rejects unauthenticated requests" do
     sign_out
     post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "any" }
-    # The before-action redirects unauthenticated requests to /session/new.
+    # The before-action redirects unauthenticated requests to /sign_in.
     assert_response :redirect
-    assert_match %r{/session/new}, response.location
+    assert_match %r{/sign_in}, response.location
   end
 
   test "send_to_workspace accepts non-admin workspace members" do
@@ -320,19 +320,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   test "anonymous click on List bounces to sign-in" do
     sign_out
     get nyk_list_path
-    assert_redirected_to %r{/session/new}
+    assert_redirected_to %r{/sign_in}
   end
 
   test "anonymous click on Test bounces to sign-in" do
     sign_out
     get nyk_test_path
-    assert_redirected_to %r{/session/new}
+    assert_redirected_to %r{/sign_in}
   end
 
   test "anonymous click on Data bounces to sign-in" do
     sign_out
     get nyk_data_path
-    assert_redirected_to %r{/session/new}
+    assert_redirected_to %r{/sign_in}
   end
 
   test "hub renders four agent cards" do
@@ -482,7 +482,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   test "display_settings: requires authentication" do
     delete session_path
     get nyk_display_settings_path
-    assert_response :redirect # /session/new
+    assert_response :redirect # /sign_in
   end
 
   test "update_display_settings: owner can save" do

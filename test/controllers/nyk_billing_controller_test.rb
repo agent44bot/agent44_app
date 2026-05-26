@@ -25,7 +25,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
 
   test "unauthenticated request bounces to sign-in" do
     get "/nykitchen/billing"
-    assert_redirected_to %r{/session/new}
+    assert_redirected_to %r{/sign_in}
   end
 
   test "raw view (default) shows raw fleet cost" do

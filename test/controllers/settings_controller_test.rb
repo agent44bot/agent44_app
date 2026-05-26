@@ -8,7 +8,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
 
   test "GET show redirects when unauthenticated" do
     get settings_path
-    assert_redirected_to new_session_path
+    assert_redirected_to sign_in_path
   end
 
   test "GET show renders when authenticated" do
@@ -36,7 +36,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
 
   test "PATCH update_name redirects when unauthenticated" do
     patch update_name_settings_path, params: { display_name: "Anon" }
-    assert_redirected_to new_session_path
+    assert_redirected_to sign_in_path
   end
 
   test "POST verify_password returns 204 for matching password" do
@@ -62,7 +62,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
       params: { password: "anything" }.to_json,
       headers: { "Content-Type" => "application/json" }
 
-    assert_redirected_to new_session_path
+    assert_redirected_to sign_in_path
   end
 
   test "DELETE settings destroys the user with correct password" do
@@ -91,7 +91,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
 
   test "DELETE settings redirects when unauthenticated" do
     delete settings_path, params: { password: "anything" }
-    assert_redirected_to new_session_path
+    assert_redirected_to sign_in_path
   end
 
   test "DELETE settings for nostr-only user requires DELETE confirmation phrase" do

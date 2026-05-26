@@ -34,7 +34,7 @@ class ApplicationController < ActionController::Base
   # Paths a non-admin signed-in user can reach. /nykitchen lives here because
   # NYK is still a workspace destination (the agents hub for NY Kitchen);
   # /api/assets/rails are infrastructure paths, never user-facing redirects.
-  WORKSPACE_ALLOWED_PREFIXES = %w[/nykitchen /workspaces /invitations /notifications /session /email_verification /passwords /settings /impersonate /api /assets /rails/active_storage].freeze
+  WORKSPACE_ALLOWED_PREFIXES = %w[/nykitchen /workspaces /invitations /notifications /session /sign_in /email_verification /passwords /settings /impersonate /api /assets /rails/active_storage].freeze
 
   # Non-admin signed-in users are sandboxed to workspace-shaped URLs.
   # Admins see everything (marketing pages, /pulse, /jobs, /admin, etc.).

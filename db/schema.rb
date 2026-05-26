@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_23_163955) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_25_134143) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -230,6 +230,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_23_163955) do
     t.datetime "updated_at", null: false
     t.text "value"
     t.index ["key"], name: "index_kv_settings_on_key", unique: true
+  end
+
+  create_table "login_codes", force: :cascade do |t|
+    t.integer "attempt_count", default: 0, null: false
+    t.string "code_digest", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.string "email_address", null: false
+    t.datetime "expires_at", null: false
+    t.string "ip_address"
+    t.datetime "updated_at", null: false
+    t.index ["email_address"], name: "index_login_codes_on_email_address"
+    t.index ["expires_at"], name: "index_login_codes_on_expires_at"
   end
 
   create_table "news_articles", force: :cascade do |t|

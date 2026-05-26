@@ -79,15 +79,16 @@
         });
       } else {
         // No stored credentials yet — show button on home page only (links to sign-in)
-        // On the sign-in page itself, hide it (user should sign in with email first)
-        var isSignInPage = window.location.pathname.indexOf("session") !== -1;
+        // On a sign-in page itself, hide it (user should sign in with email first)
+        var path = window.location.pathname;
+        var isSignInPage = path.indexOf("session") !== -1 || path.indexOf("sign_in") !== -1;
         if (!isSignInPage) {
           btns.forEach(function(btn) {
             btn.style.display = "flex";
             if (btn.dataset.faceidInit !== "1") {
               btn.dataset.faceidInit = "1";
               btn.addEventListener("click", function() {
-                window.location.href = "<%= new_session_path %>";
+                window.location.href = "<%= sign_in_path %>";
               });
             }
           });
