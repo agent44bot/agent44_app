@@ -1,6 +1,7 @@
 class User < ApplicationRecord
   has_secure_password validations: false
   has_many :sessions, dependent: :destroy
+  has_many :credentials, dependent: :destroy # passkeys — :destroy required for Apple delete-account
   has_many :posts, dependent: :destroy
   has_many :page_views, dependent: :nullify
   has_many :saved_jobs, dependent: :destroy
@@ -70,6 +71,14 @@ class User < ApplicationRecord
     user.email_verified_at ||= Time.current
     user.save!
     user
+  end
+
+  # Stable per-user WebAuthn handle (the user.id used in passkey ceremonies),
+  # generated lazily on first passkey registration.
+  def ensure_webauthn_id!
+    return webauthn_id if webauthn_id.present?
+    update!(webauthn_id: WebAuthn.generate_user_id)
+    webauthn_id
   end
 
   def display_identifier

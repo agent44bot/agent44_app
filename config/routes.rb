@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
   root "pages#home"
+
+  # Apple App Site Association — Universal Links + passkeys (webcredentials).
+  get "/.well-known/apple-app-site-association",
+      to: "well_known#apple_app_site_association", defaults: { format: "json" }
+
   get "lab", to: "pages#lab"
   get "privacy", to: "pages#privacy"
 
