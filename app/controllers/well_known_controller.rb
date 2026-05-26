@@ -13,10 +13,13 @@ class WellKnownController < ApplicationController
     render json: {
       applinks: {
         details: [
+          # Legacy format (older iOS) + modern components — belt-and-suspenders
+          # so the magic link (/sign_in/link) reliably opens the app.
+          { "appID" => APP_ID, "paths" => ["/sign_in/*"] },
           {
-            appIDs: [APP_ID],
-            components: [
-              { "/" => "/sign_in/link*", "comment" => "passwordless magic link opens the app" }
+            "appIDs" => [APP_ID],
+            "components" => [
+              { "/" => "/sign_in/*", "comment" => "passwordless magic link opens the app" }
             ]
           }
         ]
