@@ -18,18 +18,29 @@ module KitchenAi
 
     # Frozen — NO date, snapshot, or fleet status here (those would bust the
     # prompt cache every call). The agent pulls live data via read tools.
-    SYSTEM_PROMPT = <<~PROMPT
+    # Two variants so the cache key still depends only on stable content: the
+    # read-only build (v1) and the write-enabled build differ by a fixed suffix.
+    SYSTEM_BASE = <<~PROMPT
       You are Super Agent for New York Kitchen, a culinary education center in
       Canandaigua, NY. You help Lora and her team. You sit on top of a fleet of
-      agents (List, Data, Test, Display, Social) and can both answer questions
-      and take actions on the fleet using the tools provided.
+      agents (List, Data, Test, Display, Social).
 
       Rules:
-      - Use read tools to ground every factual claim; never invent classes,
+      - Use the read tools to ground every factual claim; never invent classes,
         prices, seat counts, or test results.
-      - Prefer the smallest action that answers the request. Don't trigger a
-        scrape or smoke test unless asked or clearly warranted.
       - Times are Eastern; prices USD. Be concise.
+    PROMPT
+
+    SYSTEM_READONLY = <<~PROMPT
+      You can look things up but cannot take actions in this mode. If the user
+      asks you to scrape, run a test, post, or change settings, explain that
+      those are done from the NY Kitchen dashboard — do not claim you did them.
+    PROMPT
+
+    SYSTEM_WRITES = <<~PROMPT
+      You also have action tools. Prefer the smallest action that answers the
+      request; don't trigger a scrape or smoke test unless asked or clearly
+      warranted. Drafting a post never publishes it.
     PROMPT
 
     Result = Struct.new(:ok?, :reply, :steps, :actions, :error, keyword_init: true)
@@ -38,10 +49,13 @@ module KitchenAi
       attr_accessor :stub   # Proc(model:, max_tokens:, system:, messages:, tools:) -> response. Tests set this; never hits the API.
     end
 
-    # workspace_role gates which tools exist and whether write tools may run.
-    def initialize(user:, workspace_role: nil)
+    # workspace_role gates whether write tools may run; enable_writes is the
+    # master switch (off in v1 — read-only). Write tools require BOTH the flag
+    # AND an owner/admin role.
+    def initialize(user:, workspace_role: nil, enable_writes: false)
       @user           = user
       @workspace_role = workspace_role.to_s
+      @enable_writes  = enable_writes
       @actions_taken  = []
     end
 
@@ -84,12 +98,15 @@ module KitchenAi
 
     private
 
-    def admin? = %w[owner admin].include?(@workspace_role)
+    def admin?          = %w[owner admin].include?(@workspace_role)
+    def writes_allowed? = @enable_writes && admin?
 
     # System prompt as a cacheable block. cache_control on the last (only) block
     # caches tools + system together (render order: tools → system → messages).
+    # Composed from fixed constants so the cache key depends only on the mode.
     def cached_system
-      [ { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } } ]
+      text = SYSTEM_BASE + "\n" + (writes_allowed? ? SYSTEM_WRITES : SYSTEM_READONLY)
+      [ { type: "text", text: text, cache_control: { type: "ephemeral" } } ]
     end
 
     def create_message(client, system:, messages:, tools:)
@@ -104,7 +121,7 @@ module KitchenAi
     # the cache breakpoint so the tools prefix caches.
     def tool_definitions
       defs = READ_TOOLS.dup
-      defs += WRITE_TOOLS if admin?
+      defs += WRITE_TOOLS if writes_allowed?
       defs.each_with_index.map do |d, i|
         d = d.dup
         d[:cache_control] = { type: "ephemeral" } if i == defs.size - 1
@@ -159,7 +176,7 @@ module KitchenAi
       when "list_classes"      then [ list_classes_text(input[:filter] || "upcoming"), false ]
       when "get_sales_summary" then [ sales_summary_text, false ]
       when "trigger_scrape", "trigger_smoke_test", "draft_social_post"
-        return [ "Not allowed: this action requires workspace owner/admin.", true ] unless admin?
+        return [ "Not allowed: actions are disabled in this mode.", true ] unless writes_allowed?
         write_action(name, input)
       else
         [ "Unknown tool: #{name}", true ]
@@ -192,10 +209,8 @@ module KitchenAi
 
     def record(action, args) = @actions_taken << { action: action, args: args, at: Time.current }
 
-    # --- Read-tool data (thin wrappers; reuse AskAgent's computations) ------
-    # NOTE: extract format_fleet_status / format_events out of AskAgent into a
-    # shared module so both agents read identical numbers. Stubbed here.
-    def fleet_status_text  = KitchenAi::AskAgent.new(user: @user).send(:format_fleet_status)
+    # --- Read-tool data -----------------------------------------------------
+    def fleet_status_text  = KitchenAi::FleetStatus.summary
     def sales_summary_text
       avg = KitchenSnapshot.tickets_sold_daily_avg
       wk  = KitchenSnapshot.tickets_sold_this_week_by_wday.values.compact.sum.to_i

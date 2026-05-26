@@ -77,7 +77,15 @@ class KitchenController < ApplicationController
     messages = params[:messages]
     messages = messages.is_a?(Array) ? messages.map { |m| m.to_unsafe_h.symbolize_keys } : []
 
-    result = KitchenAi::AskAgent.new(user: Current.user).ask(messages)
+    # Dogfood rollout: admins get the read-only agentic agent (tools, loop);
+    # everyone else stays on the stable single-shot AskAgent. Writes stay off
+    # (enable_writes defaults false) until the gated path is proven.
+    result =
+      if Current.user.admin?
+        KitchenAi::AgenticAgent.new(user: Current.user).run(messages)
+      else
+        KitchenAi::AskAgent.new(user: Current.user).ask(messages)
+      end
 
     if result.ok?
       render json: { reply: result.reply }
