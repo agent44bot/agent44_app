@@ -11,9 +11,14 @@ class AiCallLog < ApplicationRecord
   DEFAULT_RATE = { input: 1.00, output: 5.00 }.freeze
 
   NYK_SOURCES = %w[nyk_enhance nyk_x_autopost].freeze
+  # The /nykitchen/ask Super Agent chat: nyk_ask is the single-shot AskAgent
+  # (what customers like Lora get), nyk_agent is the read-only AgenticAgent
+  # (admin dogfood). Both are Haiku 4.5, so usage_rollup's flat-rate cost holds.
+  SUPER_AGENT_SOURCES = %w[nyk_ask nyk_agent].freeze
 
-  scope :nyk,        -> { where(source: NYK_SOURCES) }
-  scope :this_month, -> { where("created_at >= ?", Time.zone.now.beginning_of_month) }
+  scope :nyk,         -> { where(source: NYK_SOURCES) }
+  scope :super_agent, -> { where(source: SUPER_AGENT_SOURCES) }
+  scope :this_month,  -> { where("created_at >= ?", Time.zone.now.beginning_of_month) }
 
   def cost_dollars
     rate = RATES[model] || DEFAULT_RATE
@@ -28,6 +33,24 @@ class AiCallLog < ApplicationRecord
 
   def self.total_cost_dollars(scope = all)
     scope.to_a.sum(&:cost_dollars)
+  end
+
+  # Aggregate calls/tokens/cost for a scope in a single SQL query (no per-row
+  # object loading). Cost uses the flat DEFAULT_RATE, which is exact for any
+  # all-Haiku-4.5 scope (e.g. super_agent). Don't use for mixed-model scopes.
+  def self.usage_rollup(scope = all)
+    calls, inp, out = scope.pick(
+      Arel.sql("COUNT(*), COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0)")
+    )
+    inp = inp.to_i
+    out = out.to_i
+    {
+      calls:         calls.to_i,
+      input_tokens:  inp,
+      output_tokens: out,
+      total_tokens:  inp + out,
+      cost_dollars:  (inp * DEFAULT_RATE[:input] + out * DEFAULT_RATE[:output]) / 1_000_000.0
+    }
   end
 
   def self.summary_by_source(scope = all)

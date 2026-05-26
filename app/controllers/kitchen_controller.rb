@@ -57,6 +57,7 @@ class KitchenController < ApplicationController
     custom = Array(ask_agent&.setting(:chip_prompts)).compact_blank
     @chip_prompts = custom.any? ? custom.first(4) : dynamic_chip_prompts(snapshot)
     @can_edit_chips = %w[owner admin].include?(@my_workspace_role)
+    @super_agent_usage = super_agent_usage_windows if Current.user&.admin?
     render "admin/kitchen/ask", layout: "application"
   end
 
@@ -463,6 +464,20 @@ class KitchenController < ApplicationController
         .joins(:social_accounts)
         .distinct
         .sort_by { |ws| [ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase] }
+  end
+
+  # Admin-only readout of Super Agent (chat) token usage + cost across a few
+  # time windows, so the team can watch spend as Lora uses it. Covers both the
+  # AskAgent (nyk_ask) and AgenticAgent (nyk_agent) sources.
+  def super_agent_usage_windows
+    base = AiCallLog.super_agent
+    now  = Time.zone.now
+    {
+      today:    AiCallLog.usage_rollup(base.where("created_at >= ?", now.beginning_of_day)),
+      week:     AiCallLog.usage_rollup(base.where("created_at >= ?", 7.days.ago)),
+      month:    AiCallLog.usage_rollup(base.where("created_at >= ?", now.beginning_of_month)),
+      all_time: AiCallLog.usage_rollup(base)
+    }
   end
 
   def set_common_view_state

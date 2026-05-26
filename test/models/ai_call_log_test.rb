@@ -67,4 +67,33 @@ class AiCallLogTest < ActiveSupport::TestCase
     assert_in_delta 2.0, AiCallLog.total_cost_dollars(AiCallLog.all), 1e-9
     assert_in_delta 1.0, AiCallLog.total_cost_dollars(AiCallLog.where(source: "nyk_enhance")), 1e-9
   end
+
+  test "super_agent scope returns only the chat sources" do
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_ask",     input_tokens: 1, output_tokens: 1)
+    AiCallLog.create!(model: "claude-haiku-4-5",          source: "nyk_agent",   input_tokens: 1, output_tokens: 1)
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_enhance", input_tokens: 1, output_tokens: 1)
+
+    assert_equal 2, AiCallLog.super_agent.count
+    assert AiCallLog.super_agent.pluck(:source).all? { |s| AiCallLog::SUPER_AGENT_SOURCES.include?(s) }
+  end
+
+  test "usage_rollup aggregates calls/tokens/cost in one query" do
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_ask",   input_tokens: 1_500, output_tokens: 800)
+    AiCallLog.create!(model: "claude-haiku-4-5",          source: "nyk_agent", input_tokens:   500, output_tokens: 200)
+
+    roll = AiCallLog.usage_rollup(AiCallLog.super_agent)
+    assert_equal 2,     roll[:calls]
+    assert_equal 2_000, roll[:input_tokens]
+    assert_equal 1_000, roll[:output_tokens]
+    assert_equal 3_000, roll[:total_tokens]
+    # (2000 * $1 + 1000 * $5) / 1e6 = $0.007
+    assert_in_delta 0.007, roll[:cost_dollars], 1e-9
+  end
+
+  test "usage_rollup on an empty scope returns zeros, not nil" do
+    roll = AiCallLog.usage_rollup(AiCallLog.where(source: "does_not_exist"))
+    assert_equal 0,   roll[:calls]
+    assert_equal 0,   roll[:total_tokens]
+    assert_in_delta 0.0, roll[:cost_dollars], 1e-9
+  end
 end
