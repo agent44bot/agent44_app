@@ -122,18 +122,27 @@
   <% stats_class  = "space-y-1.5 text-sm mt-auto" %>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
-    <%= link_to (@daily_prompt ? nyk_ask_path(q: @daily_prompt, go: 1) : nyk_ask_path), class: card_class do %>
+    <%# Card link: a smoke-failure alert (if any) takes priority, else the daily
+        question, else the plain ask page. Both alert + question auto-ask on tap. %>
+    <% super_agent_href = if @smoke_alert then nyk_ask_path(q: @smoke_alert[:prompt], go: 1)
+                          elsif @daily_prompt then nyk_ask_path(q: @daily_prompt, go: 1)
+                          else nyk_ask_path end %>
+    <%= link_to super_agent_href, class: card_class do %>
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
           <span class="text-2xl">💬</span>
           <h2 class="text-lg font-bold text-white">Super Agent</h2>
+          <%# Always-on availability: a steady green pulse signals "I'm here, ask anytime". %>
+          <%= agent_dot.call(:running, "Always on — ask anytime") %>
           <%= agent_badge.call(:ask) %>
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
       </div>
       <p class="<%= desc_class %>">Ask anything about NY Kitchen — classes, sales, sold-outs, agent status, smoke tests, social posts. Super Agent reads the whole workspace.</p>
       <div class="<%= stats_class %>">
-        <% if @daily_prompt %>
+        <% if @smoke_alert %>
+          <div class="text-red-400 font-semibold">⚠️ The calendar check has failed <%= @smoke_alert[:count] %> times in a row — want me to draft a note to the developer?</div>
+        <% elsif @daily_prompt %>
           <div class="text-orange-300">☀️ This morning: <span class="text-gray-300">"<%= @daily_prompt %>"</span></div>
         <% else %>
           <div class="text-gray-300">Try: <span class="text-gray-400">"What sold out this week?"</span></div>

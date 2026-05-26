@@ -35,6 +35,21 @@ class SmokeTestRun < ApplicationRecord
 
   scope :finished, -> { where.not(status: "running") }
 
+  # Number of consecutive most-recent finished nav runs that failed. Drives the
+  # "failing repeatedly" escalation (see KitchenAi::SmokeEscalation). Nav = the
+  # calendar round-trip — the customer-facing "is the site broken" check.
+  def self.nyk_nav_failure_streak(lookback: 20)
+    nyk_nav.finished.order(started_at: :desc).limit(lookback).to_a
+           .take_while(&:failed?).size
+  end
+
+  # started_at of the first failure in the current nav streak (the incident's
+  # start), or nil if the most recent finished nav run passed.
+  def self.nyk_nav_streak_started_at(lookback: 20)
+    nyk_nav.finished.order(started_at: :desc).limit(lookback).to_a
+           .take_while(&:failed?).last&.started_at
+  end
+
   def kind
     name.to_s.start_with?("nyk_scrape") ? "scrape" : "nav"
   end

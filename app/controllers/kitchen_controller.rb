@@ -24,6 +24,7 @@ class KitchenController < ApplicationController
     when "list"    then return redirect_to(nyk_list_path, status: 301)
     end
     load_hub_summary
+    @smoke_alert  = smoke_alert_for(Current.user)
     @daily_prompt = morning_prompt_for(Current.user)
     @nyk_workspace = nyk_workspace_for(Current.user)
     # Team management is rendered below the agent cards for members; load
@@ -472,11 +473,26 @@ class KitchenController < ApplicationController
   # that setting to roll the trial from RB → Lora (→ a list) with no deploy;
   # blank it to turn the feature off. Returns the question string or nil.
   def morning_prompt_for(user)
-    return nil unless user
-    trial = Setting.get("super_agent_daily_prompt_email").to_s.strip.downcase
-    return nil if trial.blank?
-    return nil unless user.email_address.to_s.strip.downcase == trial
+    return nil unless daily_prompt_trial?(user)
     KitchenAi::MorningPrompt.question
+  end
+
+  # True when `user` is the trial recipient named in super_agent_daily_prompt_email.
+  def daily_prompt_trial?(user)
+    return false unless user
+    trial = Setting.get("super_agent_daily_prompt_email").to_s.strip.downcase
+    trial.present? && user.email_address.to_s.strip.downcase == trial
+  end
+
+  # When the calendar smoke test has failed several runs in a row, the trial
+  # user's Super Agent card is promoted to an alert offering to draft a note to
+  # the developer. Takes priority over the morning question. Returns
+  # { count:, prompt: } or nil.
+  def smoke_alert_for(user)
+    return nil unless daily_prompt_trial?(user)
+    n = KitchenAi::SmokeEscalation.streak
+    return nil unless KitchenAi::SmokeEscalation.alerting?(n)
+    { count: n, prompt: KitchenAi::SmokeEscalation.draft_prompt(n) }
   end
 
   # Admin-only readout of Super Agent (chat) token usage + cost across a few
