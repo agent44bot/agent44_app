@@ -28,6 +28,13 @@ module KitchenAi
       Rules:
       - Use the read tools to ground every factual claim; never invent classes,
         prices, seat counts, or test results.
+      - When asked what's wrong with the tests, or to draft a note/email to the
+        developer about test failures, call get_test_failures first. Judge whether
+        it looks like a real booking-site problem (repeated failures, or 5xx /
+        network errors against the calendar) versus a one-off flaky run, and only
+        draft if it looks real. A draft is text for the user to review — you never
+        send email. Address it to the developer email the tool reports; if none is
+        on file, say so and ask for the address.
       - Times are Eastern; prices USD. Be concise.
     PROMPT
 
@@ -155,6 +162,11 @@ module KitchenAi
       { name: "get_sales_summary",
         description: "Rolling ticket-sales numbers: avg/day over 14 days, sold so far today and this week.",
         input_schema: { type: "object", properties: {}, additionalProperties: false } },
+      { name: "get_test_failures",
+        description: "Recent NY Kitchen smoke-test failures — each run's error message, network/console errors, and when it ran — plus how many calendar checks have failed in a row and the developer email on file. Call this to ground any 'what's broken with the tests' or 'draft a note/email to the developer' request; never describe a failure you haven't pulled from here.",
+        input_schema: { type: "object",
+                        properties: { limit: { type: "integer", description: "How many recent failures to return (default 5, max 15)" } },
+                        additionalProperties: false } },
     ].freeze
 
     # Low-risk config writes — storing a value the user explicitly provides. Safe
@@ -199,6 +211,7 @@ module KitchenAi
       when "get_fleet_status"  then [ fleet_status_text, false ]
       when "list_classes"      then [ list_classes_text(input[:filter] || "upcoming"), false ]
       when "get_sales_summary" then [ sales_summary_text, false ]
+      when "get_test_failures" then [ test_failures_text(input[:limit]), false ]
       when "set_developer_email"
         return [ "Not allowed here.", true ] unless @enable_config
         set_developer_email_action(input)
@@ -254,6 +267,40 @@ module KitchenAi
       avg = KitchenSnapshot.tickets_sold_daily_avg
       wk  = KitchenSnapshot.tickets_sold_this_week_by_wday.values.compact.sum.to_i
       "Avg tickets/day (14d): #{avg || 'n/a'}\nSold this week: #{wk}"
+    end
+
+    # Recent NYK smoke failures + the active nav failure streak + the developer
+    # email on file — everything the agent needs to triage and draft a developer
+    # note. Mirrors the substance NykSmokeMailer#failure emails. ET timestamps.
+    def test_failures_text(limit = nil)
+      n     = (limit.presence || 5).to_i.clamp(1, 15)
+      runs  = SmokeTestRun.nyk.where(status: "failed").recent.limit(n).to_a
+      streak = SmokeTestRun.nyk_nav_failure_streak
+      since  = SmokeTestRun.nyk_nav_streak_started_at
+                          &.in_time_zone("Eastern Time (US & Canada)")&.strftime("%a %b %-d %-l:%M%P")
+      dev    = Setting.get("nyk_developer_email").to_s.strip.presence
+
+      header = [
+        streak.positive? ?
+          "Calendar (nav) check has failed #{streak} run(s) in a row#{since ? " since #{since}" : ""}." :
+          "No active nav failure streak (the most recent finished nav run passed).",
+        "Developer email on file: #{dev || "none saved"}"
+      ]
+      return (header + [ "", "No failed runs on record." ]).join("\n") if runs.empty?
+
+      blocks = runs.map do |r|
+        when_ = r.started_at&.in_time_zone("Eastern Time (US & Canada)")&.strftime("%a %b %-d %-l:%M%p %Z")
+        net   = r.console_errors.to_s.split("\n").select { |l|
+          l.start_with?("[requestfailed]") || l.match?(/\A\[response \d{3}\]/)
+        }
+        lines = [ "• #{when_} — #{r.kind} — FAILED (#{r.duration_label})" ]
+        lines << "  error: #{r.error_message.to_s.truncate(400)}"  if r.error_message.present?
+        lines << "  summary: #{r.summary.to_s.truncate(200)}"      if r.summary.present?
+        lines << "  network errors: #{net.first(6).join(" | ")}"   if net.any?
+        lines.join("\n")
+      end
+
+      (header + [ "", "#{runs.size} most recent failure(s):" ] + blocks).join("\n")
     end
 
     def list_classes_text(filter)

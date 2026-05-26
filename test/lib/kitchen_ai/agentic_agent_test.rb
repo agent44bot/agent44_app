@@ -43,7 +43,7 @@ class KitchenAi::AgenticAgentTest < ActiveSupport::TestCase
   test "v1 is read-only: no write tools even for an owner" do
     agent = KitchenAi::AgenticAgent.new(user: nil, workspace_role: "owner") # enable_writes defaults false
     names = agent.send(:tool_definitions).map { |d| d[:name] }
-    assert_equal %w[get_fleet_status list_classes get_sales_summary], names
+    assert_equal %w[get_fleet_status list_classes get_sales_summary get_test_failures], names
     refute names.include?("trigger_scrape")
   end
 
@@ -103,5 +103,38 @@ class KitchenAi::AgenticAgentTest < ActiveSupport::TestCase
     text, err = agent.send(:execute, "set_developer_email", { "email" => "dev@x.com" }.with_indifferent_access)
     assert err
     assert_nil Setting.get("nyk_developer_email")
+  end
+
+  test "get_test_failures is a read tool available in every mode" do
+    agent = KitchenAi::AgenticAgent.new(user: nil) # read-only, no config
+    assert agent.send(:tool_definitions).map { |d| d[:name] }.include?("get_test_failures")
+  end
+
+  test "test_failures_text grounds in real failed runs, the streak, and the developer email" do
+    Setting.set("nyk_developer_email", "dev@nykitchen.com")
+    SmokeTestRun.create!(
+      name: "nyk_calendar_nav", status: "failed",
+      started_at: 2.hours.ago, ended_at: 2.hours.ago + 90.seconds, duration_ms: 90_000,
+      summary: "Next click left the grid empty",
+      error_message: "Calendar grid empty after clicking Next",
+      console_errors: "[response 503] https://nykitchen.com/wp-json/tribe/views/v2/html\n[console.error] noise"
+    )
+
+    text = KitchenAi::AgenticAgent.new(user: nil).send(:test_failures_text, nil)
+
+    assert_match "failed 1 run", text                 # streak
+    assert_match "dev@nykitchen.com", text             # recipient on file
+    assert_match "Calendar grid empty after clicking Next", text
+    assert_match "wp-json/tribe/views", text           # network error surfaced
+    refute_match(/console\.error\] noise/, text)       # non-network console line filtered out
+  ensure
+    Setting.delete_key("nyk_developer_email")
+  end
+
+  test "test_failures_text is graceful with no failures and no developer email" do
+    text = KitchenAi::AgenticAgent.new(user: nil).send(:test_failures_text, nil)
+    assert_match "No active nav failure streak", text
+    assert_match "No failed runs on record", text
+    assert_match "none saved", text
   end
 end
