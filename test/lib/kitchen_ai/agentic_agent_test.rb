@@ -70,4 +70,38 @@ class KitchenAi::AgenticAgentTest < ActiveSupport::TestCase
     assert agent.send(:cached_system).last[:cache_control].present?
     assert agent.send(:tool_definitions).last[:cache_control].present?
   end
+
+  test "the set_developer_email config tool appears only when enable_config is on" do
+    off = KitchenAi::AgenticAgent.new(user: nil)
+    refute off.send(:tool_definitions).map { |d| d[:name] }.include?("set_developer_email")
+
+    on = KitchenAi::AgenticAgent.new(user: nil, enable_config: true)
+    names = on.send(:tool_definitions).map { |d| d[:name] }
+    assert names.include?("set_developer_email")
+    # config does NOT unlock the action tools
+    refute names.include?("trigger_scrape")
+  end
+
+  test "set_developer_email saves a valid address and rejects garbage" do
+    agent = KitchenAi::AgenticAgent.new(user: nil, enable_config: true)
+
+    text, err = agent.send(:execute, "set_developer_email", { "email" => "dev@nykitchen.com" }.with_indifferent_access)
+    refute err
+    assert_equal "dev@nykitchen.com", Setting.get("nyk_developer_email")
+    assert_match "dev@nykitchen.com", text
+
+    bad, bad_err = agent.send(:execute, "set_developer_email", { "email" => "not-an-email" }.with_indifferent_access)
+    assert bad_err
+    assert_equal "dev@nykitchen.com", Setting.get("nyk_developer_email") # unchanged
+    assert_match(/valid email/, bad)
+  ensure
+    Setting.delete_key("nyk_developer_email")
+  end
+
+  test "set_developer_email is refused when enable_config is off" do
+    agent = KitchenAi::AgenticAgent.new(user: nil) # config off
+    text, err = agent.send(:execute, "set_developer_email", { "email" => "dev@x.com" }.with_indifferent_access)
+    assert err
+    assert_nil Setting.get("nyk_developer_email")
+  end
 end

@@ -81,11 +81,12 @@ class KitchenController < ApplicationController
     messages = messages.is_a?(Array) ? messages.map { |m| m.to_unsafe_h.symbolize_keys } : []
 
     # Dogfood rollout: admins get the read-only agentic agent (tools, loop);
-    # everyone else stays on the stable single-shot AskAgent. Writes stay off
-    # (enable_writes defaults false) until the gated path is proven.
+    # everyone else stays on the stable single-shot AskAgent. Action tools stay
+    # off (enable_writes); the low-risk config tools (save developer email) are
+    # on so admins can set it from chat.
     result =
       if Current.user.admin?
-        KitchenAi::AgenticAgent.new(user: Current.user).run(messages)
+        KitchenAi::AgenticAgent.new(user: Current.user, enable_config: true).run(messages)
       else
         KitchenAi::AskAgent.new(user: Current.user).ask(messages)
       end

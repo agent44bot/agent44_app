@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# SKETCH — not wired to any controller/route yet. See docs/agentic-super-agent.md.
+# Read-only-by-default agentic Super Agent (admins). See docs/agentic-super-agent.md.
 #
 # The agentic successor to KitchenAi::AskAgent. Where AskAgent pre-stuffs the
 # snapshot into the system prompt and answers in one shot, AgenticAgent exposes
@@ -43,6 +43,14 @@ module KitchenAi
       warranted. Drafting a post never publishes it.
     PROMPT
 
+    # One safe carve-out from the read-only stance: persisting config the user
+    # explicitly hands you. Appended only when enable_config is on.
+    SYSTEM_CONFIG = <<~PROMPT
+      One thing you CAN save: when the user gives you the developer's email
+      address, call set_developer_email so future failure-report drafts are
+      addressed to them. Only do this when they actually provide an address.
+    PROMPT
+
     Result = Struct.new(:ok?, :reply, :steps, :actions, :error, keyword_init: true)
 
     class << self
@@ -52,10 +60,14 @@ module KitchenAi
     # workspace_role gates whether write tools may run; enable_writes is the
     # master switch (off in v1 — read-only). Write tools require BOTH the flag
     # AND an owner/admin role.
-    def initialize(user:, workspace_role: nil, enable_writes: false)
+    # enable_writes gates the action tools (scrape/smoke/post). enable_config
+    # gates the low-risk config tools (set_developer_email) — the admin chat path
+    # turns this on without unlocking actions.
+    def initialize(user:, workspace_role: nil, enable_writes: false, enable_config: false)
       @user           = user
       @workspace_role = workspace_role.to_s
       @enable_writes  = enable_writes
+      @enable_config  = enable_config
       @actions_taken  = []
     end
 
@@ -106,6 +118,7 @@ module KitchenAi
     # Composed from fixed constants so the cache key depends only on the mode.
     def cached_system
       text = SYSTEM_BASE + "\n" + (writes_allowed? ? SYSTEM_WRITES : SYSTEM_READONLY)
+      text += "\n" + SYSTEM_CONFIG if @enable_config
       [ { type: "text", text: text, cache_control: { type: "ephemeral" } } ]
     end
 
@@ -121,6 +134,7 @@ module KitchenAi
     # the cache breakpoint so the tools prefix caches.
     def tool_definitions
       defs = READ_TOOLS.dup
+      defs += CONFIG_TOOLS if @enable_config
       defs += WRITE_TOOLS if writes_allowed?
       defs.each_with_index.map do |d, i|
         d = d.dup
@@ -141,6 +155,16 @@ module KitchenAi
       { name: "get_sales_summary",
         description: "Rolling ticket-sales numbers: avg/day over 14 days, sold so far today and this week.",
         input_schema: { type: "object", properties: {}, additionalProperties: false } },
+    ].freeze
+
+    # Low-risk config writes — storing a value the user explicitly provides. Safe
+    # to expose to admins without unlocking the action tools.
+    CONFIG_TOOLS = [
+      { name: "set_developer_email",
+        description: "Save the developer's email address that failure-report drafts should be addressed to. Only call this when the user explicitly gives you an email address to use.",
+        input_schema: { type: "object",
+                        properties: { email: { type: "string", description: "The developer's email address" } },
+                        required: %w[email], additionalProperties: false } },
     ].freeze
 
     WRITE_TOOLS = [
@@ -175,12 +199,27 @@ module KitchenAi
       when "get_fleet_status"  then [ fleet_status_text, false ]
       when "list_classes"      then [ list_classes_text(input[:filter] || "upcoming"), false ]
       when "get_sales_summary" then [ sales_summary_text, false ]
+      when "set_developer_email"
+        return [ "Not allowed here.", true ] unless @enable_config
+        set_developer_email_action(input)
       when "trigger_scrape", "trigger_smoke_test", "draft_social_post"
         return [ "Not allowed: actions are disabled in this mode.", true ] unless writes_allowed?
         write_action(name, input)
       else
         [ "Unknown tool: #{name}", true ]
       end
+    end
+
+    # Config write: persist the developer email the user gave us, after a
+    # format check so we never store garbage. Reversible (just a kv setting).
+    def set_developer_email_action(input)
+      email = input[:email].to_s.strip
+      unless email.match?(URI::MailTo::EMAIL_REGEXP)
+        return [ "That doesn't look like a valid email address, so I didn't save it. Want to try again?", true ]
+      end
+      Setting.set("nyk_developer_email", email)
+      record("set_developer_email", { email: email })
+      [ "Saved — failure-report drafts will be addressed to #{email} from now on.", false ]
     end
 
     # Write handlers. Each records an audit entry in @actions_taken; a real
