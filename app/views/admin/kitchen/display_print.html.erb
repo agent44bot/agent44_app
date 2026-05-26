@@ -138,9 +138,9 @@
         <% if page_idx == pages.size - 1 %>
           <div class="footer">
             <% if @more_count.to_i > 0 %>
-              + <%= pluralize(@more_count, "more class") %> — see the full schedule at <strong>nykitchen.com</strong>
+              + <%= pluralize(@more_count, "more class") %> — see the full schedule at <strong>nykitchen.com/calendar/</strong>
             <% else %>
-              Scan a code to reserve, or visit <strong>nykitchen.com</strong>
+              Scan a code to reserve, or visit <strong>nykitchen.com/calendar/</strong>
             <% end %>
           </div>
         <% end %>
@@ -148,7 +148,7 @@
     <% end %>
   <% else %>
     <div class="page">
-      <div class="empty">No upcoming classes right now. Check back at nykitchen.com.</div>
+      <div class="empty">No upcoming classes right now. Check back at nykitchen.com/calendar/.</div>
     </div>
   <% end %>
 

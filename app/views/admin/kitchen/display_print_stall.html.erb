@@ -112,14 +112,14 @@
         </div>
       <% end %>
     <% else %>
-      <div class="empty">No upcoming classes right now.<br>Check back at nykitchen.com.</div>
+      <div class="empty">No upcoming classes right now.<br>Check back at nykitchen.com/calendar/.</div>
     <% end %>
 
     <div class="footer">
       <% if @more_count.to_i > 0 %>
-        + <%= pluralize(@more_count, "more class") %> at <strong>nykitchen.com</strong>
+        + <%= pluralize(@more_count, "more class") %> at <strong>nykitchen.com/calendar/</strong>
       <% else %>
-        See the full schedule at <strong>nykitchen.com</strong>
+        See the full schedule at <strong>nykitchen.com/calendar/</strong>
       <% end %>
     </div>
   </div>
