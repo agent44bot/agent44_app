@@ -154,23 +154,30 @@ class KitchenController < ApplicationController
     redirect_to nyk_display_settings_path, notice: "Display settings saved."
   end
 
-  # Printable handout of the next N available classes (N = same slide_count
-  # as the public display). Admin-only — meant for staff use.
+  # Printable handouts of the next N non-sold-out classes. Two layouts (Lora's
+  # request), both fed by the same upcoming-classes data:
+  #   flyer (default) — grab-and-go front-desk handout, 18 classes laid out 9
+  #                     to a side so it prints double-sided on one sheet; photos
+  #                     + QR per row.
+  #   stall           — big-font poster for the bathroom stalls, 6 classes on
+  #                     one side, no photos, large QR to scan up close.
+  # Counts are fixed defaults but overridable ad-hoc with ?n=. Independent of
+  # the TV's slide_count, which only limits the rotating on-screen carousel.
   def display_print
     @agent = nyk_display_agent
     snapshot = KitchenSnapshot.latest
-    # A quick grab-and-go flyer sized to one sheet, front and back. Cap to the
-    # soonest N non-sold-out classes that fill ~2 pages (tune/override with
-    # ?n=). Anything past the cap is summarized in the footer. Independent of
-    # the TV's slide_count, which only limits the rotating on-screen carousel.
-    @print_limit = params[:n].present? ? params[:n].to_i.clamp(1, 60) : 16
+    @variant = params[:variant] == "stall" ? "stall" : "flyer"
+    @per_page = 9 # flyer: forces a clean 9-front / 9-back page break
+    default_limit = @variant == "stall" ? 6 : 18
+    @print_limit = params[:n].present? ? params[:n].to_i.clamp(1, 60) : default_limit
     upcoming = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
     @events = upcoming.first(@print_limit)
     @more_count = upcoming.size - @events.size
     @last_updated = snapshot&.taken_on
-    # Photos default on (Lora's request); ?photos=0 prints a leaner B&W run.
+    # Photos default on for both layouts; ?photos=0 prints a leaner text-only run.
     @show_photos = params[:photos].to_s != "0"
-    render "admin/kitchen/display_print", layout: false
+    template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
+    render template, layout: false
   end
 
   def rotate_display_token

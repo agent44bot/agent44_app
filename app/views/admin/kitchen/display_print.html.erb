@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>NY Kitchen · Upcoming Classes (print)</title>
+  <title>NY Kitchen · Upcoming Classes (flyer)</title>
   <style>
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -13,7 +13,8 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .sheet { max-width: 7.5in; margin: 0.4in auto; padding: 0 0.25in; }
+    /* Each .page is one printed side: 9 classes → front, next 9 → back. */
+    .page { max-width: 7.5in; margin: 0.4in auto; padding: 0 0.25in; }
     .header {
       display: flex; align-items: baseline; justify-content: space-between;
       padding-bottom: 8px; border-bottom: 2px solid #111; margin-bottom: 12px;
@@ -22,15 +23,16 @@
     .brand .accent { color: #c2410c; }
     .meta-head { font-size: 8.5pt; color: #555; }
 
-    /* Compact row: photo · text · QR. ~10 to a page. */
+    /* Compact row: photo · text · QR. Fixed height so exactly nine fit on a
+       side (a 10th would spill the page break). */
     .event {
       display: flex; align-items: center; gap: 12px;
-      padding: 7px 0; border-bottom: 1px solid #e2e2e2;
-      page-break-inside: avoid;
+      height: 0.98in; border-bottom: 1px solid #e2e2e2;
+      page-break-inside: avoid; overflow: hidden;
     }
     .event:last-child { border-bottom: 0; }
     .thumb {
-      width: 0.85in; height: 0.85in; flex: 0 0 auto;
+      width: 0.82in; height: 0.82in; flex: 0 0 auto;
       object-fit: cover; border-radius: 6px; background: #f1f1f1;
     }
     .body { flex: 1 1 auto; min-width: 0; }
@@ -41,8 +43,7 @@
     }
     .info { font-size: 9pt; color: #333; }
     .info .sep { color: #bbb; padding: 0 2px; }
-    /* One line each so rows stay a uniform height — keeps the flyer to a
-       predictable one sheet, front and back. */
+    /* One line so the row stays within its fixed height. */
     .desc {
       font-size: 8.5pt; color: #555; margin-top: 3px; line-height: 1.25;
       display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1;
@@ -57,7 +58,7 @@
       font-size: 8.5pt; color: #777; text-align: center;
     }
     .empty { text-align: center; padding: 60px 0; color: #777; font-size: 12pt; }
-    .actions { margin-bottom: 14px; display: flex; gap: 10px; justify-content: flex-end; }
+    .actions { max-width: 7.5in; margin: 0.4in auto 0; padding: 0 0.25in; display: flex; gap: 10px; justify-content: flex-end; }
     .btn {
       display: inline-block; padding: 6px 14px; font-size: 10pt;
       border: 1px solid #444; background: #fff; color: #111;
@@ -66,81 +67,90 @@
     .btn-primary { background: #111; color: #fff; border-color: #111; }
     @media print {
       .actions { display: none; }
-      .sheet  { margin: 0; max-width: none; }
+      .page { margin: 0; max-width: none; page-break-after: always; }
+      .page:last-of-type { page-break-after: auto; }
       @page { margin: 0.4in; }
     }
   </style>
 </head>
 <body>
-  <div class="sheet">
-    <div class="actions">
-      <a class="btn" href="<%= nyk_display_settings_path %>">← Back</a>
-      <% if @show_photos %>
-        <a class="btn" href="<%= nyk_display_print_path(photos: 0) %>">Text only</a>
-      <% else %>
-        <a class="btn" href="<%= nyk_display_print_path %>">With photos</a>
-      <% end %>
-      <button id="print-btn" type="button" class="btn btn-primary">🖨 Print</button>
-    </div>
+  <div class="actions">
+    <a class="btn" href="<%= nyk_display_settings_path %>">← Back</a>
+    <a class="btn" href="<%= nyk_display_print_path(variant: "stall") %>">Stall poster</a>
+    <% if @show_photos %>
+      <a class="btn" href="<%= nyk_display_print_path(photos: 0) %>">Text only</a>
+    <% else %>
+      <a class="btn" href="<%= nyk_display_print_path %>">With photos</a>
+    <% end %>
+    <button id="print-btn" type="button" class="btn btn-primary">🖨 Print</button>
+  </div>
 
-    <div class="header">
-      <div class="brand">NY Kitchen <span class="accent">· Upcoming Classes</span></div>
-      <div class="meta-head">
-        <%= pluralize(@events.size, "class") %><% if @more_count > 0 %> of <%= @events.size + @more_count %><% end %><% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
-      </div>
-    </div>
+  <% if @events.any? %>
+    <% pages = @events.each_slice(@per_page).to_a %>
+    <% pages.each_with_index do |page_events, page_idx| %>
+      <div class="page">
+        <div class="header">
+          <div class="brand">NY Kitchen <span class="accent">· Upcoming Classes</span></div>
+          <div class="meta-head">
+            <% if page_idx > 0 %>continued · <% end %><%= pluralize(@events.size, "class") %><% if @more_count > 0 %> of <%= @events.size + @more_count %><% end %><% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
+          </div>
+        </div>
 
-    <% if @events.any? %>
-      <% @events.each do |event| %>
-        <%
-          start = event.start_at
-          time_str = start.strftime("%-l:%M %p")
-          time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if event.end_at.present?
-          venue = event.venue.presence || "New York Kitchen, Canandaigua"
+        <% page_events.each do |event| %>
+          <%
+            start = event.start_at
+            time_str = start.strftime("%-l:%M %p")
+            time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if event.end_at.present?
+            venue = event.venue.presence || "New York Kitchen, Canandaigua"
 
-          parts = [ start.strftime("%a, %b %-d"), time_str ]
-          if @agent.setting(:show_price) && event.price.present?
-            price = event.price.to_s.strip
-            price = "$#{price}" unless price.match?(/[$£€]/)
-            parts << price
-          end
-          if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0
-            parts << "#{event.spots_left} spots"
-          end
-          parts << venue
-        %>
-        <div class="event">
-          <% if @show_photos && event.image_url.present? %>
-            <img class="thumb" src="<%= event.image_url %>" alt="" loading="eager">
-          <% end %>
-          <div class="body">
-            <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
-            <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
-            <% blurb = class_blurb(event.description) %>
-            <% if blurb.present? %>
-              <div class="desc"><%= blurb %></div>
+            parts = [ start.strftime("%a, %b %-d"), time_str ]
+            if @agent.setting(:show_price) && event.price.present?
+              price = event.price.to_s.strip
+              price = "$#{price}" unless price.match?(/[$£€]/)
+              parts << price
+            end
+            if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0
+              parts << "#{event.spots_left} spots"
+            end
+            parts << venue
+          %>
+          <div class="event">
+            <% if @show_photos && event.image_url.present? %>
+              <img class="thumb" src="<%= event.image_url %>" alt="" loading="eager">
+            <% end %>
+            <div class="body">
+              <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
+              <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
+              <% blurb = class_blurb(event.description) %>
+              <% if blurb.present? %>
+                <div class="desc"><%= blurb %></div>
+              <% end %>
+            </div>
+            <% if event.url.present? %>
+              <div class="qr">
+                <%= qr_svg(event.url) %>
+                <div class="qr-cap">Scan to reserve</div>
+              </div>
             <% end %>
           </div>
-          <% if event.url.present? %>
-            <div class="qr">
-              <%= qr_svg(event.url) %>
-              <div class="qr-cap">Scan to reserve</div>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-    <% else %>
-      <div class="empty">No upcoming classes right now. Check back at nykitchen.com.</div>
-    <% end %>
+        <% end %>
 
-    <div class="footer">
-      <% if @more_count.to_i > 0 %>
-        + <%= pluralize(@more_count, "more class") %> — see the full schedule at <strong>nykitchen.com</strong>
-      <% else %>
-        Scan a code to reserve, or visit <strong>nykitchen.com</strong>
-      <% end %>
+        <% if page_idx == pages.size - 1 %>
+          <div class="footer">
+            <% if @more_count.to_i > 0 %>
+              + <%= pluralize(@more_count, "more class") %> — see the full schedule at <strong>nykitchen.com</strong>
+            <% else %>
+              Scan a code to reserve, or visit <strong>nykitchen.com</strong>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="page">
+      <div class="empty">No upcoming classes right now. Check back at nykitchen.com.</div>
     </div>
-  </div>
+  <% end %>
 
   <%# Inline event handlers (onclick=) are blocked by the app's CSP nonce
       policy, so attach via a nonced <script> instead. %>
@@ -148,8 +158,8 @@
     document.getElementById("print-btn")?.addEventListener("click", function() {
       window.print();
     });
-    // Opened straight from the hub's "Print schedule" button → pop the print
-    // dialog automatically. Wait for images so photos aren't blank on paper.
+    // Opened straight from the hub's "Flyer" button → pop the print dialog
+    // automatically. Wait for images so photos aren't blank on paper.
     if (new URLSearchParams(window.location.search).has("autoprint")) {
       window.addEventListener("load", function() {
         setTimeout(function() { window.print(); }, 600);

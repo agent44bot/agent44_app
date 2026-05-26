@@ -56,15 +56,33 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_no_match(/Cla ic  Cooking/, response.body) # mangled title header dropped
   end
 
-  test "caps to one sheet (default 16) and footer-summarizes the rest" do
+  test "caps to one double-sided sheet (default 18) and footer-summarizes the rest" do
     25.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24) }
     get nyk_display_print_path
     assert_response :success
-    assert_select ".event", 16, "default flyer cap"
-    assert_match "+ 9 more classes", response.body
+    assert_select ".event", 18, "default flyer cap (9 front + 9 back)"
+    assert_match "+ 7 more classes", response.body
     # The soonest classes are the ones kept; the latest fall off.
     assert_match    "Class 00", response.body
     assert_no_match(/Class 20/, response.body)
+  end
+
+  test "flyer lays out nine classes per side" do
+    18.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24) }
+    get nyk_display_print_path
+    assert_response :success
+    assert_select ".page", 2, "18 classes => two sides of nine"
+    assert_select ".page:first-of-type .event", 9
+  end
+
+  test "stall variant shows six large-font classes with a photo and QR each" do
+    8.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24, image_url: "https://img.test/#{i}.jpg") }
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+    assert_select ".event", 6, "stall poster caps at six"
+    assert_select "img.thumb", 6, "one photo per class"
+    assert_select ".qr svg", 6, "one QR per class"
+    assert_match "+ 2 more classes", response.body
   end
 
   test "no footer overflow note when everything fits" do
