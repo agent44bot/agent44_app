@@ -18,6 +18,10 @@ export default class extends Controller {
   }
 
   connect() {
+    // The body target can be conditionally rendered (e.g. the hub's team
+    // section only exists for workspace members), so tolerate its absence
+    // instead of throwing "Missing target element 'body'".
+    if (!this.hasBodyTarget) return
     const isMobile = window.matchMedia("(max-width: 639px)").matches
     if (this.collapsedValue || (this.mobileCollapsedValue && isMobile)) {
       this.bodyTarget.classList.add("hidden")
@@ -26,6 +30,7 @@ export default class extends Controller {
   }
 
   toggle() {
+    if (!this.hasBodyTarget) return
     const collapsed = this.bodyTarget.classList.toggle("hidden")
     if (this.hasIconTarget) {
       this.iconTarget.classList.toggle("-rotate-90", collapsed)
