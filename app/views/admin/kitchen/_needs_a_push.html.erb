@@ -66,11 +66,11 @@
             </div>
             <div class="shrink-0 text-right">
               <% needed_color = row[:needed_pace] >= 5 ? "text-red-400" : "text-amber-400" %>
-              <div class="text-sm font-semibold <%= needed_color %>"
+              <div class="text-sm font-semibold <%= needed_color %> tabular-nums"
                    title="Must sell ~<%= row[:needed_pace] %> tickets/day to fill by the class date">
                 needs ~<%= row[:needed_pace] %>/day
               </div>
-              <div class="text-xs text-gray-500">selling ~<%= row[:observed_pace] %>/day</div>
+              <div class="text-xs text-gray-500 tabular-nums">selling ~<%= row[:observed_pace] %>/day</div>
             </div>
           </li>
         <% end %>
@@ -101,9 +101,9 @@
               <div class="text-xs text-gray-500 mt-0.5"><%= e.start_at.strftime("%a %-m/%-d") %></div>
             </div>
             <div class="shrink-0 text-right">
-              <div class="text-sm font-semibold text-sky-400"><%= pluralize(e.spots_left, "seat") %> unsold</div>
+              <div class="text-sm font-semibold text-sky-400 tabular-nums"><%= pluralize(e.spots_left, "seat") %> unsold</div>
               <% if e.capacity.to_i > 0 %>
-                <div class="text-xs text-gray-500">of <%= e.capacity %> &middot; <%= (e.spots_left.to_f / e.capacity * 100).round %>% empty</div>
+                <div class="text-xs text-gray-500 tabular-nums">of <%= e.capacity %> &middot; <%= (e.spots_left.to_f / e.capacity * 100).round %>% empty</div>
               <% end %>
             </div>
           </li>

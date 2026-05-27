@@ -314,7 +314,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     sign_out
     get nykitchen_path
     assert_response :success
-    assert_match /List Agent/, response.body
+    assert_match "Field Roster", response.body
+    assert_match "Scheduler", response.body # the List/Sam card still renders
   end
 
   test "anonymous click on List bounces to sign-in" do
@@ -335,14 +336,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/sign_in}
   end
 
-  test "hub renders four agent cards" do
+  test "hub renders the agent roster cards by callsign + classification" do
     create_event("Pasta 101", 2.days.from_now, "InStock")
     get nykitchen_path
     assert_response :success
-    assert_match /List Agent/,   response.body
-    assert_match /Test Agent/,   response.body
-    assert_match /Data Agent/,   response.body
-    assert_match /Social Agent/, response.body
+    # "Field Roster" framing means cards lead with callsign + classification,
+    # not the old repeated "<role> Agent" labels.
+    assert_match "Field Roster", response.body
+    assert_match "Scheduler",    response.body # List / Sam
+    assert_match "Sentry",       response.body # Test / Argus
+    assert_match "Recon",        response.body # Data / Scout
+    assert_match "Broadcast",    response.body # Social / Echo
+    # Cards no longer carry the repeated "<role> Agent" label.
+    assert_no_match(/Test Agent|List Agent|Data Agent/, response.body)
   end
 
   test "hub redirects legacy ?tab=smoke to /nykitchen/test" do
@@ -596,13 +602,28 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       price: "100.00", capacity: 10, spots_left: 4 # 6 sold, 4 left
     )
 
-    get nyk_analyst_path
+    get nyk_analyst_path(range: "all") # "all upcoming" so the rollup isn't date-window-scoped
     assert_response :success
     assert_match "Sold", response.body
     assert_match "Left to sell", response.body
     assert_match "Face value", response.body
     assert_match "$600", response.body # sold = 6 × $100 (exact hero figure)
     refute_match "Total potential", response.body # dropped in the two-number redesign
+  end
+
+  test "analyst range control scopes the revenue rollup" do
+    # In-window class (this week) vs far-future class (outside week/2-week/month).
+    @snapshot.kitchen_events.create!(url: "https://nykitchen.com/events/soon", name: "Soon",
+      start_at: 2.hours.from_now, availability: "InStock", price: "100.00", capacity: 10, spots_left: 4) # today → always this week; $600 sold
+    @snapshot.kitchen_events.create!(url: "https://nykitchen.com/events/far", name: "Far",
+      start_at: 90.days.from_now, availability: "InStock", price: "100.00", capacity: 10, spots_left: 0) # $1000 sold
+
+    get nyk_analyst_path(range: "all")
+    assert_match "$1,600", response.body # both classes: $600 + $1000
+
+    get nyk_analyst_path(range: "week")
+    assert_match "$600", response.body      # only the in-window class
+    refute_match "$1,600", response.body    # far-future class excluded
   end
 
   test "Analyst page renders the sales charts when there's sales history" do
@@ -617,27 +638,45 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     get nyk_analyst_path
     assert_response :success
-    # Both the by-week and by-month charts use the shared sales-bar-chart controller.
-    assert_select "[data-controller='sales-bar-chart']", minimum: 2
-    assert_select "canvas[data-sales-bar-chart-target='canvas']", minimum: 2
-    assert_select "h2", text: "Tickets sold by week"
-    assert_select "h2", text: "Tickets sold by month"
+    # Week + month are merged into one card + canvas, switched via a toggle.
+    assert_select "[data-controller='sales-bar-chart']", count: 1
+    assert_select "canvas[data-sales-bar-chart-target='canvas']", count: 1
+    assert_select "[data-sales-bar-chart-target='toggle']", count: 2 # Week + Month
+    assert_match "Tickets sold", response.body
+    refute_match "Tickets sold by week", response.body
   end
 
-  test "non-admin does not see the revenue rollup (admin-only for now)" do
+  test "a non-member does not see the revenue rollup (seats, not dollars)" do
     @snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/events/rev-cust", name: "Rev Cust",
       start_at: 2.days.from_now, availability: "InStock",
       price: "100.00", capacity: 10, spots_left: 4
     )
 
-    customer = User.create!(email_address: "cust-#{SecureRandom.hex(4)}@example.com", role: "user")
-    sign_in_as(customer)
+    outsider = User.create!(email_address: "cust-#{SecureRandom.hex(4)}@example.com", role: "user")
+    sign_in_as(outsider)
 
-    get nyk_analyst_path
+    get nyk_analyst_path(range: "all")
     assert_response :success
     refute_match "Left to sell", response.body
     refute_match "Face value", response.body
+  end
+
+  test "a workspace owner/admin sees the revenue rollup (it's their own sales)" do
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    @snapshot.kitchen_events.create!(
+      url: "https://nykitchen.com/events/rev-mgr", name: "Rev Mgr",
+      start_at: 2.days.from_now, availability: "InStock",
+      price: "100.00", capacity: 10, spots_left: 4 # 6 sold
+    )
+    manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.find_or_create_by!(user: manager, role: "admin")
+    sign_in_as(manager)
+
+    get nyk_analyst_path(range: "all")
+    assert_response :success
+    assert_match "Left to sell", response.body
+    assert_match "$600", response.body # workspace-admin (not an app admin) still sees the dollars
   end
 
   test "analyst subscription toggle opts the current user in and out" do

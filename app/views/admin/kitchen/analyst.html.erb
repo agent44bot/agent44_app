@@ -43,24 +43,57 @@
   <% has_revenue = @show_revenue && @rev_total.to_f.positive? %>
   <% has_leaderboards = @top_sellers.present? || @top_sellers_all.present? || @needs_a_push.present? || @ended_emptiest.present? %>
 
+  <%# Time-range control — scopes the scoreboard + the "upcoming" leaderboards.
+      Plain links; Turbo re-renders the page with ?range=. %>
+  <div class="flex flex-wrap items-center gap-0.5 bg-gray-800 rounded-lg p-0.5 text-xs font-medium mb-5 w-fit">
+    <% { "week" => "This week", "2weeks" => "Next 2 weeks", "month" => "This month", "all" => "All upcoming" }.each do |key, label| %>
+      <%= link_to label, nyk_analyst_path(range: key),
+            class: "px-3 py-1.5 rounded-md transition #{@range == key ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white"}" %>
+    <% end %>
+  </div>
+
   <% if has_revenue %>
-    <div class="bg-gray-900 rounded-xl p-5 mb-6">
-      <div class="flex flex-wrap items-baseline gap-x-10 gap-y-2">
-        <div>
-          <div class="text-3xl font-black text-green-400"><%= number_to_currency(@rev_sold, precision: 0) %></div>
-          <div class="text-xs text-gray-500 uppercase tracking-wide">Sold</div>
+    <div class="bg-gray-900 rounded-xl p-6 mb-6">
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= @range_label %></div>
+      <%# Hero: revenue sold is the headline figure. tabular-nums keeps digits
+          aligned and stops them jittering as the range changes. %>
+      <div class="text-5xl sm:text-6xl font-black text-green-400 tabular-nums leading-none">
+        <%= number_to_currency(@rev_sold, precision: 0) %>
+      </div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mt-2">Sold</div>
+
+      <% if @rev_total.to_f.positive? %>
+        <% sold_w = [ [ (100.0 * @rev_sold / @rev_total).round, 0 ].max, 100 ].min %>
+        <div class="mt-5 h-1.5 w-full rounded-full bg-gray-800 overflow-hidden" title="<%= sold_w %>% of face-value capacity sold">
+          <div class="h-full bg-green-500 rounded-full" style="width: <%= sold_w %>%"></div>
         </div>
+      <% end %>
+
+      <%# Secondary stats, clearly subordinate to the hero. Each is stacked
+          (figure over label) so the two don't run together on one line. %>
+      <div class="mt-4 flex flex-wrap items-start gap-x-10 gap-y-3">
         <div>
           <%# Capacity is estimated (biased low) for most classes, so round this
               one and prefix ~ to signal it's an approximation, not an exact figure. %>
-          <div class="text-2xl font-bold text-amber-400">~$<%= number_with_delimiter((@rev_left / 1000.0).round) %>K</div>
-          <div class="text-xs text-gray-500 uppercase tracking-wide">Left to sell</div>
+          <div class="text-xl font-bold text-amber-400 tabular-nums">~$<%= number_with_delimiter((@rev_left / 1000.0).round) %>K</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mt-0.5">Left to sell</div>
         </div>
+        <% if @rev_pct_sold %>
+          <div>
+            <div class="text-xl font-bold text-gray-300 tabular-nums"><%= @rev_pct_sold %>%</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wide mt-0.5">of seats sold</div>
+          </div>
+        <% end %>
       </div>
-      <p class="text-xs text-gray-600 mt-3">
-        Face value (list price × seats) across <%= @rev_priced_count %> classes with capacity data<%=
+
+      <p class="text-xs text-gray-600 mt-4">
+        Face value (list price × seats) across <%= @rev_priced_count %> <%= "class".pluralize(@rev_priced_count) %> with capacity data<%=
           @rev_proxy_count.positive? ? " · #{@rev_proxy_count} use an observed baseline as capacity, so left-to-sell is approximate (biased low)" : "" %>.
       </p>
+    </div>
+  <% elsif @show_revenue %>
+    <div class="bg-gray-900 rounded-xl p-5 mb-6 text-sm text-gray-500">
+      No classes with capacity data for <%= @range_label.downcase %> yet.
     </div>
   <% end %>
 
@@ -89,30 +122,34 @@
     </div>
   <% end %>
 
-  <% if @weekly_sales.present? && @weekly_sales.sum { |w| w[:tickets] }.positive? %>
+  <%# Tickets sold over time — week and month share one card + canvas, toggled
+      client-side (sales-bar-chart swaps the dataset, so no hidden-canvas resize
+      bug). Only offer the toggle when both series have data. %>
+  <% week_has  = @weekly_sales.present?  && @weekly_sales.sum  { |w| w[:tickets] }.positive? %>
+  <% month_has = @monthly_sales.present? && @monthly_sales.sum { |m| m[:tickets] }.positive? %>
+  <% if week_has || month_has %>
+    <% series = [] %>
+    <% series << { key: "week",  label: "Week",  tooltipPrefix: "Week of ", caption: "Since tracking began",
+                   labels: @weekly_sales.map  { |w| w[:label] }, values: @weekly_sales.map  { |w| w[:tickets] } } if week_has %>
+    <% series << { key: "month", label: "Month", tooltipPrefix: "",         caption: "First month partial (tracking began mid-April)",
+                   labels: @monthly_sales.map { |m| m[:label] }, values: @monthly_sales.map { |m| m[:tickets] } } if month_has %>
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
          data-controller="sales-bar-chart"
-         data-sales-bar-chart-tooltip-prefix-value="Week of "
-         data-sales-bar-chart-labels-value="<%= @weekly_sales.map { |w| w[:label] }.to_json %>"
-         data-sales-bar-chart-values-value="<%= @weekly_sales.map { |w| w[:tickets] }.to_json %>">
-      <div class="flex items-baseline justify-between mb-3">
-        <h2 class="text-sm font-semibold text-white">Tickets sold by week</h2>
-        <span class="text-xs text-gray-500">Since tracking began</span>
-      </div>
-      <div class="relative h-48">
-        <canvas data-sales-bar-chart-target="canvas"></canvas>
-      </div>
-    </div>
-  <% end %>
-
-  <% if @monthly_sales.present? && @monthly_sales.sum { |m| m[:tickets] }.positive? %>
-    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
-         data-controller="sales-bar-chart"
-         data-sales-bar-chart-labels-value="<%= @monthly_sales.map { |m| m[:label] }.to_json %>"
-         data-sales-bar-chart-values-value="<%= @monthly_sales.map { |m| m[:tickets] }.to_json %>">
-      <div class="flex items-baseline justify-between mb-3">
-        <h2 class="text-sm font-semibold text-white">Tickets sold by month</h2>
-        <span class="text-xs text-gray-500">First month partial (tracking began mid-April)</span>
+         data-sales-bar-chart-series-value="<%= series.to_json %>">
+      <div class="flex items-baseline justify-between gap-2 mb-3">
+        <h2 class="text-sm font-semibold text-white">Tickets sold</h2>
+        <div class="flex items-center gap-3">
+          <% if series.size > 1 %>
+            <div class="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5 text-xs font-medium">
+              <% series.each_with_index do |s, i| %>
+                <button type="button" data-sales-bar-chart-target="toggle"
+                        data-action="sales-bar-chart#select" data-sales-bar-chart-index-param="<%= i %>"
+                        class="px-2.5 py-1 rounded-md transition"><%= s[:label] %></button>
+              <% end %>
+            </div>
+          <% end %>
+          <span class="text-xs text-gray-500" data-sales-bar-chart-target="caption"></span>
+        </div>
       </div>
       <div class="relative h-48">
         <canvas data-sales-bar-chart-target="canvas"></canvas>

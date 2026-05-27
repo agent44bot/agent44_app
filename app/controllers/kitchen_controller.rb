@@ -59,6 +59,32 @@ class KitchenController < ApplicationController
     agent = @workspace_agents["analyst"]
     subs  = Array(agent&.setting(:weekly_email_subscriber_ids)).map(&:to_i)
     @analyst_subscribed = Current.user && subs.include?(Current.user.id)
+
+    # Time-range scoreboard: scope the revenue rollup + the two "upcoming"
+    # leaderboards to a forward window the user picks (this week / next two /
+    # this month / all upcoming). The trend charts + the "All time" leaderboard
+    # tabs stay unscoped.
+    @range = params[:range].presence_in(%w[week 2weeks month all]) || "all"
+    today    = Date.current
+    week_end = today + ((7 - today.cwday) % 7) # this week's Sunday — matches the List week buckets
+    @range_end   = { "week" => week_end, "2weeks" => week_end + 7, "month" => today.end_of_month, "all" => nil }[@range]
+    @range_label = { "week" => "This week", "2weeks" => "Next 2 weeks", "month" => "This month", "all" => "All upcoming" }[@range]
+    in_window = ->(e) { e&.start_at && (@range_end.nil? || e.start_at.to_date <= @range_end) }
+
+    priced = Array(@events).select { |e| in_window.call(e) && e.capacity_known? }
+    @rev_priced_count = priced.size
+    @rev_proxy_count  = priced.count(&:capacity_via_proxy?)
+    @rev_sold  = priced.sum(&:revenue_sold)
+    @rev_total = priced.sum(&:revenue_total)
+    @rev_left  = @rev_total - @rev_sold
+    seats_total   = priced.sum { |e| e.tickets_total.to_i }
+    @rev_pct_sold = seats_total.positive? ? (100.0 * priced.sum { |e| e.tickets_sold.to_i } / seats_total).round : nil
+
+    if (snap = KitchenSnapshot.latest)
+      @top_sellers  = KitchenSnapshot.selling_fastest(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
+      @needs_a_push = KitchenSnapshot.needs_a_push(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
+    end
+
     render "admin/kitchen/analyst", layout: "application"
   end
 
@@ -584,8 +610,12 @@ class KitchenController < ApplicationController
 
   # List Agent data — events, weeks, filter counts, workspace status.
   def load_events_data
-    # Revenue figures are admin-only for now (kitchen_customers see seats, not $).
-    @show_revenue = Current.user&.admin?
+    # Sales revenue (ticket $) is the kitchen's own data — show it to the
+    # workspace's managers (owner/admin role) + app admins. Plain members /
+    # kitchen_customers still see seats, not dollars. Distinct from
+    # @can_see_pricing, which gates OUR internal agent/compute costs.
+    ws_role = (@nyk_workspace || Workspace.find_by(slug: "nykitchen"))&.role_for(Current.user)
+    @show_revenue = Current.user&.admin? || %w[owner admin].include?(ws_role.to_s)
     snapshot = KitchenSnapshot.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming.order(:start_at)

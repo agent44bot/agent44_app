@@ -79,15 +79,15 @@ class BillingVisibilityToggleTest < ActionDispatch::IntegrationTest
 
   private
 
-  # Crude slice: from the Test Agent heading to the next agent (Data) so we're
-  # asserting on just that one card, not the whole page (which has other prices
-  # like the running rate footer).
+  # Crude slice: from the Test card's classification tag ("Sentry") to the end
+  # of the document so we're asserting on just that one card, not the whole page
+  # (which has other prices like the running rate footer).
   def hub_card_for(agent, body)
     case agent
     when :test
-      # Test Agent is the last card; grep from its title to end-of-document
-      # so the regex doesn't depend on card-ordering.
-      body[/Test Agent.*\z/m].to_s
+      # Test (Argus · Sentry) is the last card; grep from its classification
+      # tag to end-of-document so the regex doesn't depend on card-ordering.
+      body[/Sentry.*\z/m].to_s
     end
   end
 end
