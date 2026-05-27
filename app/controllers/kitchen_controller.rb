@@ -14,7 +14,7 @@ class KitchenController < ApplicationController
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
-  before_action :set_common_view_state, only: %i[hub list test data ask]
+  before_action :set_common_view_state, only: %i[hub list test data ask analyst]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -47,6 +47,38 @@ class KitchenController < ApplicationController
   def data
     load_scrape_data
     render "admin/kitchen/data", layout: "application"
+  end
+
+  # Analyst Agent — the sales/revenue dashboard. Reuses the List Agent's data
+  # loader (same snapshot rollups); the view renders only the analytical
+  # pieces (revenue rollup + trend charts), while List keeps the operational
+  # calendar/leaderboards.
+  def analyst
+    @sendable_workspaces = sendable_workspaces_for(Current.user) # for "Needs a push" → Social Agent
+    load_events_data
+    agent = @workspace_agents["analyst"]
+    subs  = Array(agent&.setting(:weekly_email_subscriber_ids)).map(&:to_i)
+    @analyst_subscribed = Current.user && subs.include?(Current.user.id)
+    render "admin/kitchen/analyst", layout: "application"
+  end
+
+  # Toggle the current user's opt-in to the Friday weekly sales recap. Stores
+  # subscriber user IDs on the Analyst agent; the job resolves them to emails
+  # at send time (so an email change carries over automatically).
+  def update_analyst_subscription
+    workspace = Workspace.find_by(slug: "nykitchen")
+    user = Current.user
+    return redirect_to(nyk_analyst_path, alert: "Sign in to subscribe.") unless workspace && user
+    if user.email_address.blank?
+      return redirect_to nyk_analyst_path, alert: "Add an email to your profile first, then subscribe."
+    end
+    agent = workspace.agent_for("analyst")
+    ids = Array(agent.setting(:weekly_email_subscriber_ids)).map(&:to_i)
+    now_subscribed = !ids.include?(user.id)
+    ids = now_subscribed ? (ids + [ user.id ]) : (ids - [ user.id ])
+    agent.update_settings(weekly_email_subscriber_ids: ids.uniq)
+    redirect_to nyk_analyst_path,
+      notice: now_subscribed ? "Subscribed — you'll get the Friday sales recap at #{user.email_address}." : "Unsubscribed from the weekly recap."
   end
 
   # Super Agent — chat surface for read-only Q&A about NYK classes. The view

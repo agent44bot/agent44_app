@@ -1,9 +1,13 @@
 class WorkspaceAgent < ApplicationRecord
-  KINDS = %w[list social data test display ask].freeze
+  KINDS = %w[list social data test display ask analyst].freeze
 
   # Per-kind setting defaults. Used by `setting(key)` so callers can read
   # without checking whether a value has been persisted yet.
   DEFAULT_SETTINGS = {
+    "analyst" => {
+      # User IDs opted in to the Friday weekly sales recap email.
+      "weekly_email_subscriber_ids" => []
+    },
     "display" => {
       "visibility"       => "public",
       "share_token"      => nil,

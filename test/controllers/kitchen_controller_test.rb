@@ -589,25 +589,23 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match "bg-red-500", response.body
   end
 
-  test "admin sees the revenue rollup (banner + footnote)" do
+  test "admin sees the revenue rollup on the Analyst page (two-number header)" do
     @snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/events/rev-admin", name: "Rev Admin",
       start_at: 2.days.from_now, availability: "InStock",
       price: "100.00", capacity: 10, spots_left: 4 # 6 sold, 4 left
     )
 
-    get nyk_list_path
+    get nyk_analyst_path
     assert_response :success
-    assert_match "Total potential", response.body
+    assert_match "Sold", response.body
     assert_match "Left to sell", response.body
     assert_match "Face value", response.body
-    assert_match "$1,000", response.body # total = 10 × $100
-    assert_match "$600", response.body   # sold  = 6 × $100
+    assert_match "$600", response.body # sold = 6 × $100 (exact hero figure)
+    refute_match "Total potential", response.body # dropped in the two-number redesign
   end
 
-  test "list page renders the weekly sales chart when there's sales history" do
-    # Latest snapshot (today, from setup) needs an upcoming event so the page
-    # renders the events branch (where the charts live), not the empty state.
+  test "Analyst page renders the sales charts when there's sales history" do
     create_event("Upcoming Class", 2.days.from_now, "InStock")
 
     s1 = KitchenSnapshot.create!(taken_on: 8.days.ago.to_date)
@@ -617,7 +615,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     s2.kitchen_events.create!(url: "https://nykitchen.com/wk", name: "Wk",
                               start_at: 2.days.from_now, spots_left: 14) # 6 sold
 
-    get nyk_list_path
+    get nyk_analyst_path
     assert_response :success
     # Both the by-week and by-month charts use the shared sales-bar-chart controller.
     assert_select "[data-controller='sales-bar-chart']", minimum: 2
@@ -636,11 +634,22 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     customer = User.create!(email_address: "cust-#{SecureRandom.hex(4)}@example.com", role: "user")
     sign_in_as(customer)
 
-    get nyk_list_path
+    get nyk_analyst_path
     assert_response :success
-    refute_match "Total potential", response.body
     refute_match "Left to sell", response.body
     refute_match "Face value", response.body
+  end
+
+  test "analyst subscription toggle opts the current user in and out" do
+    workspace = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+
+    patch nyk_analyst_subscription_path
+    assert_redirected_to nyk_analyst_path
+    subs = -> { Array(workspace.agent_for("analyst").setting(:weekly_email_subscriber_ids)) }
+    assert_includes subs.call, @default_user.id, "first toggle subscribes"
+
+    patch nyk_analyst_subscription_path
+    refute_includes subs.call, @default_user.id, "second toggle unsubscribes"
   end
 
   private

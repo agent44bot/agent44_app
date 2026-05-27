@@ -1,0 +1,128 @@
+<% content_for(:title, "NY Kitchen · Analyst Agent") %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <%= render "admin/kitchen/breadcrumbs" %>
+
+  <div class="mb-6">
+    <%= render "admin/kitchen/agent_title", title: "Analyst Agent", kind: "analyst" %>
+    <p class="text-gray-400 mt-1">
+      Sales &amp; revenue dashboard for NY Kitchen<% if @last_updated %> &middot; Updated <%= @last_updated.strftime("%b %-d") %><% end %>.
+    </p>
+  </div>
+
+  <%# The Analyst's proactive output: opt in to a weekly recap email. The
+      whole row is the toggle (button_to → PATCH); the box just reflects state.
+      No email on file → point them at their profile to add one first. %>
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
+    <% if Current.user&.email_address.present? %>
+      <%= button_to nyk_analyst_subscription_path, method: :patch,
+            class: "group flex items-center gap-3 w-full text-left cursor-pointer" do %>
+        <span class="flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition <%= @analyst_subscribed ? "bg-orange-600 border-orange-600" : "border-gray-600 group-hover:border-orange-500" %>">
+          <% if @analyst_subscribed %>
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          <% end %>
+        </span>
+        <span class="text-sm">
+          <span class="text-gray-200 font-medium">📬 Email me the weekly sales recap</span>
+          <span class="block text-xs text-gray-500"><%= Current.user.email_address %> · Fridays at 6:00 AM ET</span>
+        </span>
+      <% end %>
+    <% else %>
+      <div class="text-sm text-gray-300">
+        <span class="font-medium">📬 Weekly sales recap</span> — emailed Fridays at 6:00 AM ET.
+        <div class="text-xs text-gray-500 mt-1">
+          <%= link_to "Add an email to your profile", settings_path, class: "text-orange-400 hover:text-orange-300 underline" %> to subscribe.
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <% has_charts = (@dow_avg && @dow_avg.values.sum.positive?) ||
+                  (@weekly_sales.present? && @weekly_sales.sum { |w| w[:tickets] }.positive?) ||
+                  (@monthly_sales.present? && @monthly_sales.sum { |m| m[:tickets] }.positive?) %>
+  <% has_revenue = @show_revenue && @rev_total.to_f.positive? %>
+  <% has_leaderboards = @top_sellers.present? || @top_sellers_all.present? || @needs_a_push.present? || @ended_emptiest.present? %>
+
+  <% if has_revenue %>
+    <div class="bg-gray-900 rounded-xl p-5 mb-6">
+      <div class="flex flex-wrap items-baseline gap-x-10 gap-y-2">
+        <div>
+          <div class="text-3xl font-black text-green-400"><%= number_to_currency(@rev_sold, precision: 0) %></div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide">Sold</div>
+        </div>
+        <div>
+          <%# Capacity is estimated (biased low) for most classes, so round this
+              one and prefix ~ to signal it's an approximation, not an exact figure. %>
+          <div class="text-2xl font-bold text-amber-400">~$<%= number_with_delimiter((@rev_left / 1000.0).round) %>K</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide">Left to sell</div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-600 mt-3">
+        Face value (list price × seats) across <%= @rev_priced_count %> classes with capacity data<%=
+          @rev_proxy_count.positive? ? " · #{@rev_proxy_count} use an observed baseline as capacity, so left-to-sell is approximate (biased low)" : "" %>.
+      </p>
+    </div>
+  <% end %>
+
+  <%# Per-class performance: what's hot, and what to hand to the Social Agent. %>
+  <% if @top_sellers.present? || @top_sellers_all.present? %>
+    <%= render "admin/kitchen/top_sellers" %>
+  <% end %>
+  <% if @needs_a_push.present? || @ended_emptiest.present? %>
+    <%= render "admin/kitchen/needs_a_push" %>
+  <% end %>
+
+  <% if @dow_avg && @dow_avg.values.sum.positive? %>
+    <% dow_avg_json  = (0..6).map { |w| @dow_avg[w]       || 0 }.to_json %>
+    <% dow_week_json = (0..6).map { |w| @dow_this_week[w]            }.to_json %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
+         data-controller="dow-chart"
+         data-dow-chart-avg-value="<%= dow_avg_json %>"
+         data-dow-chart-week-value="<%= dow_week_json %>">
+      <div class="flex items-baseline justify-between mb-3">
+        <h2 class="text-sm font-semibold text-white">Sales by day of week</h2>
+        <span class="text-xs text-gray-500">Last 6 weeks</span>
+      </div>
+      <div class="relative h-48">
+        <canvas data-dow-chart-target="canvas"></canvas>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @weekly_sales.present? && @weekly_sales.sum { |w| w[:tickets] }.positive? %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
+         data-controller="sales-bar-chart"
+         data-sales-bar-chart-tooltip-prefix-value="Week of "
+         data-sales-bar-chart-labels-value="<%= @weekly_sales.map { |w| w[:label] }.to_json %>"
+         data-sales-bar-chart-values-value="<%= @weekly_sales.map { |w| w[:tickets] }.to_json %>">
+      <div class="flex items-baseline justify-between mb-3">
+        <h2 class="text-sm font-semibold text-white">Tickets sold by week</h2>
+        <span class="text-xs text-gray-500">Since tracking began</span>
+      </div>
+      <div class="relative h-48">
+        <canvas data-sales-bar-chart-target="canvas"></canvas>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @monthly_sales.present? && @monthly_sales.sum { |m| m[:tickets] }.positive? %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8"
+         data-controller="sales-bar-chart"
+         data-sales-bar-chart-labels-value="<%= @monthly_sales.map { |m| m[:label] }.to_json %>"
+         data-sales-bar-chart-values-value="<%= @monthly_sales.map { |m| m[:tickets] }.to_json %>">
+      <div class="flex items-baseline justify-between mb-3">
+        <h2 class="text-sm font-semibold text-white">Tickets sold by month</h2>
+        <span class="text-xs text-gray-500">First month partial (tracking began mid-April)</span>
+      </div>
+      <div class="relative h-48">
+        <canvas data-sales-bar-chart-target="canvas"></canvas>
+      </div>
+    </div>
+  <% end %>
+
+  <% unless has_revenue || has_charts || has_leaderboards %>
+    <div class="bg-gray-900 rounded-xl p-8 text-center">
+      <p class="text-gray-400">No sales data yet. The Data Agent snapshots the calendar every few hours.</p>
+    </div>
+  <% end %>
+</div>

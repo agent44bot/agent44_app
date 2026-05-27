@@ -17,27 +17,32 @@ export default class extends Controller {
     const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     const Chart  = window.Chart
 
+    const datasets = [
+      {
+        label: "6-week avg",
+        data:  this.avgValue,
+        backgroundColor: "rgba(156, 163, 175, 0.4)",  // gray-400 @ 40%
+        borderRadius: 4,
+        borderSkipped: false,
+      }
+    ]
+    // Only add "This week" if at least one day has a recorded value. With no
+    // current-week snapshots yet the series is all-null — drawing it leaves a
+    // dangling orange legend and no bars, which reads as broken.
+    const hasWeek = Array.isArray(this.weekValue) && this.weekValue.some((v) => v != null)
+    if (hasWeek) {
+      datasets.push({
+        label: "This week",
+        data:  this.weekValue,
+        backgroundColor: "rgba(234, 88, 12, 0.85)",   // orange-600 @ 85%
+        borderRadius: 4,
+        borderSkipped: false,
+      })
+    }
+
     this.chart = new Chart(this.canvasTarget, {
       type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "6-week avg",
-            data:  this.avgValue,
-            backgroundColor: "rgba(156, 163, 175, 0.4)",  // gray-400 @ 40%
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-          {
-            label: "This week",
-            data:  this.weekValue,
-            backgroundColor: "rgba(234, 88, 12, 0.85)",   // orange-600 @ 85%
-            borderRadius: 4,
-            borderSkipped: false,
-          }
-        ]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,

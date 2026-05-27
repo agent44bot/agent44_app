@@ -1,0 +1,23 @@
+NY Kitchen — Weekly Sales Recap
+<%= @s[:snapshot_date]&.strftime("Week of %b %-d, %Y") %>
+
+<%= number_to_currency(@s[:rev_sold], precision: 0) %> sold  ·  ~$<%= number_with_delimiter((@s[:rev_left] / 1000.0).round) %>K left to sell
+<%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% of face value sold across <%= @s[:total_upcoming] %> upcoming classes.
+
+TICKETS SOLD BY WEEK
+<% Array(@s[:weekly_tickets]).last(6).each do |w| -%>
+- <%= w[:label] %>: <%= w[:tickets] %> tickets
+<% end -%>
+
+SELLING FASTEST
+<% Array(@s[:selling_fastest]).each_with_index do |row, i| -%>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — ~<%= row[:pace] %>/day
+<% end -%>
+
+NEEDS A PUSH
+<% Array(@s[:needs_a_push]).each_with_index do |row, i| -%>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>, in <%= row[:days_until] %>d) — needs ~<%= row[:needed_pace] %>/day, selling ~<%= row[:observed_pace] %>/day
+<% end -%>
+
+View the full dashboard: https://agent44labs.com/nykitchen/analyst
+Sent every Friday by the NY Kitchen Analyst Agent. Manage it on the Analyst dashboard.

@@ -61,6 +61,8 @@ Rails.application.routes.draw do
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
+  get   "nykitchen/analyst", to: "kitchen#analyst", as: :nyk_analyst
+  patch "nykitchen/analyst/subscription", to: "kitchen#update_analyst_subscription", as: :nyk_analyst_subscription
   get  "nykitchen/ask",          to: "kitchen#ask",                as: :nyk_ask
   post "nykitchen/ask/message",  to: "kitchen#ask_message",        as: :nyk_ask_message
   post "nykitchen/ask/examples", to: "kitchen#update_ask_examples", as: :nyk_ask_examples
