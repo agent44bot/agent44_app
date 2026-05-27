@@ -82,6 +82,30 @@ module ApplicationHelper
     end
   end
 
+  # NY Kitchen "Field Roster" identity per agent kind: codename callsign,
+  # classification tag, accent colour, emoji. The hub cards AND the agent
+  # detail-page headers both read this so the naming can't drift. A saved
+  # display_name (the rename feature) overrides the default callsign.
+  NYK_ROSTER = {
+    "ask"     => { call: "Ace",   tag: "Concierge", accent: "#f97316", emoji: "💬" },
+    "list"    => { call: "Sam",   tag: "Scheduler", accent: "#38bdf8", emoji: "📋" },
+    "analyst" => { call: "Iris",  tag: "Analyst",   accent: "#34d399", emoji: "📊" },
+    "social"  => { call: "Echo",  tag: "Broadcast", accent: "#a78bfa", emoji: "📣" },
+    "display" => { call: "Neon",  tag: "Marquee",   accent: "#fbbf24", emoji: "🖥" },
+    "data"    => { call: "Scout", tag: "Recon",     accent: "#fb7185", emoji: "🕷️" },
+    "test"    => { call: "Argus", tag: "Sentry",    accent: "#22d3ee", emoji: "🔁" },
+  }.freeze
+
+  def nyk_agent_meta(kind)
+    NYK_ROSTER[kind.to_s] || { call: kind.to_s.titleize, tag: "Agent", accent: "#f97316", emoji: "🤖" }
+  end
+
+  # An agent's display callsign: its saved display_name if set, else the roster
+  # default. `agent` may be nil (anonymous viewer with no workspace yet).
+  def nyk_agent_callsign(kind, agent = nil)
+    agent&.display_name.presence || nyk_agent_meta(kind)[:call]
+  end
+
   def days_ago_in_words(date)
     return "recently" if date.nil?
 

@@ -15,7 +15,22 @@
 
   <div class="flex items-start justify-between gap-2 mb-6 flex-wrap">
     <div>
-      <h1 class="text-2xl font-bold text-white">Social Agent</h1>
+      <%# NY Kitchen uses the "Field Roster" identity (Echo · BROADCAST · #n) to
+          match the hub + other agent pages; other workspaces keep the generic
+          "Social Agent" heading. %>
+      <% if @workspace.slug == "nykitchen" %>
+        <% sa = @workspace.agent_for("social") %>
+        <% meta = nyk_agent_meta("social") %>
+        <div class="flex items-baseline gap-3 flex-wrap">
+          <h1 class="text-2xl font-bold text-white"><%= nyk_agent_callsign("social", sa) %></h1>
+          <div class="flex items-baseline gap-2 text-sm font-mono uppercase tracking-wider">
+            <span class="font-semibold" style="color: <%= meta[:accent] %>"><%= meta[:tag] %></span>
+            <% if sa %><span class="text-gray-600">·</span><span class="text-gray-500">#<%= sa.agent_number %></span><% end %>
+          </div>
+        </div>
+      <% else %>
+        <h1 class="text-2xl font-bold text-white">Social Agent</h1>
+      <% end %>
       <p class="text-xs text-gray-500 font-mono mt-1"><%= @workspace.name %> · /<%= @workspace.slug %> · <%= @workspace.timezone %></p>
     </div>
     <div class="flex items-center gap-2">

@@ -1,34 +1,38 @@
-<%# Renders the H1 title row for an agent detail page (list/test/data/social).
-    Shows: <Title> · [pet name] · #207, with an inline rename form for
-    workspace owner/admin members.
+<%# H1 identity row for an agent detail page, matching the hub "Field Roster":
+    <Callsign> · <CLASSIFICATION> · #<number>. Naming comes from
+    ApplicationHelper::NYK_ROSTER so it stays in sync with the hub; a saved
+    display_name overrides the callsign. The legacy `title` ("<Role> Agent") is
+    no longer shown — `kind` drives everything.
     Locals:
-      title: "List Agent"
-      kind:  "list" | "social" | "data" | "test"
+      title: (ignored, kept for call-site compatibility)
+      kind:  "ask" | "list" | "analyst" | "social" | "display" | "data" | "test"
 %>
-<% agent = @workspace_agents[kind.to_s] %>
+<% agent      = @workspace_agents[kind.to_s] %>
+<% meta       = nyk_agent_meta(kind) %>
+<% callsign   = nyk_agent_callsign(kind, agent) %>
 <% can_rename = false # rename UI hidden for now %>
-<div class="flex items-center gap-3 flex-wrap" <% if can_rename %>data-controller="collapsible" data-collapsible-collapsed-value="true"<% end %>>
-  <h1 class="text-3xl font-black text-white tracking-tight"><%= title %></h1>
-  <% if agent %>
-    <div class="flex items-baseline gap-2 text-base font-medium">
-      <% if agent.display_name.present? %>
-        <span class="text-orange-300"><%= agent.display_name %></span>
-      <% end %>
-      <span class="text-gray-500 font-mono">#<%= agent.agent_number %></span>
-    </div>
-    <% if can_rename %>
-      <button type="button" data-action="click->collapsible#toggle"
-              class="text-xs text-gray-500 hover:text-orange-400 transition underline decoration-dotted underline-offset-2">
-        <%= agent.display_name.present? ? "rename" : "give it a name" %>
-      </button>
+<div class="flex items-baseline gap-3 flex-wrap"
+     <% if can_rename %>data-controller="collapsible" data-collapsible-collapsed-value="true"<% end %>>
+  <h1 class="text-3xl font-black text-white tracking-tight"><%= callsign %></h1>
+  <div class="flex items-baseline gap-2 text-sm font-mono uppercase tracking-wider">
+    <span class="font-semibold" style="color: <%= meta[:accent] %>"><%= meta[:tag] %></span>
+    <% if agent %>
+      <span class="text-gray-600">·</span>
+      <span class="text-gray-500">#<%= agent.agent_number %></span>
     <% end %>
+  </div>
+  <% if can_rename %>
+    <button type="button" data-action="click->collapsible#toggle"
+            class="text-xs text-gray-500 hover:text-orange-400 transition underline decoration-dotted underline-offset-2">
+      <%= agent&.display_name.present? ? "rename" : "give it a name" %>
+    </button>
   <% end %>
 </div>
-<% if can_rename %>
+<% if can_rename && agent %>
   <div data-collapsible-target="body" class="mt-3">
     <%= form_with url: nyk_rename_agent_path(kind: kind), method: :patch, local: true,
                   class: "flex flex-wrap items-center gap-2" do |f| %>
-      <%= text_field_tag :display_name, agent.display_name, placeholder: "e.g. Spot, Scout, Echo",
+      <%= text_field_tag :display_name, agent.display_name, placeholder: "e.g. Sam, Argus, Iris",
           maxlength: 40,
           class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none" %>
       <%= submit_tag "Save", class: "text-xs text-gray-300 hover:text-white px-3 py-1.5 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
