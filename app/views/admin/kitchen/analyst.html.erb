@@ -43,24 +43,29 @@
   <% has_revenue = @show_revenue && @rev_total.to_f.positive? %>
   <% has_leaderboards = @top_sellers.present? || @top_sellers_all.present? || @needs_a_push.present? || @ended_emptiest.present? %>
 
-  <%# Time-range control — scopes the scoreboard + the "upcoming" leaderboards.
-      Plain links; Turbo re-renders the page with ?range=. %>
+  <%# Time-range control — scopes the scoreboard + leaderboards. Retrospective
+      ranges (Last week/month/…) appear only once they have data; they report
+      booked vs missed. Plain links; Turbo re-renders the page with ?range=. %>
   <div class="flex flex-wrap items-center gap-0.5 bg-gray-800 rounded-lg p-0.5 text-xs font-medium mb-5 w-fit">
-    <% { "week" => "This week", "2weeks" => "Next 2 weeks", "month" => "This month", "all" => "All upcoming" }.each do |key, label| %>
+    <% @range_options.each do |key, label| %>
       <%= link_to label, nyk_analyst_path(range: key),
             class: "px-3 py-1.5 rounded-md transition #{@range == key ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white"}" %>
     <% end %>
   </div>
 
   <% if has_revenue %>
+    <%# Retrospective windows report booked vs missed; forward windows report
+        sold vs still-available. Same layout, range-aware labels. %>
+    <% sold_label = @retrospective ? "Booked"  : "Sold" %>
+    <% left_label = @retrospective ? "Missed"  : "Left to sell" %>
     <div class="bg-gray-900 rounded-xl p-6 mb-6">
       <div class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= @range_label %></div>
-      <%# Hero: revenue sold is the headline figure. tabular-nums keeps digits
-          aligned and stops them jittering as the range changes. %>
+      <%# Hero: the headline figure. tabular-nums keeps digits aligned and stops
+          them jittering as the range changes. %>
       <div class="text-5xl sm:text-6xl font-black text-green-400 tabular-nums leading-none">
         <%= number_to_currency(@rev_sold, precision: 0) %>
       </div>
-      <div class="text-xs text-gray-500 uppercase tracking-wide mt-2">Sold</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mt-2"><%= sold_label %></div>
 
       <% if @rev_total.to_f.positive? %>
         <% sold_w = [ [ (100.0 * @rev_sold / @rev_total).round, 0 ].max, 100 ].min %>
@@ -76,7 +81,7 @@
           <%# Capacity is estimated (biased low) for most classes, so round this
               one and prefix ~ to signal it's an approximation, not an exact figure. %>
           <div class="text-xl font-bold text-amber-400 tabular-nums">~$<%= number_with_delimiter((@rev_left / 1000.0).round) %>K</div>
-          <div class="text-xs text-gray-500 uppercase tracking-wide mt-0.5">Left to sell</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mt-0.5"><%= left_label %></div>
         </div>
         <% if @rev_pct_sold %>
           <div>
@@ -88,7 +93,7 @@
 
       <p class="text-xs text-gray-600 mt-4">
         Face value (list price × seats) across <%= @rev_priced_count %> <%= "class".pluralize(@rev_priced_count) %> with capacity data<%=
-          @rev_proxy_count.positive? ? " · #{@rev_proxy_count} use an observed baseline as capacity, so left-to-sell is approximate (biased low)" : "" %>.
+          @rev_proxy_count.positive? ? " · #{@rev_proxy_count} use an observed baseline as capacity, so #{left_label.downcase} is approximate (biased low)" : "" %>.
       </p>
     </div>
   <% elsif @show_revenue %>
@@ -97,12 +102,15 @@
     </div>
   <% end %>
 
-  <%# Per-class performance: what's hot, and what to hand to the Social Agent. %>
-  <% if @top_sellers.present? || @top_sellers_all.present? %>
-    <%= render "admin/kitchen/top_sellers" %>
-  <% end %>
-  <% if @needs_a_push.present? || @ended_emptiest.present? %>
-    <%= render "admin/kitchen/needs_a_push" %>
+  <%# Per-class performance: what's hot, and what to hand to the Social Agent.
+      Forward-looking (pace / at-risk), so hidden on retrospective ranges. %>
+  <% unless @retrospective %>
+    <% if @top_sellers.present? || @top_sellers_all.present? %>
+      <%= render "admin/kitchen/top_sellers" %>
+    <% end %>
+    <% if @needs_a_push.present? || @ended_emptiest.present? %>
+      <%= render "admin/kitchen/needs_a_push" %>
+    <% end %>
   <% end %>
 
   <% if @dow_avg && @dow_avg.values.sum.positive? %>

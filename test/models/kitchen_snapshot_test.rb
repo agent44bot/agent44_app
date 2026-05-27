@@ -102,6 +102,21 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal [ 15, 7 ], months.map { |m| m[:tickets] }
   end
 
+  test "classes_ended_between returns each class's final observation in the window" do
+    url = "https://nykitchen.com/events/x"
+    KitchenSnapshot.create!(taken_on: Date.new(2026, 4, 10)).kitchen_events.create!(
+      url: url, name: "X", start_at: Date.new(2026, 4, 15).noon, spots_left: 8, capacity: 10)
+    KitchenSnapshot.create!(taken_on: Date.new(2026, 4, 12)).kitchen_events.create!(
+      url: url, name: "X", start_at: Date.new(2026, 4, 15).noon, spots_left: 3, capacity: 10) # final
+
+    events = KitchenSnapshot.classes_ended_between(Date.new(2026, 4, 1), Date.new(2026, 4, 30))
+    assert_equal 1, events.size
+    assert_equal 3, events.first.spots_left # last observation wins
+
+    assert KitchenSnapshot.any_classes_between?(Date.new(2026, 4, 1), Date.new(2026, 4, 30))
+    refute KitchenSnapshot.any_classes_between?(Date.new(2026, 1, 1), Date.new(2026, 1, 31))
+  end
+
   # Seed one class across `days` daily snapshots, dropping spots_left from
   # `from` to `to` linearly, flipping availability to soldout once it hits 0.
   def seed_class(url, from:, to:, days:, name: url)

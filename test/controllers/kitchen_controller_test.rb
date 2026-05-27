@@ -626,6 +626,21 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "$1,600", response.body    # far-future class excluded
   end
 
+  test "analyst retrospective range reports booked + missed for past classes" do
+    past = Date.current.last_month.beginning_of_month + 9 # mid last-month
+    KitchenSnapshot.create!(taken_on: past).kitchen_events.create!(
+      url: "https://nykitchen.com/events/past", name: "Past Class",
+      start_at: past.noon, availability: "InStock", price: "100.00", capacity: 10, spots_left: 3) # 7 booked, 3 missed
+
+    get nyk_analyst_path(range: "lastmonth")
+    assert_response :success
+    assert_match "Last month", response.body
+    assert_match "Booked", response.body
+    assert_match "Missed", response.body
+    assert_match "$700", response.body # 7 × $100 booked
+    assert_no_match "Selling fastest", response.body # forward-only leaderboards hidden
+  end
+
   test "Analyst page renders the sales charts when there's sales history" do
     create_event("Upcoming Class", 2.days.from_now, "InStock")
 

@@ -205,6 +205,32 @@ class KitchenSnapshot < ApplicationRecord
     hydrate_events(ranked)
   end
 
+  # Past classes whose start_at fell within [from, to] (Dates), each returned as
+  # the LAST KitchenEvent we observed for it — i.e. its final state (≈ its show
+  # date, since classes drop off the calendar after they run). Powers the
+  # Analyst page's retrospective ranges (booked vs missed revenue for a past
+  # period). The window is capped at "now" so a partially-elapsed period only
+  # counts classes that have actually happened.
+  def self.classes_ended_between(from, to)
+    upper = [ to.end_of_day, Time.current ].min
+    return [] if from.beginning_of_day > upper
+
+    last_ids = KitchenEvent.joins(:kitchen_snapshot)
+      .where(start_at: from.beginning_of_day..upper)
+      .order("kitchen_snapshots.taken_on ASC")
+      .pluck("kitchen_events.url", "kitchen_events.id")
+      .group_by(&:first).map { |_url, obs| obs.last.last }
+    KitchenEvent.where(id: last_ids).to_a
+  end
+
+  # Cheap existence check for whether any (past) class falls in a window — used
+  # to decide whether to even offer a retrospective range button.
+  def self.any_classes_between?(from, to)
+    upper = [ to.end_of_day, Time.current ].min
+    return false if from.beginning_of_day > upper
+    KitchenEvent.where(start_at: from.beginning_of_day..upper).exists?
+  end
+
   # Observed sell-through pace per class URL, keyed by url. Pace is the drop
   # in spots_left between the first and last snapshot we've seen the class in,
   # over the days that drop took (days-to-sellout if we watched it sell out,

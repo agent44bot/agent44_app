@@ -60,18 +60,56 @@ class KitchenController < ApplicationController
     subs  = Array(agent&.setting(:weekly_email_subscriber_ids)).map(&:to_i)
     @analyst_subscribed = Current.user && subs.include?(Current.user.id)
 
-    # Time-range scoreboard: scope the revenue rollup + the two "upcoming"
-    # leaderboards to a forward window the user picks (this week / next two /
-    # this month / all upcoming). The trend charts + the "All time" leaderboard
-    # tabs stay unscoped.
-    @range = params[:range].presence_in(%w[week 2weeks month all]) || "all"
-    today    = Date.current
-    week_end = today + ((7 - today.cwday) % 7) # this week's Sunday — matches the List week buckets
-    @range_end   = { "week" => week_end, "2weeks" => week_end + 7, "month" => today.end_of_month, "all" => nil }[@range]
-    @range_label = { "week" => "This week", "2weeks" => "Next 2 weeks", "month" => "This month", "all" => "All upcoming" }[@range]
-    in_window = ->(e) { e&.start_at && (@range_end.nil? || e.start_at.to_date <= @range_end) }
+    # Time-range scoreboard. Forward windows scope the revenue rollup + the
+    # "upcoming" leaderboards over future classes (sold vs left to sell).
+    # Retrospective windows ("last …") scope over PAST classes and report what
+    # was booked vs missed. The trend charts + "All time" leaderboard stay
+    # unscoped.
+    today      = Date.current
+    week_start = today.beginning_of_week(:sunday)
+    week_end   = today + ((7 - today.cwday) % 7) # this week's Sunday — matches the List week buckets
 
-    priced = Array(@events).select { |e| in_window.call(e) && e.capacity_known? }
+    forward = {
+      "week"     => { label: "This week",    to: week_end },
+      "nextweek" => { label: "Next week",    from: week_end + 1, to: week_end + 7 }, # the discrete next week, like the List bucket
+      "month"    => { label: "This month",   to: today.end_of_month },
+      "all"      => { label: "All upcoming", to: nil },
+    }
+    back = {
+      "lastweek"    => { label: "Last week",    from: week_start - 7,                                        to: week_start - 1 },
+      "lastmonth"   => { label: "Last month",   from: today.last_month.beginning_of_month,                   to: today.last_month.end_of_month },
+      "lastquarter" => { label: "Last quarter", from: (today.beginning_of_quarter - 1).beginning_of_quarter, to: today.beginning_of_quarter - 1 },
+      "lastyear"    => { label: "Last year",    from: today.last_year.beginning_of_year,                     to: today.last_year.end_of_year },
+    }
+
+    # Only offer a retrospective range once it has data (we have ~6 weeks of
+    # history, so quarter/year stay hidden until they fill in).
+    avail_back = back.select { |_k, w| KitchenSnapshot.any_classes_between?(w[:from], w[:to]) }
+
+    @range = params[:range].to_s
+    @range = "all" unless forward.key?(@range) || avail_back.key?(@range)
+    @retrospective = back.key?(@range)
+
+    # Buttons left→right: oldest retrospective → upcoming.
+    @range_options = avail_back.keys.reverse.map { |k| [ k, back[k][:label] ] } +
+                     forward.keys.map { |k| [ k, forward[k][:label] ] }
+
+    if @retrospective
+      w = back[@range]
+      @range_label = w[:label]
+      priced = KitchenSnapshot.classes_ended_between(w[:from], w[:to]).select(&:capacity_known?)
+    else
+      w = forward[@range]
+      @range_label = w[:label]
+      @range_end   = w[:to]
+      from         = w[:from]
+      in_window = ->(e) {
+        d = e&.start_at&.to_date
+        d && (from.nil? || d >= from) && (@range_end.nil? || d <= @range_end)
+      }
+      priced = Array(@events).select { |e| in_window.call(e) && e.capacity_known? }
+    end
+
     @rev_priced_count = priced.size
     @rev_proxy_count  = priced.count(&:capacity_via_proxy?)
     @rev_sold  = priced.sum(&:revenue_sold)
@@ -80,7 +118,10 @@ class KitchenController < ApplicationController
     seats_total   = priced.sum { |e| e.tickets_total.to_i }
     @rev_pct_sold = seats_total.positive? ? (100.0 * priced.sum { |e| e.tickets_sold.to_i } / seats_total).round : nil
 
-    if (snap = KitchenSnapshot.latest)
+    # Pace/at-risk leaderboards make no sense for a past window — forward only.
+    # (Overrides the unscoped values load_events_data set.)
+    @top_sellers = @needs_a_push = []
+    if !@retrospective && (snap = KitchenSnapshot.latest)
       @top_sellers  = KitchenSnapshot.selling_fastest(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
       @needs_a_push = KitchenSnapshot.needs_a_push(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
     end
