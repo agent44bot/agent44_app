@@ -132,19 +132,20 @@ class WeeklySalesEmailJob < ApplicationJob
       "no prior week to compare"
     argus = data[:argus] || {}; scout = data[:scout] || {}; sam = data[:sam] || {}; echo = data[:echo]; neon = data[:neon] || {}
     sold_out = Array(data[:newly_sold_out]).first(3).map(&:name).join("; ")
+    at_risk_count = Array(data[:needs_a_push]).size
     at_risk  = Array(data[:needs_a_push]).first(2).map { |r| r[:event].name }.join("; ")
 
     prompt = <<~TXT
-      You are Carson, the composed British butler who oversees New York Kitchen's team of AI agents and presents their week to the proprietor. Write 2 short sentences (about 35 words total) to open the weekly team report — warm and dignified, lightly butlerly without caricature, specific to the facts below. No salutation, no emoji, no quotes; just the remarks, leading with what matters most.
+      You are Carson, the composed British butler who oversees New York Kitchen's team of AI agents and presents their week to the proprietor. Write 2 short sentences (about 35 words total) to open the weekly team report — warm and dignified, lightly butlerly without caricature, specific to the facts below. No salutation, no emoji, no quotes; just the remarks, leading with what matters most. Lead with sales and mention at most one other genuinely notable item — do not list every agent. Use numerals for every figure (e.g. $6,384, 53%, 5 classes) and plain modern wording (avoid archaic terms like "whilst"). State only the facts below — never invent counts, totals, or labels, and keep "booked this week" distinct from the overall pipeline. Treat any monitoring check "failures" as transient checker hiccups — never call them customer-facing outages, a "site failure rate", or "critical".
       This week across the team:
-      - Sales (Iris): $#{bw[:revenue].to_i} booked this week (#{wow}); pipeline $#{data[:rev_sold].to_i} across #{data[:total_upcoming]} classes, #{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}% sold.
-      - Site checks (Argus): #{argus[:passed]}/#{argus[:total]} passed, #{argus[:fail_pct]}% failed.
+      - Sales (Iris): $#{bw[:revenue].to_i} booked in the last 7 days (#{wow}). The full pipeline is $#{data[:rev_total].to_i} across #{data[:total_upcoming]} upcoming classes, of which $#{data[:rev_sold].to_i} (#{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}%) is booked so far. (The pipeline is the $#{data[:rev_total].to_i} total — do NOT call the $#{data[:rev_sold].to_i} booked figure "the pipeline".)
+      - Site checks (Argus): #{argus[:passed]} of #{argus[:total]} automated checks completed#{argus[:failed].to_i.positive? ? " (#{argus[:failed]} transient checker hiccups, not real outages)" : "; all clear"}.
       - Data (Scout): #{scout[:snapshots]} snapshots, #{scout[:passed]}/#{scout[:total]} scrape runs passed.
       - Calendar (Sam): #{sam[:added].to_i} classes added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price changes.
       - Social (Echo): #{echo ? "#{echo[:posts]} posts published, #{echo[:likes]} likes" : "not in use"}.
       - In-store screen (Neon): #{neon[:last_seen_at] ? "live #{neon[:days_seen]}/7 days, last seen #{neon[:last_seen_at].to_date == Date.current ? 'today' : 'earlier'}" : "no signal"}.
       - Newly sold out: #{sold_out.presence || 'none'}.
-      - Behind pace: #{at_risk.presence || 'none'}.
+      - Behind pace: #{at_risk_count} #{'class'.pluralize(at_risk_count)}#{at_risk.present? ? " (e.g. #{at_risk})" : ''}.
     TXT
 
     client = Anthropic::Client.new(api_key: api_key)

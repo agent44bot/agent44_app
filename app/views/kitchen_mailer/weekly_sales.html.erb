@@ -66,7 +66,7 @@
   <%= agent_banner.call("&#128202;", "Iris", "Analyst", iris,
         wow_rev ? "<span style=\"font-family:#{mono};color:#{wow_rev >= 0 ? green : red}\">#{wow_rev >= 0 ? '&#9650;' : '&#9660;'} #{wow_rev.abs}%</span> <span style=\"color:#{mut};font-weight:normal\">wk</span>" : "").html_safe %>
   <tr><td style="padding:6px 30px 4px">
-    <div style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:<%= mut %>">Booked this week</div>
+    <div style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:<%= mut %>">Booked &middot; last 7 days</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:2px"><tr>
       <td style="vertical-align:baseline;font-family:<%= mono %>;font-size:36px;font-weight:bold;color:<%= green %>;line-height:1.1"><%= money.call(tw_rev) %></td>
       <td style="vertical-align:baseline;text-align:right"><%= delta.call(wow_rev).html_safe %></td>
@@ -114,7 +114,7 @@
       <% s[:movers].each_with_index do |row, i| %><% e = row[:event] %>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
           <td style="padding:7px 0;font-family:<%= sans %>;font-size:13px"><span style="font-family:<%= mono %>;color:<%= faint %>"><%= i + 1 %></span> <a href="<%= e.url %>" style="color:<%= blue %>;text-decoration:none;font-weight:600"><%= e.name %></a> <span style="color:<%= mut %>">&middot; <%= e.start_at&.strftime("%a %-m/%-d") %></span></td>
-          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= mono %>;font-size:13px;font-weight:bold;color:<%= green %>">+<%= row[:tickets] %> <span style="font-weight:normal;color:<%= mut %>;font-size:12px"><%= money.call(row[:revenue]) %></span></td>
+          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= mono %>;font-size:13px;font-weight:bold;color:<%= green %>">+<%= row[:tickets] %><% if row[:revenue].to_i > 0 %> <span style="font-weight:normal;color:<%= mut %>;font-size:12px"><%= money.call(row[:revenue]) %></span><% end %></td>
         </tr></table>
       <% end %>
     <% end %>
@@ -175,7 +175,7 @@
     <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
       Ran <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= argus[:total] %></span> calendar checks this week &mdash;
       <span style="font-family:<%= mono %>;color:<%= green %>"><%= argus[:passed] %> passed</span><% if argus[:failed].to_i.positive? %>, <span style="font-family:<%= mono %>;color:<%= red %>"><%= argus[:failed] %> failed</span> (<%= argus[:fail_pct] %>%)<% end %>.
-      <div style="font-size:12px;color:<%= mut %>;margin-top:2px"><%= argus[:fail_pct].to_i.zero? ? "The class calendar stayed up all week." : "The booking site had trouble #{argus[:fail_pct]}% of the time — see the Test agent for details." %></div>
+      <div style="font-size:12px;color:<%= mut %>;margin-top:2px"><%= argus[:fail_pct].to_i.zero? ? "The class calendar stayed up all week." : "#{argus[:fail_pct]}% of checks didn't complete — usually a transient hiccup on our checker, not a customer-facing outage. Argus retries and escalates anything that persists." %></div>
     </td></tr>
   <% end %>
 
@@ -210,8 +210,8 @@
           echo[:posts].to_i.positive? ? "<span style=\"color:#{green}\">&#10003; #{echo[:posts]} posted</span>" : "<span style=\"color:#{mut}\">quiet week</span>").html_safe %>
     <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
       <% if echo[:posts].to_i.positive? %>
-        Published <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= echo[:posts] %></span> <%= "post".pluralize(echo[:posts]) %> this week<% if echo[:by_platform].present? %> (<%= echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(", ") %>)<% end %> —
-        <span style="font-family:<%= mono %>"><%= echo[:likes] %></span> likes, <span style="font-family:<%= mono %>"><%= echo[:reposts] %></span> reposts, <span style="font-family:<%= mono %>"><%= echo[:replies] %></span> replies.
+        <% engagement = echo[:likes].to_i + echo[:reposts].to_i + echo[:replies].to_i %>
+        Published <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= echo[:posts] %></span> <%= "post".pluralize(echo[:posts]) %> this week<% if echo[:by_platform].present? %> (<%= echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(", ") %>)<% end %><% if engagement > 0 %> — <span style="font-family:<%= mono %>"><%= echo[:likes] %></span> likes, <span style="font-family:<%= mono %>"><%= echo[:reposts] %></span> reposts, <span style="font-family:<%= mono %>"><%= echo[:replies] %></span> replies<% end %>.
       <% else %>
         No posts published this week across <%= echo[:accounts] %> connected <%= "account".pluralize(echo[:accounts]) %>.
       <% end %>

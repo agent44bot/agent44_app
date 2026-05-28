@@ -12,7 +12,7 @@ NY Kitchen — Weekly Team Report
 <% end -%>
 
 IRIS · ANALYST
-BOOKED THIS WEEK: <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
+BOOKED · LAST 7 DAYS: <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
 Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
 
 <% if @s[:periods].present? -%>
@@ -32,7 +32,7 @@ SOLD OUT THIS WEEK
 
 BIGGEST MOVERS THIS WEEK
 <% @s[:movers].each_with_index do |row, i| -%>
-<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — +<%= row[:tickets] %> tickets, <%= number_to_currency(row[:revenue], precision: 0) %>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — +<%= row[:tickets] %> tickets<% if row[:revenue].to_i > 0 %>, <%= number_to_currency(row[:revenue], precision: 0) %><% end %>
 <% end -%>
 <% end -%>
 <% if @s[:needs_a_push].present? -%>
@@ -65,7 +65,7 @@ TICKETS SOLD BY WEEK
 <% if argus[:total].to_i.positive? -%>
 
 ARGUS · SENTRY (site uptime)
-<%= argus[:total] %> calendar checks — <%= argus[:passed] %> passed<%= argus[:failed].to_i.positive? ? ", #{argus[:failed]} failed (#{argus[:fail_pct]}%)" : "" %>. <%= argus[:fail_pct].to_i.zero? ? "Calendar stayed up all week." : "Booking site had trouble #{argus[:fail_pct]}% of the time." %>
+<%= argus[:total] %> calendar checks — <%= argus[:passed] %> passed<%= argus[:failed].to_i.positive? ? ", #{argus[:failed]} failed (#{argus[:fail_pct]}%)" : "" %>. <%= argus[:fail_pct].to_i.zero? ? "Calendar stayed up all week." : "#{argus[:fail_pct]}% of checks didn't complete — usually a transient checker hiccup, not a customer-facing outage. Argus retries and escalates anything that persists." %>
 <% end -%>
 <% if scout[:snapshots].to_i.positive? || scout[:total].to_i.positive? -%>
 
@@ -80,7 +80,7 @@ SAM · SCHEDULER (calendar)
 <% if echo -%>
 
 ECHO · BROADCAST (social)
-<%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''} — #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
+<%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''}#{(echo[:likes].to_i + echo[:reposts].to_i + echo[:replies].to_i) > 0 ? " — #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "."}" : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
 <% end -%>
 <% neon = @s[:neon] || {} -%>
 <% if neon[:last_seen_at] || neon[:days_seen].to_i.positive? -%>

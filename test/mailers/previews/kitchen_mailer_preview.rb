@@ -23,4 +23,14 @@ class KitchenMailerPreview < ActionMailer::Preview
 
     KitchenMailer.daily_digest(digest, recipients: [ "preview@example.com" ])
   end
+
+  # Preview at http://localhost:3000/rails/mailers/kitchen_mailer/weekly_sales
+  # Uses the exact same summary builder as the scheduled Sunday send (incl.
+  # Carson's AI intro — one API call per load).
+  def weekly_sales
+    snapshot = KitchenSnapshot.latest
+    return unless snapshot
+
+    KitchenMailer.weekly_sales(WeeklySalesEmailJob.build_summary(snapshot), recipients: [ "preview@example.com" ])
+  end
 end
