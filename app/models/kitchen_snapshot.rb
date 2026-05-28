@@ -231,6 +231,87 @@ class KitchenSnapshot < ApplicationRecord
     KitchenEvent.where(start_at: from.beginning_of_day..upper).exists?
   end
 
+  # Face-value revenue rollup for a set of events: { count, sold, total, left,
+  # pct }. Same basis as the Analyst dashboard — only capacity-known classes
+  # count; `pct` is seats sold / seats total. Shared so the dashboard and the
+  # recap email can't disagree.
+  def self.revenue_rollup(events)
+    priced = events.select(&:capacity_known?)
+    sold   = priced.sum(&:revenue_sold)
+    total  = priced.sum(&:revenue_total)
+    seats  = priced.sum { |e| e.tickets_total.to_i }
+    {
+      count: priced.size,
+      sold:  sold,
+      total: total,
+      left:  total - sold,
+      pct:   seats.positive? ? (100.0 * priced.sum { |e| e.tickets_sold.to_i } / seats).round : nil
+    }
+  end
+
+  # The recap email's "by period" scoreboard: a rollup for each standard window
+  # that has data, oldest → newest. Past windows (kind: :past) read as
+  # booked/missed; forward windows (kind: :forward) as sold/left-to-sell.
+  # Windows match the Analyst range control exactly.
+  def self.period_rollups(snapshot)
+    return [] unless snapshot
+    today      = Date.current
+    week_start = today.beginning_of_week(:sunday)
+    week_end   = today + ((7 - today.cwday) % 7)
+    upcoming   = snapshot.kitchen_events.upcoming.to_a # forward source (incl. sold-out — booked revenue counts)
+    fwd = ->(from, to) {
+      upcoming.select { |e| d = e.start_at&.to_date; d && d >= from && (to.nil? || d <= to) }
+    }
+
+    [
+      { key: "lastmonth", label: "Last month", kind: :past,
+        events: classes_ended_between(today.last_month.beginning_of_month, today.last_month.end_of_month) },
+      { key: "lastweek",  label: "Last week",  kind: :past,
+        events: classes_ended_between(week_start - 7, week_start - 1) },
+      { key: "thisweek",  label: "This week",  kind: :forward, events: fwd.call(today, week_end) },
+      { key: "nextweek",  label: "Next week",  kind: :forward, events: fwd.call(week_end + 1, week_end + 7) },
+      { key: "thismonth", label: "This month", kind: :forward, events: fwd.call(today, today.end_of_month) }
+    ].filter_map { |d|
+      r = revenue_rollup(d[:events])
+      r[:count].zero? ? nil : d.except(:events).merge(r)
+    }
+  end
+
+  # Booking activity — tickets sold (spots_left decrease) per class between the
+  # last snapshot on/before `from` and the one on/before `to` (Dates). Returns
+  # [{ event:, tickets:, revenue: }] for classes that sold (>0), tickets desc.
+  # This is "what sold this week" (booking events), independent of class date.
+  def self.bookings_between(from, to)
+    from_snap = where("taken_on <= ?", from).order(taken_on: :desc).first
+    to_snap   = where("taken_on <= ?", to).order(taken_on: :desc).first
+    return [] unless from_snap && to_snap && from_snap.id != to_snap.id
+
+    start_spots = from_snap.kitchen_events.where.not(spots_left: nil).pluck(:url, :spots_left).to_h
+    to_snap.kitchen_events.where.not(spots_left: nil).filter_map { |e|
+      s0   = start_spots[e.url]
+      sold = s0 ? s0 - e.spots_left : 0
+      next if sold <= 0
+      { event: e, tickets: sold, revenue: sold * e.price_value }
+    }.sort_by { |h| -h[:tickets] }
+  end
+
+  # { tickets:, revenue: } totals for bookings_between.
+  def self.bookings_total(from, to)
+    rows = bookings_between(from, to)
+    { tickets: rows.sum { |r| r[:tickets] }, revenue: rows.sum { |r| r[:revenue] } }
+  end
+
+  # Upcoming classes sold out now that were tracked-and-open at the last snapshot
+  # on/before `date` — i.e. genuinely flipped to sold out since then.
+  def self.newly_sold_out_since(date)
+    now  = latest or return []
+    prev = where("taken_on <= ?", date).order(taken_on: :desc).first or return []
+    prev_status = prev.kitchen_events.pluck(:url, :availability).to_h
+    now.kitchen_events.upcoming.select { |e|
+      e.sold_out? && prev_status.key?(e.url) && prev_status[e.url].to_s.downcase !~ /soldout|closed/
+    }.sort_by(&:start_at)
+  end
+
   # Observed sell-through pace per class URL, keyed by url. Pace is the drop
   # in spots_left between the first and last snapshot we've seen the class in,
   # over the days that drop took (days-to-sellout if we watched it sell out,

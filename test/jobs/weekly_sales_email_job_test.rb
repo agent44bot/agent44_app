@@ -26,7 +26,7 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     end
     mail = ActionMailer::Base.deliveries.last
     assert_includes mail.to, user.email_address
-    assert_match "weekly sales", mail.subject
+    assert_match "your team's week", mail.subject
   end
 
   test "skips a subscriber with no email on file" do

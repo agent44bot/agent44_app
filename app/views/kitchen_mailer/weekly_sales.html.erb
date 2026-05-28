@@ -1,90 +1,203 @@
 <%
   s = @s
-  money    = ->(n) { number_to_currency(n, precision: 0) }
-  left_k   = "~$#{number_with_delimiter((s[:rev_left] / 1000.0).round)}K"
-  pct_sold = s[:rev_total].to_f.positive? ? (100.0 * s[:rev_sold] / s[:rev_total]).round : 0
+  money  = ->(n) { number_to_currency(n, precision: 0) }
+  short  = ->(n) { n.to_i.abs >= 1000 ? "~$#{number_with_delimiter((n / 1000.0).round)}K" : number_to_currency(n, precision: 0) }
+  hero_pct = s[:rev_total].to_f.positive? ? (100.0 * s[:rev_sold] / s[:rev_total]).round : 0
   analyst_url = "https://agent44labs.com/nykitchen/analyst"
+
+  serif = "Georgia,'Times New Roman',serif"
+  sans  = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+  mono  = "'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace"
+
+  ink="#1a1a1a"; mut="#8a8276"; faint="#a8a08f"; accent="#c2410c"
+  green="#1b6e3a"; amber="#b35900"; red="#b42318"; track="#e7e2d9"; line="#e8e1d6"; blue="#0a58ca"; cream="#faf7f2"
+  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"
+
+  bar = ->(pct, w) {
+    fill = [[(pct.to_i * w / 100.0).round, 0].max, w].min
+    %(<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="#{w}" style="width:#{w}px"><tr>) +
+      (fill.positive? ? %(<td height="7" width="#{fill}" style="background:#{green};font-size:0;line-height:0;border-radius:3px">&nbsp;</td>) : "") +
+      (fill < w ? %(<td height="7" style="background:#{track};font-size:0;line-height:0;border-radius:3px">&nbsp;</td>) : "") +
+      %(</tr></table>)
+  }
+  delta = ->(pct) {
+    return "" if pct.nil?
+    up = pct >= 0
+    %(<span style="font-family:#{mono};font-size:13px;font-weight:bold;color:#{up ? green : red}">#{up ? '&#9650;' : '&#9660;'} #{pct.abs}%</span> <span style="font-family:#{sans};font-size:12px;color:#{mut}">vs last week</span>)
+  }
+  # Agent section banner: emoji + codename + classification (accent) + optional status.
+  agent_banner = ->(emoji, name, tag, ac, status) {
+    %(<tr><td style="padding:24px 30px 8px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#{cream};border-left:3px solid #{ac};border-radius:0 8px 8px 0"><tr>
+          <td style="padding:10px 14px;font-family:#{serif};font-size:16px;font-weight:bold;color:#{ink}">#{emoji} #{name} <span style="font-family:#{mono};font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#{ac};font-weight:bold">&nbsp;#{tag}</span></td>
+          #{status.to_s.empty? ? "" : %(<td style="padding:10px 14px;text-align:right;white-space:nowrap;font-family:#{sans};font-size:11px;font-weight:bold">#{status}</td>)}
+        </tr></table>
+      </td></tr>).html_safe
+  }
+  subhead = ->(txt) { %(<div style="font-family:#{sans};font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#{faint};font-weight:bold;margin:18px 0 6px">#{txt}</div>).html_safe }
+
+  bw      = s[:booked_week] || {}
+  tw_rev  = bw[:revenue].to_i
+  wow_rev = bw[:prior_revenue].to_i.positive? ? (100.0 * (tw_rev - bw[:prior_revenue]) / bw[:prior_revenue]).round : nil
+  argus   = s[:argus] || {}
+  scout   = s[:scout] || {}
 %>
-<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f1ea;margin:0;padding:0">
+<tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid <%= line %>;border-radius:12px;overflow:hidden">
 
-  <div style="border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:18px">
-    <div style="font-size:20px;font-weight:800">NY Kitchen <span style="color:#c2410c">· Weekly Sales Recap</span></div>
-    <div style="font-size:12px;color:#777;margin-top:3px">
-      <%= s[:snapshot_date]&.strftime("Week of %b %-d, %Y") %><% if s[:stale] %> · based on the latest snapshot (<%= s[:snapshot_date]&.strftime("%b %-d") %>)<% end %>
-    </div>
-  </div>
+  <%# ── Header ───────────────────────────────────────────── %>
+  <tr><td style="border-top:4px solid <%= accent %>;padding:26px 30px 14px">
+    <div style="font-family:<%= serif %>;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:<%= accent %>;font-weight:bold">Weekly Team Report</div>
+    <div style="font-family:<%= serif %>;font-size:27px;font-weight:bold;color:<%= ink %>;margin-top:3px">NY Kitchen</div>
+    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px"><%= s[:snapshot_date]&.strftime("Week of %B %-d, %Y") %><% if s[:stale] %> &middot; latest snapshot <%= s[:snapshot_date]&.strftime("%b %-d") %><% end %></div>
+  </td></tr>
 
-  <%# Revenue headline — Sold (hard) + Left to sell (estimate, rounded). %>
-  <table role="presentation" width="100%" style="margin-bottom:8px"><tr>
-    <td style="vertical-align:bottom">
-      <span style="font-size:30px;font-weight:800;color:#1b6e3a"><%= money.call(s[:rev_sold]) %></span>
-      <span style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.04em">&nbsp;sold</span>
-    </td>
-    <td style="text-align:right;vertical-align:bottom">
-      <span style="font-size:22px;font-weight:700;color:#b35900"><%= left_k %></span>
-      <span style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.04em">&nbsp;left to sell</span>
-    </td>
-  </tr></table>
-  <div style="font-size:12px;color:#777;margin-bottom:6px"><%= pct_sold %>% of face value sold across <%= s[:total_upcoming] %> upcoming classes.</div>
-  <div style="font-size:11px;color:#999;margin-bottom:20px">
-    Face value (list price × seats)<% if s[:rev_proxy_count].to_i.positive? %> · <%= s[:rev_proxy_count] %> of <%= s[:rev_priced_count] %> classes use an observed-capacity estimate, so “left to sell” is approximate (biased low)<% end %>.
-  </div>
+  <%# ── Carson hosts ─────────────────────────────────────── %>
+  <% if s[:headline].present? %>
+    <tr><td style="padding:6px 30px 0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border-left:3px solid <%= accent %>;border-radius:0 8px 8px 0"><tr>
+        <td style="padding:13px 16px;font-family:<%= serif %>;font-size:14px;font-style:italic;color:<%= ink %>;line-height:1.5"><%= s[:headline] %><div style="font-family:<%= sans %>;font-style:normal;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;margin-top:6px">&mdash; Carson, your concierge</div></td>
+      </tr></table>
+    </td></tr>
+  <% end %>
 
-  <% if s[:weekly_tickets].present? %>
-    <h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin:24px 0 8px">📈 Tickets sold by week</h3>
-    <table role="presentation" width="100%" style="font-size:13px;color:#333">
-      <% s[:weekly_tickets].last(6).each do |w| %>
-        <tr>
-          <td style="padding:3px 0;color:#666"><%= w[:label] %></td>
-          <td style="padding:3px 0;text-align:right;font-weight:600"><%= w[:tickets] %> tickets</td>
-        </tr>
+  <%# ════ IRIS · Analyst ═════════════════════════════════════ %>
+  <%= agent_banner.call("&#128202;", "Iris", "Analyst", iris,
+        wow_rev ? "<span style=\"font-family:#{mono};color:#{wow_rev >= 0 ? green : red}\">#{wow_rev >= 0 ? '&#9650;' : '&#9660;'} #{wow_rev.abs}%</span> <span style=\"color:#{mut};font-weight:normal\">wk</span>" : "").html_safe %>
+  <tr><td style="padding:6px 30px 4px">
+    <div style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:<%= mut %>">Booked this week</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:2px"><tr>
+      <td style="vertical-align:baseline;font-family:<%= mono %>;font-size:36px;font-weight:bold;color:<%= green %>;line-height:1.1"><%= money.call(tw_rev) %></td>
+      <td style="vertical-align:baseline;text-align:right"><%= delta.call(wow_rev).html_safe %></td>
+    </tr></table>
+    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:4px"><%= bw[:tickets].to_i %> <%= "ticket".pluralize(bw[:tickets].to_i) %> sold in the last 7 days</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;background:<%= cream %>;border:1px solid <%= line %>;border-radius:8px"><tr>
+      <td style="padding:11px 14px;font-family:<%= sans %>;font-size:13px;color:#555;line-height:1.5">
+        <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= money.call(s[:rev_sold]) %></span> booked of <span style="font-family:<%= mono %>"><%= short.call(s[:rev_total]) %></span> pipeline &middot; <span style="font-family:<%= mono %>;font-weight:bold"><%= hero_pct %>%</span> sold &middot; <span style="font-family:<%= mono %>;color:<%= amber %>"><%= short.call(s[:rev_left]) %></span> still to sell
+        <div style="font-size:11px;color:<%= faint %>;margin-top:4px">Across <%= s[:rev_priced_count] %> upcoming classes with capacity data<% if s[:rev_proxy_count].to_i.positive? %> &middot; <%= s[:rev_proxy_count] %> estimated<% end %>.</div>
+      </td>
+    </tr></table>
+
+    <% if s[:periods].present? %>
+      <%= subhead.call("By period") %>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <% prev_kind = nil %>
+        <% s[:periods].each do |p| %>
+          <% if prev_kind == :past && p[:kind] == :forward %><tr><td colspan="4" style="border-top:1px solid <%= line %>;font-size:0;line-height:0;height:1px">&nbsp;</td></tr><% end %>
+          <% pc = p[:pct].to_i %>
+          <tr>
+            <td style="padding:6px 0;font-family:<%= sans %>;font-size:13px;color:<%= ink %>;font-weight:600"><%= p[:label] %></td>
+            <td style="padding:6px 0;text-align:right;font-family:<%= mono %>;font-size:13px;font-weight:bold;color:<%= green %>"><%= money.call(p[:sold]) %></td>
+            <td style="padding:6px 0 6px 14px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="vertical-align:middle"><%= bar.call(pc, 78).html_safe %></td><td style="vertical-align:middle;padding-left:8px;font-family:<%= mono %>;font-size:11px;color:#666"><%= p[:pct] ? "#{pc}%" : "&mdash;".html_safe %></td></tr></table></td>
+            <td style="padding:6px 0;text-align:right;font-family:<%= mono %>;font-size:13px;color:<%= amber %>"><%= short.call(p[:left]) %></td>
+          </tr>
+          <% prev_kind = p[:kind] %>
+        <% end %>
+      </table>
+      <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:6px">Past = booked &amp; unsold (missed); upcoming = sold &amp; still to sell.</div>
+    <% end %>
+
+    <% if s[:newly_sold_out].present? %>
+      <%= subhead.call("&#127881; Sold out this week") %>
+      <% s[:newly_sold_out].first(6).each do |e| %>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
+          <td style="padding:7px 0;font-family:<%= sans %>;font-size:13px"><a href="<%= e.url %>" style="color:<%= blue %>;text-decoration:none;font-weight:600"><%= e.name %></a> <span style="color:<%= mut %>">&middot; <%= e.start_at&.strftime("%a %-m/%-d") %></span></td>
+          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= sans %>;font-size:11px;font-weight:bold;color:<%= green %>;text-transform:uppercase;letter-spacing:0.04em">Sold out</td>
+        </tr></table>
       <% end %>
-    </table>
-  <% end %>
-
-  <% if s[:selling_fastest].present? %>
-    <h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin:24px 0 8px">🔥 Selling fastest</h3>
-    <% s[:selling_fastest].each_with_index do |row, i| %>
-      <% e = row[:event] %>
-      <div style="padding:7px 0;border-bottom:1px solid #eee">
-        <table role="presentation" width="100%"><tr>
-          <td style="font-size:13px">
-            <strong style="color:#666"><%= i + 1 %>.</strong>
-            <a href="<%= e.url %>" style="color:#0a58ca;text-decoration:none;font-weight:600"><%= e.name %></a>
-            <span style="color:#888">· <%= e.start_at&.strftime("%a %-m/%-d") %></span>
-          </td>
-          <td style="text-align:right;white-space:nowrap;font-size:13px;font-weight:700;color:#111">~<%= row[:pace] %>/day</td>
-        </tr></table>
-      </div>
     <% end %>
-  <% end %>
 
-  <% if s[:needs_a_push].present? %>
-    <h3 style="font-size:15px;color:#111;border-bottom:2px solid #111;padding-bottom:6px;margin:24px 0 8px">📣 Needs a push</h3>
-    <% s[:needs_a_push].each_with_index do |row, i| %>
-      <% e = row[:event] %>
-      <div style="padding:7px 0;border-bottom:1px solid #eee">
-        <table role="presentation" width="100%"><tr>
-          <td style="font-size:13px">
-            <strong style="color:#666"><%= i + 1 %>.</strong>
-            <a href="<%= e.url %>" style="color:#0a58ca;text-decoration:none;font-weight:600"><%= e.name %></a>
-            <span style="color:#888">· <%= e.start_at&.strftime("%a %-m/%-d") %> · in <%= row[:days_until] %> <%= "day".pluralize(row[:days_until]) %></span>
-          </td>
-          <td style="text-align:right;white-space:nowrap;font-size:13px">
-            <strong style="color:#b35900">needs ~<%= row[:needed_pace] %>/day</strong>
-            <div style="font-size:11px;color:#888">selling ~<%= row[:observed_pace] %>/day</div>
-          </td>
+    <% if s[:movers].present? %>
+      <%= subhead.call("&#128640; Biggest movers this week") %>
+      <% s[:movers].each_with_index do |row, i| %><% e = row[:event] %>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
+          <td style="padding:7px 0;font-family:<%= sans %>;font-size:13px"><span style="font-family:<%= mono %>;color:<%= faint %>"><%= i + 1 %></span> <a href="<%= e.url %>" style="color:<%= blue %>;text-decoration:none;font-weight:600"><%= e.name %></a> <span style="color:<%= mut %>">&middot; <%= e.start_at&.strftime("%a %-m/%-d") %></span></td>
+          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= mono %>;font-size:13px;font-weight:bold;color:<%= green %>">+<%= row[:tickets] %> <span style="font-weight:normal;color:<%= mut %>;font-size:12px"><%= money.call(row[:revenue]) %></span></td>
         </tr></table>
-      </div>
+      <% end %>
     <% end %>
+
+    <% if s[:needs_a_push].present? %>
+      <%= subhead.call("&#129482; Needs a push") %>
+      <% s[:needs_a_push].each_with_index do |row, i| %><% e = row[:event] %>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
+          <td style="padding:7px 0;font-family:<%= sans %>;font-size:13px"><span style="font-family:<%= mono %>;color:<%= faint %>"><%= i + 1 %></span> <a href="<%= e.url %>" style="color:<%= blue %>;text-decoration:none;font-weight:600"><%= e.name %></a> <span style="color:<%= mut %>">&middot; <%= e.start_at&.strftime("%a %-m/%-d") %> &middot; in <%= row[:days_until] %>d</span></td>
+          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= mono %>;font-size:13px"><span style="font-weight:bold;color:<%= amber %>">needs ~<%= row[:needed_pace] %>/day</span><div style="font-size:11px;color:<%= mut %>">selling ~<%= row[:observed_pace] %>/day</div></td>
+        </tr></table>
+      <% end %>
+    <% end %>
+
+    <% if s[:selling_fastest].present? %>
+      <%= subhead.call("&#128293; Selling fastest &middot; all-time pace") %>
+      <% s[:selling_fastest].each_with_index do |row, i| %><% e = row[:event] %>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
+          <td style="padding:7px 0;font-family:<%= sans %>;font-size:13px"><span style="font-family:<%= mono %>;color:<%= faint %>"><%= i + 1 %></span> <a href="<%= e.url %>" style="color:<%= blue %>;text-decoration:none;font-weight:600"><%= e.name %></a> <span style="color:<%= mut %>">&middot; <%= e.start_at&.strftime("%a %-m/%-d") %></span></td>
+          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= mono %>;font-size:13px;font-weight:bold;color:<%= ink %>">~<%= row[:pace] %>/day</td>
+        </tr></table>
+      <% end %>
+    <% end %>
+
+    <% if s[:empty_last_week].present? %>
+      <%= subhead.call("&#129681; Ran with empty seats &middot; last 7 days") %>
+      <% s[:empty_last_week].each do |e| %>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
+          <td style="padding:7px 0;font-family:<%= sans %>;font-size:13px"><a href="<%= e.url %>" style="color:<%= blue %>;text-decoration:none;font-weight:600"><%= e.name %></a> <span style="color:<%= mut %>">&middot; <%= e.start_at&.strftime("%a %-m/%-d") %></span></td>
+          <td style="padding:7px 0;text-align:right;white-space:nowrap;font-family:<%= mono %>;font-size:13px;color:<%= amber %>"><%= e.spots_left %> unsold</td>
+        </tr></table>
+      <% end %>
+    <% end %>
+
+    <% if s[:weekly_tickets].present? %>
+      <% wk = s[:weekly_tickets].last(6); peak = [wk.map { |w| w[:tickets] }.max, 1].max %>
+      <%= subhead.call("&#128200; Tickets sold by week") %>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <% prev_t = nil %>
+        <% wk.each do |w| %>
+          <% d = (prev_t && prev_t.positive?) ? (100.0 * (w[:tickets] - prev_t) / prev_t).round : nil %>
+          <tr>
+            <td style="padding:3px 0;width:62px;font-family:<%= sans %>;font-size:12px;color:<%= mut %>;white-space:nowrap"><%= w[:label] %></td>
+            <td style="padding:3px 0 3px 10px"><%= bar.call((100.0 * w[:tickets] / peak).round, 280).html_safe %></td>
+            <td style="padding:3px 0 3px 8px;text-align:right;font-family:<%= mono %>;font-size:12px;font-weight:600;color:<%= ink %>;white-space:nowrap"><%= w[:tickets] %></td>
+            <td style="padding:3px 0 3px 8px;text-align:right;width:46px;font-family:<%= mono %>;font-size:11px;white-space:nowrap;color:<%= d.nil? ? faint : (d >= 0 ? green : red) %>"><%= (d.nil? ? "" : "#{d >= 0 ? '&#9650;' : '&#9660;'}#{d.abs}%").html_safe %></td>
+          </tr>
+          <% prev_t = w[:tickets] %>
+        <% end %>
+      </table>
+    <% end %>
+  </td></tr>
+
+  <%# ════ ARGUS · Sentry (site uptime) ══════════════════════ %>
+  <% if argus[:total].to_i.positive? %>
+    <%= agent_banner.call("&#128737;", "Argus", "Sentry", argus_c,
+          argus[:fail_pct].to_i.zero? ? "<span style=\"color:#{green}\">&#10003; All clear</span>" : "<span style=\"color:#{red}\">&#9888; #{argus[:failed]} failed</span>").html_safe %>
+    <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+      Ran <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= argus[:total] %></span> calendar checks this week &mdash;
+      <span style="font-family:<%= mono %>;color:<%= green %>"><%= argus[:passed] %> passed</span><% if argus[:failed].to_i.positive? %>, <span style="font-family:<%= mono %>;color:<%= red %>"><%= argus[:failed] %> failed</span> (<%= argus[:fail_pct] %>%)<% end %>.
+      <div style="font-size:12px;color:<%= mut %>;margin-top:2px"><%= argus[:fail_pct].to_i.zero? ? "The class calendar stayed up all week." : "The booking site had trouble #{argus[:fail_pct]}% of the time — see the Test agent for details." %></div>
+    </td></tr>
   <% end %>
 
-  <div style="margin-top:28px;text-align:center">
-    <a href="<%= analyst_url %>" style="display:inline-block;background:#c2410c;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:10px 20px;border-radius:8px">View the full dashboard →</a>
-  </div>
+  <%# ════ SCOUT · Recon (data) ══════════════════════════════ %>
+  <% if scout[:snapshots].to_i.positive? || scout[:total].to_i.positive? %>
+    <%= agent_banner.call("&#128376;", "Scout", "Recon", scout_c,
+          scout[:fail_pct].to_i.zero? ? "<span style=\"color:#{green}\">&#10003; Healthy</span>" : "<span style=\"color:#{red}\">&#9888; #{scout[:failed]} failed</span>").html_safe %>
+    <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+      Took <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= scout[:snapshots] %></span> calendar snapshots this week<% if scout[:total].to_i.positive? %> across <span style="font-family:<%= mono %>"><%= scout[:total] %></span> scrape runs (<span style="font-family:<%= mono %>;color:<%= green %>"><%= scout[:passed] %> ok</span><% if scout[:failed].to_i.positive? %>, <span style="color:<%= red %>"><%= scout[:failed] %> failed</span><% end %>)<% end %>.
+      <div style="font-size:12px;color:<%= mut %>;margin-top:2px">Keeps Iris's numbers and the calendar fresh.</div>
+    </td></tr>
+  <% end %>
 
-  <div style="margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:11px;color:#999;text-align:center">
-    Sent every Friday by the NY Kitchen Analyst Agent.
-    Manage this email from the <a href="<%= analyst_url %>" style="color:#999">Analyst dashboard</a>.
-  </div>
-</div>
+  <%# ── CTA + footer ─────────────────────────────────────── %>
+  <tr><td style="padding:28px 30px 6px;text-align:center">
+    <a href="<%= analyst_url %>" style="display:inline-block;background:<%= accent %>;color:#ffffff;text-decoration:none;font-family:<%= sans %>;font-weight:bold;font-size:14px;padding:12px 26px;border-radius:8px">View the full dashboard &rarr;</a>
+  </td></tr>
+  <tr><td style="padding:20px 30px 26px;border-top:1px solid <%= line %>;font-family:<%= sans %>;font-size:11px;color:<%= faint %>;text-align:center">
+    Filed every Sunday evening by your NY Kitchen agent team.<br>
+    Manage this email from the <a href="<%= analyst_url %>" style="color:<%= mut %>">Analyst dashboard</a>.
+  </td></tr>
+
+</table>
+</td></tr>
+</table>

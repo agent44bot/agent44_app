@@ -10,7 +10,7 @@ class AiCallLog < ApplicationRecord
   }.freeze
   DEFAULT_RATE = { input: 1.00, output: 5.00 }.freeze
 
-  NYK_SOURCES = %w[nyk_enhance nyk_x_autopost].freeze
+  NYK_SOURCES = %w[nyk_enhance nyk_x_autopost nyk_team_report].freeze
   # The /nykitchen/ask Super Agent chat: nyk_ask is the single-shot AskAgent
   # (what customers like Lora get), nyk_agent is the read-only AgenticAgent
   # (admin dogfood). Both are Haiku 4.5, so usage_rollup's flat-rate cost holds.

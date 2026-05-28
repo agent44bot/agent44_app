@@ -38,4 +38,18 @@ class SmokeTestRunTest < ActiveSupport::TestCase
       SmokeTestRun.create!(name: "nyk_calendar_nav_bad", status: "queued", started_at: Time.current)
     end
   end
+
+  test "window_stats rolls up pass/fail for a scope over a date window" do
+    SmokeTestRun.create!(name: "nyk_calendar_nav", status: "passed", started_at: 3.days.ago, ended_at: 3.days.ago + 30, duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav", status: "passed", started_at: 2.days.ago, ended_at: 2.days.ago + 30, duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav", status: "failed", started_at: 1.day.ago,  ended_at: 1.day.ago + 30,  duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav", status: "running", started_at: 1.minute.ago) # excluded (not finished)
+    SmokeTestRun.create!(name: "nyk_calendar_nav", status: "passed", started_at: 30.days.ago, ended_at: 30.days.ago + 30, duration_ms: 30_000) # outside window
+
+    stats = SmokeTestRun.window_stats(:nyk_nav, Date.current - 7, Date.current)
+    assert_equal 3, stats[:total]   # the 3 finished in-window
+    assert_equal 2, stats[:passed]
+    assert_equal 1, stats[:failed]
+    assert_equal 33, stats[:fail_pct]
+  end
 end

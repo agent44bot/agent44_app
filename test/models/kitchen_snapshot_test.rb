@@ -117,6 +117,27 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     refute KitchenSnapshot.any_classes_between?(Date.new(2026, 1, 1), Date.new(2026, 1, 31))
   end
 
+  test "bookings_between/total + newly_sold_out_since track week-over-week activity" do
+    wk_ago = Date.current - 7
+    older = KitchenSnapshot.create!(taken_on: wk_ago)
+    older.kitchen_events.create!(url: "u/a", name: "A", start_at: 10.days.from_now, spots_left: 10, capacity: 10, price: "100.00", availability: "InStock")
+    older.kitchen_events.create!(url: "u/b", name: "B", start_at: 10.days.from_now, spots_left: 5,  capacity: 5,  price: "50.00",  availability: "InStock")
+    now = KitchenSnapshot.create!(taken_on: Date.current)
+    now.kitchen_events.create!(url: "u/a", name: "A", start_at: 10.days.from_now, spots_left: 3, capacity: 10, price: "100.00", availability: "InStock") # sold 7
+    now.kitchen_events.create!(url: "u/b", name: "B", start_at: 10.days.from_now, spots_left: 0, capacity: 5,  price: "50.00",  availability: "SoldOut")  # sold 5, flipped sold out
+
+    rows = KitchenSnapshot.bookings_between(wk_ago, Date.current)
+    assert_equal "u/a", rows.first[:event].url # biggest mover
+    assert_equal 7,     rows.first[:tickets]
+    assert_equal 700.0, rows.first[:revenue]
+
+    total = KitchenSnapshot.bookings_total(wk_ago, Date.current)
+    assert_equal 12,    total[:tickets]
+    assert_equal 950.0, total[:revenue]
+
+    assert_equal [ "u/b" ], KitchenSnapshot.newly_sold_out_since(wk_ago).map(&:url) # B flipped, A did not
+  end
+
   # Seed one class across `days` daily snapshots, dropping spots_left from
   # `from` to `to` linearly, flipping availability to soldout once it hits 0.
   def seed_class(url, from:, to:, days:, name: url)

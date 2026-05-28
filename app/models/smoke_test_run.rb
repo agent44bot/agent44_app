@@ -61,6 +61,17 @@ class SmokeTestRun < ApplicationRecord
     secs < 60 ? "#{secs.round(1)}s" : "#{(secs / 60).round(1)}m"
   end
 
+  # Pass/fail rollup for a named scope (:nyk_nav / :nyk_scrape) over a date
+  # window — powers the Test (Argus) and Data (Scout) weekly briefs.
+  # { total:, passed:, failed:, fail_pct: }.
+  def self.window_stats(scope_name, from, to)
+    rel    = public_send(scope_name).finished.where(started_at: from.beginning_of_day..to.end_of_day)
+    total  = rel.count
+    failed = rel.where(status: "failed").count
+    { total: total, passed: total - failed, failed: failed,
+      fail_pct: total.positive? ? (100.0 * failed / total).round : 0 }
+  end
+
   private
 
   def compute_cost

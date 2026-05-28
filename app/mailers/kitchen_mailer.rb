@@ -22,15 +22,15 @@ class KitchenMailer < ApplicationMailer
     )
   end
 
-  # Friday morning sales recap from the Analyst Agent. `summary` is built by
-  # WeeklySalesEmailJob (revenue rollup + leaderboards + weekly trend).
+  # Sunday-evening weekly team report, hosted by Carson. `summary` is built by
+  # WeeklySalesEmailJob (each agent's week + Carson's intro). Method/template
+  # keep the weekly_sales name for wiring; the content is the team report.
   def weekly_sales(summary, recipients:)
     @s = summary
-    sold   = ActiveSupport::NumberHelper.number_to_currency(summary[:rev_sold], precision: 0)
-    left_k = (summary[:rev_left] / 1000.0).round
+    booked = ActiveSupport::NumberHelper.number_to_currency(summary.dig(:booked_week, :revenue).to_i, precision: 0)
     mail(
       to: recipients,
-      subject: "NY Kitchen weekly sales — #{sold} sold · ~$#{left_k}K still to sell"
+      subject: "NY Kitchen — your team's week · #{booked} booked"
     )
   end
 end

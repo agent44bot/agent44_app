@@ -1,23 +1,77 @@
-NY Kitchen — Weekly Sales Recap
-<%= @s[:snapshot_date]&.strftime("Week of %b %-d, %Y") %>
+<%
+  bw = @s[:booked_week] || {}
+  wow = bw[:prior_revenue].to_i.positive? ? (100.0 * (bw[:revenue].to_i - bw[:prior_revenue]) / bw[:prior_revenue]).round : nil
+  short = ->(n) { n.to_i.abs >= 1000 ? "~$#{number_with_delimiter((n / 1000.0).round)}K" : number_to_currency(n, precision: 0) }
+-%>
+NY Kitchen — Weekly Team Report
+<%= @s[:snapshot_date]&.strftime("Week of %B %-d, %Y") %>
+<% if @s[:headline].present? -%>
 
-<%= number_to_currency(@s[:rev_sold], precision: 0) %> sold  ·  ~$<%= number_with_delimiter((@s[:rev_left] / 1000.0).round) %>K left to sell
-<%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% of face value sold across <%= @s[:total_upcoming] %> upcoming classes.
+<%= @s[:headline] %>
+  — Carson, your concierge
+<% end -%>
+
+IRIS · ANALYST
+BOOKED THIS WEEK: <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
+Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
+
+<% if @s[:periods].present? -%>
+BY PERIOD  (money in · % sold-through · open)
+<% @s[:periods].each do |p| -%>
+- <%= p[:label].ljust(11) %> <%= number_to_currency(p[:sold], precision: 0).rjust(8) %> · <%= "#{p[:pct].to_i}%".rjust(4) %> · <%= short.call(p[:left]) %> <%= p[:kind] == :past ? "(booked/missed)" : "(sold/left)" %>
+<% end -%>
+<% end -%>
+<% if @s[:newly_sold_out].present? -%>
+
+SOLD OUT THIS WEEK
+<% @s[:newly_sold_out].first(6).each do |e| -%>
+- <%= e.name %> (<%= e.start_at&.strftime("%a %-m/%-d") %>)
+<% end -%>
+<% end -%>
+<% if @s[:movers].present? -%>
+
+BIGGEST MOVERS THIS WEEK
+<% @s[:movers].each_with_index do |row, i| -%>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — +<%= row[:tickets] %> tickets, <%= number_to_currency(row[:revenue], precision: 0) %>
+<% end -%>
+<% end -%>
+<% if @s[:needs_a_push].present? -%>
+
+NEEDS A PUSH
+<% @s[:needs_a_push].each_with_index do |row, i| -%>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>, in <%= row[:days_until] %>d) — needs ~<%= row[:needed_pace] %>/day, selling ~<%= row[:observed_pace] %>/day
+<% end -%>
+<% end -%>
+<% if @s[:selling_fastest].present? -%>
+
+SELLING FASTEST (all-time pace)
+<% @s[:selling_fastest].each_with_index do |row, i| -%>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — ~<%= row[:pace] %>/day
+<% end -%>
+<% end -%>
+<% if @s[:empty_last_week].present? -%>
+
+RAN WITH EMPTY SEATS (last 7 days)
+<% @s[:empty_last_week].each do |e| -%>
+- <%= e.name %> (<%= e.start_at&.strftime("%a %-m/%-d") %>) — <%= e.spots_left %> unsold
+<% end -%>
+<% end -%>
 
 TICKETS SOLD BY WEEK
 <% Array(@s[:weekly_tickets]).last(6).each do |w| -%>
 - <%= w[:label] %>: <%= w[:tickets] %> tickets
 <% end -%>
+<% argus = @s[:argus] || {}; scout = @s[:scout] || {} -%>
+<% if argus[:total].to_i.positive? -%>
 
-SELLING FASTEST
-<% Array(@s[:selling_fastest]).each_with_index do |row, i| -%>
-<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — ~<%= row[:pace] %>/day
+ARGUS · SENTRY (site uptime)
+<%= argus[:total] %> calendar checks — <%= argus[:passed] %> passed<%= argus[:failed].to_i.positive? ? ", #{argus[:failed]} failed (#{argus[:fail_pct]}%)" : "" %>. <%= argus[:fail_pct].to_i.zero? ? "Calendar stayed up all week." : "Booking site had trouble #{argus[:fail_pct]}% of the time." %>
 <% end -%>
+<% if scout[:snapshots].to_i.positive? || scout[:total].to_i.positive? -%>
 
-NEEDS A PUSH
-<% Array(@s[:needs_a_push]).each_with_index do |row, i| -%>
-<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>, in <%= row[:days_until] %>d) — needs ~<%= row[:needed_pace] %>/day, selling ~<%= row[:observed_pace] %>/day
+SCOUT · RECON (data)
+<%= scout[:snapshots] %> snapshots taken<%= scout[:total].to_i.positive? ? " across #{scout[:total]} scrape runs (#{scout[:passed]} ok#{scout[:failed].to_i.positive? ? ", #{scout[:failed]} failed" : ''})" : "" %>.
 <% end -%>
 
 View the full dashboard: https://agent44labs.com/nykitchen/analyst
-Sent every Friday by the NY Kitchen Analyst Agent. Manage it on the Analyst dashboard.
+Filed every Sunday evening by your NY Kitchen agent team. Manage it on the Analyst dashboard.

@@ -87,7 +87,7 @@ module ApplicationHelper
   # detail-page headers both read this so the naming can't drift. A saved
   # display_name (the rename feature) overrides the default callsign.
   NYK_ROSTER = {
-    "ask"     => { call: "Ace",   tag: "Concierge", accent: "#f97316", emoji: "💬" },
+    "ask"     => { call: "Carson", tag: "Concierge", accent: "#f97316", emoji: "💬" },
     "list"    => { call: "Sam",   tag: "Scheduler", accent: "#38bdf8", emoji: "📋" },
     "analyst" => { call: "Iris",  tag: "Analyst",   accent: "#34d399", emoji: "📊" },
     "social"  => { call: "Echo",  tag: "Broadcast", accent: "#a78bfa", emoji: "📣" },
