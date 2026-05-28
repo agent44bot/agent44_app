@@ -16,7 +16,7 @@
   <tr><td style="border-top:4px solid <%= accent %>;padding:24px 30px 12px">
     <div style="font-family:<%= serif %>;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:<%= accent %>;font-weight:bold">Your Job Matches</div>
     <div style="font-family:<%= serif %>;font-size:25px;font-weight:bold;color:<%= ink %>;margin-top:3px"><%= @matches.size %> new <%= "match".pluralize(@matches.size) %> today</div>
-    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px">Ranked for <%= @profile["name"] %> — AI-augmented QA first, agent roles flagged ★, automation as backstop.</div>
+    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px">Ranked for <%= @profile["name"] %>. AI-augmented QA first, agent roles flagged ★, automation as backstop.</div>
   </td></tr>
 
   <% @matches.each do |m| %>

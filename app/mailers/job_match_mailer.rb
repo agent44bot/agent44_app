@@ -10,7 +10,7 @@ class JobMatchMailer < ApplicationMailer
       if @matches.empty?
         "Your job matches"
       else
-        "#{@matches.size} new job #{'match'.pluralize(@matches.size)} — top: #{top.title.to_s.truncate(46)}"
+        "#{@matches.size} new job #{'match'.pluralize(@matches.size)}, top: #{top.title.to_s.truncate(46)}"
       end
 
     mail(to: recipient, subject: subject)
