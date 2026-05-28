@@ -25,9 +25,12 @@ production:
   nyk_weekly_sales_email:
     class: WeeklySalesEmailJob
     schedule: every sunday at 8pm
-  generate_newsletter:
-    class: GenerateNewsletterJob
-    schedule: every 3 days at 7am
+  # Disabled 2026-05-28: Pulse no longer used in the app. This job hit the
+  # Claude API every 3 days to auto-write a post (credits) and pinged "Scout
+  # published a new pulse post". Re-add to resume.
+  # generate_newsletter:
+  #   class: GenerateNewsletterJob
+  #   schedule: every 3 days at 7am
   nyk_filter_card_check:
     class: NykFilterCardCheckJob
     schedule: every day at 11am
