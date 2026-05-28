@@ -19,6 +19,7 @@ on:
           - all
           - nav
           - scrape
+          - print
       headful:
         description: "Override headful mode (true|false). Empty = use the test's own default (nav=headed, scrape=headless)."
         type: string
@@ -106,7 +107,8 @@ jobs:
           case "$TEST" in
             nav)    FILES="test/smoke/nyk_calendar_nav_test.rb" ;;
             scrape) FILES="test/smoke/nyk_scrape_test.rb" ;;
-            all|*)  FILES="test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_scrape_test.rb test/smoke/nyk_coupon_field_test.rb" ;;
+            print)  FILES="test/smoke/nyk_print_test.rb" ;;
+            all|*)  FILES="test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_scrape_test.rb test/smoke/nyk_coupon_field_test.rb test/smoke/nyk_print_test.rb" ;;
           esac
           echo "Running: bin/rails test $FILES (HEADFUL=$HEADFUL)"
           bin/rails test $FILES

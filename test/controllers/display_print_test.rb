@@ -85,6 +85,18 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_match "+ 2 more classes", response.body
   end
 
+  test "sold-out and closed classes are excluded from the flyer" do
+    add_event("Open Class", 24)
+    add_event("Gone Class", 48, availability: "SoldOut")
+    add_event("Shut Class", 72, availability: "Closed")
+    get nyk_display_print_path
+    assert_response :success
+    assert_select ".event", 1
+    assert_match    "Open Class", response.body
+    assert_no_match(/Gone Class/, response.body)
+    assert_no_match(/Shut Class/, response.body)
+  end
+
   test "no footer overflow note when everything fits" do
     3.times { |i| add_event("Class #{i}", (i + 1) * 24) }
     get nyk_display_print_path
