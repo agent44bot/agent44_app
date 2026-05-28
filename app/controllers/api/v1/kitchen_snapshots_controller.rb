@@ -72,9 +72,27 @@ module Api
           next unless e[:url].present?
 
           prev = prev_events[e[:url]]
-          if e[:spots_left].present? && e[:capacity].present?
-            last_spots = e[:spots_left].to_i
-            last_cap   = e[:capacity].to_i
+
+          # "Tickets no longer available" (Closed) ends online sales without
+          # selling out — the page then shows 0 left, which would read as a full
+          # sellout and inflate tickets_sold to capacity (e.g. 7 sold → 32) while
+          # dropping the price. A genuine "SoldOut" really is 0 left, so leave it
+          # alone. For closed-not-soldout, carry the prior run's spots/capacity/
+          # price forward so tickets_sold and revenue stay truthful.
+          av = e[:availability].to_s.downcase
+          if av.include?("closed") && !av.include?("soldout") && prev
+            spots_left = prev.spots_left
+            capacity   = prev.capacity
+            price      = e[:price].presence || prev.price
+          else
+            spots_left = e[:spots_left]
+            capacity   = e[:capacity]
+            price      = e[:price]
+          end
+
+          if spots_left.present? && capacity.present?
+            last_spots = spots_left.to_i
+            last_cap   = capacity.to_i
           elsif prev
             last_spots = prev.last_known_spots_left || prev.spots_left
             last_cap   = prev.last_known_capacity || prev.capacity
@@ -85,14 +103,14 @@ module Api
             name:         e[:name],
             start_at:     e[:start_at],
             end_at:       e[:end_at],
-            price:        e[:price],
+            price:        price,
             availability: e[:availability],
             venue:        e[:venue],
             instructor:   e[:instructor],
             description:  e[:description],
             image_url:    e[:image_url],
-            spots_left:   e[:spots_left],
-            capacity:     e[:capacity],
+            spots_left:   spots_left,
+            capacity:     capacity,
             last_known_spots_left: last_spots,
             last_known_capacity:   last_cap,
           )

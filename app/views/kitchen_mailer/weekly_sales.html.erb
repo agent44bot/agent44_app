@@ -241,7 +241,7 @@
     <% live = neon[:last_seen_at] && (Time.current - neon[:last_seen_at]) < 6 * 3600 %>
     <%= agent_banner.call("&#128250;", "Neon", "Marquee", neon_c,
           live ? "<span style=\"color:#{green}\">&#9679; Live</span>" : "<span style=\"color:#{red}\">&#9888; Offline</span>",
-          agent_url.call("/nykitchen/display")).html_safe %>
+          agent_url.call("/nykitchen/display/settings")).html_safe %>
     <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
       <% if neon[:days_seen].to_i.positive? %>
         Cycled classes on the lobby screen <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= neon[:days_seen] %></span> of the last 7 days<% if neon[:last_seen_at] %> &mdash; last seen <%= time_ago_in_words(neon[:last_seen_at]) %> ago<% end %>.

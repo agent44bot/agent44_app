@@ -80,7 +80,7 @@ class WeeklySalesEmailJob < ApplicationJob
                           .sort_by { |e| -e.spots_left.to_i }.first(5),
       periods:          KitchenSnapshot.period_rollups(snapshot),
       weekly_tickets:   KitchenSnapshot.tickets_sold_by_week,
-      selling_fastest:  KitchenSnapshot.selling_fastest(snapshot: snapshot),
+      selling_fastest:  KitchenSnapshot.selling_fastest(snapshot: snapshot, limit: 3),
       needs_a_push:     KitchenSnapshot.needs_a_push(snapshot: snapshot, limit: 3),
       # Argus (Test) + Scout (Data) weekly ops briefs.
       argus:            SmokeTestRun.window_stats(:nyk_nav, today - 7, today),

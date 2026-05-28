@@ -480,6 +480,60 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_includes notification.title, "3 ticket(s) bought"
   end
 
+  # --- "Tickets no longer available" (Closed) carry-forward ---
+
+  test "closed-not-soldout class carries forward prior spots, capacity, and price" do
+    yesterday = (Date.current - 1).to_s
+    url = "https://nykitchen.com/events/pinot-101"
+
+    # Day 1: selling normally — 7 of 32 sold at $57.
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: yesterday, events: [
+        { url: url, name: "Pinot Noir Decoded",
+          start_at: 2.days.from_now.iso8601, spots_left: 25, capacity: 32,
+          price: "57.00", availability: "InStock" }
+      ] }.to_json, headers: @headers
+    assert_response :created
+
+    # Day 2: online sales close — the page now shows 0 left and no price.
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: url, name: "Pinot Noir Decoded",
+          start_at: 2.days.from_now.iso8601, spots_left: 0, capacity: nil,
+          price: nil, availability: "Closed" }
+      ] }.to_json, headers: @headers
+    assert_response :created
+
+    e = KitchenSnapshot.find_by(taken_on: @today).kitchen_events.find_by(url: url)
+    assert_equal "Closed", e.availability
+    assert_equal 25, e.spots_left, "should keep prior spots, not the closed 0"
+    assert_equal "57.00", e.price, "should keep prior price"
+    assert_equal 7, e.tickets_sold, "must not inflate sold to capacity"
+  end
+
+  test "genuine SoldOut keeps zero spots (real sellout preserved, not carried over)" do
+    yesterday = (Date.current - 1).to_s
+    url = "https://nykitchen.com/events/sellout-101"
+
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: yesterday, events: [
+        { url: url, name: "Hot Class",
+          start_at: 2.days.from_now.iso8601, spots_left: 2, capacity: 10,
+          price: "50.00", availability: "InStock" }
+      ] }.to_json, headers: @headers
+
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: url, name: "Hot Class",
+          start_at: 2.days.from_now.iso8601, spots_left: 0, capacity: 10,
+          price: "50.00", availability: "SoldOut" }
+      ] }.to_json, headers: @headers
+
+    e = KitchenSnapshot.find_by(taken_on: @today).kitchen_events.find_by(url: url)
+    assert_equal 0, e.spots_left
+    assert_equal 10, e.tickets_sold
+  end
+
   test "notification when event sells out completely" do
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [
