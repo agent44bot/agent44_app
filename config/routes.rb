@@ -93,10 +93,9 @@ Rails.application.routes.draw do
   patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"
-  resources :posts, only: [ :index, :show ], path: "pulse"
-  # Permanent redirects from old /newsletter URLs to /pulse
-  get "/newsletter", to: redirect("/pulse", status: 301)
-  get "/newsletter/*slug", to: redirect("/pulse/%{slug}", status: 301)
+  # Pulse retired 2026-05-28: public route, controller, and views removed.
+  # Posts are still managed under /admin/posts. Old /pulse and /newsletter
+  # URLs now 404 (intentional — the feature is no longer offered).
   # resources :videos, only: [:index, :show]
   resources :subscribers, only: [ :create ]
   get "soft_gate", to: "soft_gates#show", as: :soft_gate

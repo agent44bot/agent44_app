@@ -13,9 +13,11 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
-  gather_news:
-    class: GatherNewsJob
-    schedule: every day at 5am
+  # Disabled 2026-05-28: /news no longer used. This job ran daily and called
+  # the Claude API (Haiku) to build the AI News digest. Re-add to resume.
+  # gather_news:
+  #   class: GatherNewsJob
+  #   schedule: every day at 5am
   scrape_jobs:
     class: ScrapeJobsJob
     schedule: every day at 6am

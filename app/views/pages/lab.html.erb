@@ -79,7 +79,7 @@
       </p>
       <p class="text-gray-400 leading-relaxed mt-3">
         That changes from here. Every commit an agent authors will be tagged. Every test it writes
-        will be tracked. Every time it gets something wrong, that goes in Pulse with my notes on why.
+        will be tracked. Every time it gets something wrong, that gets logged with my notes on why.
         This page will fill up with real activity as the experiment runs.
       </p>
       <p class="text-gray-300 leading-relaxed mt-4 font-medium">
@@ -98,7 +98,7 @@
         ["Start tiny", "Agents open PRs against the smallest possible scope first &mdash; copy edits, dependency bumps, test additions. Build the loop before expanding the surface area."],
         ["Wire in security scanners", "Brakeman, bundler-audit, secrets scanning. An agent runs them on a schedule, opens issues for findings, and writes the first-pass fix."],
         ["Let agents write their own tests", "Cassandra (the test agent, when she exists) writes Playwright coverage for what the human and other agents ship."],
-        ["Publish everything in Pulse", "What worked. What didn't. What I had to step in for. The lab notes are the product."],
+        ["Document it all in the open", "What worked. What didn't. What I had to step in for. The lab notes are the product."],
         ["Expand the loop", "Once the small scope is bulletproof, give agents more surface area. Eventually: features. Eventually: deploys with human approval. Eventually: deploys without."]
       ].each_with_index do |(title, body), i| %>
         <li class="flex gap-4">
@@ -194,14 +194,12 @@
   <section class="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-8 text-center">
     <h2 class="text-2xl font-bold text-white">Follow along</h2>
     <p class="mt-3 text-gray-400 max-w-md mx-auto">
-      The lab notes go out in Pulse. Field reports from a 25-year tester learning to direct agents.
+      Field reports from a 25-year tester learning to direct agents.
       In public. In real time.
     </p>
     <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-      <%= link_to "Read Pulse →", posts_path,
-            class: "inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-orange-600 rounded-full hover:bg-orange-700 transition" %>
       <%= link_to "See the job market data", jobs_path,
-            class: "inline-flex items-center px-6 py-3 text-sm font-semibold text-gray-300 border border-gray-700 rounded-full hover:border-orange-500 hover:text-orange-400 transition" %>
+            class: "inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-orange-600 rounded-full hover:bg-orange-700 transition" %>
     </div>
   </section>
 
