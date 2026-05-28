@@ -68,9 +68,15 @@
                   <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-900/50 text-green-400 border border-green-800">Applied <%= applied_at.in_time_zone("Eastern Time (US & Canada)").strftime("%-m/%-d") %></span>
                 <% end %>
               </div>
+              <% job_text = "#{job.title} #{job.location}".downcase %>
               <p class="text-sm text-gray-400">
                 <%= job.company %>
                 <% if job.location.present? %><span class="text-gray-600">·</span> <%= job.location %><% end %>
+                <% if job_text.match?(/\bhybrid\b/) %>
+                  <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-900/40 text-amber-300 border border-amber-800">Hybrid</span>
+                <% elsif job_text.match?(/remote|anywhere|distributed/) %>
+                  <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-900/40 text-green-400 border border-green-800">Remote</span>
+                <% end %>
                 <% if job.salary.present? %><span class="text-gray-600">·</span> <span class="text-green-500 font-medium"><%= job.salary %></span><% end %>
               </p>
 

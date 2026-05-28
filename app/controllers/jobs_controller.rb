@@ -137,7 +137,10 @@ class JobsController < ApplicationController
     when "dream"      then scope.where(job_matches: { is_dream: true })
     else scope
     end
-    scope = scope.merge(Job.remote) if params[:remote] == "1"
+    # "Remote only" = genuinely remote, so exclude hybrid roles (e.g. "Hybrid 3
+    # days/week / Remote") that match Job.remote merely because the title says
+    # "Remote" — useless for a remote-from-Rochester search.
+    scope = scope.merge(Job.remote).where("LOWER(jobs.title) NOT LIKE ?", "%hybrid%") if params[:remote] == "1"
     @matches = scope.limit(120).to_a
 
     active_matches = JobMatch.joins(:job).merge(Job.active)
