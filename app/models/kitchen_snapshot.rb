@@ -268,9 +268,9 @@ class KitchenSnapshot < ApplicationRecord
         events: classes_ended_between(today.last_month.beginning_of_month, today.last_month.end_of_month) },
       { key: "lastweek",  label: "Last week",  kind: :past,
         events: classes_ended_between(week_start - 7, week_start - 1) },
-      { key: "thisweek",  label: "This week",  kind: :forward, events: fwd.call(today, week_end) },
-      { key: "nextweek",  label: "Next week",  kind: :forward, events: fwd.call(week_end + 1, week_end + 7) },
-      { key: "thismonth", label: "This month", kind: :forward, events: fwd.call(today, today.end_of_month) }
+      { key: "thisweek",  label: "Current week",  kind: :forward, events: fwd.call(today, week_end) },
+      { key: "nextweek",  label: "Next week",     kind: :forward, events: fwd.call(week_end + 1, week_end + 7) },
+      { key: "thismonth", label: "Current month", kind: :forward, events: fwd.call(today, today.end_of_month) }
     ].filter_map { |d|
       r = revenue_rollup(d[:events])
       r[:count].zero? ? nil : d.except(:events).merge(r)
