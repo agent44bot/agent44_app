@@ -53,6 +53,19 @@ class KitchenController < ApplicationController
   # loader (same snapshot rollups); the view renders only the analytical
   # pieces (revenue rollup + trend charts), while List keeps the operational
   # calendar/leaderboards.
+  # Admin-only live preview of the weekly Agent Team Report — rendered with the
+  # latest snapshot's real data using the exact same builder as the Sunday send
+  # (one Carson AI call per load). 404s for everyone else. Not linked in the UI;
+  # a shareable internal URL for reviewing the report before it goes out.
+  def report_preview
+    head :not_found and return unless Current.user&.admin?
+    snapshot = KitchenSnapshot.latest
+    head :not_found and return unless snapshot
+    summary = WeeklySalesEmailJob.build_summary(snapshot)
+    html = KitchenMailer.weekly_sales(summary, recipients: [ "preview@agent44labs.com" ]).html_part.body.to_s
+    render html: html.html_safe, layout: false, content_type: "text/html"
+  end
+
   def analyst
     @sendable_workspaces = sendable_workspaces_for(Current.user) # for "Needs a push" → Social Agent
     load_events_data
