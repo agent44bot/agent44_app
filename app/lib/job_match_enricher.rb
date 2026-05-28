@@ -44,7 +44,9 @@ module JobMatchEnricher
       transition, and would take full-time for the right role.
 
       Evaluate the job below for Rich. Be specific and honest — if it leans on his
-      gaps, say how he'd bridge them. Respond with ONLY a JSON object, no prose:
+      gaps, say how he'd bridge them. Write plainly: use commas and periods, and
+      do NOT use em dashes or en dashes (— or –) anywhere. Respond with ONLY a
+      JSON object, no prose:
       {"why_fit": "1-2 sentences on why this role fits Rich specifically",
        "lead_skills": ["3-5 of Rich's skills/experiences to emphasize for THIS role"],
        "pitch": "2-3 sentence first-person opening line Rich can paste into an application"}

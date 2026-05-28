@@ -49,7 +49,15 @@ module JobMatcher
     gap_in_body  = profile["gap_keywords"].any? { |g| text.scan(skill_regex(g)).size >= 2 }
     gap_penalty  = gap_in_title ? 15 : (gap_in_body ? 8 : 0)
 
-    score = (base + skill_pts + seniority_pts + remote_pts + dream_pts + recency_pts - gap_penalty).round.clamp(0, 100)
+    # Salary floor: dock listings whose explicit annual salary is below his
+    # current comp (graduated by how far below, capped). No posted salary or
+    # hourly/contract rates parse to nil → neutral (parse_salary_midpoint skips them).
+    floor      = profile["salary_floor"].to_i
+    salary     = floor.positive? ? Job.parse_salary_midpoint(job.salary) : nil
+    below_floor = salary.present? && salary < floor
+    salary_penalty = below_floor ? [ ((floor - salary).to_f / floor * 30).round, 20 ].min : 0
+
+    score = (base + skill_pts + seniority_pts + remote_pts + dream_pts + recency_pts - gap_penalty - salary_penalty).round.clamp(0, 100)
 
     {
       score: score,
@@ -58,7 +66,8 @@ module JobMatcher
       reasons: {
         role_class: job.role_class, base: base, skill_pts: skill_pts.round,
         seniority: seniority, remote: remote, dream: is_dream,
-        recency_days: days, gap_penalty: gap_penalty
+        recency_days: days, gap_penalty: gap_penalty,
+        salary: salary, below_floor: below_floor, salary_penalty: salary_penalty
       }
     }
   end

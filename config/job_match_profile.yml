@@ -84,3 +84,8 @@ dream_keywords: [ai agent, agentic, autonomous agent, llm agent, agent engineer,
 
 remote_preference: strong            # Rochester, NY — remote strongly preferred
 employment_open: [full_time, part_time, contract]  # PT/contract OK to ease the transition
+
+# Current comp = $160K. Listings with an explicit annual salary below this get
+# ranked down (graduated penalty, capped). Roles with no posted salary, or
+# hourly/contract rates, are left neutral (not penalized). Set to 0 to disable.
+salary_floor: 160000
