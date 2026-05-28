@@ -70,7 +70,7 @@ class KitchenController < ApplicationController
     week_end   = today + ((7 - today.cwday) % 7) # this week's Sunday — matches the List week buckets
 
     forward = {
-      "week"     => { label: "This week",    to: week_end },
+      "week"     => { label: "Current week", to: week_end },
       "nextweek" => { label: "Next week",    from: week_end + 1, to: week_end + 7 }, # the discrete next week, like the List bucket
       "month"    => { label: "This month",   to: today.end_of_month },
       "all"      => { label: "All upcoming", to: nil },
@@ -87,7 +87,7 @@ class KitchenController < ApplicationController
     avail_back = back.select { |_k, w| KitchenSnapshot.any_classes_between?(w[:from], w[:to]) }
 
     @range = params[:range].to_s
-    @range = "all" unless forward.key?(@range) || avail_back.key?(@range)
+    @range = "week" unless forward.key?(@range) || avail_back.key?(@range) # default: current week
     @retrospective = back.key?(@range)
 
     # Buttons left→right: oldest retrospective → upcoming.
