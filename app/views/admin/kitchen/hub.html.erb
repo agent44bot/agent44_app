@@ -316,26 +316,18 @@
           <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
-        <%# Two printouts (Lora's request): a double-sided 18-class flyer (9 per
-            side) for the front desk, and a 6-class large-font poster for the
-            bathroom stalls. preventDefault in the print-schedule controller
+        <%# One entry point to printing. Opens the print page (front-desk flyer);
+            its top toolbar switches to the bathroom-stall poster, and either
+            prints from there. preventDefault in the print-schedule controller
             stops the surrounding card link from firing. %>
-        <div class="flex items-center gap-2 mt-2">
+        <div class="mt-2">
           <span role="button" tabindex="0"
-                title="18 classes, 9 per side — prints double-sided"
+                title="Front-desk flyer and bathroom-stall poster; pick either on the print page"
                 data-controller="print-schedule"
-                data-print-schedule-url-value="<%= nyk_display_print_path(autoprint: 1) %>"
+                data-print-schedule-url-value="<%= nyk_display_print_path %>"
                 data-action="click->print-schedule#open keydown.enter->print-schedule#open"
-                class="flex-1 justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
-            🖨 Flyer · 18
-          </span>
-          <span role="button" tabindex="0"
-                title="6 classes, large font — for the bathroom stalls"
-                data-controller="print-schedule"
-                data-print-schedule-url-value="<%= nyk_display_print_path(variant: "stall", autoprint: 1) %>"
-                data-action="click->print-schedule#open keydown.enter->print-schedule#open"
-                class="flex-1 justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
-            🖨 Stall · 6
+                class="w-full justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
+            🖨 Print flyers
           </span>
         </div>
       </div>
