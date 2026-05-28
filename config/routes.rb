@@ -50,6 +50,7 @@ Rails.application.routes.draw do
     collection do
       get :globe
       get :today
+      get :for_me
     end
     resource :saved_job, only: [ :create, :destroy ] do
       post :toggle_applied, on: :member

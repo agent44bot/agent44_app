@@ -1,0 +1,86 @@
+# Rich Downie's job-match profile — drives JobMatcher scoring, the For You feed
+# (/jobs/for-me), and the daily digest email. Tune weights/skills here; no code
+# change needed. See app/lib/job_matcher.rb.
+
+candidate:
+  name: Rich Downie
+  email: botwhisperer@hey.com
+  location: Rochester, NY
+
+# Pragmatic bias (his call): AI-augmented QA is the highest-ROI realistic target
+# — 25 yrs SDET = instant credibility + the most listings. Agent-engineer roles
+# are the dream (rarer); kept high AND additionally flagged via dream_keywords so
+# they float to the top. Pure test automation is the safety net.
+role_class_weights:
+  ai_augmented: 40
+  agent_director: 36
+  traditional: 22
+
+# Skill overlap: each skill found (word-boundary) in title+description counts;
+# up to 8 contribute to the score. Lowercase.
+skills:
+  - ruby
+  - ruby on rails
+  - rails
+  - playwright
+  - selenium
+  - appium
+  - cucumber
+  - cypress
+  - capybara
+  - rspec
+  - typescript
+  - javascript
+  - python
+  - sql
+  - github actions
+  - ci/cd
+  - jenkins
+  - gitlab
+  - circleci
+  - aws
+  - fly.io
+  - docker
+  - postgres
+  - postgresql
+  - rest
+  - api
+  - graphql
+  - react
+  - hotwire
+  - turbo
+  - tailwind
+  - capacitor
+  - mobile
+  - ios
+  - android
+  - sdet
+  - test automation
+  - qa
+  - quality engineering
+  - quality assurance
+  - claude
+  - anthropic
+  - openai
+  - gpt
+  - llm
+  - rag
+  - mcp
+  - langchain
+  - vector
+  - prompt engineering
+  - ai agent
+  - agentic
+  - agent
+
+# Title/description seniority signals (his level).
+seniority_keywords: [senior, principal, staff, lead, architect, sdet]
+
+# Roles leaning on these as core skills are a poor fit (his honest gaps).
+gap_keywords: [java, "c#", ".net", kotlin, swift, scala, golang, rust, kubernetes, k8s, terraform]
+
+# Presence flags a role as a 'dream/stretch' true agent-engineering job.
+dream_keywords: [ai agent, agentic, autonomous agent, llm agent, agent engineer, multi-agent, agent framework, ai engineer]
+
+remote_preference: strong            # Rochester, NY — remote strongly preferred
+employment_open: [full_time, part_time, contract]  # PT/contract OK to ease the transition

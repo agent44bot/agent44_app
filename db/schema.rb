@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_114914) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_28_210000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -146,6 +146,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_114914) do
     t.index ["actor_id"], name: "index_impersonation_logs_on_actor_id"
     t.index ["created_at"], name: "index_impersonation_logs_on_created_at"
     t.index ["target_id"], name: "index_impersonation_logs_on_target_id"
+  end
+
+  create_table "job_matches", force: :cascade do |t|
+    t.datetime "computed_at"
+    t.datetime "created_at", null: false
+    t.datetime "enriched_at"
+    t.boolean "is_dream", default: false, null: false
+    t.integer "job_id", null: false
+    t.json "lead_skills"
+    t.json "matched_skills"
+    t.text "pitch"
+    t.json "reasons"
+    t.integer "score", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.text "why"
+    t.index ["job_id"], name: "index_job_matches_on_job_id", unique: true
+    t.index ["score"], name: "index_job_matches_on_score"
   end
 
   create_table "job_sources", force: :cascade do |t|
@@ -598,6 +615,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_114914) do
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "impersonation_logs", "users", column: "actor_id"
   add_foreign_key "impersonation_logs", "users", column: "target_id"
+  add_foreign_key "job_matches", "jobs", on_delete: :cascade
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"

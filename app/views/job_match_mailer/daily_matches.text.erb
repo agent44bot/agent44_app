@@ -1,0 +1,22 @@
+<% role = { "agent_director" => "AI Agent", "ai_augmented" => "AI-Augmented QA", "traditional" => "Test Automation" } -%>
+YOUR JOB MATCHES — <%= @matches.size %> new <%= "match".pluralize(@matches.size) %> today
+Ranked for <%= @profile["name"] %> (AI-augmented QA first; ★ = dream/agent role)
+
+<% @matches.each_with_index do |m, i| -%>
+<% job = m.job -%>
+[<%= m.score %>] <%= m.is_dream ? "★ " : "" %><%= job.title %> — <%= job.company %>
+    <%= role[job.role_class] || job.role_class %><%= job.location.present? ? " · #{job.location}" : "" %><%= job.salary.present? ? " · #{job.salary}" : "" %>
+<% if m.why.present? -%>
+    Why it fits: <%= m.why %>
+<% end -%>
+<% if m.pitch.present? -%>
+    Pitch: <%= m.pitch %>
+<% end -%>
+<% if m.lead_skills.present? -%>
+    Lead with: <%= Array(m.lead_skills).join(", ") %>
+<% end -%>
+    Apply: <%= job.url %>
+
+<% end -%>
+See all your matches: https://agent44labs.com/jobs/for_me
+Scored daily from fresh listings across 6 job boards.

@@ -117,6 +117,40 @@ class JobsController < ApplicationController
     @salary_director = Job.salary_stats(role_class: "agent_director", window_days: @range_days)
   end
 
+  # Personalized "For You" feed — JobMatch scores ranked for Rich. Auth-only
+  # (so admin-only via enforce_workspace_scope). See JobMatcher / RankJobMatchesJob.
+  def for_me
+    @profile = JobMatcher.profile["candidate"] || {}
+    @focus   = params[:focus].presence
+
+    saved = Current.user.saved_jobs.index_by(&:job_id)
+    @saved_job_ids  = saved.keys.to_set
+    @applied_jobs   = saved.select { |_, sj| sj.applied? }.transform_values(&:applied_at)
+    @hidden_job_ids = Current.user.hidden_jobs.pluck(:job_id).to_set
+
+    scope = JobMatch.ranked.preload(job: :job_sources).joins(:job).merge(Job.active)
+    scope = scope.where.not(job_id: @hidden_job_ids) if @hidden_job_ids.any? && params[:show_hidden] != "1"
+    scope = case @focus
+    when "agent"      then scope.merge(Job.agent_director)
+    when "ai"         then scope.merge(Job.ai_augmented_only)
+    when "automation" then scope.merge(Job.traditional)
+    when "dream"      then scope.where(job_matches: { is_dream: true })
+    else scope
+    end
+    scope = scope.merge(Job.remote) if params[:remote] == "1"
+    @matches = scope.limit(120).to_a
+
+    active_matches = JobMatch.joins(:job).merge(Job.active)
+    @counts = {
+      all:        active_matches.count,
+      agent:      active_matches.merge(Job.agent_director).count,
+      ai:         active_matches.merge(Job.ai_augmented_only).count,
+      automation: active_matches.merge(Job.traditional).count,
+      dream:      active_matches.where(job_matches: { is_dream: true }).count
+    }
+    @last_ranked_at = JobMatch.maximum(:computed_at)
+  end
+
   def show
     @job = Job.includes(:job_sources).find(params[:id])
 

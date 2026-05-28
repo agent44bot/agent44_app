@@ -21,6 +21,15 @@ production:
   scrape_jobs:
     class: ScrapeJobsJob
     schedule: every day at 6am
+  # Score the freshly-scraped jobs against Rich's profile, then AI-enrich the
+  # top matches. Runs after the 6am scrape. See JobMatcher / RankJobMatchesJob.
+  rank_job_matches:
+    class: RankJobMatchesJob
+    schedule: every day at 7am
+  # Email Rich the day's new top matches (after ranking).
+  job_match_digest:
+    class: JobMatchDigestJob
+    schedule: every day at 8am
   kitchen_digest_email:
     class: KitchenDigestEmailJob
     schedule: every day at 10am

@@ -1,0 +1,134 @@
+<% content_for(:title, "For You — Personalized Job Matches") %>
+<%
+  role_meta = {
+    "agent_director" => ["AI Agent", "text-blue-400 bg-blue-900/40 border-blue-800"],
+    "ai_augmented"   => ["AI-Augmented QA", "text-green-400 bg-green-900/40 border-green-800"],
+    "traditional"    => ["Test Automation", "text-orange-300 bg-orange-900/40 border-orange-800"]
+  }
+  score_color = ->(s) { s >= 85 ? "text-green-400 border-green-600" : s >= 70 ? "text-orange-300 border-orange-600" : "text-gray-400 border-gray-700" }
+%>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-2 gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-white">For You</h1>
+      <p class="mt-2 text-gray-500">
+        Ranked for <span class="text-gray-300 font-medium"><%= @profile["name"] || "you" %></span> —
+        AI-augmented QA first, agent roles flagged <span class="text-amber-300">★ dream</span>, automation as backstop.
+      </p>
+    </div>
+    <%= link_to "Browse all jobs →", jobs_path, class: "shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-900 border border-gray-800 rounded-full hover:border-orange-300 hover:text-orange-400 transition" %>
+  </div>
+  <% if @last_ranked_at %>
+    <p class="text-xs text-gray-600 mb-6">Last ranked <%= time_ago_in_words(@last_ranked_at) %> ago · <%= @counts[:all] %> active matches scored</p>
+  <% end %>
+
+  <!-- Focus filters -->
+  <div class="flex flex-wrap items-center gap-2 mb-8">
+    <% focuses = [["all", "All", @counts[:all]], ["dream", "★ Dream", @counts[:dream]], ["agent", "AI Agent", @counts[:agent]], ["ai", "AI-Augmented QA", @counts[:ai]], ["automation", "Test Automation", @counts[:automation]]] %>
+    <% focuses.each do |value, label, count| %>
+      <% active = (@focus || "all") == value %>
+      <%= link_to for_me_jobs_path(focus: (value == "all" ? nil : value), remote: params[:remote]),
+            class: "px-3 py-1.5 text-xs font-semibold rounded-full transition border #{active ? 'bg-orange-600 text-white border-orange-600' : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-orange-500 hover:text-orange-400'}" do %>
+        <%= label %> <span class="<%= active ? 'text-orange-100' : 'text-gray-600' %>"><%= count %></span>
+      <% end %>
+    <% end %>
+    <% remote_on = params[:remote] == "1" %>
+    <%= link_to for_me_jobs_path(focus: @focus, remote: remote_on ? nil : "1"),
+          class: "ml-auto px-3 py-1.5 text-xs font-semibold rounded-full transition border #{remote_on ? 'bg-green-700 text-white border-green-600' : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-green-600 hover:text-green-400'}" do %>
+      <%= remote_on ? "✓ Remote only" : "Remote only" %>
+    <% end %>
+  </div>
+
+  <!-- Matches -->
+  <% if @matches.any? %>
+    <div class="space-y-4">
+      <% @matches.each do |m| %>
+        <% job = m.job %>
+        <% label, badge = role_meta[job.role_class] || [job.role_class, "text-gray-400 bg-gray-800 border-gray-700"] %>
+        <% applied_at = @applied_jobs[job.id] %>
+        <div class="bg-gray-900 rounded-xl border border-gray-800 p-5 hover:border-orange-500/30 transition">
+          <div class="flex items-start gap-4">
+            <!-- Score -->
+            <div class="shrink-0 text-center">
+              <div class="w-14 h-14 rounded-xl border-2 <%= score_color.call(m.score) %> flex items-center justify-center font-bold text-xl bg-gray-950"><%= m.score %></div>
+              <div class="mt-1 text-[10px] uppercase tracking-wide text-gray-600">match</div>
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <!-- Title row -->
+              <div class="flex items-center flex-wrap gap-2 mb-1">
+                <% if m.is_dream %><span class="text-amber-300 text-sm" title="Dream / agent-engineering role">★</span><% end %>
+                <h2 class="text-lg font-semibold text-white truncate">
+                  <%= link_to job.title, job_path(job), class: "hover:text-orange-400 transition" %>
+                </h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border <%= badge %>"><%= label %></span>
+                <% if applied_at %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-900/50 text-green-400 border border-green-800">Applied <%= applied_at.in_time_zone("Eastern Time (US & Canada)").strftime("%-m/%-d") %></span>
+                <% end %>
+              </div>
+              <p class="text-sm text-gray-400">
+                <%= job.company %>
+                <% if job.location.present? %><span class="text-gray-600">·</span> <%= job.location %><% end %>
+                <% if job.salary.present? %><span class="text-gray-600">·</span> <span class="text-green-500 font-medium"><%= job.salary %></span><% end %>
+              </p>
+
+              <!-- AI: why it fits + pitch -->
+              <% if m.why.present? %>
+                <p class="mt-3 text-sm text-gray-300 leading-relaxed"><span class="text-orange-400 font-semibold">Why it fits:</span> <%= m.why %></p>
+              <% end %>
+              <% if m.lead_skills.present? %>
+                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span class="text-[11px] uppercase tracking-wide text-gray-600 mr-1">Lead with</span>
+                  <% Array(m.lead_skills).each do |s| %>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] bg-gray-800 text-gray-300 border border-gray-700"><%= s %></span>
+                  <% end %>
+                </div>
+              <% end %>
+              <% if m.pitch.present? %>
+                <div class="mt-3 rounded-lg bg-gray-950 border border-gray-800 p-3">
+                  <div class="text-[10px] uppercase tracking-wide text-gray-600 mb-1">Your opening pitch</div>
+                  <p class="text-sm text-gray-300 italic leading-relaxed"><%= m.pitch %></p>
+                </div>
+              <% end %>
+
+              <!-- matched skills -->
+              <% if m.matched_skills.present? %>
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  <% Array(m.matched_skills).first(10).each do |s| %>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] bg-orange-900/30 text-orange-300/80 border border-orange-900/50"><%= s %></span>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <!-- actions -->
+              <div class="mt-4 flex items-center gap-2">
+                <% if job.url.present? %>
+                  <%= link_to job.url, target: "_blank", rel: "noopener noreferrer", class: "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition" do %>
+                    Apply
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  <% end %>
+                <% end %>
+                <% saved = @saved_job_ids.include?(job.id) %>
+                <%= button_to job_saved_job_path(job), method: saved ? :delete : :post, class: "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition #{saved ? 'border-red-800 text-red-400 bg-red-900/20 hover:bg-red-900/40' : 'border-gray-700 text-gray-400 hover:border-orange-500 hover:text-orange-400'}", form: { data: { turbo_frame: "_top" } } do %>
+                  <%= saved ? "♥ Saved" : "♡ Save" %>
+                <% end %>
+                <% if saved %>
+                  <%= button_to toggle_applied_job_saved_job_path(job), method: :post, class: "inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border transition #{applied_at ? 'border-green-800 text-green-400 bg-green-900/20' : 'border-gray-700 text-gray-400 hover:border-green-600 hover:text-green-400'}", form: { data: { turbo_frame: "_top" } } do %>
+                    <%= applied_at ? "✓ Applied" : "Mark applied" %>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-center py-16">
+      <h3 class="text-lg font-medium text-white">No matches yet</h3>
+      <p class="mt-1 text-sm text-gray-500">The matcher runs after each daily scrape. Try clearing the Remote filter, or check back after the next run.</p>
+    </div>
+  <% end %>
+</div>
