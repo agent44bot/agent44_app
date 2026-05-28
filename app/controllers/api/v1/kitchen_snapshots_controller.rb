@@ -73,21 +73,25 @@ module Api
 
           prev = prev_events[e[:url]]
 
+          # The page hides the price once a class can't be bought (SoldOut or
+          # Closed), so the scrape sends it blank. The price hasn't really
+          # vanished — carry the last known one forward on any blank, so sold-out
+          # classes still contribute real revenue instead of $0.
+          price = e[:price].presence || prev&.price
+
           # "Tickets no longer available" (Closed) ends online sales without
           # selling out — the page then shows 0 left, which would read as a full
-          # sellout and inflate tickets_sold to capacity (e.g. 7 sold → 32) while
-          # dropping the price. A genuine "SoldOut" really is 0 left, so leave it
-          # alone. For closed-not-soldout, carry the prior run's spots/capacity/
-          # price forward so tickets_sold and revenue stay truthful.
+          # sellout and inflate tickets_sold to capacity (e.g. 7 sold → 32). A
+          # genuine "SoldOut" really is 0 left, so leave it alone. For
+          # closed-not-soldout, carry the prior run's spots/capacity forward so
+          # tickets_sold stays truthful.
           av = e[:availability].to_s.downcase
           if av.include?("closed") && !av.include?("soldout") && prev
             spots_left = prev.spots_left
             capacity   = prev.capacity
-            price      = e[:price].presence || prev.price
           else
             spots_left = e[:spots_left]
             capacity   = e[:capacity]
-            price      = e[:price]
           end
 
           if spots_left.present? && capacity.present?

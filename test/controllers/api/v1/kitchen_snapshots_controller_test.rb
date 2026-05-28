@@ -534,6 +534,34 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 10, e.tickets_sold
   end
 
+  test "sold-out class with blank price keeps the prior price (revenue not lost)" do
+    yesterday = (Date.current - 1).to_s
+    url = "https://nykitchen.com/events/chefs-table"
+
+    # Day 1: selling at $190.
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: yesterday, events: [
+        { url: url, name: "Chef's Table",
+          start_at: 2.days.from_now.iso8601, spots_left: 4, capacity: 12,
+          price: "190.00", availability: "InStock" }
+      ] }.to_json, headers: @headers
+
+    # Day 2: sells out — the page hides the price (sends blank), 0 left.
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: url, name: "Chef's Table",
+          start_at: 2.days.from_now.iso8601, spots_left: 0, capacity: 12,
+          price: nil, availability: "SoldOut" }
+      ] }.to_json, headers: @headers
+
+    e = KitchenSnapshot.find_by(taken_on: @today).kitchen_events.find_by(url: url)
+    assert_equal "SoldOut", e.availability
+    assert_equal 0, e.spots_left, "sold out really is 0 left"
+    assert_equal 12, e.tickets_sold
+    assert_equal "190.00", e.price, "price must carry forward, not drop to nil"
+    assert_equal 2280.0, e.revenue_sold
+  end
+
   test "notification when event sells out completely" do
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [

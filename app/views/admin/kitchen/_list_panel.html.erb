@@ -27,7 +27,12 @@
             week_rev_total = priced_events.sum(&:revenue_total)
             week_rev_left  = week_rev_total - week_rev_sold
 
-            sold_pct = if tickets_total.positive?
+            # Revenue-based % so it reconciles with the dollar line below
+            # ($sold ÷ $total). Falls back to seat-based, then class-count,
+            # when no priced/capacity data exists for the week.
+            sold_pct = if week_rev_total.positive?
+              (week_rev_sold.to_f / week_rev_total * 100).round
+            elsif tickets_total.positive?
               (tickets_sold.to_f / tickets_total * 100).round
             elsif denom.positive?
               (sold.to_f / denom * 100).round
@@ -40,8 +45,10 @@
             sold_pct_color = sold_pct >= 60 ? "text-red-400"
                            : sold_pct >= 25 ? "text-amber-400"
                            :                   "text-gray-500"
-            sold_tooltip   = if priced_events.any?
-              proxy_note = proxy_events.any? ? " (#{proxy_events.size} use observed baseline as capacity proxy — biased low)" : ""
+            proxy_note     = proxy_events.any? ? " (#{proxy_events.size} use observed baseline as capacity proxy — biased low)" : ""
+            sold_tooltip   = if week_rev_total.positive?
+              "#{number_to_currency(week_rev_sold, precision: 0)} of #{number_to_currency(week_rev_total, precision: 0)} booked (face value) · #{tickets_sold} of #{tickets_total} seats#{proxy_note}"
+            elsif priced_events.any?
               "#{tickets_sold} of #{tickets_total} tickets sold across #{priced_events.size} of #{total} classes#{proxy_note}"
             else
               "No capacity data — falling back to class-count ratio (#{sold} of #{denom} classes sold out)"
