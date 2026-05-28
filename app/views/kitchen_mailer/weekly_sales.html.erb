@@ -51,6 +51,12 @@
 %>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f1ea;margin:0;padding:0">
 <tr><td align="center" style="padding:24px 12px">
+<%# Feedback-sample note — only present on sample sends, never the real recap. %>
+<% if s[:sample_note].present? %>
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;margin-bottom:12px">
+  <tr><td style="background:<%= cream %>;border:1px solid <%= line %>;border-left:4px solid <%= accent %>;border-radius:8px;padding:14px 18px;font-family:<%= sans %>;font-size:13px;color:<%= ink %>;line-height:1.55"><%= s[:sample_note] %></td></tr>
+</table>
+<% end %>
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid <%= line %>;border-radius:12px;overflow:hidden">
 
   <%# ── Header ───────────────────────────────────────────── %>

@@ -3,6 +3,12 @@
   wow = bw[:prior_revenue].to_i.positive? ? (100.0 * (bw[:revenue].to_i - bw[:prior_revenue]) / bw[:prior_revenue]).round : nil
   short = ->(n) { n.to_i.abs >= 1000 ? "~$#{number_with_delimiter((n / 1000.0).round)}K" : number_to_currency(n, precision: 0) }
 -%>
+<% if @s[:sample_note].present? -%>
+<%= @s[:sample_note] %>
+
+————————————————————————————————————————
+
+<% end -%>
 NY Kitchen — Weekly Team Report
 <%= @s[:snapshot_date]&.strftime("Week of %B %-d, %Y") %>
 <% if @s[:headline].present? -%>
