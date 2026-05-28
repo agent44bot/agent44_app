@@ -16,9 +16,9 @@ BOOKED · THIS WEEK (Mon–Sun): <%= number_to_currency(bw[:revenue].to_i, preci
 Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
 
 <% if @s[:periods].present? -%>
-BY PERIOD  (booked $ · % of $ sold · left to sell $)
+BY PERIOD  (classes · booked $ · % of $ sold · left to sell $)
 <% @s[:periods].each do |p| -%>
-- <%= p[:label].ljust(11) %> <%= number_to_currency(p[:sold], precision: 0).rjust(8) %> · <%= "#{p[:pct].to_i}%".rjust(4) %> · <%= short.call(p[:left]) %> <%= p[:kind] == :past ? "(booked/missed)" : "(sold/left)" %>
+- <%= "#{p[:label]} (#{p[:count]})".ljust(17) %> <%= number_to_currency(p[:sold], precision: 0).rjust(8) %> · <%= "#{p[:pct].to_i}%".rjust(4) %> · <%= short.call(p[:left]) %> <%= p[:kind] == :past ? "(booked/missed)" : "(sold/left)" %>
 <% end -%>
 <% end -%>
 <% if @s[:newly_sold_out].present? -%>
@@ -81,6 +81,12 @@ SAM · SCHEDULER (calendar)
 
 ECHO · BROADCAST (social)
 <%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''}#{(echo[:likes].to_i + echo[:reposts].to_i + echo[:replies].to_i) > 0 ? " — #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "."}" : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
+<% end -%>
+<% neon = @s[:neon] || {} -%>
+<% if neon[:last_seen_at] || neon[:days_seen].to_i.positive? -%>
+
+NEON · MARQUEE (in-store screen)
+<%= neon[:days_seen].to_i.positive? ? "Live on #{neon[:days_seen]} of the last 7 days#{neon[:last_seen_at] ? " (last seen #{time_ago_in_words(neon[:last_seen_at])} ago)" : ''}." : "Last seen #{time_ago_in_words(neon[:last_seen_at])} ago. Daily uptime tracking just started." %>
 <% end -%>
 <% neon = @s[:neon] || {} -%>
 <% if neon[:last_seen_at] || neon[:days_seen].to_i.positive? -%>
