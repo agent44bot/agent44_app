@@ -288,6 +288,7 @@ class KitchenSnapshot < ApplicationRecord
 
     start_spots = from_snap.kitchen_events.where.not(spots_left: nil).pluck(:url, :spots_left).to_h
     to_snap.kitchen_events.where.not(spots_left: nil).filter_map { |e|
+      next if e.sales_ended? # a "Tickets no longer available" cutoff isn't a booking
       s0   = start_spots[e.url]
       sold = s0 ? s0 - e.spots_left : 0
       next if sold <= 0
@@ -326,7 +327,7 @@ class KitchenSnapshot < ApplicationRecord
     prev = where("taken_on <= ?", date).order(taken_on: :desc).first or return []
     prev_status = prev.kitchen_events.pluck(:url, :availability).to_h
     now.kitchen_events.upcoming.select { |e|
-      e.sold_out? && prev_status.key?(e.url) && prev_status[e.url].to_s.downcase !~ /soldout|closed/
+      e.truly_sold_out? && prev_status.key?(e.url) && prev_status[e.url].to_s.downcase !~ /soldout/
     }.sort_by(&:start_at)
   end
 

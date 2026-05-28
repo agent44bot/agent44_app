@@ -281,4 +281,30 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal %w[Flop Soft], ranked.map { |r| r[:event].name }
     assert_equal 18, ranked.first[:unsold]
   end
+
+  test "newly_sold_out_since counts genuine sellouts, not sales cutoffs" do
+    today = Date.current
+    prev = KitchenSnapshot.create!(taken_on: today - 7)
+    prev.kitchen_events.create!(url: "u/sellout", name: "Sellout", start_at: 3.days.from_now, availability: "InStock", spots_left: 5)
+    prev.kitchen_events.create!(url: "u/cutoff",  name: "Cutoff",  start_at: 3.days.from_now, availability: "InStock", spots_left: 20)
+
+    now = KitchenSnapshot.create!(taken_on: today)
+    now.kitchen_events.create!(url: "u/sellout", name: "Sellout", start_at: 3.days.from_now, availability: "SoldOut", spots_left: 0)
+    now.kitchen_events.create!(url: "u/cutoff",  name: "Cutoff",  start_at: 3.days.from_now, availability: "Closed",  spots_left: 20)
+
+    urls = KitchenSnapshot.newly_sold_out_since(today - 1).map(&:url)
+    assert_includes     urls, "u/sellout"
+    assert_not_includes urls, "u/cutoff" # "Tickets no longer available" != sold out
+  end
+
+  test "bookings_between ignores a sales cutoff (no phantom booking)" do
+    today = Date.current
+    from = KitchenSnapshot.create!(taken_on: today - 7)
+    from.kitchen_events.create!(url: "u/cutoff", name: "Cutoff", start_at: 3.days.from_now, availability: "InStock", spots_left: 25, price: "57.00")
+    to = KitchenSnapshot.create!(taken_on: today)
+    to.kitchen_events.create!(url: "u/cutoff", name: "Cutoff", start_at: 3.days.from_now, availability: "Closed", spots_left: 0, price: "57.00")
+
+    cutoff_rows = KitchenSnapshot.bookings_between(today - 7, today).select { |r| r[:event].url == "u/cutoff" }
+    assert_empty cutoff_rows # 25 -> 0 is a closure, not 25 tickets sold
+  end
 end

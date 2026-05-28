@@ -31,6 +31,7 @@ class ScrapeKitchenJob < ApplicationJob
         e[:image_url] ||= info[:image_url]
         if info[:closed]
           e[:availability] = "Closed"
+          e[:closed] = true
         elsif info[:spots_left] && info[:spots_left] > 0
           e[:availability] = "InStock"
         elsif info[:spots_left] == 0
@@ -52,6 +53,19 @@ class ScrapeKitchenJob < ApplicationJob
 
       # Carry forward last-known ticket data from previous snapshot
       prev = prev_events[e[:url]]
+
+      # "Tickets no longer available" zeroes the live page (spots 0, no price) —
+      # that's a pre-event sales cutoff, not a sellout. Carry forward the last
+      # real observation so the class isn't mistaken for a sellout, doesn't inject
+      # a phantom booking, and keeps its price. A class that had truly sold out
+      # before closing stays "SoldOut".
+      if e[:closed] && prev
+        e[:spots_left]   = prev.spots_left
+        e[:capacity]     = prev.capacity
+        e[:price]        = prev.price if e[:price].blank?
+        e[:availability] = prev.truly_sold_out? ? "SoldOut" : "Closed"
+      end
+
       if e[:spots_left] && e[:capacity]
         last_spots = e[:spots_left]
         last_cap   = e[:capacity]

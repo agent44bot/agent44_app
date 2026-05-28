@@ -41,4 +41,22 @@ class KitchenEventTest < ActiveSupport::TestCase
     assert_equal 400.0, e.revenue_total  # 8 × 50
     assert_equal 250.0, e.revenue_left
   end
+
+  test "truly_sold_out? and sales_ended? distinguish a sellout from a sales cutoff" do
+    soldout = build_event(availability: "SoldOut")
+    closed  = build_event(availability: "Closed")   # "Tickets no longer available"
+    instock = build_event(availability: "InStock")
+
+    assert soldout.truly_sold_out?
+    refute soldout.sales_ended?
+    refute closed.truly_sold_out?
+    assert closed.sales_ended?
+    refute instock.truly_sold_out?
+    refute instock.sales_ended?
+
+    # sold_out? (unbookable) still covers both, for the list/display.
+    assert soldout.sold_out?
+    assert closed.sold_out?
+    refute instock.sold_out?
+  end
 end

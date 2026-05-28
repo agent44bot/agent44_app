@@ -6,10 +6,18 @@ class KitchenEvent < ApplicationRecord
   scope :upcoming, -> { where("start_at >= ?", Time.current).order(:start_at) }
   scope :sold_out, -> { where("LOWER(availability) LIKE ? OR LOWER(availability) LIKE ?", "%soldout%", "%closed%") }
 
+  # Unbookable: a genuine sellout OR sales ended. Used by the list/display to
+  # hide classes you can't book.
   def sold_out?
     av = availability.to_s.downcase
     av.include?("soldout") || av.include?("closed")
   end
+
+  # Distinguish a genuine sellout (every seat booked → "SoldOut") from sales
+  # merely ending ("Tickets no longer available" → "Closed", a pre-event cutoff
+  # that can leave seats unsold). The report must not count a cutoff as a sellout.
+  def truly_sold_out? = availability.to_s.downcase.include?("soldout")
+  def sales_ended?    = availability.to_s.downcase.include?("closed")
 
   # Canonical status bucket for filter chips + CSS targeting.
   # "soldout" takes priority over "closed" — Lora's request: when both

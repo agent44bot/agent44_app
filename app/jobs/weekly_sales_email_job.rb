@@ -75,7 +75,7 @@ class WeeklySalesEmailJob < ApplicationJob
       movers:           KitchenSnapshot.bookings_between(today - 7, today).first(5),
       newly_sold_out:   KitchenSnapshot.newly_sold_out_since(today - 7),
       empty_last_week:  KitchenSnapshot.classes_ended_between(today - 7, today)
-                          .select { |e| !e.sold_out? && e.spots_left.to_i >= 3 }
+                          .select { |e| !e.truly_sold_out? && e.spots_left.to_i >= 3 }
                           .sort_by { |e| -e.spots_left.to_i }.first(5),
       periods:          KitchenSnapshot.period_rollups(snapshot),
       weekly_tickets:   KitchenSnapshot.tickets_sold_by_week,
