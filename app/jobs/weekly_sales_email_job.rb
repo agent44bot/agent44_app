@@ -59,8 +59,11 @@ class WeeklySalesEmailJob < ApplicationJob
     # evening, so on send day this is the full Mon–Sun week that just finished;
     # a mid-week preview shows the week so far.
     week_start = today.beginning_of_week(:monday)
-    bw = KitchenSnapshot.bookings_total(week_start, today)
-    pw = KitchenSnapshot.bookings_total(week_start - 7, week_start)
+    # Day-over-day sum (not endpoint diff) so "Booked this week" counts every
+    # ticket sold this week — including classes that already ran — and matches
+    # the weekly-tickets chart. Prior week is the full Mon–Sun before this one.
+    bw = KitchenSnapshot.bookings_daily_total(week_start, today)
+    pw = KitchenSnapshot.bookings_daily_total(week_start - 7, week_start - 1)
 
     data = {
       snapshot_date:    snapshot.taken_on,

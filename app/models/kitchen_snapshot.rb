@@ -28,6 +28,9 @@ class KitchenSnapshot < ApplicationRecord
 
     prev_events = prev.kitchen_events.where.not(spots_left: nil).index_by(&:url)
     kitchen_events.where.not(spots_left: nil).sum do |e|
+      # "Tickets no longer available" (Closed) drops spots to 0 as a sales
+      # cutoff, not a sale — don't count that as tickets sold.
+      next 0 if e.sales_ended?
       prev_e = prev_events[e.url]
       next 0 unless prev_e
       [prev_e.spots_left - e.spots_left, 0].max
@@ -312,6 +315,32 @@ class KitchenSnapshot < ApplicationRecord
   def self.bookings_total(from, to)
     rows = bookings_between(from, to)
     { tickets: rows.sum { |r| r[:tickets] }, revenue: rows.sum { |r| r[:revenue] } }
+  end
+
+  # { tickets:, revenue: } of real tickets sold across a date range, summed
+  # day-over-day — the same observed-sales basis as tickets_sold_by_week (so the
+  # report's "Booked this week" reconciles with the weekly chart). Unlike
+  # bookings_total (which compares two endpoints over the still-listed cohort),
+  # this also captures classes that sold and then ran off the calendar mid-range,
+  # and skips "Tickets no longer available" cutoffs.
+  def self.bookings_daily_total(from, to)
+    tickets = 0
+    revenue = 0.0
+    where(taken_on: from..to).order(taken_on: :asc).each do |s|
+      prev = latest_before(s.taken_on)
+      next unless prev
+      prev_events = prev.kitchen_events.where.not(spots_left: nil).index_by(&:url)
+      s.kitchen_events.where.not(spots_left: nil).each do |e|
+        next if e.sales_ended?
+        prev_e = prev_events[e.url]
+        next unless prev_e
+        drop = prev_e.spots_left - e.spots_left
+        next if drop <= 0
+        tickets += drop
+        revenue += drop * e.price_value
+      end
+    end
+    { tickets: tickets, revenue: revenue }
   end
 
   # Sam's weekly calendar churn: how the class list changed vs the last snapshot

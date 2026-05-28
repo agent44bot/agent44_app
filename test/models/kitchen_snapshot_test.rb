@@ -338,4 +338,42 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal 2, nw[:total_count], "total_count counts every class in the period"
     assert_equal 1, nw[:count], "count counts only priced/capacity-known classes"
   end
+
+  test "tickets_sold_today ignores closed-class spot drops (cutoff, not a sale)" do
+    today = Date.current
+    y = KitchenSnapshot.create!(taken_on: today - 1)
+    y.kitchen_events.create!(url: "u/a", name: "A", start_at: (today + 3).to_time, spots_left: 10, capacity: 20, availability: "InStock")
+    y.kitchen_events.create!(url: "u/b", name: "B", start_at: (today + 3).to_time, spots_left: 8,  capacity: 20, availability: "InStock")
+    s = KitchenSnapshot.create!(taken_on: today)
+    s.kitchen_events.create!(url: "u/a", name: "A", start_at: (today + 3).to_time, spots_left: 7, capacity: 20, availability: "InStock") # sold 3
+    s.kitchen_events.create!(url: "u/b", name: "B", start_at: (today + 3).to_time, spots_left: 0, capacity: 20, availability: "Closed")  # cutoff, not 8 sold
+
+    assert_equal 3, s.tickets_sold_today
+  end
+
+  test "bookings_daily_total sums daily real sales, skips closed, counts dropped-off classes" do
+    d = ->(n) { Date.current - n }
+    # d4: baseline; A and C selling, B selling.
+    s4 = KitchenSnapshot.create!(taken_on: d.call(4))
+    s4.kitchen_events.create!(url: "u/a", name: "A", start_at: d.call(2).to_time, price: "50.00", capacity: 20, spots_left: 10, availability: "InStock")
+    s4.kitchen_events.create!(url: "u/b", name: "B", start_at: d.call(2).to_time, price: "40.00", capacity: 20, spots_left: 4,  availability: "InStock")
+    s4.kitchen_events.create!(url: "u/c", name: "C", start_at: d.call(0).to_time, price: "30.00", capacity: 10, spots_left: 5,  availability: "InStock")
+    # d3: A sells 3.
+    s3 = KitchenSnapshot.create!(taken_on: d.call(3))
+    s3.kitchen_events.create!(url: "u/a", name: "A", start_at: d.call(2).to_time, price: "50.00", capacity: 20, spots_left: 7, availability: "InStock")
+    s3.kitchen_events.create!(url: "u/b", name: "B", start_at: d.call(2).to_time, price: "40.00", capacity: 20, spots_left: 4, availability: "InStock")
+    s3.kitchen_events.create!(url: "u/c", name: "C", start_at: d.call(0).to_time, price: "30.00", capacity: 10, spots_left: 5, availability: "InStock")
+    # d2: C sells 3; B goes Closed (4-left cutoff — must NOT count); A ran and drops off.
+    s2 = KitchenSnapshot.create!(taken_on: d.call(2))
+    s2.kitchen_events.create!(url: "u/b", name: "B", start_at: d.call(2).to_time, price: "40.00", capacity: 20, spots_left: 0, availability: "Closed")
+    s2.kitchen_events.create!(url: "u/c", name: "C", start_at: d.call(0).to_time, price: "30.00", capacity: 10, spots_left: 2, availability: "InStock")
+    # d1: C sells 1.
+    s1 = KitchenSnapshot.create!(taken_on: d.call(1))
+    s1.kitchen_events.create!(url: "u/c", name: "C", start_at: d.call(0).to_time, price: "30.00", capacity: 10, spots_left: 1, availability: "InStock")
+
+    # Range d3..d1: A +3 ($150, while listed), C +3 ($90) + C +1 ($30); B closed → skipped.
+    res = KitchenSnapshot.bookings_daily_total(d.call(3), d.call(1))
+    assert_equal 7, res[:tickets]
+    assert_in_delta 270.0, res[:revenue], 0.01
+  end
 end
