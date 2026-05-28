@@ -58,3 +58,6 @@ db/development.sqlite3
 /fastlane/Preview.html
 /fastlane/screenshots/
 /fastlane/test_output/
+
+# Playwright MCP scratch output (screenshots, snapshots, console logs)
+.playwright-mcp/

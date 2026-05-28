@@ -28,6 +28,10 @@
   </div>
 
   <!-- Chart Tabs -->
+  <%# Shared y-axis ceiling so the three cards are visually comparable (0 = let
+      Chart.js auto-scale). Labels are the same across all three series. %>
+  <% trend_labels_json = @trend_labels.map { |d| d.strftime("%-b %-d") }.to_json %>
+  <% trend_shared_max  = [@trend_data_auto, @trend_data_ai, @trend_data_director].flatten.map(&:to_i).max.to_i %>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <%= link_to jobs_path(tab: "traditional", q: params[:q], sort: params[:sort], range: params[:range]), class: "block rounded-xl border p-4 transition #{@tab == 'traditional' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
       <h3 class="text-lg font-semibold text-white mb-1">Traditional Automation</h3>
@@ -37,7 +41,12 @@
       <% else %>
         <p class="text-sm text-gray-600 mb-3">Salary data pending</p>
       <% end %>
-      <canvas id="autoChart" height="80"></canvas>
+      <canvas id="autoChart" height="80"
+              data-controller="jobs-trend-chart"
+              data-jobs-trend-chart-points-value="<%= @trend_data_auto.to_json %>"
+              data-jobs-trend-chart-labels-value="<%= trend_labels_json %>"
+              data-jobs-trend-chart-color-value="rgb(249,115,22)"
+              data-jobs-trend-chart-max-value="<%= trend_shared_max %>"></canvas>
     <% end %>
     <%= link_to jobs_path(tab: "ai", q: params[:q], sort: params[:sort], range: params[:range]), class: "block rounded-xl border p-4 transition #{@tab == 'ai' ? 'bg-gray-900 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
       <h3 class="text-lg font-semibold text-white mb-1">AI-Augmented Automation</h3>
@@ -47,7 +56,12 @@
       <% else %>
         <p class="text-sm text-gray-600 mb-3">Salary data pending</p>
       <% end %>
-      <canvas id="aiChart" height="80"></canvas>
+      <canvas id="aiChart" height="80"
+              data-controller="jobs-trend-chart"
+              data-jobs-trend-chart-points-value="<%= @trend_data_ai.to_json %>"
+              data-jobs-trend-chart-labels-value="<%= trend_labels_json %>"
+              data-jobs-trend-chart-color-value="rgb(34,197,94)"
+              data-jobs-trend-chart-max-value="<%= trend_shared_max %>"></canvas>
     <% end %>
     <%= link_to jobs_path(tab: "director", q: params[:q], sort: params[:sort], range: params[:range]), class: "block rounded-xl border p-4 transition #{@tab == 'director' ? 'bg-gray-900 border-blue-500 shadow-lg shadow-blue-500/10' : 'bg-gray-900/50 border-gray-800 opacity-60 hover:opacity-80'}" do %>
       <h3 class="text-lg font-semibold text-white mb-1">AI Agent Engineer <span class="ml-1 text-[10px] uppercase tracking-wide text-blue-400">New</span></h3>
@@ -57,91 +71,18 @@
       <% else %>
         <p class="text-sm text-gray-600 mb-3">Salary data pending</p>
       <% end %>
-      <canvas id="directorChart" height="80"></canvas>
+      <canvas id="directorChart" height="80"
+              data-controller="jobs-trend-chart"
+              data-jobs-trend-chart-points-value="<%= @trend_data_director.to_json %>"
+              data-jobs-trend-chart-labels-value="<%= trend_labels_json %>"
+              data-jobs-trend-chart-color-value="rgb(59,130,246)"
+              data-jobs-trend-chart-max-value="<%= trend_shared_max %>"></canvas>
     <% end %>
   </div>
 
-  <%= javascript_include_tag "chart.umd.min", "data-turbo-track": "reload" %>
-
-  <script nonce="<%= content_security_policy_nonce %>">
-    (function() {
-      function initCharts() {
-        if (typeof Chart === "undefined") {
-          setTimeout(initCharts, 100);
-          return;
-        }
-        var autoCanvas = document.getElementById("autoChart");
-        if (!autoCanvas || autoCanvas.dataset.rendered) return;
-        autoCanvas.dataset.rendered = "true";
-
-        const labels = <%= raw @trend_labels.map { |d| d.strftime("%-b %-d") }.to_json %>;
-
-        function trendInfo(data) {
-          const total = data.reduce((a, b) => a + b, 0);
-          const mid = Math.floor(data.length / 2);
-          const firstHalf = data.slice(0, mid).reduce((a, b) => a + b, 0);
-          const secondHalf = data.slice(mid).reduce((a, b) => a + b, 0);
-          const trending = secondHalf > firstHalf ? "up" : secondHalf < firstHalf ? "down" : "flat";
-          const pct = firstHalf > 0 ? Math.round(Math.abs(secondHalf - firstHalf) / firstHalf * 100) : 0;
-          return { total, trending, pct };
-        }
-
-        function buildChart(canvasId, data, accentColor, yMax) {
-          const ctx = document.getElementById(canvasId);
-          if (!ctx) return;
-          const info = trendInfo(data);
-          const color = accentColor;
-
-          new Chart(ctx, {
-            type: "line",
-            data: {
-              labels: labels,
-              datasets: [{
-                label: "Jobs posted",
-                data: data,
-                borderColor: color,
-                backgroundColor: color.replace("rgb", "rgba").replace(")", ",0.1)"),
-                fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: function(item) { return item.raw + " jobs posted"; } } }
-              },
-              scales: {
-                y: { beginAtZero: true, max: yMax, ticks: { precision: 0, color: '#9ca3af' }, grid: { color: '#1f2937' } },
-                x: { ticks: { maxTicksLimit: 8, color: '#9ca3af' }, grid: { color: '#1f2937' } }
-              }
-            }
-          });
-
-          const arrow = info.trending === "up" ? "&#9650;" : info.trending === "down" ? "&#9660;" : "&#9654;";
-          const cls = info.trending === "up" ? "text-green-600" : info.trending === "down" ? "text-red-500" : "text-gray-500";
-          const word = info.trending === "up" ? "increase" : info.trending === "down" ? "decrease" : "no change";
-          const el = document.createElement("div");
-          el.className = "mt-3 flex items-center gap-2 text-sm";
-          el.innerHTML = `<span class="font-semibold ${cls}">${arrow} ${info.pct}% ${word}</span><span class="text-gray-400">vs prev 15 days (${info.total} total)</span>`;
-          ctx.parentNode.appendChild(el);
-        }
-
-        const autoData = <%= raw @trend_data_auto.to_json %>;
-        const aiData = <%= raw @trend_data_ai.to_json %>;
-        const directorData = <%= raw @trend_data_director.to_json %>;
-        const sharedMax = Math.max(...autoData, ...aiData, ...directorData);
-
-        buildChart("autoChart", autoData, "rgb(249,115,22)", sharedMax);
-        buildChart("aiChart", aiData, "rgb(34,197,94)", sharedMax);
-        buildChart("directorChart", directorData, "rgb(59,130,246)", sharedMax);
-      }
-
-      document.addEventListener("turbo:load", initCharts);
-      document.addEventListener("turbo:render", initCharts);
-      document.addEventListener("DOMContentLoaded", initCharts);
-      initCharts();
-    })();
-  </script>
+  <%# The three trend charts above are drawn by the jobs-trend-chart Stimulus
+      controller (app/javascript/controllers/jobs_trend_chart_controller.js),
+      not an inline script — see that file for why (CSP + Turbo). %>
 
   <!-- Top Skills In Demand -->
   <% if @top_skills.present? %>
