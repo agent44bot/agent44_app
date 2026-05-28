@@ -73,7 +73,7 @@ class WeeklySalesEmailJob < ApplicationJob
       rev_proxy_count:  upcoming.select(&:capacity_known?).count(&:capacity_via_proxy?),
       booked_week:      { tickets: bw[:tickets], revenue: bw[:revenue],
                           prior_tickets: pw[:tickets], prior_revenue: pw[:revenue] },
-      movers:           KitchenSnapshot.bookings_between(today - 7, today).first(5),
+      movers:           KitchenSnapshot.bookings_between(today - 7, today).first(3),
       newly_sold_out:   KitchenSnapshot.newly_sold_out_since(today - 7),
       empty_last_week:  KitchenSnapshot.classes_ended_between(today - 7, today)
                           .select { |e| !e.truly_sold_out? && e.spots_left.to_i >= 3 }
@@ -81,7 +81,7 @@ class WeeklySalesEmailJob < ApplicationJob
       periods:          KitchenSnapshot.period_rollups(snapshot),
       weekly_tickets:   KitchenSnapshot.tickets_sold_by_week,
       selling_fastest:  KitchenSnapshot.selling_fastest(snapshot: snapshot),
-      needs_a_push:     KitchenSnapshot.needs_a_push(snapshot: snapshot),
+      needs_a_push:     KitchenSnapshot.needs_a_push(snapshot: snapshot, limit: 3),
       # Argus (Test) + Scout (Data) weekly ops briefs.
       argus:            SmokeTestRun.window_stats(:nyk_nav, today - 7, today),
       scout:            SmokeTestRun.window_stats(:nyk_scrape, today - 7, today)
