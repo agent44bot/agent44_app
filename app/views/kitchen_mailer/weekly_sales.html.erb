@@ -102,7 +102,7 @@
           <% if prev_kind == :past && p[:kind] == :forward %><tr><td colspan="4" style="border-top:1px solid <%= line %>;font-size:0;line-height:0;height:1px">&nbsp;</td></tr><% end %>
           <% pc = p[:pct].to_i %>
           <tr>
-            <td style="padding:6px 0;font-family:<%= sans %>;font-size:13px;color:<%= ink %>;font-weight:600"><%= p[:label] %> <span style="font-family:<%= mono %>;font-size:11px;font-weight:normal;color:<%= faint %>">&middot; <%= p[:count] %> <%= "class".pluralize(p[:count].to_i) %></span></td>
+            <td style="padding:6px 0;font-family:<%= sans %>;font-size:13px;color:<%= ink %>;font-weight:600"><%= p[:label] %> <span style="font-family:<%= mono %>;font-size:11px;font-weight:normal;color:<%= faint %>">&middot; <%= p[:total_count] %> <%= "class".pluralize(p[:total_count].to_i) %></span></td>
             <td style="padding:6px 0;text-align:right;font-family:<%= mono %>;font-size:13px;font-weight:bold;color:<%= green %>"><%= money.call(p[:sold]) %></td>
             <td style="padding:6px 0 6px 14px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="vertical-align:middle"><%= bar.call(pc, 78).html_safe %></td><td style="vertical-align:middle;padding-left:8px;font-family:<%= mono %>;font-size:11px;color:#666"><%= p[:pct] ? "#{pc}%" : "&mdash;".html_safe %></td></tr></table></td>
             <td style="padding:6px 0;text-align:right;font-family:<%= mono %>;font-size:13px;color:<%= amber %>"><%= short.call(p[:left]) %></td>

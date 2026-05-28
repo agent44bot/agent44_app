@@ -323,4 +323,19 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     KitchenSnapshot.create!(taken_on: lw_start - 1)
     assert_includes KitchenSnapshot.period_rollups(KitchenSnapshot.latest).map { |p| p[:label] }, "Last week"
   end
+
+  test "period_rollups total_count counts every class; count is priced only" do
+    today    = Date.current
+    nw_start = today.end_of_week(:monday) + 1 # next Monday — always in the future
+
+    snap = KitchenSnapshot.create!(taken_on: today)
+    snap.kitchen_events.create!(url: "u/priced", name: "Priced class",
+      start_at: (nw_start + 1).to_time, price: "50.00", capacity: 10, spots_left: 4, availability: "InStock")
+    snap.kitchen_events.create!(url: "u/unpriced", name: "Unpriced class",
+      start_at: (nw_start + 1).to_time, availability: "other") # no capacity/price
+
+    nw = KitchenSnapshot.period_rollups(snap).find { |p| p[:label] == "Next week" }
+    assert_equal 2, nw[:total_count], "total_count counts every class in the period"
+    assert_equal 1, nw[:count], "count counts only priced/capacity-known classes"
+  end
 end

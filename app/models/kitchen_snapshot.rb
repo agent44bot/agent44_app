@@ -281,7 +281,11 @@ class KitchenSnapshot < ApplicationRecord
     ].filter_map { |d|
       next if d[:kind] == :past && (earliest.nil? || earliest > d[:from])
       r = revenue_rollup(d[:events])
-      r[:count].zero? ? nil : d.except(:events, :from).merge(r)
+      next if r[:count].zero?
+      # count = priced classes (what the dollars are built from); total_count =
+      # every class in the period (incl. ones with no capacity data), matching
+      # the dashboard's per-week "(N)" headcount.
+      d.except(:events, :from).merge(r).merge(total_count: d[:events].size)
     }
   end
 
