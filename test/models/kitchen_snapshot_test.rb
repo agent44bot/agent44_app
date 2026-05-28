@@ -307,4 +307,20 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     cutoff_rows = KitchenSnapshot.bookings_between(today - 7, today).select { |r| r[:event].url == "u/cutoff" }
     assert_empty cutoff_rows # 25 -> 0 is a closure, not 25 tickets sold
   end
+
+  test "period_rollups hides retrospective periods until history covers them, then reveals" do
+    today    = Date.current
+    lw_start = today.beginning_of_week(:monday) - 7 # last week's Monday
+
+    recent = KitchenSnapshot.create!(taken_on: today)
+    recent.kitchen_events.create!(url: "u/lw", name: "Last-week class",
+      start_at: (lw_start + 2).to_time, price: "50.00", capacity: 10, spots_left: 4, availability: "InStock")
+
+    # Coverage starts today (after last week) → "Last week" hidden.
+    refute_includes KitchenSnapshot.period_rollups(recent).map { |p| p[:label] }, "Last week"
+
+    # Extend history to before last week → it returns on its own.
+    KitchenSnapshot.create!(taken_on: lw_start - 1)
+    assert_includes KitchenSnapshot.period_rollups(KitchenSnapshot.latest).map { |p| p[:label] }, "Last week"
+  end
 end

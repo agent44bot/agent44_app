@@ -263,17 +263,24 @@ class KitchenSnapshot < ApplicationRecord
       upcoming.select { |e| d = e.start_at&.to_date; d && d >= from && (to.nil? || d <= to) }
     }
 
+    # Retrospective periods reconstruct sold/% from snapshot deltas, so they're
+    # only trustworthy once our history reaches back to before the window began
+    # (otherwise early sales we never saw make them read biased-low). Hide a
+    # :past period until coverage catches up — then it returns on its own.
+    earliest = minimum(:taken_on)
+
     [
-      { key: "lastmonth", label: "Last month", kind: :past,
+      { key: "lastmonth", label: "Last month", kind: :past, from: today.last_month.beginning_of_month,
         events: classes_ended_between(today.last_month.beginning_of_month, today.last_month.end_of_month) },
-      { key: "lastweek",  label: "Last week",  kind: :past,
+      { key: "lastweek",  label: "Last week",  kind: :past, from: week_start - 7,
         events: classes_ended_between(week_start - 7, week_start - 1) },
       { key: "thisweek",  label: "Current week",  kind: :forward, events: fwd.call(today, week_end) },
       { key: "nextweek",  label: "Next week",     kind: :forward, events: fwd.call(week_end + 1, week_end + 7) },
       { key: "thismonth", label: "Current month", kind: :forward, events: fwd.call(today, today.end_of_month) }
     ].filter_map { |d|
+      next if d[:kind] == :past && (earliest.nil? || earliest > d[:from])
       r = revenue_rollup(d[:events])
-      r[:count].zero? ? nil : d.except(:events).merge(r)
+      r[:count].zero? ? nil : d.except(:events, :from).merge(r)
     }
   end
 
