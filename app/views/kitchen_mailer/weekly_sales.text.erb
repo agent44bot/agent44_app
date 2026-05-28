@@ -82,6 +82,12 @@ SAM · SCHEDULER (calendar)
 ECHO · BROADCAST (social)
 <%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''} — #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
 <% end -%>
+<% neon = @s[:neon] || {} -%>
+<% if neon[:last_seen_at] || neon[:days_seen].to_i.positive? -%>
+
+NEON · MARQUEE (in-store screen)
+<%= neon[:days_seen].to_i.positive? ? "Live on #{neon[:days_seen]} of the last 7 days#{neon[:last_seen_at] ? " (last seen #{time_ago_in_words(neon[:last_seen_at])} ago)" : ''}." : "Last seen #{time_ago_in_words(neon[:last_seen_at])} ago. Daily uptime tracking just started." %>
+<% end -%>
 <% if @s[:changelog].present? -%>
 
 NEW THIS WEEK (improvements your team shipped)

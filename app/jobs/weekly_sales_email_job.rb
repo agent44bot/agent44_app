@@ -88,6 +88,11 @@ class WeeklySalesEmailJob < ApplicationJob
       # Sam (List) calendar churn + Echo (Social) posting, this week.
       sam:              KitchenSnapshot.calendar_churn(today - 7),
       echo:             weekly_social(today - 7),
+      # Neon (Display) in-store screen uptime this week.
+      neon:             { last_seen_at:   Setting.time("nyk_display:last_seen_at"),
+                          days_seen:      DisplayHeartbeat.days_seen(since: today - 6),
+                          window_days:    7,
+                          tracking_since: DisplayHeartbeat.tracking_since },
       # Carson's "what's new this week" — curated owner-facing changelog.
       changelog:        NykChangelog.recent(since: today - 7)
     }
@@ -125,7 +130,7 @@ class WeeklySalesEmailJob < ApplicationJob
     wow = bw[:prior_revenue].to_i.positive? ?
       "#{(100.0 * (bw[:revenue].to_i - bw[:prior_revenue]) / bw[:prior_revenue]).round}% vs last week" :
       "no prior week to compare"
-    argus = data[:argus] || {}; scout = data[:scout] || {}; sam = data[:sam] || {}; echo = data[:echo]
+    argus = data[:argus] || {}; scout = data[:scout] || {}; sam = data[:sam] || {}; echo = data[:echo]; neon = data[:neon] || {}
     sold_out = Array(data[:newly_sold_out]).first(3).map(&:name).join("; ")
     at_risk  = Array(data[:needs_a_push]).first(2).map { |r| r[:event].name }.join("; ")
 
@@ -137,6 +142,7 @@ class WeeklySalesEmailJob < ApplicationJob
       - Data (Scout): #{scout[:snapshots]} snapshots, #{scout[:passed]}/#{scout[:total]} scrape runs passed.
       - Calendar (Sam): #{sam[:added].to_i} classes added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price changes.
       - Social (Echo): #{echo ? "#{echo[:posts]} posts published, #{echo[:likes]} likes" : "not in use"}.
+      - In-store screen (Neon): #{neon[:last_seen_at] ? "live #{neon[:days_seen]}/7 days, last seen #{neon[:last_seen_at].to_date == Date.current ? 'today' : 'earlier'}" : "no signal"}.
       - Newly sold out: #{sold_out.presence || 'none'}.
       - Behind pace: #{at_risk.presence || 'none'}.
     TXT

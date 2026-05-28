@@ -11,7 +11,7 @@
 
   ink="#1a1a1a"; mut="#8a8276"; faint="#a8a08f"; accent="#c2410c"
   green="#1b6e3a"; amber="#b35900"; red="#b42318"; track="#e7e2d9"; line="#e8e1d6"; blue="#0a58ca"; cream="#faf7f2"
-  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"; sam_c="#0369a1"; echo_c="#6d28d9"
+  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"; sam_c="#0369a1"; echo_c="#6d28d9"; neon_c="#b45309"
 
   bar = ->(pct, w) {
     fill = [[(pct.to_i * w / 100.0).round, 0].max, w].min
@@ -214,6 +214,22 @@
         <span style="font-family:<%= mono %>"><%= echo[:likes] %></span> likes, <span style="font-family:<%= mono %>"><%= echo[:reposts] %></span> reposts, <span style="font-family:<%= mono %>"><%= echo[:replies] %></span> replies.
       <% else %>
         No posts published this week across <%= echo[:accounts] %> connected <%= "account".pluralize(echo[:accounts]) %>.
+      <% end %>
+    </td></tr>
+  <% end %>
+
+  <%# ════ NEON · Marquee (in-store screen) ══════════════════ %>
+  <% neon = s[:neon] || {} %>
+  <% if neon[:last_seen_at] || neon[:days_seen].to_i.positive? %>
+    <% live = neon[:last_seen_at] && (Time.current - neon[:last_seen_at]) < 6 * 3600 %>
+    <%= agent_banner.call("&#128250;", "Neon", "Marquee", neon_c,
+          live ? "<span style=\"color:#{green}\">&#9679; Live</span>" : "<span style=\"color:#{red}\">&#9888; Offline</span>").html_safe %>
+    <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+      <% if neon[:days_seen].to_i.positive? %>
+        Cycled classes on the lobby screen <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= neon[:days_seen] %></span> of the last 7 days<% if neon[:last_seen_at] %> &mdash; last seen <%= time_ago_in_words(neon[:last_seen_at]) %> ago<% end %>.
+        <% if neon[:tracking_since] && neon[:tracking_since] > Date.current - 7 %><div style="font-size:11px;color:<%= faint %>;margin-top:2px">Daily uptime tracking began <%= neon[:tracking_since].strftime("%b %-d") %>.</div><% end %>
+      <% elsif neon[:last_seen_at] %>
+        Last seen <%= time_ago_in_words(neon[:last_seen_at]) %> ago. <span style="color:<%= faint %>">Daily uptime tracking just started &mdash; full weekly numbers in next week's report.</span>
       <% end %>
     </td></tr>
   <% end %>

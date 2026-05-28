@@ -297,6 +297,7 @@ class KitchenController < ApplicationController
     token = nyk_display_agent.setting(:share_token).to_s
     if token.present? && ActiveSupport::SecurityUtils.secure_compare(params[:token].to_s, token)
       Setting.touch_time("nyk_display:last_seen_at")
+      DisplayHeartbeat.record! # per-day presence for Neon's weekly uptime brief
     end
     head :no_content
   end
