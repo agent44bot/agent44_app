@@ -24,7 +24,7 @@ production:
     schedule: every day at 10am
   nyk_weekly_sales_email:
     class: WeeklySalesEmailJob
-    schedule: every friday at 6am
+    schedule: every sunday at 8pm
   generate_newsletter:
     class: GenerateNewsletterJob
     schedule: every 3 days at 7am

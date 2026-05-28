@@ -24,12 +24,12 @@
         </span>
         <span class="text-sm">
           <span class="text-gray-200 font-medium">📬 Email me the weekly sales recap</span>
-          <span class="block text-xs text-gray-500"><%= Current.user.email_address %> · Fridays at 6:00 AM ET</span>
+          <span class="block text-xs text-gray-500"><%= Current.user.email_address %> · Sundays at 8:00 PM ET</span>
         </span>
       <% end %>
     <% else %>
       <div class="text-sm text-gray-300">
-        <span class="font-medium">📬 Weekly sales recap</span> — emailed Fridays at 6:00 AM ET.
+        <span class="font-medium">📬 Weekly sales recap</span> — emailed Sundays at 8:00 PM ET.
         <div class="text-xs text-gray-500 mt-1">
           <%= link_to "Add an email to your profile", settings_path, class: "text-orange-400 hover:text-orange-300 underline" %> to subscribe.
         </div>
