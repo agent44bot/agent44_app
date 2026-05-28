@@ -1,0 +1,21 @@
+# Owner-facing "what's new" notes for the NY Kitchen weekly team report.
+#
+# Add a dated, plain-language one-liner whenever you ship a user-facing NYK
+# change (skip internal refactors/bugfixes the owner wouldn't notice). Carson
+# surfaces entries from the last 7 days in the Sunday report, newest first.
+# Keep each note short, concrete, and written for Lora — not for engineers.
+#
+#   - date: 2026-05-28
+#     note: Plain sentence about what changed and why it helps.
+
+- date: 2026-05-28
+  note: Argus now checks both printed schedules — the flyer and the stall poster — every hour for broken or wrong photos.
+
+- date: 2026-05-28
+  note: Your agents now file one Sunday evening report together, introduced by Carson.
+
+- date: 2026-05-27
+  note: Iris's dashboard can now show sales for past periods (last week, last month) alongside what's coming up, and opens on the current week.
+
+- date: 2026-05-26
+  note: The class flyer can no longer show the wrong "building" photo for a class — the right photo is picked automatically.

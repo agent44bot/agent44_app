@@ -84,7 +84,9 @@ class WeeklySalesEmailJob < ApplicationJob
       # Argus (Test) + Scout (Data) weekly ops briefs.
       argus:            SmokeTestRun.window_stats(:nyk_nav, today - 7, today),
       scout:            SmokeTestRun.window_stats(:nyk_scrape, today - 7, today)
-                          .merge(snapshots: KitchenSnapshot.where(taken_on: (today - 7)..today).count)
+                          .merge(snapshots: KitchenSnapshot.where(taken_on: (today - 7)..today).count),
+      # Carson's "what's new this week" — curated owner-facing changelog.
+      changelog:        NykChangelog.recent(since: today - 7)
     }
     data[:headline] = carson_intro(data) # Carson hosts the report
     data

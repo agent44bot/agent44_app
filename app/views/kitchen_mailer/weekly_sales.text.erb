@@ -73,5 +73,13 @@ SCOUT · RECON (data)
 <%= scout[:snapshots] %> snapshots taken<%= scout[:total].to_i.positive? ? " across #{scout[:total]} scrape runs (#{scout[:passed]} ok#{scout[:failed].to_i.positive? ? ", #{scout[:failed]} failed" : ''})" : "" %>.
 <% end -%>
 
+<% if @s[:changelog].present? -%>
+
+NEW THIS WEEK (improvements your team shipped)
+<% @s[:changelog].each do |c| -%>
+- <%= c[:note] %>
+<% end -%>
+<% end -%>
+
 View the full dashboard: https://agent44labs.com/nykitchen/analyst
 Filed every Sunday evening by your NY Kitchen agent team. Manage it on the Analyst dashboard.

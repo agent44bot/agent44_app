@@ -189,6 +189,24 @@
     </td></tr>
   <% end %>
 
+  <%# ════ New this week (Carson's changelog) ════════════════ %>
+  <% if s[:changelog].present? %>
+    <tr><td style="padding:26px 30px 4px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border-left:3px solid <%= accent %>;border-radius:0 8px 8px 0"><tr>
+        <td style="padding:13px 16px">
+          <div style="font-family:<%= serif %>;font-size:15px;font-weight:bold;color:<%= ink %>">&#10024; New this week</div>
+          <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:1px">Improvements your team shipped &mdash; with Carson's compliments.</div>
+          <% s[:changelog].each do |c| %>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:9px"><tr>
+              <td width="14" style="vertical-align:top;font-family:<%= sans %>;font-size:13px;color:<%= accent %>">&bull;</td>
+              <td style="font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.5"><%= c[:note] %></td>
+            </tr></table>
+          <% end %>
+        </td>
+      </tr></table>
+    </td></tr>
+  <% end %>
+
   <%# ── CTA + footer ─────────────────────────────────────── %>
   <tr><td style="padding:28px 30px 6px;text-align:center">
     <a href="<%= analyst_url %>" style="display:inline-block;background:<%= accent %>;color:#ffffff;text-decoration:none;font-family:<%= sans %>;font-weight:bold;font-size:14px;padding:12px 26px;border-radius:8px">View the full dashboard &rarr;</a>
