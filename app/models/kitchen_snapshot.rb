@@ -239,13 +239,14 @@ class KitchenSnapshot < ApplicationRecord
     priced = events.select(&:capacity_known?)
     sold   = priced.sum(&:revenue_sold)
     total  = priced.sum(&:revenue_total)
-    seats  = priced.sum { |e| e.tickets_total.to_i }
     {
       count: priced.size,
       sold:  sold,
       total: total,
       left:  total - sold,
-      pct:   seats.positive? ? (100.0 * priced.sum { |e| e.tickets_sold.to_i } / seats).round : nil
+      # Revenue-based so the % reconciles with the dollar figures it sits next
+      # to ($sold / $total), rather than seats-sold / seats-total.
+      pct:   total.positive? ? (100.0 * sold / total).round : nil
     }
   end
 

@@ -83,6 +83,12 @@
     <% if s[:periods].present? %>
       <%= subhead.call("By period") %>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding:0 0 4px;font-family:<%= sans %>;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:<%= faint %>">Period</td>
+          <td style="padding:0 0 4px;text-align:right;font-family:<%= sans %>;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:<%= faint %>">Booked</td>
+          <td style="padding:0 0 4px 14px;font-family:<%= sans %>;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:<%= faint %>">% of $ sold</td>
+          <td style="padding:0 0 4px;text-align:right;font-family:<%= sans %>;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:<%= faint %>">Left to sell</td>
+        </tr>
         <% prev_kind = nil %>
         <% s[:periods].each do |p| %>
           <% if prev_kind == :past && p[:kind] == :forward %><tr><td colspan="4" style="border-top:1px solid <%= line %>;font-size:0;line-height:0;height:1px">&nbsp;</td></tr><% end %>
@@ -96,7 +102,7 @@
           <% prev_kind = p[:kind] %>
         <% end %>
       </table>
-      <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:6px">Past = booked &amp; unsold (missed); upcoming = sold &amp; still to sell.</div>
+      <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:6px">% of $ sold = booked &divide; total ticket value. Past rows show booked &amp; what went unsold (missed); upcoming show sold &amp; still to sell.</div>
     <% end %>
 
     <% if s[:newly_sold_out].present? %>

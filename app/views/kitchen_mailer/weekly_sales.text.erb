@@ -16,7 +16,7 @@ BOOKED · THIS WEEK (Mon–Sun): <%= number_to_currency(bw[:revenue].to_i, preci
 Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
 
 <% if @s[:periods].present? -%>
-BY PERIOD  (money in · % sold-through · open)
+BY PERIOD  (booked $ · % of $ sold · left to sell $)
 <% @s[:periods].each do |p| -%>
 - <%= p[:label].ljust(11) %> <%= number_to_currency(p[:sold], precision: 0).rjust(8) %> · <%= "#{p[:pct].to_i}%".rjust(4) %> · <%= short.call(p[:left]) %> <%= p[:kind] == :past ? "(booked/missed)" : "(sold/left)" %>
 <% end -%>
