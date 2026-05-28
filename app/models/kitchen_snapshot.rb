@@ -72,7 +72,7 @@ class KitchenSnapshot < ApplicationRecord
   # { week_start: Date, label: "May 17", tickets: Integer }.
   def self.tickets_sold_by_week(limit_weeks: 12)
     order(taken_on: :asc).to_a
-      .group_by { |s| s.taken_on.beginning_of_week(:sunday) }
+      .group_by { |s| s.taken_on.beginning_of_week(:monday) }
       .map { |week_start, snaps|
         { week_start: week_start,
           label:      week_start.strftime("%b %-d"),
@@ -256,8 +256,8 @@ class KitchenSnapshot < ApplicationRecord
   def self.period_rollups(snapshot)
     return [] unless snapshot
     today      = Date.current
-    week_start = today.beginning_of_week(:sunday)
-    week_end   = today + ((7 - today.cwday) % 7)
+    week_start = today.beginning_of_week(:monday) # Mon→Sun weeks (Lora's preference)
+    week_end   = today.end_of_week(:monday)       # the Sunday
     upcoming   = snapshot.kitchen_events.upcoming.to_a # forward source (incl. sold-out — booked revenue counts)
     fwd = ->(from, to) {
       upcoming.select { |e| d = e.start_at&.to_date; d && d >= from && (to.nil? || d <= to) }
@@ -376,7 +376,7 @@ class KitchenSnapshot < ApplicationRecord
   # wday with the actual count (or nil for days that haven't happened yet
   # this week or have no snapshot).
   def self.tickets_sold_this_week_by_wday
-    start_of_week = Date.current.beginning_of_week(:sunday)
+    start_of_week = Date.current.beginning_of_week(:monday)
     snaps = where(taken_on: start_of_week..Date.current)
       .order(taken_on: :asc)
       .to_a

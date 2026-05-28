@@ -44,24 +44,24 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal 4.5, KitchenSnapshot.tickets_sold_daily_avg
   end
 
-  test "tickets_sold_by_week groups observed sales into Sunday-start weeks" do
+  test "tickets_sold_by_week groups observed sales into Monday-start weeks" do
     add = ->(date, left) {
       KitchenSnapshot.create!(taken_on: date).kitchen_events.create!(
         url: "https://nykitchen.com/x", name: "X", start_at: 1.year.from_now, spots_left: left
       )
     }
-    # Week of Sun May 3: -10 then -5 = 15 sold. (First snap has no prior → 0.)
+    # Week of Mon May 4: -10 then -5 = 15 sold. (First snap has no prior → 0.)
     add.(Date.new(2026, 5, 4), 100)
     add.(Date.new(2026, 5, 5), 90)
     add.(Date.new(2026, 5, 6), 85)
-    # Week of Sun May 10: -5 then -2 = 7 sold (first drop is vs May 6).
+    # Week of Mon May 11: -5 then -2 = 7 sold (first drop is vs May 6).
     add.(Date.new(2026, 5, 11), 80)
     add.(Date.new(2026, 5, 12), 78)
 
     weeks = KitchenSnapshot.tickets_sold_by_week
 
-    assert_equal [ Date.new(2026, 5, 3), Date.new(2026, 5, 10) ], weeks.map { |w| w[:week_start] }
-    assert_equal [ "May 3", "May 10" ], weeks.map { |w| w[:label] }
+    assert_equal [ Date.new(2026, 5, 4), Date.new(2026, 5, 11) ], weeks.map { |w| w[:week_start] }
+    assert_equal [ "May 4", "May 11" ], weeks.map { |w| w[:label] }
     assert_equal [ 15, 7 ], weeks.map { |w| w[:tickets] }
   end
 

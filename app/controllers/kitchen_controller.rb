@@ -79,8 +79,8 @@ class KitchenController < ApplicationController
     # was booked vs missed. The trend charts + "All time" leaderboard stay
     # unscoped.
     today      = Date.current
-    week_start = today.beginning_of_week(:sunday)
-    week_end   = today + ((7 - today.cwday) % 7) # this week's Sunday — matches the List week buckets
+    week_start = today.beginning_of_week(:monday) # Mon→Sun weeks (Lora's preference)
+    week_end   = today.end_of_week(:monday)       # this week's Sunday
 
     forward = {
       "week"     => { label: "Current week", to: week_end },

@@ -12,7 +12,7 @@ NY Kitchen — Weekly Team Report
 <% end -%>
 
 IRIS · ANALYST
-BOOKED · LAST 7 DAYS: <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
+BOOKED · THIS WEEK (Mon–Sun): <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
 Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
 
 <% if @s[:periods].present? -%>

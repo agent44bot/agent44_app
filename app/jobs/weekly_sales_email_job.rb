@@ -55,11 +55,12 @@ class WeeklySalesEmailJob < ApplicationJob
     upcoming = snapshot.kitchen_events.upcoming.to_a
     roll     = KitchenSnapshot.revenue_rollup(upcoming)
 
-    # "This week" = trailing 7 days of booking activity (the recap sends Sunday
-    # evening, so the calendar week that just started is empty — the week that
-    # just ended is what matters).
-    bw = KitchenSnapshot.bookings_total(today - 7, today)
-    pw = KitchenSnapshot.bookings_total(today - 14, today - 7)
+    # This week = Monday→Sunday (Lora's preference). The recap sends Sunday
+    # evening, so on send day this is the full Mon–Sun week that just finished;
+    # a mid-week preview shows the week so far.
+    week_start = today.beginning_of_week(:monday)
+    bw = KitchenSnapshot.bookings_total(week_start, today)
+    pw = KitchenSnapshot.bookings_total(week_start - 7, week_start)
 
     data = {
       snapshot_date:    snapshot.taken_on,

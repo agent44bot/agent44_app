@@ -66,12 +66,12 @@
   <%= agent_banner.call("&#128202;", "Iris", "Analyst", iris,
         wow_rev ? "<span style=\"font-family:#{mono};color:#{wow_rev >= 0 ? green : red}\">#{wow_rev >= 0 ? '&#9650;' : '&#9660;'} #{wow_rev.abs}%</span> <span style=\"color:#{mut};font-weight:normal\">wk</span>" : "").html_safe %>
   <tr><td style="padding:6px 30px 4px">
-    <div style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:<%= mut %>">Booked &middot; last 7 days</div>
+    <div style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:<%= mut %>">Booked &middot; this week</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:2px"><tr>
       <td style="vertical-align:baseline;font-family:<%= mono %>;font-size:36px;font-weight:bold;color:<%= green %>;line-height:1.1"><%= money.call(tw_rev) %></td>
       <td style="vertical-align:baseline;text-align:right"><%= delta.call(wow_rev).html_safe %></td>
     </tr></table>
-    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:4px"><%= bw[:tickets].to_i %> <%= "ticket".pluralize(bw[:tickets].to_i) %> sold in the last 7 days</div>
+    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:4px"><%= bw[:tickets].to_i %> <%= "ticket".pluralize(bw[:tickets].to_i) %> sold this week (Mon–Sun)</div>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;background:<%= cream %>;border:1px solid <%= line %>;border-radius:8px"><tr>
       <td style="padding:11px 14px;font-family:<%= sans %>;font-size:13px;color:#555;line-height:1.5">
