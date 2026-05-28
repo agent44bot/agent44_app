@@ -301,6 +301,24 @@ class KitchenSnapshot < ApplicationRecord
     { tickets: rows.sum { |r| r[:tickets] }, revenue: rows.sum { |r| r[:revenue] } }
   end
 
+  # Sam's weekly calendar churn: how the class list changed vs the last snapshot
+  # on/before `since` — { added:, removed:, price_changes: } counts. Reuses the
+  # daily-digest diff builder, just over a 7-day span instead of day-over-day.
+  def self.calendar_churn(since)
+    latest = self.latest
+    prev   = where("taken_on <= ?", since).order(taken_on: :desc).first
+    return { added: 0, removed: 0, price_changes: 0 } unless latest && prev && latest.id != prev.id
+
+    current = latest.kitchen_events.map do |e|
+      { url: e.url, name: e.name, start_at: e.start_at, end_at: e.end_at,
+        price: e.price, availability: e.availability, venue: e.venue,
+        instructor: e.instructor, description: e.description,
+        spots_left: e.spots_left, capacity: e.capacity }
+    end
+    d = NyKitchenDigestBuilder.build(current: current, previous_snapshot: prev, today: Date.current)
+    { added: d[:newly_added].size, removed: d[:removed].size, price_changes: d[:price_changes].size }
+  end
+
   # Upcoming classes sold out now that were tracked-and-open at the last snapshot
   # on/before `date` — i.e. genuinely flipped to sold out since then.
   def self.newly_sold_out_since(date)

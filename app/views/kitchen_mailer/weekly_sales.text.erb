@@ -73,6 +73,15 @@ SCOUT · RECON (data)
 <%= scout[:snapshots] %> snapshots taken<%= scout[:total].to_i.positive? ? " across #{scout[:total]} scrape runs (#{scout[:passed]} ok#{scout[:failed].to_i.positive? ? ", #{scout[:failed]} failed" : ''})" : "" %>.
 <% end -%>
 
+<% sam = @s[:sam] || {}; echo = @s[:echo] -%>
+
+SAM · SCHEDULER (calendar)
+<%= (sam[:added].to_i + sam[:removed].to_i + sam[:price_changes].to_i).positive? ? "#{sam[:added].to_i} added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price change(s)." : "Held steady — no classes added or removed." %>
+<% if echo -%>
+
+ECHO · BROADCAST (social)
+<%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''} — #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
+<% end -%>
 <% if @s[:changelog].present? -%>
 
 NEW THIS WEEK (improvements your team shipped)

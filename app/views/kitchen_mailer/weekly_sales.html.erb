@@ -11,7 +11,7 @@
 
   ink="#1a1a1a"; mut="#8a8276"; faint="#a8a08f"; accent="#c2410c"
   green="#1b6e3a"; amber="#b35900"; red="#b42318"; track="#e7e2d9"; line="#e8e1d6"; blue="#0a58ca"; cream="#faf7f2"
-  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"
+  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"; sam_c="#0369a1"; echo_c="#6d28d9"
 
   bar = ->(pct, w) {
     fill = [[(pct.to_i * w / 100.0).round, 0].max, w].min
@@ -186,6 +186,35 @@
     <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
       Took <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= scout[:snapshots] %></span> calendar snapshots this week<% if scout[:total].to_i.positive? %> across <span style="font-family:<%= mono %>"><%= scout[:total] %></span> scrape runs (<span style="font-family:<%= mono %>;color:<%= green %>"><%= scout[:passed] %> ok</span><% if scout[:failed].to_i.positive? %>, <span style="color:<%= red %>"><%= scout[:failed] %> failed</span><% end %>)<% end %>.
       <div style="font-size:12px;color:<%= mut %>;margin-top:2px">Keeps Iris's numbers and the calendar fresh.</div>
+    </td></tr>
+  <% end %>
+
+  <%# ════ SAM · Scheduler (calendar churn) ══════════════════ %>
+  <% sam = s[:sam] || {} %>
+  <%= agent_banner.call("&#128197;", "Sam", "Scheduler", sam_c, "<span style=\"color:#{mut};font-weight:normal\">calendar</span>").html_safe %>
+  <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+    <% if sam[:added].to_i.positive? || sam[:removed].to_i.positive? || sam[:price_changes].to_i.positive? %>
+      Tended the calendar this week —
+      <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= sam[:added].to_i %></span> added,
+      <span style="font-family:<%= mono %>"><%= sam[:removed].to_i %></span> removed,
+      <span style="font-family:<%= mono %>"><%= sam[:price_changes].to_i %></span> price <%= "change".pluralize(sam[:price_changes].to_i) %>.
+    <% else %>
+      The calendar held steady this week — no classes added or removed.
+    <% end %>
+  </td></tr>
+
+  <%# ════ ECHO · Broadcast (social) ═════════════════════════ %>
+  <% echo = s[:echo] %>
+  <% if echo %>
+    <%= agent_banner.call("&#128226;", "Echo", "Broadcast", echo_c,
+          echo[:posts].to_i.positive? ? "<span style=\"color:#{green}\">&#10003; #{echo[:posts]} posted</span>" : "<span style=\"color:#{mut}\">quiet week</span>").html_safe %>
+    <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+      <% if echo[:posts].to_i.positive? %>
+        Published <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= echo[:posts] %></span> <%= "post".pluralize(echo[:posts]) %> this week<% if echo[:by_platform].present? %> (<%= echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(", ") %>)<% end %> —
+        <span style="font-family:<%= mono %>"><%= echo[:likes] %></span> likes, <span style="font-family:<%= mono %>"><%= echo[:reposts] %></span> reposts, <span style="font-family:<%= mono %>"><%= echo[:replies] %></span> replies.
+      <% else %>
+        No posts published this week across <%= echo[:accounts] %> connected <%= "account".pluralize(echo[:accounts]) %>.
+      <% end %>
     </td></tr>
   <% end %>
 

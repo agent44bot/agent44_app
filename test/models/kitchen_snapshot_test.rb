@@ -138,6 +138,23 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal [ "u/b" ], KitchenSnapshot.newly_sold_out_since(wk_ago).map(&:url) # B flipped, A did not
   end
 
+  test "calendar_churn diffs the class list vs ~a week ago" do
+    wk_ago = Date.current - 7
+    older = KitchenSnapshot.create!(taken_on: wk_ago)
+    older.kitchen_events.create!(url: "u/keep",     name: "Keep",     start_at: 10.days.from_now, price: "50.00")
+    older.kitchen_events.create!(url: "u/gone",     name: "Gone",     start_at: 10.days.from_now, price: "50.00")
+    older.kitchen_events.create!(url: "u/repriced", name: "Repriced", start_at: 10.days.from_now, price: "50.00")
+    now = KitchenSnapshot.create!(taken_on: Date.current)
+    now.kitchen_events.create!(url: "u/keep",     name: "Keep",     start_at: 10.days.from_now, price: "50.00")
+    now.kitchen_events.create!(url: "u/repriced", name: "Repriced", start_at: 10.days.from_now, price: "60.00") # price change
+    now.kitchen_events.create!(url: "u/new",      name: "New",      start_at: 10.days.from_now, price: "70.00") # added
+
+    churn = KitchenSnapshot.calendar_churn(wk_ago)
+    assert_equal 1, churn[:added]         # u/new
+    assert_equal 1, churn[:removed]       # u/gone
+    assert_equal 1, churn[:price_changes] # u/repriced 50 → 60
+  end
+
   # Seed one class across `days` daily snapshots, dropping spots_left from
   # `from` to `to` linearly, flipping availability to soldout once it hits 0.
   def seed_class(url, from:, to:, days:, name: url)

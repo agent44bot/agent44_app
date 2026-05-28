@@ -85,11 +85,31 @@ class WeeklySalesEmailJob < ApplicationJob
       argus:            SmokeTestRun.window_stats(:nyk_nav, today - 7, today),
       scout:            SmokeTestRun.window_stats(:nyk_scrape, today - 7, today)
                           .merge(snapshots: KitchenSnapshot.where(taken_on: (today - 7)..today).count),
+      # Sam (List) calendar churn + Echo (Social) posting, this week.
+      sam:              KitchenSnapshot.calendar_churn(today - 7),
+      echo:             weekly_social(today - 7),
       # Carson's "what's new this week" — curated owner-facing changelog.
       changelog:        NykChangelog.recent(since: today - 7)
     }
     data[:headline] = carson_intro(data) # Carson hosts the report
     data
+  end
+
+  # Echo's weekly social brief — posts published + engagement since `since`.
+  # Returns nil when the workspace has no connected accounts (Echo's idle, so
+  # the report just omits its brief). by_platform is { "x" => n, ... }.
+  def self.weekly_social(since)
+    ws = Workspace.find_by(slug: "nykitchen")
+    return nil unless ws && ws.social_accounts.active.exists?
+    posts = ws.workspace_posts.posted.where("posted_at >= ?", since.beginning_of_day)
+    {
+      accounts:    ws.social_accounts.active.count,
+      posts:       posts.count,
+      by_platform: posts.group(:platform).count,
+      likes:       posts.sum(:likes),
+      reposts:     posts.sum(:reposts),
+      replies:     posts.sum(:replies)
+    }
   end
 
   # Carson (the butler/concierge) hosts the report: a short opening written by
@@ -105,7 +125,7 @@ class WeeklySalesEmailJob < ApplicationJob
     wow = bw[:prior_revenue].to_i.positive? ?
       "#{(100.0 * (bw[:revenue].to_i - bw[:prior_revenue]) / bw[:prior_revenue]).round}% vs last week" :
       "no prior week to compare"
-    argus = data[:argus] || {}; scout = data[:scout] || {}
+    argus = data[:argus] || {}; scout = data[:scout] || {}; sam = data[:sam] || {}; echo = data[:echo]
     sold_out = Array(data[:newly_sold_out]).first(3).map(&:name).join("; ")
     at_risk  = Array(data[:needs_a_push]).first(2).map { |r| r[:event].name }.join("; ")
 
@@ -115,6 +135,8 @@ class WeeklySalesEmailJob < ApplicationJob
       - Sales (Iris): $#{bw[:revenue].to_i} booked this week (#{wow}); pipeline $#{data[:rev_sold].to_i} across #{data[:total_upcoming]} classes, #{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}% sold.
       - Site checks (Argus): #{argus[:passed]}/#{argus[:total]} passed, #{argus[:fail_pct]}% failed.
       - Data (Scout): #{scout[:snapshots]} snapshots, #{scout[:passed]}/#{scout[:total]} scrape runs passed.
+      - Calendar (Sam): #{sam[:added].to_i} classes added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price changes.
+      - Social (Echo): #{echo ? "#{echo[:posts]} posts published, #{echo[:likes]} likes" : "not in use"}.
       - Newly sold out: #{sold_out.presence || 'none'}.
       - Behind pace: #{at_risk.presence || 'none'}.
     TXT
