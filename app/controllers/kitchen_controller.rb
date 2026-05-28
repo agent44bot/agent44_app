@@ -128,8 +128,9 @@ class KitchenController < ApplicationController
     @rev_sold  = priced.sum(&:revenue_sold)
     @rev_total = priced.sum(&:revenue_total)
     @rev_left  = @rev_total - @rev_sold
-    seats_total   = priced.sum { |e| e.tickets_total.to_i }
-    @rev_pct_sold = seats_total.positive? ? (100.0 * priced.sum { |e| e.tickets_sold.to_i } / seats_total).round : nil
+    # Revenue-based ($sold / $total) to match the bar above and the List page +
+    # weekly email "% of $ sold", rather than seats-sold / seats-total.
+    @rev_pct_sold = @rev_total.to_f.positive? ? (100.0 * @rev_sold / @rev_total).round : nil
 
     # Pace/at-risk leaderboards make no sense for a past window — forward only.
     # (Overrides the unscoped values load_events_data set.)
