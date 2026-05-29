@@ -15,6 +15,12 @@ class KitchenController < ApplicationController
   skip_forgery_protection only: :display_heartbeat
 
   before_action :set_common_view_state, only: %i[hub list test data ask analyst]
+  # Super Agent (admin/customer-only): once App Review approved the app, we
+  # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
+  # credits via the chat. Admins, the App Store reviewer account, and members
+  # of the nykitchen workspace (Lora's team) are allowed; everyone else 404s.
+  # The POST action (ask_message) has its own inline check that returns JSON.
+  before_action :require_nyk_super_agent_access, only: :ask
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -195,6 +201,7 @@ class KitchenController < ApplicationController
 
   def ask_message
     return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.user
+    return render(json: { error: "not_authorized" }, status: :forbidden) unless nyk_super_agent_allowed?
 
     messages = params[:messages]
     messages = messages.is_a?(Array) ? messages.map { |m| m.to_unsafe_h.symbolize_keys } : []
@@ -659,6 +666,21 @@ class KitchenController < ApplicationController
       "list"    => { tokens: 0, cost: 0.0 },
       "display" => { tokens: 0, cost: 0.0 }
     }
+  end
+
+  # Who's allowed to use the Super Agent (admin chat loop or single-shot ask).
+  # Admins + the App Store reviewer + any member of the NYK workspace (Lora's
+  # team). Other signed-in users get :not_found / :forbidden — they shouldn't
+  # be able to spend our Claude credits just by creating an account.
+  def nyk_super_agent_allowed?
+    user = Current.user
+    return false unless user
+    return true if user.admin? || user.reviewer?
+    (@nyk_workspace || Workspace.find_by(slug: "nykitchen"))&.member?(user) || false
+  end
+
+  def require_nyk_super_agent_access
+    head :not_found unless nyk_super_agent_allowed?
   end
 
   def set_common_view_state
