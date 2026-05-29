@@ -72,6 +72,13 @@ module Api
           next unless e[:url].present?
 
           prev = prev_events[e[:url]]
+          # If a class dropped off the calendar and came back, it won't be in the
+          # immediately-previous snapshot — find its most recent earlier appearance
+          # so carried-forward values (price, spots, high-water) survive the gap.
+          prev ||= KitchenEvent.joins(:kitchen_snapshot)
+                               .where(url: e[:url])
+                               .where(kitchen_snapshots: { taken_on: ...taken_on })
+                               .order("kitchen_snapshots.taken_on DESC").first
 
           # The page hides the price once a class can't be bought (SoldOut or
           # Closed), so the scrape sends it blank. The price hasn't really
@@ -97,9 +104,15 @@ module Api
           if spots_left.present? && capacity.present?
             last_spots = spots_left.to_i
             last_cap   = capacity.to_i
-          elsif prev
-            last_spots = prev.last_known_spots_left || prev.spots_left
-            last_cap   = prev.last_known_capacity || prev.capacity
+          else
+            # Proxy capacity = high-water mark of spots ever seen for this class.
+            # It must only ratchet UP — a drop-off/return or a snapshot gap must
+            # never reset it lower, or earlier sales silently fall out of
+            # tickets_sold (e.g. seen at 32, returns at 28, baseline must stay 32).
+            prior      = prev&.last_known_spots_left || prev&.spots_left
+            last_spots = [ spots_left.to_i, prior.to_i ].max
+            last_spots = nil unless last_spots.positive?
+            last_cap   = prev&.last_known_capacity || prev&.capacity
           end
 
           snapshot.kitchen_events.create!(

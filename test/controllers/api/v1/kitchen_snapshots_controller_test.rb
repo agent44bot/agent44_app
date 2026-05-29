@@ -562,6 +562,30 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2280.0, e.revenue_sold
   end
 
+  test "proxy high-water ratchets up and survives a drop-off then return" do
+    url = "https://nykitchen.com/events/proxy-1"
+    # Day 1: first seen at 30 spots, no capacity from the page (proxy class).
+    post "/api/v1/kitchen_snapshots", params: { taken_on: (Date.current - 3).to_s, events: [
+      { url: url, name: "Proxy", start_at: 6.days.from_now.iso8601, spots_left: 30, availability: "InStock" }
+    ] }.to_json, headers: @headers
+    # Day 2: sells 2 → 28.
+    post "/api/v1/kitchen_snapshots", params: { taken_on: (Date.current - 2).to_s, events: [
+      { url: url, name: "Proxy", start_at: 6.days.from_now.iso8601, spots_left: 28, availability: "InStock" }
+    ] }.to_json, headers: @headers
+    # Day 3: class drops off the calendar entirely (different class scraped).
+    post "/api/v1/kitchen_snapshots", params: { taken_on: (Date.current - 1).to_s, events: [
+      { url: "https://nykitchen.com/events/other", name: "Other", start_at: 6.days.from_now.iso8601, spots_left: 5, capacity: 10, availability: "InStock" }
+    ] }.to_json, headers: @headers
+    # Day 4: returns, still at 28.
+    post "/api/v1/kitchen_snapshots", params: { taken_on: @today, events: [
+      { url: url, name: "Proxy", start_at: 6.days.from_now.iso8601, spots_left: 28, availability: "InStock" }
+    ] }.to_json, headers: @headers
+
+    e = KitchenSnapshot.find_by(taken_on: @today).kitchen_events.find_by(url: url)
+    assert_equal 30, e.last_known_spots_left, "high-water must survive the drop-off, not reset to 28"
+    assert_equal 2, e.tickets_sold, "30 high-water minus 28 left = 2 sold"
+  end
+
   test "notification when event sells out completely" do
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [
