@@ -9,7 +9,7 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-05-29
-  note: The sales report now looks further ahead — added Next month, In 2 months, and In 3 months rows so you can see how upcoming classes are filling before they're close.
+  note: The sales report now looks several months ahead, with a row for each of the next few calendar months (by name, like June and July), so you can see how upcoming classes are filling before they're close.
 
 - date: 2026-05-29
   note: New Cellar tool tracks your storage room. Scan cases in, scan bottles out, and see live bottle counts with low-stock alerts.

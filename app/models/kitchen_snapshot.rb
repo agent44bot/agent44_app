@@ -275,6 +275,9 @@ class KitchenSnapshot < ApplicationRecord
     next_mo  = today.next_month       # full calendar month after the current one
     two_mo   = next_mo.next_month     # the month after that (2 months from now)
     three_mo = two_mo.next_month      # 3 months from now
+    # Month rows are labelled by name ("June"); append the year only when it
+    # crosses into a different year so Dec→Jan stays unambiguous.
+    mlabel   = ->(d) { d.year == today.year ? d.strftime("%B") : d.strftime("%B %Y") }
 
     [
       { key: "lastmonth", label: "Last month", kind: :past, from: today.last_month.beginning_of_month,
@@ -283,10 +286,10 @@ class KitchenSnapshot < ApplicationRecord
         events: classes_ended_between(week_start - 7, week_start - 1) },
       { key: "thisweek",  label: "Current week",  kind: :forward, events: fwd.call(today, week_end) },
       { key: "nextweek",  label: "Next week",     kind: :forward, events: fwd.call(week_end + 1, week_end + 7) },
-      { key: "thismonth", label: "Current month", kind: :forward, events: fwd.call(today, today.end_of_month) },
-      { key: "nextmonth", label: "Next month",    kind: :forward, events: fwd.call(next_mo.beginning_of_month, next_mo.end_of_month) },
-      { key: "twomonths", label: "In 2 months",   kind: :forward, events: fwd.call(two_mo.beginning_of_month, two_mo.end_of_month) },
-      { key: "threemonths", label: "In 3 months", kind: :forward, events: fwd.call(three_mo.beginning_of_month, three_mo.end_of_month) }
+      { key: "thismonth", label: mlabel.call(today),    kind: :forward, events: fwd.call(today, today.end_of_month) },
+      { key: "nextmonth", label: mlabel.call(next_mo),  kind: :forward, events: fwd.call(next_mo.beginning_of_month, next_mo.end_of_month) },
+      { key: "twomonths", label: mlabel.call(two_mo),   kind: :forward, events: fwd.call(two_mo.beginning_of_month, two_mo.end_of_month) },
+      { key: "threemonths", label: mlabel.call(three_mo), kind: :forward, events: fwd.call(three_mo.beginning_of_month, three_mo.end_of_month) }
     ].filter_map { |d|
       next if d[:kind] == :past && (earliest.nil? || earliest > d[:from])
       r = revenue_rollup(d[:events])
