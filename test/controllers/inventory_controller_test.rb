@@ -180,13 +180,13 @@ class InventoryControllerTest < ActionDispatch::IntegrationTest
 
   test "CSV export returns the month's rows" do
     sign_in_as(@user)
-    InventoryCapture.create!(category: "spirit", name: "Tito's", quantity: 2, unit_price: 22.0,
+    InventoryCapture.create!(category: "spirit", name: "Tito's", quantity: 2, unit: "bottle", unit_price: 22.0,
                              captured_at: Time.current, user: @user)
     get "/nykitchen/inventory/captures/export", params: { month: Date.current.strftime("%Y-%m"), format: :csv }
     assert_response :success
     assert_equal "text/csv", response.media_type
-    assert_match(/Date,Category,Product,Quantity,Unit price,Line total/, response.body)
-    assert_match(/Tito's,2,22.00,44.00/, response.body)
+    assert_match(/Date,Category,Product,Quantity,Unit,Unit price,Line total/, response.body)
+    assert_match(/Tito's,2,bottle,22.00,44.00/, response.body)
   end
 
   test "capture log scopes to the selected month" do

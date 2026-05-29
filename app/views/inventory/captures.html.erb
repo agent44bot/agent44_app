@@ -26,18 +26,25 @@
       <%= f.text_field :name, class: field, placeholder: "e.g. Whispering Angel Rosé" %>
     </div>
 
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-2 gap-3">
       <div>
         <%= f.label :category, "Type", class: label %>
         <%= f.select :category, InventoryCapture::CATEGORIES.map { |c| [ c.capitalize, c ] }, { include_blank: "—" }, class: field %>
       </div>
       <div>
-        <%= f.label :quantity, "Qty", class: label %>
+        <%= f.label :unit_price, "Price (each)", class: label %>
+        <%= f.number_field :unit_price, step: "0.01", min: 0, inputmode: "decimal", placeholder: "0.00", class: field %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <%= f.label :quantity, "Quantity", class: label %>
         <%= f.number_field :quantity, value: 1, min: 1, inputmode: "numeric", class: field %>
       </div>
       <div>
-        <%= f.label :unit_price, "Price (each)", class: label %>
-        <%= f.number_field :unit_price, step: "0.01", min: 0, inputmode: "decimal", placeholder: "0.00", class: field %>
+        <%= f.label :unit, "Unit", class: label %>
+        <%= f.select :unit, InventoryCapture::UNITS.map { |u| [ u.capitalize, u ] }, { selected: @capture.unit || "bottle" }, class: field %>
       </div>
     </div>
 
@@ -88,7 +95,10 @@
           <div class="min-w-0 flex-1">
             <div class="text-white font-medium truncate"><%= c.name.presence || c.category&.capitalize || "Item" %></div>
             <div class="text-xs text-gray-500 truncate">
-              <%= [ c.category&.capitalize, "qty #{c.quantity}", (c.unit_price ? "$#{'%.2f' % c.unit_price} ea" : nil), (c.destination.present? ? "→ #{c.destination}" : nil) ].compact.join(" · ") %>
+              <%= [ c.category&.capitalize,
+                    [ c.quantity, (c.unit.present? ? c.unit.pluralize(c.quantity) : nil) ].compact.join(" "),
+                    (c.unit_price ? "$#{'%.2f' % c.unit_price} ea" : nil),
+                    (c.destination.present? ? "→ #{c.destination}" : nil) ].compact.join(" · ") %>
             </div>
             <div class="text-[11px] text-gray-600"><%= c.captured_at.strftime("%b %-d, %-I:%M %p") %><%= " · #{c.user.display_identifier}" if c.user %></div>
           </div>
