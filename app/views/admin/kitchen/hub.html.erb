@@ -23,6 +23,9 @@
     overflow:hidden;text-decoration:none;color:inherit;
     transition:transform .18s ease,border-color .18s ease,background .18s ease;
     opacity:0;transform:translateY(10px);animation:ra-rise .5s cubic-bezier(.2,.7,.3,1) forwards}
+  /* Manager view shows a per-agent salary badge bottom-right; reserve a band at
+     the bottom so it never overlaps the card's own stats. */
+  .pay-on .ra-card{padding-bottom:46px}
   .ra-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
     background:var(--accent);opacity:.55;transition:opacity .18s,width .18s}
   .ra-card:hover{transform:translateY(-3px);background:#16181d;
@@ -208,7 +211,7 @@
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr <%= "pay-on" if @can_see_pricing %>">
     <%# Super / Carson. Two click targets, not one: the card body opens a FRESH chat
         (no prompt inserted), while the suggestion/alert below is its own chip that
         auto-asks that specific question. Sibling links — never nested. %>
