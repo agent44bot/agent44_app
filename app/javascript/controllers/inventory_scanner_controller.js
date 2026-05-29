@@ -2,8 +2,10 @@ import { Controller } from "@hotwired/stimulus"
 
 // Storage-room scan console, shared by Receive (direction "in", cases) and
 // Remove (direction "out", bottles). Three ways to identify an item:
-//   • camera — native BarcodeDetector (desktop/Android Chrome; NOT iOS WebKit,
-//     which needs a vendored JS decoder — that's a follow-up)
+//   • camera — html5-qrcode, lazy-loaded as a classic script only when the
+//     camera is started. Works in iOS WebKit (which lacks the native
+//     BarcodeDetector API); on Chrome/Android it uses BarcodeDetector under the
+//     hood via experimentalFeatures.useBarCodeDetectorIfSupported.
 //   • typing / pasting a code, or a USB/Bluetooth scanner (types + Enter)
 //   • name search, for bottles that won't scan
 // Confirming a quantity POSTs an InventoryMovement and logs it for the session.
@@ -13,9 +15,10 @@ export default class extends Controller {
     allowCreate:  Boolean,
     lookupUrl:    String,
     movementsUrl: String,
+    libUrl:       String, // asset path to html5-qrcode.js
   }
   static targets = [
-    "cameraWrap", "cameraUnsupported", "video", "status", "cameraBtn",
+    "cameraWrap", "cameraUnsupported", "reader", "status", "cameraBtn",
     "codeInput", "searchInput", "results",
     "panel", "itemName", "itemMeta", "onHand", "qty", "confirmBtn",
     "newPanel", "newCode", "newName", "newCategory", "newUnits",
@@ -24,19 +27,19 @@ export default class extends Controller {
 
   connect() {
     this.current = null      // { item } once resolved, or { code } for a new barcode
-    this.results = []        // last name-search results
-    if ("BarcodeDetector" in window) {
-      try {
-        this.detector = new window.BarcodeDetector({
-          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"],
-        })
-        this.cameraWrapTarget.classList.remove("hidden")
-      } catch {
-        this.cameraUnsupportedTarget.classList.remove("hidden")
-      }
-    } else {
-      this.cameraUnsupportedTarget.classList.remove("hidden")
-    }
+    this.results = []
+    this.scanning = false
+    // Show the camera scanner only where it can actually run. In mobile Safari /
+    // desktop the browser owns the camera permission, so any browser with
+    // getUserMedia gets it. Inside the native app it's gated on a user-agent
+    // token that only builds carrying NSCameraUsageDescription set on the
+    // webview (capacitor.config ios.appendUserAgent) — older builds lack the
+    // Info.plist string and iOS CRASHES the app if getUserMedia runs without it,
+    // so they fall back to the type-a-code path instead.
+    const hasApi   = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+    const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())
+    const cameraOk = hasApi && (!isNative || navigator.userAgent.includes("Agent44Cam"))
+    ;(cameraOk ? this.cameraWrapTarget : this.cameraUnsupportedTarget).classList.remove("hidden")
   }
 
   disconnect() { this.stopCamera() }
@@ -44,39 +47,67 @@ export default class extends Controller {
   // ── Camera ──────────────────────────────────────────────────────────────
   toggleCamera() { this.scanning ? this.stopCamera() : this.startCamera() }
 
+  // Lazy-load html5-qrcode (a classic script that sets window.__Html5QrcodeLibrary__)
+  // the first time the camera is used, so it never weighs down a normal page load.
+  loadLib() {
+    if (window.__Html5QrcodeLibrary__) return Promise.resolve()
+    if (this._libPromise) return this._libPromise
+    this._libPromise = new Promise((resolve, reject) => {
+      const s = document.createElement("script")
+      s.src = this.libUrlValue
+      s.onload = () => resolve()
+      s.onerror = () => { this._libPromise = null; reject(new Error("load failed")) }
+      document.head.appendChild(s)
+    })
+    return this._libPromise
+  }
+
   async startCamera() {
+    this.statusTarget.textContent = "Starting camera…"
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      this.videoTarget.srcObject = this.stream
-      await this.videoTarget.play()
+      await this.loadLib()
+    } catch {
+      this.statusTarget.textContent = "Couldn't load the scanner. Type the code instead."
+      return
+    }
+    const lib = window.__Html5QrcodeLibrary__
+    const F = lib.Html5QrcodeSupportedFormats
+    this.scanner = new lib.Html5Qrcode(this.readerTarget.id, {
+      formatsToSupport: [
+        F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.UPC_EAN_EXTENSION,
+        F.CODE_128, F.CODE_39, F.QR_CODE,
+      ],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false,
+    })
+    try {
+      await this.scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 280, height: 170 } },
+        (text) => this.onDetected(text),
+        () => {} // per-frame "no code found" — ignore
+      )
       this.scanning = true
       this.cameraBtnTarget.textContent = "Stop camera"
       this.statusTarget.textContent = "Point at a barcode…"
-      this.scanLoop()
-    } catch (e) {
-      this.statusTarget.textContent = "Camera unavailable — type the code instead."
+    } catch {
+      this.statusTarget.textContent = "Camera unavailable. Allow camera access, or type the code."
+      this.scanner = null
     }
   }
 
-  stopCamera() {
+  async stopCamera() {
     this.scanning = false
-    if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null }
     if (this.hasCameraBtnTarget) this.cameraBtnTarget.textContent = "Start camera"
-    if (this.hasStatusTarget) this.statusTarget.textContent = ""
-  }
-
-  async scanLoop() {
-    if (!this.scanning) return
-    if (!this.current) {                       // ignore detections while confirming
-      try {
-        const codes = await this.detector.detect(this.videoTarget)
-        if (codes && codes.length) this.onDetected(codes[0].rawValue)
-      } catch { /* transient detect errors are fine */ }
+    if (this.hasStatusTarget && !this.current) this.statusTarget.textContent = ""
+    if (this.scanner) {
+      try { await this.scanner.stop(); this.scanner.clear() } catch { /* already stopped */ }
+      this.scanner = null
     }
-    if (this.scanning) requestAnimationFrame(() => this.scanLoop())
   }
 
   onDetected(code) {
+    if (this.current) return                         // a confirm panel is open
     const now = Date.now()
     if (code === this.lastCode && now - (this.lastCodeAt || 0) < 2500) return  // debounce
     this.lastCode = code; this.lastCodeAt = now
