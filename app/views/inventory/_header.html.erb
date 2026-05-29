@@ -2,9 +2,11 @@
     Pass `active:` as one of :stock, :receive, :remove, :import. %>
 <% active = local_assigns[:active] %>
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-  <%= link_to nykitchen_path, class: "inline-flex items-center gap-1 text-sm text-gray-400 hover:text-orange-400 mb-4 transition" do %>
-    ← NY Kitchen
-  <% end %>
+  <div class="flex justify-end mb-4">
+    <%= link_to nykitchen_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
+      ← NY Kitchen
+    <% end %>
+  </div>
 
   <div class="text-orange-500 text-[11px] font-mono tracking-[0.3em] uppercase mb-1">Agent 44 · Cellar</div>
   <h1 class="text-3xl font-black text-white">Storage Room</h1>
