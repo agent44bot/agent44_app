@@ -37,6 +37,19 @@
     <% end %>
   </div>
 
+  <%# Admin-only: jump to the live weekly team report (same builder as the
+      Sunday email). The report_preview action 404s for non-admins, so only
+      show the link to site admins to avoid a dead link. %>
+  <% if Current.user&.admin? %>
+    <div class="mb-6 -mt-3 text-xs">
+      <%= link_to nyk_report_preview_path, class: "inline-flex items-center gap-1.5 text-gray-400 hover:text-orange-300" do %>
+        <span>👁️ Preview the weekly team report</span>
+        <span aria-hidden="true">&rarr;</span>
+      <% end %>
+      <span class="text-gray-600">· admin only</span>
+    </div>
+  <% end %>
+
   <% has_charts = (@dow_avg && @dow_avg.values.sum.positive?) ||
                   (@weekly_sales.present? && @weekly_sales.sum { |w| w[:tickets] }.positive?) ||
                   (@monthly_sales.present? && @monthly_sales.sum { |m| m[:tickets] }.positive?) %>
