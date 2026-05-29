@@ -5,16 +5,21 @@
   <h2 class="text-xl font-bold text-white mb-1">Log a product</h2>
   <p class="text-gray-400 text-sm mb-5">Snap a photo, enter the quantity and price, tag the type. Everything you log this month exports to a spreadsheet.</p>
 
-  <%= form_with model: @capture, scope: :capture, url: nyk_inventory_captures_path, method: :post, multipart: true, class: "space-y-4 mb-8" do |f| %>
+  <%= form_with model: @capture, scope: :capture, url: nyk_inventory_captures_path, method: :post, multipart: true, class: "space-y-4 mb-8", data: { controller: "camera-guard" } do |f| %>
     <% field = "w-full rounded-lg bg-gray-900 border border-gray-700 text-white text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none" %>
     <% label = "block text-xs uppercase tracking-wide text-gray-400 mb-1" %>
 
-    <div>
+    <%# Photo input is hidden until JS confirms the camera is safe to open here
+        (mobile Safari/desktop, or an app build with the camera permission). %>
+    <div data-camera-guard-target="field" class="hidden">
       <%= f.label :photo, "Photo", class: label %>
       <%= f.file_field :photo, accept: "image/*", capture: "environment",
             class: "block w-full text-sm text-gray-300 file:mr-3 file:px-4 file:py-2.5 file:rounded-lg file:border-0 file:bg-orange-600 file:text-white file:font-semibold hover:file:bg-orange-500 file:cursor-pointer" %>
       <p class="text-xs text-gray-500 mt-1">On a phone this opens the camera. Optional.</p>
     </div>
+    <p data-camera-guard-target="note" class="text-xs text-gray-400 rounded-lg bg-gray-900 border border-gray-800 p-3">
+      📷 Photo capture comes with the next app update. You can still log quantity &amp; price now, or add photos from your phone's browser.
+    </p>
 
     <div>
       <%= f.label :name, "Product", class: label %>
