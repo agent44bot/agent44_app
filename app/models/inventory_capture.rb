@@ -7,6 +7,8 @@ class InventoryCapture < ApplicationRecord
   has_one_attached :photo
 
   CATEGORIES = InventoryItem::CATEGORIES
+  # Suggested "sent to" destinations (free text still allowed via the datalist).
+  DESTINATIONS = [ "Education Department", "Tasting Room", "Events" ].freeze
 
   validates :quantity,   numericality: { greater_than: 0, only_integer: true }
   validates :unit_price, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true

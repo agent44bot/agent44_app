@@ -214,13 +214,14 @@ class InventoryController < ApplicationController
     _, from, to = capture_range
     rows = InventoryCapture.in_range(from, to).recent.with_attached_photo.includes(:user)
     csv = CSV.generate do |out|
-      out << [ "Date", "Category", "Product", "Quantity", "Unit price", "Line total", "Logged by", "Photo" ]
+      out << [ "Date", "Category", "Product", "Quantity", "Unit price", "Line total", "Destination", "Logged by", "Photo" ]
       rows.each do |c|
         out << [
           c.captured_at.strftime("%Y-%m-%d %H:%M"),
           c.category, c.name, c.quantity,
           (c.unit_price ? format("%.2f", c.unit_price) : ""),
           format("%.2f", c.line_total),
+          c.destination,
           c.user&.display_identifier,
           (c.photo.attached? ? rails_blob_url(c.photo) : ""),
         ]
@@ -232,7 +233,7 @@ class InventoryController < ApplicationController
   private
 
   def capture_params
-    params.require(:capture).permit(:category, :name, :quantity, :unit_price, :note, :photo)
+    params.require(:capture).permit(:category, :name, :quantity, :unit_price, :note, :destination, :photo)
   end
 
   # [label, from, to] for the requested month (?month=YYYY-MM), default this month.

@@ -42,6 +42,14 @@
     </div>
 
     <div>
+      <%= f.label :destination, "Sent to", class: label %>
+      <%= f.text_field :destination, list: "cellar-destinations", autocomplete: "off", class: field, placeholder: "e.g. Education Department, Tasting Room" %>
+      <datalist id="cellar-destinations">
+        <% InventoryCapture::DESTINATIONS.each do |d| %><option value="<%= d %>"></option><% end %>
+      </datalist>
+    </div>
+
+    <div>
       <%= f.label :note, "Note", class: label %>
       <%= f.text_field :note, class: field, placeholder: "optional" %>
     </div>
@@ -80,7 +88,7 @@
           <div class="min-w-0 flex-1">
             <div class="text-white font-medium truncate"><%= c.name.presence || c.category&.capitalize || "Item" %></div>
             <div class="text-xs text-gray-500 truncate">
-              <%= [ c.category&.capitalize, "qty #{c.quantity}", (c.unit_price ? "$#{'%.2f' % c.unit_price} ea" : nil) ].compact.join(" · ") %>
+              <%= [ c.category&.capitalize, "qty #{c.quantity}", (c.unit_price ? "$#{'%.2f' % c.unit_price} ea" : nil), (c.destination.present? ? "→ #{c.destination}" : nil) ].compact.join(" · ") %>
             </div>
             <div class="text-[11px] text-gray-600"><%= c.captured_at.strftime("%b %-d, %-I:%M %p") %><%= " · #{c.user.display_identifier}" if c.user %></div>
           </div>

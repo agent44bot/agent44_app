@@ -198,4 +198,14 @@ class InventoryControllerTest < ActionDispatch::IntegrationTest
     assert_match(/ThisMonth/, response.body)
     refute_match(/OldOne/, response.body)
   end
+
+  test "capture records a destination and includes it in the CSV" do
+    sign_in_as(@user)
+    post "/nykitchen/inventory/captures",
+         params: { capture: { name: "Pinot Noir", category: "wine", quantity: 3, unit_price: "10.00", destination: "Tasting Room" } }
+    assert_equal "Tasting Room", InventoryCapture.order(:id).last.destination
+    get "/nykitchen/inventory/captures/export", params: { month: Date.current.strftime("%Y-%m"), format: :csv }
+    assert_match(/Destination/, response.body)
+    assert_match(/Tasting Room/, response.body)
+  end
 end
