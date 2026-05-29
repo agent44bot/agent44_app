@@ -89,3 +89,39 @@ employment_open: [full_time, part_time, contract]  # PT/contract OK to ease the 
 # ranked down (graduated penalty, capped). Roles with no posted salary, or
 # hourly/contract rates, are left neutral (not penalized). Set to 0 to disable.
 salary_floor: 160000
+
+# --- Apply kit -------------------------------------------------------------
+# Powers the For You "Prep application" kit: the standard screening answers Rich
+# reviews/pastes, plus grounding for the AI-written cover letter. He has final
+# say and submits everything himself — nothing here auto-submits.
+application:
+  full_name: Rich Downie
+  contact_email: botwhisperer@hey.com
+  phone: "+1 (585) 766-7424"
+  location: "Rochester, NY"
+  work_authorization: "U.S. citizen; no sponsorship required"
+  salary_expectation: "$150,000+"     # stated on apps; ranking floor is $160K (salary_floor)
+  arrangement: "Remote (open to hybrid); based in Rochester, NY; not relocating"
+  start_availability: "Two weeks' notice"
+  years_experience: "10+"             # capped-dropdown answer; résumé shows the full 25-yr history
+  education: "BS, Business (minor in Computer Science)"  # TODO: add school name once richdownie.com is updated
+  links:
+    LinkedIn: "https://www.linkedin.com/in/richdownie/"
+    GitHub: "https://github.com/richdownie"
+    "Agent44 (latest project)": "https://agent44labs.ai/"
+    "Agent44 iOS app": "https://apps.apple.com/us/app/agent44labs/id6762046812"
+    Portfolio: "https://richdownie.com"
+  # Tight grounding for the cover-letter generator (kept here so we don't re-read
+  # the PDF each call). Update if the résumé changes materially.
+  resume_summary: >
+    Rich Downie, Automation Architect with 25+ years building full-stack test
+    automation (Ruby, Selenium, Cucumber, Capybara, Appium, Playwright, RSpec)
+    and CI/CD (GitHub Actions, Jenkins, CircleCI, self-hosted Mac mini runners,
+    AWS). Current: Senior Test Automation Engineer at Medaxion (2021–present),
+    Ruby/Cucumber/Selenium + Claude Code. Prior senior/principal SDET and
+    automation-lead roles at Datameer, Cofense, LivingSocial. Now shipping real
+    agentic systems solo with AI-augmented development: "Never Sell Your Bitcoin"
+    (Claude Code, Playwright, MCP servers, agentic CI/CD, Capacitor, Stripe), an
+    OpenClaw agent that fully automates iOS build-to-TestFlight, and the Agent44
+    job/agent platform. Differentiator: a veteran QA/automation architect who
+    actually builds and ships AI agents.

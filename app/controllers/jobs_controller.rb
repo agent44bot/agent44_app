@@ -154,6 +154,22 @@ class JobsController < ApplicationController
     @last_ranked_at = JobMatch.maximum(:computed_at)
   end
 
+  # Apply kit for one match: a tailored cover letter (generated on demand the
+  # first time, or when params[:regenerate]) + Rich's standard screening answers.
+  # Auth-only; renders into the card's turbo frame. He reviews + submits himself.
+  def apply_kit
+    @job   = Job.find(params[:id])
+    @match = JobMatch.find_or_create_by!(job_id: @job.id) { |m| m.score = 0 }
+    @app   = JobMatcher.profile["application"] || {}
+
+    if @match.cover_letter.blank? || params[:regenerate].present?
+      CoverLetterGenerator.generate!(@match)
+      @match.reload
+    end
+
+    render partial: "jobs/apply_kit", locals: { job: @job, match: @match, app: @app }
+  end
+
   def show
     @job = Job.includes(:job_sources).find(params[:id])
 

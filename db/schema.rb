@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_28_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_120000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -150,6 +150,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_210000) do
 
   create_table "job_matches", force: :cascade do |t|
     t.datetime "computed_at"
+    t.text "cover_letter"
+    t.datetime "cover_letter_at"
     t.datetime "created_at", null: false
     t.datetime "enriched_at"
     t.boolean "is_dream", default: false, null: false

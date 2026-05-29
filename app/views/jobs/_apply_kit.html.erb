@@ -1,0 +1,59 @@
+<%= turbo_frame_tag "apply_kit_#{job.id}" do %>
+  <div class="mt-4 rounded-lg border border-gray-800 bg-gray-950 p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h4 class="text-xs font-semibold text-orange-400 uppercase tracking-wide">Apply kit</h4>
+      <span class="text-[11px] text-gray-600">Review &amp; submit yourself; nothing is sent automatically</span>
+    </div>
+
+    <!-- Cover letter -->
+    <div data-controller="copy-text" class="mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs font-semibold text-gray-300">Cover letter</span>
+        <div class="flex items-center gap-2">
+          <button type="button" data-action="copy-text#copy" data-copy-text-target="button" class="text-[11px] font-medium text-gray-400 hover:text-orange-400 transition">Copy</button>
+          <%= button_to "Regenerate", apply_kit_job_path(job, regenerate: 1), method: :post,
+                class: "text-[11px] font-medium text-gray-500 hover:text-orange-400 transition",
+                form: { class: "inline", data: { turbo_frame: "apply_kit_#{job.id}" } } %>
+        </div>
+      </div>
+      <% if match.cover_letter.present? %>
+        <div data-copy-text-target="source" class="whitespace-pre-line text-sm text-gray-300 leading-relaxed bg-gray-900 border border-gray-800 rounded p-3"><%= match.cover_letter %></div>
+        <% if match.cover_letter_at %>
+          <div class="text-[10px] text-gray-600 mt-1">Generated <%= time_ago_in_words(match.cover_letter_at) %> ago · always tailor before sending</div>
+        <% end %>
+      <% else %>
+        <div class="text-sm text-gray-500 bg-gray-900 border border-gray-800 rounded p-3">Couldn't generate a cover letter (transient error or no AI key). Hit Regenerate.</div>
+      <% end %>
+    </div>
+
+    <!-- Standard screening answers -->
+    <% answers = [
+         ["Name", app["full_name"]], ["Email", app["contact_email"]], ["Phone", app["phone"]],
+         ["Location", app["location"]], ["Work authorization", app["work_authorization"]],
+         ["Salary expectation", app["salary_expectation"]], ["Work arrangement", app["arrangement"]],
+         ["Earliest start", app["start_availability"]], ["Years of experience", app["years_experience"]],
+         ["Education", app["education"]]
+       ].reject { |_, v| v.blank? } %>
+    <div data-controller="copy-text" class="mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs font-semibold text-gray-300">Standard answers</span>
+        <button type="button" data-action="copy-text#copy" data-copy-text-target="button" class="text-[11px] font-medium text-gray-400 hover:text-orange-400 transition">Copy</button>
+      </div>
+      <div data-copy-text-target="source" class="text-sm text-gray-300 bg-gray-900 border border-gray-800 rounded p-3 space-y-1">
+        <% answers.each do |label, val| %>
+          <div><span class="text-gray-500"><%= label %>:</span> <%= val %></div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Résumé + links -->
+    <div class="text-xs text-gray-400">
+      <div class="mb-1"><span class="text-gray-500">Résumé:</span> attach Rich_Downie_Resume.pdf (your latest)</div>
+      <div class="flex flex-wrap gap-x-4 gap-y-1">
+        <% (app["links"] || {}).each do |name, url| %>
+          <a href="<%= url %>" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-300"><%= name %></a>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

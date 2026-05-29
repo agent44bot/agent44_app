@@ -52,6 +52,9 @@ Rails.application.routes.draw do
       get :today
       get :for_me
     end
+    member do
+      post :apply_kit
+    end
     resource :saved_job, only: [ :create, :destroy ] do
       post :toggle_applied, on: :member
     end

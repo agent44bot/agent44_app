@@ -12,7 +12,9 @@ class JobMatch < ApplicationRecord
   # hyphens (full-stack, CI/CD, 25-year) are left alone.
   def self.strip_dashes(str)
     return str if str.blank?
-    str.to_s.gsub(/\s*[—–]\s*/, ", ").gsub(/,\s*,/, ",").gsub(/\s{2,}/, " ").strip
+    # Only collapse horizontal whitespace (spaces/tabs) so multi-paragraph cover
+    # letters keep their newlines; em/en dashes become commas.
+    str.to_s.gsub(/[ \t]*[—–][ \t]*/, ", ").gsub(/,[ \t]*,/, ",").gsub(/[ \t]{2,}/, " ").strip
   end
 
   # Upsert the rule-based score for a job from a JobMatcher.evaluate result.
@@ -36,8 +38,9 @@ class JobMatch < ApplicationRecord
   # Runs on every save (incl. enrichment's update!), so any AI-written field is
   # de-em-dashed before it reaches the For You page or the digest email.
   def normalize_ai_dashes
-    self.why   = self.class.strip_dashes(why)   if why.present?
-    self.pitch = self.class.strip_dashes(pitch) if pitch.present?
-    self.lead_skills = Array(lead_skills).map { |s| self.class.strip_dashes(s) } if lead_skills.present?
+    self.why          = self.class.strip_dashes(why)          if why.present?
+    self.pitch        = self.class.strip_dashes(pitch)        if pitch.present?
+    self.cover_letter = self.class.strip_dashes(cover_letter) if cover_letter.present?
+    self.lead_skills  = Array(lead_skills).map { |s| self.class.strip_dashes(s) } if lead_skills.present?
   end
 end
