@@ -81,6 +81,12 @@
 
   # Avatar + callsign + classification + codename for a card header. Uses the
   # saved display_name when present; codename is the real agent_number.
+  # tokens → compact label: 1234567 → "1.2M", 12345 → "12.3K".
+  fmt_tok = ->(n) {
+    n = n.to_i
+    n >= 1_000_000 ? "#{(n / 1_000_000.0).round(1)}M" : (n >= 1_000 ? "#{(n / 1_000.0).round(1)}K" : n.to_s)
+  }
+
   agent_ident = ->(kind) {
     m = roster[kind.to_s]
     a = @workspace_agents[kind.to_s]
@@ -88,7 +94,13 @@
     code = a ? "No.#{a.agent_number}" : nil
     html = +%(<span class="ra-avatar">#{m[:emoji]}</span><span class="ra-id"><span class="ra-call">#{ERB::Util.h(call)}</span><span class="ra-meta"><span class="ra-tag">#{ERB::Util.h(m[:tag])}</span>)
     html << %(<span class="ra-sep">·</span><span class="ra-code">#{ERB::Util.h(code)}</span>) if code
-    html << %(</span></span>)
+    html << %(</span>) # /ra-meta
+    # Per-agent "salary" — this month's tokens + cost. Owner/admin only (Lora).
+    if @can_see_pricing && @hub_salary && (s = @hub_salary[kind.to_s])
+      toks = s[:tokens].to_i.positive? ? "#{fmt_tok.call(s[:tokens])} tok · " : ""
+      html << %(<span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10.5px;color:#f59e0b;margin-top:5px;letter-spacing:.05em" title="This month's token usage + cost">💰 #{toks}$#{format('%.2f', s[:cost])}/mo</span>)
+    end
+    html << %(</span>) # /ra-id
     html.html_safe
   }
 
@@ -143,14 +155,20 @@
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
   <div class="flex justify-between items-center mb-6 text-sm">
-    <% if Current.user&.email_address == "botwhisperer@hey.com" %>
-      <%= link_to admin_track_path(range: "today"),
-            class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-900/40 border border-amber-800/60 text-amber-300 hover:border-amber-500 text-xs font-semibold" do %>
-        👁 Track users
+    <div class="flex items-center gap-2">
+      <% if Current.user&.email_address == "botwhisperer@hey.com" %>
+        <%= link_to admin_track_path(range: "today"),
+              class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-900/40 border border-amber-800/60 text-amber-300 hover:border-amber-500 text-xs font-semibold" do %>
+          👁 Track users
+        <% end %>
       <% end %>
-    <% else %>
-      <span></span>
-    <% end %>
+      <% if @can_see_pricing %>
+        <%= link_to nyk_billing_path,
+              class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-900/40 border border-emerald-800/60 text-emerald-300 hover:border-emerald-500 text-xs font-semibold" do %>
+          💵 Billing
+        <% end %>
+      <% end %>
+    </div>
     <%= link_to workspaces_path(force: 1), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
       ← All workspaces
     <% end %>

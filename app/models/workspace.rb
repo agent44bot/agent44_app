@@ -48,11 +48,21 @@ class Workspace < ApplicationRecord
     end
   end
 
-  # Site admins always see pricing. Workspace members see it when the
-  # workspace-level toggle is on. Non-members never see it.
+  # Elevated "owner" view of this workspace's money + usage: a site admin, or
+  # the workspace's own owner/admin (e.g. Lora on NY Kitchen). Editors/viewers
+  # (e.g. Chris) are excluded. This is the "between admin and user" tier — it
+  # rides the existing per-workspace membership roles, no new global role.
+  def manager?(user)
+    return false unless user
+    user.admin? || %w[owner admin].include?(role_for(user))
+  end
+
+  # Site admins + the workspace owner/admin always see pricing. Other members
+  # (editor/viewer) see it only when the workspace-level toggle is on.
+  # Non-members never see it.
   def pricing_visible_for?(user)
     return false unless user
-    return true if user.admin?
+    return true if manager?(user)
     pricing_visible_to_members? && member?(user)
   end
 

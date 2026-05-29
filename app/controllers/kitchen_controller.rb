@@ -31,6 +31,8 @@ class KitchenController < ApplicationController
     inv_on_hand = InventoryItem.on_hand_by_item
     @hub_inventory_units = inv_on_hand.values.sum
     @hub_inventory_low   = InventoryItem.where.not(par_level: nil).count { |i| i.low_stock?(inv_on_hand[i.id].to_i) }
+    # Per-agent "salary" (this month's tokens + cost). Owner/admin only.
+    @hub_salary = hub_salary_by_agent if @can_see_pricing
     # Team management is rendered below the agent cards for members; load
     # the workspace data so the partial can render.
     load_nyk_team_data if @nyk_workspace
@@ -632,6 +634,30 @@ class KitchenController < ApplicationController
       week:     AiCallLog.usage_rollup(base.where("created_at >= ?", 7.days.ago)),
       month:    AiCallLog.usage_rollup(base.where("created_at >= ?", now.beginning_of_month)),
       all_time: AiCallLog.usage_rollup(base)
+    }
+  end
+
+  # Per-agent "salary" for the NYK hub: this month's token usage + dollar cost,
+  # mapped from AI sources / smoke runs to each agent card. A good rollup, not
+  # forensic — usage is logged by feature source, not agent id. Sam (list) and
+  # Neon (display) draw no paid usage, so they read $0. Owner/admin only.
+  def hub_salary_by_agent
+    month = Time.zone.now.beginning_of_month
+    ai = ->(sources) {
+      r = AiCallLog.where(source: sources).where("created_at >= ?", month).usage_rollup
+      { tokens: r[:total_tokens], cost: r[:cost_dollars] }
+    }
+    smoke = ->(scope) {
+      { tokens: 0, cost: SmokeTestRun.public_send(scope).where("started_at >= ?", month).sum(:cost_dollars).to_f }
+    }
+    {
+      "ask"     => ai.call(AiCallLog::SUPER_AGENT_SOURCES),
+      "social"  => ai.call(%w[nyk_enhance nyk_x_autopost]),
+      "analyst" => ai.call(%w[nyk_team_report]),
+      "test"    => smoke.call(:nyk_nav),
+      "data"    => smoke.call(:nyk_scrape),
+      "list"    => { tokens: 0, cost: 0.0 },
+      "display" => { tokens: 0, cost: 0.0 }
     }
   end
 

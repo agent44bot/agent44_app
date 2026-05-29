@@ -61,4 +61,20 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
       ENV.delete("NYK_RAW_MULTIPLIER")
     end
   end
+
+  test "NYK workspace admin (not a global admin) can see billing" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws.memberships.create!(user: @user, role: "admin")
+    sign_in_as(@user)
+    get "/nykitchen/billing"
+    assert_response :success
+  end
+
+  test "NYK workspace editor cannot see billing" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws.memberships.create!(user: @user, role: "editor")
+    sign_in_as(@user)
+    get "/nykitchen/billing"
+    assert_redirected_to "/nykitchen"
+  end
 end

@@ -36,7 +36,9 @@ class NykBillingController < ApplicationController
   private
 
   def require_visible
-    return if Current.user&.admin?
-    redirect_to "/nykitchen", alert: "Not available yet."
+    return if Current.user&.admin? # site admin always
+    ws = Workspace.find_by(slug: "nykitchen")
+    return if ws&.manager?(Current.user) # NYK workspace owner/admin (e.g. Lora)
+    redirect_to "/nykitchen", alert: "Not available."
   end
 end
