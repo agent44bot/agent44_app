@@ -98,7 +98,7 @@
     # Per-agent "salary" — this month's tokens + cost. Owner/admin only (Lora).
     if @can_see_pricing && @hub_salary && (s = @hub_salary[kind.to_s])
       toks = s[:tokens].to_i.positive? ? "#{fmt_tok.call(s[:tokens])} tok · " : ""
-      html << %(<span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10.5px;color:#f59e0b;margin-top:5px;letter-spacing:.05em" title="This month's token usage + cost">💰 #{toks}$#{format('%.2f', s[:cost])}/mo</span>)
+      html << %(<span style="position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2" title="This month's token usage + cost">💰 #{toks}$#{format('%.2f', s[:cost])}/mo</span>)
     end
     html << %(</span>) # /ra-id
     html.html_safe
