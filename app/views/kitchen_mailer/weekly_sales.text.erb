@@ -6,19 +6,19 @@
 <% if @s[:sample_note].present? -%>
 <%= @s[:sample_note] %>
 
-————————————————————————————————————————
+------------------------------------------
 
 <% end -%>
-NY Kitchen — Weekly Team Report
+NY Kitchen Weekly Team Report
 <%= @s[:snapshot_date]&.strftime("Week of %B %-d, %Y") %>
 <% if @s[:headline].present? -%>
 
 <%= @s[:headline] %>
-  — Carson, your concierge
+  Carson, your concierge
 <% end -%>
 
 IRIS · ANALYST
-BOOKED · THIS WEEK (Mon–Sun): <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
+BOOKED · THIS WEEK (Mon-Sun): <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
 Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
 
 <% if @s[:periods].present? -%>
@@ -38,28 +38,28 @@ SOLD OUT THIS WEEK
 
 BIGGEST MOVERS THIS WEEK
 <% @s[:movers].each_with_index do |row, i| -%>
-<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — +<%= row[:tickets] %> tickets<% if row[:revenue].to_i > 0 %>, <%= number_to_currency(row[:revenue], precision: 0) %><% end %>
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) · +<%= row[:tickets] %> tickets<% if row[:revenue].to_i > 0 %>, <%= number_to_currency(row[:revenue], precision: 0) %><% end %>
 <% end -%>
 <% end -%>
 <% if @s[:needs_a_push].present? -%>
 
 NEEDS A PUSH
 <% @s[:needs_a_push].each_with_index do |row, i| -%>
-<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>, in <%= row[:days_until] %>d) — needs ~<%= row[:needed_pace] %>/day, selling ~<%= row[:observed_pace] %>/day
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>, in <%= row[:days_until] %>d) · needs ~<%= row[:needed_pace] %>/day, selling ~<%= row[:observed_pace] %>/day
 <% end -%>
 <% end -%>
 <% if @s[:selling_fastest].present? -%>
 
 SELLING FASTEST (all-time pace)
 <% @s[:selling_fastest].each_with_index do |row, i| -%>
-<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) — ~<%= row[:pace] %>/day
+<%= i + 1 %>. <%= row[:event].name %> (<%= row[:event].start_at&.strftime("%a %-m/%-d") %>) · ~<%= row[:pace] %>/day
 <% end -%>
 <% end -%>
 <% if @s[:empty_last_week].present? -%>
 
 RAN WITH EMPTY SEATS (last 7 days)
 <% @s[:empty_last_week].each do |e| -%>
-- <%= e.name %> (<%= e.start_at&.strftime("%a %-m/%-d") %>) — <%= e.spots_left %> unsold
+- <%= e.name %> (<%= e.start_at&.strftime("%a %-m/%-d") %>) · <%= e.spots_left %> unsold
 <% end -%>
 <% end -%>
 
@@ -71,7 +71,7 @@ TICKETS SOLD BY WEEK
 <% if argus[:total].to_i.positive? -%>
 
 ARGUS · SENTRY (site uptime)
-<%= argus[:total] %> calendar checks — <%= argus[:passed] %> passed<%= argus[:failed].to_i.positive? ? ", #{argus[:failed]} failed (#{argus[:fail_pct]}%)" : "" %>. <%= argus[:fail_pct].to_i.zero? ? "Calendar stayed up all week." : "#{argus[:fail_pct]}% of checks didn't complete — usually a transient checker hiccup, not a customer-facing outage. Argus retries and escalates anything that persists." %>
+<%= argus[:total] %> calendar checks: <%= argus[:passed] %> passed<%= argus[:failed].to_i.positive? ? ", #{argus[:failed]} failed (#{argus[:fail_pct]}%)" : "" %>. <%= argus[:fail_pct].to_i.zero? ? "Calendar stayed up all week." : "#{argus[:fail_pct]}% of checks didn't complete, usually a transient checker hiccup, not a customer-facing outage. Argus retries and escalates anything that persists." %>
 <% end -%>
 <% if scout[:snapshots].to_i.positive? || scout[:total].to_i.positive? -%>
 
@@ -82,11 +82,11 @@ SCOUT · RECON (data)
 <% sam = @s[:sam] || {}; echo = @s[:echo] -%>
 
 SAM · SCHEDULER (calendar)
-<%= (sam[:added].to_i + sam[:removed].to_i + sam[:price_changes].to_i).positive? ? "#{sam[:added].to_i} added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price change(s)." : "Held steady — no classes added or removed." %>
+<%= (sam[:added].to_i + sam[:removed].to_i + sam[:price_changes].to_i).positive? ? "#{sam[:added].to_i} added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price change(s)." : "Held steady, no classes added or removed." %>
 <% if echo -%>
 
 ECHO · BROADCAST (social)
-<%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''}#{(echo[:likes].to_i + echo[:reposts].to_i + echo[:replies].to_i) > 0 ? " — #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "."}" : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
+<%= echo[:posts].to_i.positive? ? "#{echo[:posts]} post(s) published#{echo[:by_platform].present? ? " (#{echo[:by_platform].map { |p, n| "#{p.to_s.capitalize}: #{n}" }.join(', ')})" : ''}#{(echo[:likes].to_i + echo[:reposts].to_i + echo[:replies].to_i) > 0 ? ", #{echo[:likes]} likes, #{echo[:reposts]} reposts, #{echo[:replies]} replies." : "."}" : "No posts published this week across #{echo[:accounts]} connected account(s)." %>
 <% end -%>
 <% neon = @s[:neon] || {} -%>
 <% if neon[:last_seen_at] || neon[:days_seen].to_i.positive? -%>

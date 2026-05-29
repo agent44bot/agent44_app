@@ -56,12 +56,12 @@ class WeeklySalesEmailJob < ApplicationJob
     roll     = KitchenSnapshot.revenue_rollup(upcoming)
 
     # This week = Monday→Sunday (Lora's preference). The recap sends Sunday
-    # evening, so on send day this is the full Mon–Sun week that just finished;
+    # evening, so on send day this is the full Mon-Sun week that just finished;
     # a mid-week preview shows the week so far.
     week_start = today.beginning_of_week(:monday)
     # Day-over-day sum (not endpoint diff) so "Booked this week" counts every
-    # ticket sold this week — including classes that already ran — and matches
-    # the weekly-tickets chart. Prior week is the full Mon–Sun before this one.
+    # ticket sold this week, including classes that already ran, and matches
+    # the weekly-tickets chart. Prior week is the full Mon-Sun before this one.
     bw = KitchenSnapshot.bookings_daily_total(week_start, today)
     pw = KitchenSnapshot.bookings_daily_total(week_start - 7, week_start - 1)
 
@@ -97,14 +97,14 @@ class WeeklySalesEmailJob < ApplicationJob
                           days_seen:      DisplayHeartbeat.days_seen(since: today - 6),
                           window_days:    7,
                           tracking_since: DisplayHeartbeat.tracking_since },
-      # Carson's "what's new this week" — curated owner-facing changelog.
+      # Carson's "what's new this week" curated owner-facing changelog.
       changelog:        NykChangelog.recent(since: today - 7)
     }
     data[:headline] = carson_intro(data) # Carson hosts the report
     data
   end
 
-  # Echo's weekly social brief — posts published + engagement since `since`.
+  # Echo's weekly social brief: posts published + engagement since `since`.
   # Returns nil when the workspace has no connected accounts (Echo's idle, so
   # the report just omits its brief). by_platform is { "x" => n, ... }.
   def self.weekly_social(since)
@@ -140,9 +140,9 @@ class WeeklySalesEmailJob < ApplicationJob
     at_risk  = Array(data[:needs_a_push]).first(2).map { |r| r[:event].name }.join("; ")
 
     prompt = <<~TXT
-      You are Carson, the composed British butler who oversees New York Kitchen's team of AI agents and presents their week to the proprietor. Write 2 short sentences (about 35 words total) to open the weekly team report — warm and dignified, lightly butlerly without caricature, specific to the facts below. No salutation, no emoji, no quotes; just the remarks, leading with what matters most. Lead with sales and mention at most one other genuinely notable item — do not list every agent. Use numerals for every figure (e.g. $6,384, 53%, 5 classes) and plain modern wording (avoid archaic terms like "whilst"). State only the facts below — never invent counts, totals, or labels, and keep "booked this week" distinct from the overall pipeline. Treat any monitoring check "failures" as transient checker hiccups — never call them customer-facing outages, a "site failure rate", or "critical".
+      You are Carson, the composed British butler who oversees New York Kitchen's team of AI agents and presents their week to the proprietor. Write 2 short sentences (about 35 words total) to open the weekly team report, warm and dignified, lightly butlerly without caricature, specific to the facts below. No salutation, no emoji, no quotes; just the remarks, leading with what matters most. Lead with sales and mention at most one other genuinely notable item, and do not list every agent. Use numerals for every figure (e.g. $6,384, 53%, 5 classes) and plain modern wording (avoid archaic terms like "whilst"). Do not use em dashes or en dashes; use commas, colons, or separate sentences. State only the facts below. Never invent counts, totals, or labels, and keep "booked this week" distinct from the overall pipeline. Treat any monitoring check "failures" as transient checker hiccups, never call them customer-facing outages, a "site failure rate", or "critical".
       This week across the team:
-      - Sales (Iris): $#{bw[:revenue].to_i} booked in the last 7 days (#{wow}). The full pipeline is $#{data[:rev_total].to_i} across #{data[:total_upcoming]} upcoming classes, of which $#{data[:rev_sold].to_i} (#{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}%) is booked so far. (The pipeline is the $#{data[:rev_total].to_i} total — do NOT call the $#{data[:rev_sold].to_i} booked figure "the pipeline".)
+      - Sales (Iris): $#{bw[:revenue].to_i} booked in the last 7 days (#{wow}). The full pipeline is $#{data[:rev_total].to_i} across #{data[:total_upcoming]} upcoming classes, of which $#{data[:rev_sold].to_i} (#{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}%) is booked so far. (The pipeline is the $#{data[:rev_total].to_i} total. Do NOT call the $#{data[:rev_sold].to_i} booked figure "the pipeline".)
       - Site checks (Argus): #{argus[:passed]} of #{argus[:total]} automated checks completed#{argus[:failed].to_i.positive? ? " (#{argus[:failed]} transient checker hiccups, not real outages)" : "; all clear"}.
       - Data (Scout): #{scout[:snapshots]} snapshots, #{scout[:passed]}/#{scout[:total]} scrape runs passed.
       - Calendar (Sam): #{sam[:added].to_i} classes added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price changes.
