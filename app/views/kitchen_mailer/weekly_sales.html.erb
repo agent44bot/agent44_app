@@ -14,7 +14,7 @@
 
   ink="#1a1a1a"; mut="#8a8276"; faint="#a8a08f"; accent="#c2410c"
   green="#1b6e3a"; amber="#b35900"; red="#b42318"; track="#e7e2d9"; line="#e8e1d6"; blue="#0a58ca"; cream="#faf7f2"
-  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"; sam_c="#0369a1"; echo_c="#6d28d9"; neon_c="#b45309"
+  iris="#1b6e3a"; argus_c="#0e7490"; scout_c="#be185d"; sam_c="#0369a1"; echo_c="#6d28d9"; neon_c="#b45309"; cellar_c="#9d174d"
 
   bar = ->(pct, w) {
     fill = [[(pct.to_i * w / 100.0).round, 0].max, w].min
@@ -256,6 +256,31 @@
         Last seen <%= time_ago_in_words(neon[:last_seen_at]) %> ago. <span style="color:<%= faint %>">Daily uptime tracking just started. Full weekly numbers in next week's report.</span>
       <% end %>
     </td></tr>
+  <% end %>
+
+  <%# ════ CELLAR · Inventory (storage room stock) ══════════ %>
+  <% cellar = s[:cellar] || {} %>
+  <% if cellar.present? %>
+    <% if cellar[:setup] %>
+      <%= agent_banner.call("&#127863;", "Cellar", "Inventory", cellar_c,
+            "<span style=\"color:#{mut}\">setting up</span>",
+            agent_url.call("/nykitchen/inventory")).html_safe %>
+      <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+        Ready for your first stock count. Scan a case in or import your list to start tracking bottles on hand.
+      </td></tr>
+    <% else %>
+      <%= agent_banner.call("&#127863;", "Cellar", "Inventory", cellar_c,
+            cellar[:low_stock].to_i.positive? ? "<span style=\"color:#{red}\">&#9888; #{cellar[:low_stock]} low</span>" : "<span style=\"color:#{green}\">&#10003; Stocked</span>",
+            agent_url.call("/nykitchen/inventory")).html_safe %>
+      <tr><td style="padding:8px 30px 4px;font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.6">
+        <span style="font-family:<%= mono %>;font-weight:bold;color:<%= ink %>"><%= number_with_delimiter(cellar[:units].to_i) %></span> <%= "unit".pluralize(cellar[:units].to_i) %> on hand across <span style="font-family:<%= mono %>"><%= cellar[:items] %></span> <%= "item".pluralize(cellar[:items].to_i) %><% if cellar[:low_stock].to_i.positive? %>, <span style="color:<%= red %>"><%= cellar[:low_stock] %> at or below par</span><% end %>.
+        <% if cellar[:moves].to_i.positive? %>
+          <div style="font-size:12px;color:<%= mut %>;margin-top:2px">This week: <span style="font-family:<%= mono %>;color:<%= green %>"><%= cellar[:received].to_i %> in</span>, <span style="font-family:<%= mono %>;color:<%= amber %>"><%= cellar[:removed].to_i %> out</span> across <%= cellar[:moves] %> <%= "movement".pluralize(cellar[:moves].to_i) %>.</div>
+        <% else %>
+          <div style="font-size:12px;color:<%= faint %>;margin-top:2px">No scans this week.</div>
+        <% end %>
+      </td></tr>
+    <% end %>
   <% end %>
 
   <%# ════ New this week (Carson's changelog) ════════════════ %>

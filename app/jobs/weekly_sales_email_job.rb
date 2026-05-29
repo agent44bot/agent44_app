@@ -97,11 +97,38 @@ class WeeklySalesEmailJob < ApplicationJob
                           days_seen:      DisplayHeartbeat.days_seen(since: today - 6),
                           window_days:    7,
                           tracking_since: DisplayHeartbeat.tracking_since },
+      # Cellar (Inventory): stock on hand, low-stock count, and this week's
+      # box-in / bottle-out movement.
+      cellar:           cellar_brief(today - 7),
       # Carson's "what's new this week" curated owner-facing changelog.
       changelog:        NykChangelog.recent(since: today - 7)
     }
     data[:headline] = carson_intro(data) # Carson hosts the report
     data
+  end
+
+  # Cellar's weekly inventory brief: units on hand, low-stock count, and this
+  # week's received (box-in) / removed (bottle-out) movement. Returns a :setup
+  # state until the first item is added — the agent still appears in the roster
+  # as "coming online" rather than vanishing. nil only if the table is absent.
+  def self.cellar_brief(since)
+    return nil unless ActiveRecord::Base.connection.table_exists?("inventory_items")
+    item_count = InventoryItem.count
+    return { items: 0, setup: true } if item_count.zero?
+
+    on_hand = InventoryItem.on_hand_by_item
+    low     = InventoryItem.all.count { |i| i.low_stock?(on_hand[i.id].to_i) }
+    wk      = InventoryMovement.where("occurred_at >= ?", since.beginning_of_day)
+    {
+      setup:         false,
+      items:         item_count,
+      units:         on_hand.values.sum,
+      low_stock:     low,
+      received:      wk.inbound.sum(:quantity),
+      removed:       wk.outbound.sum(:quantity),
+      moves:         wk.count,
+      last_activity: InventoryMovement.maximum(:occurred_at)
+    }
   end
 
   # Echo's weekly social brief: posts published + engagement since `since`.
