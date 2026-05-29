@@ -1,0 +1,7 @@
+<% content_for(:title, "Storage Room · Remove") %>
+<%= render "inventory/header", active: :remove %>
+<%= render "inventory/scan_console",
+      direction:    "out",
+      title:        "Remove stock",
+      blurb:        "Scan each bottle as it leaves the room. Defaults to one bottle per scan.",
+      allow_create: false %>

@@ -1,0 +1,7 @@
+<% content_for(:title, "Storage Room · Receive") %>
+<%= render "inventory/header", active: :receive %>
+<%= render "inventory/scan_console",
+      direction:    "in",
+      title:        "Receive stock",
+      blurb:        "Scan a case (or bottle) to add it to the room. New barcodes get set up on the spot.",
+      allow_create: true %>

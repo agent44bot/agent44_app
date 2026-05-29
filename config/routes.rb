@@ -98,6 +98,24 @@ Rails.application.routes.draw do
   get  "nykitchen/billing",                 to: "nyk_billing#show", as: :nyk_billing
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
+
+  # NY Kitchen storage-room alcohol inventory. Lora scans cases IN, Chris scans
+  # bottles OUT; on-hand is the running Σ (in − out). All actions require
+  # sign-in (no public access); enforce_workspace_scope already lets NYK
+  # workspace members reach /nykitchen/*. /items/new must precede /items/:id.
+  get   "nykitchen/inventory",            to: "inventory#index",           as: :nyk_inventory
+  get   "nykitchen/inventory/receive",    to: "inventory#receive",         as: :nyk_inventory_receive
+  get   "nykitchen/inventory/remove",     to: "inventory#remove",          as: :nyk_inventory_remove
+  get   "nykitchen/inventory/lookup",     to: "inventory#lookup",          as: :nyk_inventory_lookup
+  get   "nykitchen/inventory/import",     to: "inventory#import",          as: :nyk_inventory_import
+  post  "nykitchen/inventory/import",     to: "inventory#import_upload"
+  post  "nykitchen/inventory/movements",  to: "inventory#create_movement", as: :nyk_inventory_movements
+  get   "nykitchen/inventory/items/new",  to: "inventory#new_item",        as: :new_nyk_inventory_item
+  post  "nykitchen/inventory/items",      to: "inventory#create_item",     as: :nyk_inventory_items
+  get   "nykitchen/inventory/items/:id",      to: "inventory#show_item",   as: :nyk_inventory_item
+  get   "nykitchen/inventory/items/:id/edit", to: "inventory#edit_item",   as: :edit_nyk_inventory_item
+  patch "nykitchen/inventory/items/:id",      to: "inventory#update_item"
+
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"
   # Pulse retired 2026-05-28: public route, controller, and views removed.

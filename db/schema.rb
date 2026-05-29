@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_130001) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -146,6 +146,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_120000) do
     t.index ["actor_id"], name: "index_impersonation_logs_on_actor_id"
     t.index ["created_at"], name: "index_impersonation_logs_on_created_at"
     t.index ["target_id"], name: "index_impersonation_logs_on_target_id"
+  end
+
+  create_table "inventory_items", force: :cascade do |t|
+    t.string "barcode"
+    t.string "case_barcode"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.text "notes"
+    t.integer "par_level"
+    t.string "producer"
+    t.string "size"
+    t.integer "units_per_case", default: 12, null: false
+    t.datetime "updated_at", null: false
+    t.string "vendor"
+    t.string "vintage"
+    t.index ["barcode"], name: "index_inventory_items_on_barcode", unique: true
+    t.index ["case_barcode"], name: "index_inventory_items_on_case_barcode", unique: true
+  end
+
+  create_table "inventory_movements", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "direction", null: false
+    t.integer "inventory_item_id", null: false
+    t.text "note"
+    t.datetime "occurred_at", null: false
+    t.integer "quantity", default: 1, null: false
+    t.string "scanned_code"
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["inventory_item_id", "occurred_at"], name: "index_inventory_movements_on_inventory_item_id_and_occurred_at"
+    t.index ["inventory_item_id"], name: "index_inventory_movements_on_inventory_item_id"
+    t.index ["occurred_at"], name: "index_inventory_movements_on_occurred_at"
+    t.index ["user_id"], name: "index_inventory_movements_on_user_id"
   end
 
   create_table "job_matches", force: :cascade do |t|
@@ -617,6 +651,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_120000) do
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "impersonation_logs", "users", column: "actor_id"
   add_foreign_key "impersonation_logs", "users", column: "target_id"
+  add_foreign_key "inventory_movements", "inventory_items", on_delete: :cascade
+  add_foreign_key "inventory_movements", "users", on_delete: :nullify
   add_foreign_key "job_matches", "jobs", on_delete: :cascade
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"

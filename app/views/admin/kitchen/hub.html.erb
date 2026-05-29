@@ -360,6 +360,26 @@
       </div>
     <% end %>
 
+    <%# Cellar — storage-room wine & spirits inventory. Not a roster worker (no
+        codename/liveness dot); links straight to the live stock view. %>
+    <%= link_to nyk_inventory_path, class: "ra-card", style: "--accent:#be123c" do %>
+      <span class="ra-corner"><span class="ra-chev">▶</span></span>
+      <div class="ra-head">
+        <span class="ra-avatar">🍷</span>
+        <span class="ra-id">
+          <span class="ra-call">Cellar</span>
+          <span class="ra-meta"><span class="ra-tag">INVENTORY</span></span>
+        </span>
+      </div>
+      <p class="<%= desc_class %>">Tracks the storage room — Lora scans cases in, Chris scans bottles out. Always-live bottle counts with low-stock flags.</p>
+      <div class="<%= stats_class %>">
+        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_inventory_units %></span> bottles on hand</div>
+        <% if @hub_inventory_low.to_i.positive? %>
+          <div class="text-amber-400 font-semibold">⚠ <%= @hub_inventory_low %> low on stock</div>
+        <% end %>
+      </div>
+    <% end %>
+
   </div>
 
 </div>

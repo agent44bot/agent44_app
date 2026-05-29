@@ -27,6 +27,10 @@ class KitchenController < ApplicationController
     @smoke_alert  = smoke_alert_for(Current.user)
     @daily_prompt = morning_prompt_for(Current.user)
     @nyk_workspace = nyk_workspace_for(Current.user)
+    # Cellar (storage-room inventory) card stats — live bottle count + low flags.
+    inv_on_hand = InventoryItem.on_hand_by_item
+    @hub_inventory_units = inv_on_hand.values.sum
+    @hub_inventory_low   = InventoryItem.where.not(par_level: nil).count { |i| i.low_stock?(inv_on_hand[i.id].to_i) }
     # Team management is rendered below the agent cards for members; load
     # the workspace data so the partial can render.
     load_nyk_team_data if @nyk_workspace

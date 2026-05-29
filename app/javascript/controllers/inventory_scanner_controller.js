@@ -1,0 +1,253 @@
+import { Controller } from "@hotwired/stimulus"
+
+// Storage-room scan console, shared by Receive (direction "in", cases) and
+// Remove (direction "out", bottles). Three ways to identify an item:
+//   • camera — native BarcodeDetector (desktop/Android Chrome; NOT iOS WebKit,
+//     which needs a vendored JS decoder — that's a follow-up)
+//   • typing / pasting a code, or a USB/Bluetooth scanner (types + Enter)
+//   • name search, for bottles that won't scan
+// Confirming a quantity POSTs an InventoryMovement and logs it for the session.
+export default class extends Controller {
+  static values = {
+    direction:    String,
+    allowCreate:  Boolean,
+    lookupUrl:    String,
+    movementsUrl: String,
+  }
+  static targets = [
+    "cameraWrap", "cameraUnsupported", "video", "status", "cameraBtn",
+    "codeInput", "searchInput", "results",
+    "panel", "itemName", "itemMeta", "onHand", "qty", "confirmBtn",
+    "newPanel", "newCode", "newName", "newCategory", "newUnits",
+    "recent", "recentEmpty",
+  ]
+
+  connect() {
+    this.current = null      // { item } once resolved, or { code } for a new barcode
+    this.results = []        // last name-search results
+    if ("BarcodeDetector" in window) {
+      try {
+        this.detector = new window.BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"],
+        })
+        this.cameraWrapTarget.classList.remove("hidden")
+      } catch {
+        this.cameraUnsupportedTarget.classList.remove("hidden")
+      }
+    } else {
+      this.cameraUnsupportedTarget.classList.remove("hidden")
+    }
+  }
+
+  disconnect() { this.stopCamera() }
+
+  // ── Camera ──────────────────────────────────────────────────────────────
+  toggleCamera() { this.scanning ? this.stopCamera() : this.startCamera() }
+
+  async startCamera() {
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      this.videoTarget.srcObject = this.stream
+      await this.videoTarget.play()
+      this.scanning = true
+      this.cameraBtnTarget.textContent = "Stop camera"
+      this.statusTarget.textContent = "Point at a barcode…"
+      this.scanLoop()
+    } catch (e) {
+      this.statusTarget.textContent = "Camera unavailable — type the code instead."
+    }
+  }
+
+  stopCamera() {
+    this.scanning = false
+    if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null }
+    if (this.hasCameraBtnTarget) this.cameraBtnTarget.textContent = "Start camera"
+    if (this.hasStatusTarget) this.statusTarget.textContent = ""
+  }
+
+  async scanLoop() {
+    if (!this.scanning) return
+    if (!this.current) {                       // ignore detections while confirming
+      try {
+        const codes = await this.detector.detect(this.videoTarget)
+        if (codes && codes.length) this.onDetected(codes[0].rawValue)
+      } catch { /* transient detect errors are fine */ }
+    }
+    if (this.scanning) requestAnimationFrame(() => this.scanLoop())
+  }
+
+  onDetected(code) {
+    const now = Date.now()
+    if (code === this.lastCode && now - (this.lastCodeAt || 0) < 2500) return  // debounce
+    this.lastCode = code; this.lastCodeAt = now
+    if (navigator.vibrate) navigator.vibrate(40)
+    this.lookupCode(code)
+  }
+
+  // ── Lookup ──────────────────────────────────────────────────────────────
+  manualLookup(event) {
+    if (event) event.preventDefault()
+    const code = this.codeInputTarget.value.trim()
+    if (!code) return
+    this.codeInputTarget.value = ""
+    this.lookupCode(code)
+  }
+
+  async lookupCode(code) {
+    const data = await this.getJSON(`${this.lookupUrlValue}?code=${encodeURIComponent(code)}`)
+    if (data.found) this.showItem(data.item)
+    else this.showNew(code)
+  }
+
+  search() {
+    clearTimeout(this._searchTimer)
+    const q = this.searchInputTarget.value.trim()
+    if (q.length < 2) { this.resultsTarget.classList.add("hidden"); return }
+    this._searchTimer = setTimeout(async () => {
+      const data = await this.getJSON(`${this.lookupUrlValue}?q=${encodeURIComponent(q)}`)
+      this.results = data.results || []
+      this.renderResults()
+    }, 200)
+  }
+
+  renderResults() {
+    if (!this.results.length) {
+      this.resultsTarget.innerHTML = `<div class="px-3 py-2 text-sm text-gray-500 bg-gray-900">No matches.</div>`
+    } else {
+      this.resultsTarget.innerHTML = this.results.map((it, i) => `
+        <button type="button" data-action="inventory-scanner#pickResult" data-index="${i}"
+                class="block w-full text-left px-3 py-2 bg-gray-900 hover:bg-gray-800 text-sm">
+          <span class="text-white">${this.esc(it.name)}</span>
+          <span class="text-gray-500"> · ${it.on_hand} on hand</span>
+        </button>`).join("")
+    }
+    this.resultsTarget.classList.remove("hidden")
+  }
+
+  pickResult(event) {
+    const it = this.results[Number(event.currentTarget.dataset.index)]
+    if (!it) return
+    this.searchInputTarget.value = ""
+    this.resultsTarget.classList.add("hidden")
+    this.showItem(it)
+  }
+
+  // ── Confirm quantity ──────────────────────────────────────────────────────
+  showItem(item) {
+    this.current = { item }
+    this.itemNameTarget.textContent = item.name
+    this.itemMetaTarget.textContent = [item.category, item.size, item.producer].filter(Boolean).join(" · ")
+    this.onHandTarget.textContent = item.on_hand
+    this.qtyTarget.value = this.directionValue === "in" ? (item.default_in || 1) : 1
+    this.hideNew()
+    this.panelTarget.classList.remove("hidden")
+  }
+
+  inc() { this.qtyTarget.value = Math.max(1, (parseInt(this.qtyTarget.value, 10) || 0) + 1) }
+  dec() { this.qtyTarget.value = Math.max(1, (parseInt(this.qtyTarget.value, 10) || 2) - 1) }
+
+  cancel() { this.current = null; this.panelTarget.classList.add("hidden") }
+
+  async confirm() {
+    if (!this.current || !this.current.item) return
+    const qty = Math.max(1, parseInt(this.qtyTarget.value, 10) || 1)
+    const body = new FormData()
+    body.append("item_id", this.current.item.id)
+    body.append("direction", this.directionValue)
+    body.append("quantity", qty)
+    this.confirmButtonGuard(true)
+    const { ok, json } = await this.postJSON(this.movementsUrlValue, body)
+    this.confirmButtonGuard(false)
+    if (ok && json.ok) {
+      this.logMovement(json.item, json.movement)
+      this.cancel()
+    } else {
+      this.statusMessage((json.errors || ["Couldn't record that."]).join(", "))
+    }
+  }
+
+  // ── New barcode (receive only) ───────────────────────────────────────────
+  showNew(code) {
+    this.current = { code }
+    this.panelTarget.classList.add("hidden")
+    this.newCodeTarget.textContent = code
+    this.newPanelTarget.classList.remove("hidden")
+  }
+
+  hideNew() { if (this.hasNewPanelTarget) this.newPanelTarget.classList.add("hidden") }
+
+  async createAndReceive() {
+    if (!this.allowCreateValue || !this.current || !this.current.code) return
+    const name = this.newNameTarget.value.trim()
+    if (!name) { this.newNameTarget.focus(); return }
+    const kind  = this.element.querySelector('input[name="newkind"]:checked')?.value || "case"
+    const units = Math.max(1, parseInt(this.newUnitsTarget.value, 10) || 12)
+    const code  = this.current.code
+
+    const body = new FormData()
+    body.append("direction", "in")
+    body.append("code", code)
+    body.append("item[name]", name)
+    body.append("item[category]", this.newCategoryTarget.value)
+    body.append("item[units_per_case]", units)
+    body.append(kind === "case" ? "item[case_barcode]" : "item[barcode]", code)
+    body.append("quantity", kind === "case" ? units : 1)
+
+    const { ok, json } = await this.postJSON(this.movementsUrlValue, body)
+    if (ok && json.ok) {
+      this.newNameTarget.value = ""
+      this.hideNew()
+      this.current = null
+      this.logMovement(json.item, json.movement)
+    } else {
+      this.statusMessage((json.errors || ["Couldn't add that item."]).join(", "))
+    }
+  }
+
+  // ── Session log ───────────────────────────────────────────────────────────
+  logMovement(item, movement) {
+    if (this.hasRecentEmptyTarget) this.recentEmptyTarget.classList.add("hidden")
+    const inbound = movement.direction === "in"
+    const row = document.createElement("div")
+    row.className = "flex items-center gap-2 text-sm rounded-lg bg-gray-900 border border-gray-800 px-3 py-2"
+    row.innerHTML = `
+      <span class="${inbound ? "text-green-400" : "text-red-400"} font-bold tabular-nums w-10">
+        ${inbound ? "+" : "−"}${movement.quantity}</span>
+      <span class="text-gray-200 flex-1 min-w-0 truncate">${this.esc(item.name)}</span>
+      <span class="text-gray-500 shrink-0 text-xs">${item.on_hand} on hand</span>`
+    this.recentTarget.prepend(row)
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  confirmButtonGuard(busy) {
+    if (!this.hasConfirmBtnTarget) return
+    this.confirmBtnTarget.disabled = busy
+    this.confirmBtnTarget.classList.toggle("opacity-50", busy)
+  }
+
+  statusMessage(msg) { if (this.hasStatusTarget) this.statusTarget.textContent = msg }
+
+  csrf() { return document.querySelector('meta[name="csrf-token"]')?.content || "" }
+
+  async getJSON(url) {
+    const r = await fetch(url, { headers: { Accept: "application/json" }, credentials: "same-origin" })
+    return r.json()
+  }
+
+  async postJSON(url, body) {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { Accept: "application/json", "X-CSRF-Token": this.csrf() },
+      credentials: "same-origin",
+      body,
+    })
+    const json = await r.json().catch(() => ({}))
+    return { ok: r.ok, json }
+  }
+
+  esc(s) {
+    const d = document.createElement("div")
+    d.textContent = s == null ? "" : String(s)
+    return d.innerHTML
+  }
+}

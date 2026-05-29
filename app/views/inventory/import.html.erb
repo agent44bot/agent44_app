@@ -1,0 +1,33 @@
+<% content_for(:title, "Storage Room · Import") %>
+<%= render "inventory/header", active: :import %>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
+  <h2 class="text-xl font-bold text-white mb-1">Import from spreadsheet</h2>
+  <p class="text-gray-400 text-sm mb-5">
+    Bootstrap the catalog from Chris's existing sheet. Export it as <strong>CSV</strong> and upload it here —
+    each row becomes a product, and its quantity becomes the opening stock count.
+  </p>
+
+  <div class="rounded-lg bg-gray-900 border border-gray-800 p-4 mb-5 text-sm text-gray-400">
+    <div class="text-gray-300 font-semibold mb-2">Columns it understands</div>
+    <p>A header row is required. These names (case-insensitive) are picked up automatically:</p>
+    <ul class="mt-2 space-y-1 font-mono text-xs text-gray-400">
+      <li><span class="text-orange-400">name</span> / product / item — required</li>
+      <li><span class="text-orange-400">quantity</span> / qty / on_hand / count / stock — opening count</li>
+      <li>category, size, producer/brand, vintage, vendor/supplier</li>
+      <li>barcode/upc, par/par_level/reorder, units_per_case/case_size</li>
+    </ul>
+    <p class="mt-3 text-amber-300/90">
+      ⚠ Once we have Chris's actual sheet, I'll map his exact column names so nothing is lost.
+      Re-importing only refreshes details — it won't double-count stock.
+    </p>
+  </div>
+
+  <%= form_with url: nyk_inventory_import_path, method: :post, multipart: true, class: "space-y-4" do %>
+    <input type="file" name="file" accept=".csv,text/csv" required
+           class="block w-full text-sm text-gray-300 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-orange-600 file:text-white file:font-semibold hover:file:bg-orange-500 file:cursor-pointer">
+    <button type="submit" class="px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold">
+      Import CSV
+    </button>
+  <% end %>
+</div>

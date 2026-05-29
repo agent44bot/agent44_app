@@ -1,0 +1,88 @@
+<% editing = @item.persisted? %>
+<% content_for(:title, editing ? "Edit #{@item.name}" : "New item") %>
+<%= render "inventory/header", active: :stock %>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
+  <h2 class="text-xl font-bold text-white mb-1"><%= editing ? "Edit item" : "Add an item" %></h2>
+  <p class="text-gray-500 text-sm mb-5">Catalog details. Counts change by receiving/removing stock, not here.</p>
+
+  <% if @item.errors.any? %>
+    <div class="rounded-lg bg-red-900/40 border border-red-700 p-3 mb-4 text-sm text-red-200">
+      <%= @item.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <%= form_with model: @item, scope: :item,
+        url: (editing ? nyk_inventory_item_path(@item) : nyk_inventory_items_path),
+        method: (editing ? :patch : :post), class: "space-y-4" do |f| %>
+    <% field = "w-full rounded-lg bg-gray-900 border border-gray-700 text-white text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+    <% label = "block text-xs uppercase tracking-wide text-gray-400 mb-1" %>
+
+    <div>
+      <%= f.label :name, "Name", class: label %>
+      <%= f.text_field :name, class: field, placeholder: "Whispering Angel Rosé" %>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <%= f.label :category, "Type", class: label %>
+        <%= f.select :category, InventoryItem::CATEGORIES.map { |c| [ c.capitalize, c ] },
+              { include_blank: "—" }, class: field %>
+      </div>
+      <div>
+        <%= f.label :size, "Bottle size", class: label %>
+        <%= f.text_field :size, class: field, placeholder: "750ml" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <%= f.label :producer, "Producer / brand", class: label %>
+        <%= f.text_field :producer, class: field %>
+      </div>
+      <div>
+        <%= f.label :vintage, "Vintage", class: label %>
+        <%= f.text_field :vintage, class: field, placeholder: "NV / 2021" %>
+      </div>
+    </div>
+
+    <div>
+      <%= f.label :vendor, "Vendor / supplier", class: label %>
+      <%= f.text_field :vendor, class: field %>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <%= f.label :barcode, "Bottle barcode (UPC)", class: label %>
+        <%= f.text_field :barcode, class: field, inputmode: "numeric" %>
+      </div>
+      <div>
+        <%= f.label :case_barcode, "Case / box barcode", class: label %>
+        <%= f.text_field :case_barcode, class: field, inputmode: "numeric" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <%= f.label :units_per_case, "Bottles per case", class: label %>
+        <%= f.number_field :units_per_case, class: field, min: 1 %>
+      </div>
+      <div>
+        <%= f.label :par_level, "Par level (low-stock alert)", class: label %>
+        <%= f.number_field :par_level, class: field, min: 0, placeholder: "optional" %>
+      </div>
+    </div>
+
+    <div>
+      <%= f.label :notes, "Notes", class: label %>
+      <%= f.text_area :notes, rows: 2, class: field %>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <%= f.submit (editing ? "Save changes" : "Add item"),
+            class: "px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" %>
+      <%= link_to "Cancel", (editing ? nyk_inventory_item_path(@item) : nyk_inventory_path),
+            class: "text-sm text-gray-400 hover:text-white" %>
+    </div>
+  <% end %>
+</div>

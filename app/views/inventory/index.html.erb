@@ -1,0 +1,86 @@
+<% content_for(:title, "Storage Room · Stock") %>
+<%= render "inventory/header", active: :stock %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
+  <%# Summary tiles %>
+  <div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="rounded-xl bg-gray-900 border border-gray-800 p-4">
+      <div class="text-2xl font-black text-white tabular-nums"><%= @items.size %></div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">products</div>
+    </div>
+    <div class="rounded-xl bg-gray-900 border border-gray-800 p-4">
+      <div class="text-2xl font-black text-white tabular-nums"><%= @total_units %></div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">bottles on hand</div>
+    </div>
+    <div class="rounded-xl bg-gray-900 border <%= @low_count.positive? ? "border-amber-700/60" : "border-gray-800" %> p-4">
+      <div class="text-2xl font-black tabular-nums <%= @low_count.positive? ? "text-amber-400" : "text-white" %>"><%= @low_count %></div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">low stock</div>
+    </div>
+  </div>
+
+  <%# Quick actions %>
+  <div class="flex gap-3 mb-6">
+    <%= link_to "➕ Receive stock", nyk_inventory_receive_path,
+          class: "flex-1 text-center px-4 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold transition" %>
+    <%= link_to "➖ Remove stock", nyk_inventory_remove_path,
+          class: "flex-1 text-center px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-semibold transition" %>
+  </div>
+
+  <%# Filters %>
+  <%= form_with url: nyk_inventory_path, method: :get, class: "flex flex-wrap items-center gap-2 mb-4" do %>
+    <input type="search" name="q" value="<%= params[:q] %>" placeholder="Search name or producer…"
+           class="flex-1 min-w-[180px] rounded-lg bg-gray-900 border border-gray-700 text-white text-base px-3 py-2 placeholder-gray-500 focus:border-orange-500 focus:outline-none">
+    <select name="category" onchange="this.form.requestSubmit()"
+            class="rounded-lg bg-gray-900 border border-gray-700 text-white text-base px-3 py-2 focus:border-orange-500 focus:outline-none">
+      <option value="">All types</option>
+      <% InventoryItem::CATEGORIES.each do |c| %>
+        <option value="<%= c %>" <%= "selected" if @category == c %>><%= c.capitalize %></option>
+      <% end %>
+    </select>
+    <label class="inline-flex items-center gap-1.5 text-sm text-gray-300 px-2">
+      <input type="checkbox" name="low" value="1" <%= "checked" if @low_only %> onchange="this.form.requestSubmit()"
+             class="rounded border-gray-600 bg-gray-800 text-orange-500">
+      Low only
+    </label>
+    <button type="submit" class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold">Search</button>
+  <% end %>
+
+  <% if @items.empty? %>
+    <div class="text-center py-16 rounded-xl border border-dashed border-gray-800">
+      <p class="text-gray-400">No inventory yet.</p>
+      <p class="text-gray-500 text-sm mt-1">Import Chris's spreadsheet or start receiving stock.</p>
+      <div class="mt-4 flex justify-center gap-3">
+        <%= link_to "Import spreadsheet", nyk_inventory_import_path, class: "px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
+        <%= link_to "Add an item", new_nyk_inventory_item_path, class: "px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold" %>
+      </div>
+    </div>
+  <% else %>
+    <div class="overflow-hidden rounded-xl border border-gray-800 divide-y divide-gray-800">
+      <% @items.each do |item| %>
+        <% units = @on_hand[item.id].to_i %>
+        <% low = item.low_stock?(units) %>
+        <%= link_to nyk_inventory_item_path(item),
+              class: "flex items-center gap-3 px-4 py-3 bg-gray-900 hover:bg-gray-800/70 transition" do %>
+          <div class="min-w-0 flex-1">
+            <div class="text-white font-medium truncate">
+              <%= item.name %>
+              <% if low %><span class="ml-1.5 align-middle text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-300 border border-amber-700/60">Low</span><% end %>
+            </div>
+            <div class="text-xs text-gray-500 truncate">
+              <%= [ item.category&.capitalize, item.size, item.producer ].reject(&:blank?).join(" · ") %>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xl font-black tabular-nums <%= low ? "text-amber-400" : "text-white" %>"><%= units %></div>
+            <div class="text-[10px] uppercase tracking-wide text-gray-500">
+              on hand<%= " · par #{item.par_level}" if item.par_level.present? %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    <div class="mt-4 text-center">
+      <%= link_to "+ Add an item manually", new_nyk_inventory_item_path, class: "text-sm text-gray-400 hover:text-orange-400" %>
+    </div>
+  <% end %>
+</div>

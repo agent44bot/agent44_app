@@ -1,0 +1,27 @@
+<%# Shared header + sub-nav for the Cellar (storage-room inventory) section.
+    Pass `active:` as one of :stock, :receive, :remove, :import. %>
+<% active = local_assigns[:active] %>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+  <%= link_to nykitchen_path, class: "inline-flex items-center gap-1 text-sm text-gray-400 hover:text-orange-400 mb-4 transition" do %>
+    ← NY Kitchen
+  <% end %>
+
+  <div class="text-orange-500 text-[11px] font-mono tracking-[0.3em] uppercase mb-1">Agent 44 · Cellar</div>
+  <h1 class="text-3xl font-black text-white">Storage Room</h1>
+  <p class="text-gray-400 mt-1 text-sm">Wine &amp; spirits inventory — Lora scans cases in, Chris scans bottles out.</p>
+
+  <%
+    tab = ->(label, path, key) {
+      on = active == key
+      cls = "inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition " +
+            (on ? "border-orange-500 text-white" : "border-transparent text-gray-400 hover:text-white hover:border-gray-600")
+      link_to(label, path, class: cls)
+    }
+  %>
+  <nav class="mt-5 flex flex-wrap gap-1 border-b border-gray-800">
+    <%= tab.call("📦 Stock",   nyk_inventory_path,         :stock) %>
+    <%= tab.call("➕ Receive", nyk_inventory_receive_path, :receive) %>
+    <%= tab.call("➖ Remove",  nyk_inventory_remove_path,  :remove) %>
+    <%= tab.call("⬆ Import",   nyk_inventory_import_path,  :import) %>
+  </nav>
+</div>
