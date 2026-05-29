@@ -96,4 +96,32 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to nyk_billing_path
     assert_nil ws.reload.test_cost_per_minute
   end
+
+  test "site admin can set flat fee, waive, and discount" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    sign_in_as(@admin)
+    patch "/nykitchen/billing/pricing", params: { base_fee_dollars: "75", discount_percent: "10", base_fee_waived: "0" }
+    ws.reload
+    assert_in_delta 75.0, ws.base_fee_dollars.to_f, 0.001
+    assert_equal 10, ws.discount_percent.to_i
+    refute ws.base_fee_waived?
+    assert_in_delta 75.0, ws.effective_base_fee, 0.001
+  end
+
+  test "waiving the fee zeroes the effective base fee" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    sign_in_as(@admin)
+    patch "/nykitchen/billing/pricing", params: { base_fee_dollars: "75", base_fee_waived: "1" }
+    assert ws.reload.base_fee_waived?
+    assert_equal 0.0, ws.effective_base_fee
+  end
+
+  test "NYK workspace admin (Lora) cannot change customer pricing" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws.memberships.create!(user: @user, role: "admin")
+    sign_in_as(@user)
+    patch "/nykitchen/billing/pricing", params: { base_fee_dollars: "1", discount_percent: "99" }
+    assert_redirected_to nyk_billing_path
+    assert_nil ws.reload.base_fee_dollars
+  end
 end

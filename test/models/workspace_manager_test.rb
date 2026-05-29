@@ -44,4 +44,12 @@ class WorkspaceManagerTest < ActiveSupport::TestCase
     @ws.update!(test_cost_per_minute: 0.044)
     assert_in_delta 0.044, @ws.effective_test_rate.to_f, 0.0001
   end
+
+  test "effective_base_fee honors the default, an override, and waiving" do
+    assert_equal 50.0, @ws.effective_base_fee
+    @ws.update!(base_fee_dollars: 75)
+    assert_in_delta 75.0, @ws.effective_base_fee, 0.001
+    @ws.update!(base_fee_waived: true)
+    assert_equal 0.0, @ws.effective_base_fee
+  end
 end

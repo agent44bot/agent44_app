@@ -72,6 +72,13 @@ class Workspace < ApplicationRecord
     test_cost_per_minute || SmokeTestRun::COST_PER_MINUTE
   end
 
+  # Flat monthly platform fee for this workspace, or 0 when waived. Falls back to
+  # the given default when unset. Site-admin set on the billing page.
+  def effective_base_fee(default = 50.0)
+    return 0.0 if base_fee_waived?
+    base_fee_dollars || default
+  end
+
   private
 
   def generate_slug

@@ -4,7 +4,7 @@
 class NykBillingController < ApplicationController
   before_action :require_authentication
   before_action :require_visible
-  before_action :require_site_admin, only: :update_rate
+  before_action :require_site_admin, only: %i[update_rate update_pricing]
 
   # Customer-view markup. NYK_BASE_FEE_DOLLARS + (raw cost × NYK_RAW_MULTIPLIER).
   # Defaults match the current pricing thesis: $50/mo base + 3× raw.
@@ -30,10 +30,15 @@ class NykBillingController < ApplicationController
 
     @raw_total       = @ai_total + @smoke_cost
     @customer_view   = params[:view] == "customer"
-    @base_fee        = (ENV["NYK_BASE_FEE_DOLLARS"].presence || DEFAULT_BASE_FEE).to_f
-    @raw_multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence  || DEFAULT_MULTIPLIER).to_f
-    @customer_total  = @base_fee + (@raw_total * @raw_multiplier)
-    @month_total     = @customer_view ? @customer_total : @raw_total
+    @raw_multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence || DEFAULT_MULTIPLIER).to_f
+    fee_default      = (ENV["NYK_BASE_FEE_DOLLARS"].presence || DEFAULT_BASE_FEE).to_f
+    @base_fee_waived = @workspace&.base_fee_waived? || false
+    @base_fee        = @workspace ? @workspace.effective_base_fee(fee_default) : fee_default
+    @discount_percent  = (@workspace&.discount_percent || 0).to_f
+    @customer_subtotal = @base_fee + (@raw_total * @raw_multiplier)
+    @discount_amount   = (@customer_subtotal * @discount_percent / 100.0).round(2)
+    @customer_total    = (@customer_subtotal - @discount_amount).round(2)
+    @month_total       = @customer_view ? @customer_total : @raw_total
   end
 
   # Site-admin only: set this workspace's $/min test-run rate, then re-price all
@@ -50,6 +55,19 @@ class NykBillingController < ApplicationController
       repriced += 1
     end
     redirect_to nyk_billing_path, notice: "Test-run rate set to $#{format('%.5f', rate)}/min. Re-priced #{repriced} runs."
+  end
+
+  # Site-admin only: the customer-facing pricing knobs (flat fee, waive, discount).
+  # Display-only — no run re-pricing needed.
+  def update_pricing
+    ws = Workspace.find_by(slug: "nykitchen")
+    return redirect_to(nyk_billing_path, alert: "Workspace not found.") unless ws
+    ws.update!(
+      base_fee_dollars: params[:base_fee_dollars].presence&.to_f,
+      base_fee_waived:  params[:base_fee_waived] == "1",
+      discount_percent: (params[:discount_percent].presence&.to_f || 0)
+    )
+    redirect_to nyk_billing_path(view: "customer"), notice: "Customer pricing updated."
   end
 
   private

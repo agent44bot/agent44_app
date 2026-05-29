@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_180000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -642,8 +642,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_170000) do
 
   create_table "workspaces", force: :cascade do |t|
     t.datetime "archived_at"
+    t.decimal "base_fee_dollars", precision: 10, scale: 2
+    t.boolean "base_fee_waived", default: false, null: false
     t.datetime "created_at", null: false
     t.text "description"
+    t.decimal "discount_percent", precision: 5, scale: 2, default: "0.0"
     t.string "name", null: false
     t.integer "owner_id", null: false
     t.boolean "pricing_visible_to_members", default: false, null: false
