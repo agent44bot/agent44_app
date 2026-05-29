@@ -108,7 +108,7 @@
   <h2 class="text-base font-semibold text-white mt-8 mb-3">Smoke tests</h2>
   <p class="text-xs text-gray-500 mb-3">
     Browser-driven calendar checks (cron-driven, ~3×/day).
-    Billed at $<%= sprintf("%.5f", SmokeTestRun::COST_PER_MINUTE) %>/min of CI runtime.
+    Billed at $<%= sprintf("%.5f", @test_rate) %>/min of CI runtime.
   </p>
   <div class="rounded-lg bg-gray-900 border border-gray-800 p-5 mb-8">
     <div class="grid grid-cols-3 gap-4 text-center">
@@ -126,4 +126,19 @@
       </div>
     </div>
   </div>
+
+  <% if Current.user&.admin? %>
+    <div class="rounded-lg bg-gray-900 border border-amber-700/40 p-5 mb-8">
+      <p class="text-xs text-amber-400 uppercase tracking-wide mb-2">Admin · billing rate</p>
+      <%= form_with url: nyk_billing_rate_path, method: :patch, class: "flex flex-wrap items-end gap-3" do %>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Test-run cost per minute ($)</label>
+          <input type="number" name="test_cost_per_minute" step="0.00001" min="0" value="<%= @test_rate %>"
+                 class="rounded-md bg-gray-950 border border-gray-700 text-white px-3 py-2 w-44 focus:border-orange-500 focus:outline-none">
+        </div>
+        <%= submit_tag "Save & re-price", class: "px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+      <% end %>
+      <p class="text-xs text-gray-500 mt-2">Applies to NY Kitchen's smoke/test runs and re-prices existing runs. Site admin only — Lora can't change this.</p>
+    </div>
+  <% end %>
 </div>

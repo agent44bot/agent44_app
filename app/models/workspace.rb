@@ -66,6 +66,12 @@ class Workspace < ApplicationRecord
     pricing_visible_to_members? && member?(user)
   end
 
+  # Per-workspace cost rate for browser smoke/test runs ($/min). Falls back to
+  # the app default when unset. Set by the site admin on the billing page.
+  def effective_test_rate
+    test_cost_per_minute || SmokeTestRun::COST_PER_MINUTE
+  end
+
   private
 
   def generate_slug

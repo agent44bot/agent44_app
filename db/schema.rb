@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_170000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -650,6 +650,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_160000) do
     t.text "settings"
     t.string "slug", null: false
     t.string "source_url"
+    t.decimal "test_cost_per_minute", precision: 12, scale: 6
     t.string "timezone", default: "UTC", null: false
     t.datetime "updated_at", null: false
     t.index ["archived_at"], name: "index_workspaces_on_archived_at"

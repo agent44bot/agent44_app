@@ -38,4 +38,10 @@ class WorkspaceManagerTest < ActiveSupport::TestCase
     refute @ws.pricing_visible_for?(@editor)
     refute @ws.pricing_visible_for?(@stranger)
   end
+
+  test "effective_test_rate falls back to the default and honors an override" do
+    assert_equal SmokeTestRun::COST_PER_MINUTE, @ws.effective_test_rate
+    @ws.update!(test_cost_per_minute: 0.044)
+    assert_in_delta 0.044, @ws.effective_test_rate.to_f, 0.0001
+  end
 end

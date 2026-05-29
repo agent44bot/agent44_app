@@ -77,4 +77,23 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     get "/nykitchen/billing"
     assert_redirected_to "/nykitchen"
   end
+
+  test "site admin can set the test-run rate and it re-prices existing runs" do
+    ws  = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    run = SmokeTestRun.create!(name: "nyk_calendar_nav", status: "passed", started_at: Time.current, duration_ms: 60_000)
+    sign_in_as(@admin)
+    patch "/nykitchen/billing/rate", params: { test_cost_per_minute: "0.044" }
+    assert_redirected_to nyk_billing_path
+    assert_in_delta 0.044, ws.reload.test_cost_per_minute.to_f, 0.0001
+    assert_in_delta 0.044, run.reload.cost_dollars.to_f, 0.0001 # 1 min × $0.044
+  end
+
+  test "NYK workspace admin (Lora) cannot change the rate" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws.memberships.create!(user: @user, role: "admin")
+    sign_in_as(@user)
+    patch "/nykitchen/billing/rate", params: { test_cost_per_minute: "0.99" }
+    assert_redirected_to nyk_billing_path
+    assert_nil ws.reload.test_cost_per_minute
+  end
 end

@@ -72,10 +72,16 @@ class SmokeTestRun < ApplicationRecord
       fail_pct: total.positive? ? (100.0 * failed / total).round : 0 }
   end
 
+  # All smoke runs today belong to the NY Kitchen workspace; bill at its
+  # configured rate (site-admin-set on the billing page), default fallback.
+  def self.nyk_rate_per_minute
+    Workspace.find_by(slug: "nykitchen")&.effective_test_rate || COST_PER_MINUTE
+  end
+
   private
 
   def compute_cost
     minutes = duration_ms / 60_000.0
-    self.cost_dollars = (minutes * COST_PER_MINUTE).round(6)
+    self.cost_dollars = (minutes * self.class.nyk_rate_per_minute).round(6)
   end
 end

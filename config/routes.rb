@@ -95,7 +95,8 @@ Rails.application.routes.draw do
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
   post "nykitchen/send_to_workspace", to: "kitchen#send_to_workspace"
-  get  "nykitchen/billing",                 to: "nyk_billing#show", as: :nyk_billing
+  get   "nykitchen/billing",      to: "nyk_billing#show",        as: :nyk_billing
+  patch "nykitchen/billing/rate", to: "nyk_billing#update_rate", as: :nyk_billing_rate
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
 
