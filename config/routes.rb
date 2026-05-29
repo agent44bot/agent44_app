@@ -119,6 +119,7 @@ Rails.application.routes.draw do
   get  "nykitchen/inventory/captures",        to: "inventory#captures",        as: :nyk_inventory_captures
   post "nykitchen/inventory/captures",        to: "inventory#create_capture"
   get  "nykitchen/inventory/captures/export", to: "inventory#captures_export", as: :nyk_inventory_captures_export
+  delete "nykitchen/inventory/captures/:id",  to: "inventory#destroy_capture", as: :nyk_inventory_capture
 
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"

@@ -230,6 +230,13 @@ class InventoryController < ApplicationController
     send_data csv, filename: "nyk-inventory-#{from.strftime('%Y-%m')}.csv", type: "text/csv"
   end
 
+  # Delete a logged capture (mistyped price, wrong photo, duplicate). The photo
+  # blob is purged automatically by ActiveStorage on destroy.
+  def destroy_capture
+    InventoryCapture.find(params[:id]).destroy
+    redirect_back fallback_location: nyk_inventory_captures_path, notice: "Entry deleted."
+  end
+
   private
 
   def capture_params

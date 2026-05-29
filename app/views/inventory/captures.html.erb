@@ -95,6 +95,9 @@
           <div class="text-right shrink-0">
             <div class="text-white font-semibold tabular-nums">$<%= "%.2f" % c.line_total %></div>
           </div>
+          <%= button_to nyk_inventory_capture_path(c), method: :delete,
+                form: { data: { turbo_confirm: "Delete this entry?" }, class: "shrink-0" },
+                class: "text-gray-600 hover:text-red-400 text-lg leading-none px-1", aria: { label: "Delete entry" } do %>✕<% end %>
         </div>
       <% end %>
     </div>

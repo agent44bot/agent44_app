@@ -208,4 +208,15 @@ class InventoryControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Destination/, response.body)
     assert_match(/Tasting Room/, response.body)
   end
+
+  test "deleting a logged capture removes it (and its photo)" do
+    sign_in_as(@user)
+    c = InventoryCapture.create!(category: "wine", name: "Oops dupe", quantity: 1, captured_at: Time.current, user: @user)
+    c.photo.attach(fixture_file_upload("sample_bottle.png", "image/png"))
+    assert c.photo.attached?
+    assert_difference -> { InventoryCapture.count }, -1 do
+      delete "/nykitchen/inventory/captures/#{c.id}"
+    end
+    assert_redirected_to nyk_inventory_captures_path
+  end
 end
