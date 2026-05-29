@@ -147,4 +147,55 @@ class InventoryControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to nyk_inventory_item_path(InventoryItem.last)
   end
+
+  # ── Photo + price capture log ──────────────────────────────────────────────
+  test "capture log page renders" do
+    sign_in_as(@user)
+    get "/nykitchen/inventory/captures"
+    assert_response :success
+    assert_match(/Log a product/i, response.body)
+  end
+
+  test "logging a product with a photo creates a capture" do
+    sign_in_as(@user)
+    photo = fixture_file_upload("sample_bottle.png", "image/png")
+    assert_difference -> { InventoryCapture.count }, 1 do
+      post "/nykitchen/inventory/captures",
+           params: { capture: { name: "Whispering Angel", category: "wine", quantity: 6, unit_price: "18.50", photo: photo } }
+    end
+    c = InventoryCapture.order(:id).last
+    assert c.photo.attached?
+    assert_equal @user.id, c.user_id
+    assert_in_delta 111.0, c.line_total, 0.001 # 6 * 18.50
+    assert_redirected_to nyk_inventory_captures_path
+  end
+
+  test "logging without a photo works (photo optional)" do
+    sign_in_as(@user)
+    assert_difference -> { InventoryCapture.count }, 1 do
+      post "/nykitchen/inventory/captures", params: { capture: { category: "beer", quantity: 24, unit_price: "1.20" } }
+    end
+    refute InventoryCapture.order(:id).last.photo.attached?
+  end
+
+  test "CSV export returns the month's rows" do
+    sign_in_as(@user)
+    InventoryCapture.create!(category: "spirit", name: "Tito's", quantity: 2, unit_price: 22.0,
+                             captured_at: Time.current, user: @user)
+    get "/nykitchen/inventory/captures/export", params: { month: Date.current.strftime("%Y-%m"), format: :csv }
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_match(/Date,Category,Product,Quantity,Unit price,Line total/, response.body)
+    assert_match(/Tito's,2,22.00,44.00/, response.body)
+  end
+
+  test "capture log scopes to the selected month" do
+    sign_in_as(@user)
+    InventoryCapture.create!(category: "wine", name: "ThisMonth", quantity: 1, captured_at: Time.current, user: @user)
+    InventoryCapture.create!(category: "wine", name: "OldOne",   quantity: 1, captured_at: 2.months.ago, user: @user)
+    get "/nykitchen/inventory/captures"
+    assert_response :success
+    assert_match(/ThisMonth/, response.body)
+    refute_match(/OldOne/, response.body)
+  end
 end

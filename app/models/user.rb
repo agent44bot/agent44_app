@@ -12,6 +12,7 @@ class User < ApplicationRecord
   has_many :device_tokens, dependent: :nullify
   has_many :ai_call_logs, dependent: :nullify
   has_many :inventory_movements, dependent: :nullify # who scanned stock in/out
+  has_many :inventory_captures, dependent: :nullify  # who logged a product photo/price
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
   has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :destroy

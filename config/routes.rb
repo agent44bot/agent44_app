@@ -115,6 +115,10 @@ Rails.application.routes.draw do
   get   "nykitchen/inventory/items/:id",      to: "inventory#show_item",   as: :nyk_inventory_item
   get   "nykitchen/inventory/items/:id/edit", to: "inventory#edit_item",   as: :edit_nyk_inventory_item
   patch "nykitchen/inventory/items/:id",      to: "inventory#update_item"
+  # Photo + price capture log -> monthly CSV (separate from the scan in/out ledger).
+  get  "nykitchen/inventory/captures",        to: "inventory#captures",        as: :nyk_inventory_captures
+  post "nykitchen/inventory/captures",        to: "inventory#create_capture"
+  get  "nykitchen/inventory/captures/export", to: "inventory#captures_export", as: :nyk_inventory_captures_export
 
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"

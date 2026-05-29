@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_130001) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_140000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -146,6 +146,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_130001) do
     t.index ["actor_id"], name: "index_impersonation_logs_on_actor_id"
     t.index ["created_at"], name: "index_impersonation_logs_on_created_at"
     t.index ["target_id"], name: "index_impersonation_logs_on_target_id"
+  end
+
+  create_table "inventory_captures", force: :cascade do |t|
+    t.datetime "captured_at", null: false
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.string "name"
+    t.text "note"
+    t.integer "quantity", default: 1, null: false
+    t.decimal "unit_price", precision: 10, scale: 2
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["captured_at"], name: "index_inventory_captures_on_captured_at"
+    t.index ["user_id"], name: "index_inventory_captures_on_user_id"
   end
 
   create_table "inventory_items", force: :cascade do |t|
@@ -651,6 +665,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_130001) do
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "impersonation_logs", "users", column: "actor_id"
   add_foreign_key "impersonation_logs", "users", column: "target_id"
+  add_foreign_key "inventory_captures", "users", on_delete: :nullify
   add_foreign_key "inventory_movements", "inventory_items", on_delete: :cascade
   add_foreign_key "inventory_movements", "users", on_delete: :nullify
   add_foreign_key "job_matches", "jobs", on_delete: :cascade

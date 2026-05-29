@@ -186,7 +186,64 @@ class InventoryController < ApplicationController
     redirect_to nyk_inventory_import_path, alert: "Couldn't parse that CSV: #{e.message}"
   end
 
+  # ── Photo + price capture log ─────────────────────────────────────────────
+  # Snap a product photo, record quantity + unit price + category. Rows
+  # accumulate per month and export to a spreadsheet (CSV). Self-contained:
+  # does NOT touch the on-hand ledger — it's a purchase/tracking record.
+  def captures
+    @month_label, @from, @to = capture_range
+    @month_param = @from.strftime("%Y-%m")
+    @capture  = InventoryCapture.new
+    @captures = InventoryCapture.in_range(@from, @to).recent.with_attached_photo.includes(:user)
+    @total    = @captures.sum(&:line_total)
+    render "inventory/captures", layout: "application"
+  end
+
+  def create_capture
+    @capture = InventoryCapture.new(capture_params)
+    @capture.user = Current.user
+    if @capture.save
+      redirect_to nyk_inventory_captures_path,
+                  notice: "Logged #{@capture.name.presence || @capture.category.presence || 'item'}."
+    else
+      redirect_to nyk_inventory_captures_path, alert: @capture.errors.full_messages.to_sentence
+    end
+  end
+
+  def captures_export
+    _, from, to = capture_range
+    rows = InventoryCapture.in_range(from, to).recent.with_attached_photo.includes(:user)
+    csv = CSV.generate do |out|
+      out << [ "Date", "Category", "Product", "Quantity", "Unit price", "Line total", "Logged by", "Photo" ]
+      rows.each do |c|
+        out << [
+          c.captured_at.strftime("%Y-%m-%d %H:%M"),
+          c.category, c.name, c.quantity,
+          (c.unit_price ? format("%.2f", c.unit_price) : ""),
+          format("%.2f", c.line_total),
+          c.user&.display_identifier,
+          (c.photo.attached? ? rails_blob_url(c.photo) : ""),
+        ]
+      end
+    end
+    send_data csv, filename: "nyk-inventory-#{from.strftime('%Y-%m')}.csv", type: "text/csv"
+  end
+
   private
+
+  def capture_params
+    params.require(:capture).permit(:category, :name, :quantity, :unit_price, :note, :photo)
+  end
+
+  # [label, from, to] for the requested month (?month=YYYY-MM), default this month.
+  def capture_range
+    month = begin
+      Date.strptime(params[:month].to_s, "%Y-%m")
+    rescue ArgumentError, TypeError
+      Date.current
+    end.beginning_of_month
+    [ month.strftime("%B %Y"), month.beginning_of_day, month.end_of_month.end_of_day ]
+  end
 
   def set_item
     @item = InventoryItem.find(params[:id])
