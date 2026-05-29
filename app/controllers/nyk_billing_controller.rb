@@ -31,9 +31,10 @@ class NykBillingController < ApplicationController
     @raw_total       = @ai_total + @smoke_cost
     @customer_view   = params[:view] == "customer"
     @raw_multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence || DEFAULT_MULTIPLIER).to_f
-    fee_default      = (ENV["NYK_BASE_FEE_DOLLARS"].presence || DEFAULT_BASE_FEE).to_f
-    @base_fee_waived = @workspace&.base_fee_waived? || false
-    @base_fee        = @workspace ? @workspace.effective_base_fee(fee_default) : fee_default
+    fee_default          = (ENV["NYK_BASE_FEE_DOLLARS"].presence || DEFAULT_BASE_FEE).to_f
+    @base_fee_waived     = @workspace&.base_fee_waived? || false
+    @base_fee_configured = (@workspace&.base_fee_dollars || fee_default).to_f # pre-waive value, for strike-through
+    @base_fee            = @base_fee_waived ? 0.0 : @base_fee_configured
     @discount_percent  = (@workspace&.discount_percent || 0).to_f
     @customer_subtotal = @base_fee + (@raw_total * @raw_multiplier)
     @discount_amount   = (@customer_subtotal * @discount_percent / 100.0).round(2)

@@ -23,7 +23,7 @@
     <p class="text-3xl font-bold text-white">$<%= sprintf("%.2f", @month_total) %></p>
     <% if @customer_view %>
       <div class="text-xs text-gray-400 mt-2 space-y-0.5">
-        <div>Platform fee: <%= @base_fee_waived ? %(<span class="text-green-400 font-semibold">Waived</span>).html_safe : "$#{sprintf('%.2f', @base_fee)}" %></div>
+        <div>Platform fee: <%= @base_fee_waived ? %(<span class="line-through text-gray-500">$#{sprintf('%.2f', @base_fee_configured)}</span> <span class="text-green-400 font-semibold">Waived</span>).html_safe : "$#{sprintf('%.2f', @base_fee)}" %></div>
         <div>Usage: $<%= sprintf("%.2f", @raw_total) %> × <%= @raw_multiplier.to_i %> = $<%= sprintf("%.2f", @raw_total * @raw_multiplier) %></div>
         <div>Subtotal: $<%= sprintf("%.2f", @customer_subtotal) %></div>
         <% if @discount_percent.positive? %>
