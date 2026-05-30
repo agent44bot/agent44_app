@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_30_130000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -196,6 +196,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_180000) do
     t.index ["inventory_item_id"], name: "index_inventory_movements_on_inventory_item_id"
     t.index ["occurred_at"], name: "index_inventory_movements_on_occurred_at"
     t.index ["user_id"], name: "index_inventory_movements_on_user_id"
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.integer "base_fee_cents", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.integer "discount_cents", default: 0, null: false
+    t.decimal "discount_percent", precision: 5, scale: 2, default: "0.0", null: false
+    t.text "line_items"
+    t.decimal "multiplier", precision: 6, scale: 2, default: "1.0", null: false
+    t.datetime "paid_at"
+    t.date "period_end", null: false
+    t.date "period_start", null: false
+    t.datetime "sent_at"
+    t.string "status", default: "unpaid", null: false
+    t.integer "subtotal_cents", default: 0, null: false
+    t.integer "total_cents", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "usage_cost_cents", default: 0, null: false
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "period_start"], name: "index_invoices_on_workspace_id_and_period_start", unique: true
+    t.index ["workspace_id"], name: "index_invoices_on_workspace_id"
   end
 
   create_table "job_matches", force: :cascade do |t|
@@ -674,6 +695,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_180000) do
   add_foreign_key "inventory_captures", "users", on_delete: :nullify
   add_foreign_key "inventory_movements", "inventory_items", on_delete: :cascade
   add_foreign_key "inventory_movements", "users", on_delete: :nullify
+  add_foreign_key "invoices", "workspaces"
   add_foreign_key "job_matches", "jobs", on_delete: :cascade
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"

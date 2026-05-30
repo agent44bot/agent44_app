@@ -1,0 +1,124 @@
+<%
+  inv  = @invoice
+  ws   = @workspace
+  host = "https://agent44labs.com"
+
+  serif = "Georgia,'Times New Roman',serif"
+  sans  = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+  mono  = "'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace"
+
+  ink="#1a1a1a"; mut="#8a8276"; faint="#a8a08f"; accent="#c2410c"
+  green="#1b6e3a"; line="#e8e1d6"; cream="#faf7f2"; track="#e7e2d9"
+
+  money = ->(n) { number_to_currency(n) }
+  cents = ->(c) { number_to_currency(c.to_i / 100.0) }
+%>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f1ea;padding:24px 0">
+  <tr><td align="center">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid <%= line %>;border-radius:12px;overflow:hidden">
+
+      <!-- Header -->
+      <tr><td style="padding:28px 30px 20px;border-bottom:2px solid <%= ink %>">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="font-family:<%= serif %>;font-size:20px;font-weight:bold;color:<%= ink %>">
+            Agent<span style="color:<%= accent %>">44</span> Labs
+          </td>
+          <td align="right" style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:<%= faint %>;font-weight:bold">
+            Invoice
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Bill-to + period -->
+      <tr><td style="padding:22px 30px 6px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>;vertical-align:top">
+            <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:4px">Billed to</div>
+            <div style="font-family:<%= serif %>;font-size:16px;color:<%= ink %>;font-weight:bold"><%= ws.name %></div>
+          </td>
+          <td align="right" style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>;vertical-align:top">
+            <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:4px">Billing period</div>
+            <div style="font-family:<%= serif %>;font-size:16px;color:<%= ink %>;font-weight:bold"><%= inv.period_label %></div>
+            <div style="font-size:12px;color:<%= faint %>"><%= inv.period_start.strftime("%b %-d") %> – <%= inv.period_end.strftime("%b %-d, %Y") %></div>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Total hero -->
+      <tr><td style="padding:18px 30px 8px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border:1px solid <%= line %>;border-radius:10px"><tr>
+          <td style="padding:18px 22px">
+            <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:<%= accent %>;font-weight:bold;margin-bottom:2px">Amount due</div>
+            <div style="font-family:<%= serif %>;font-size:34px;font-weight:bold;color:<%= ink %>"><%= money.(inv.total_dollars) %></div>
+          </td>
+          <td align="right" style="padding:18px 22px">
+            <% if inv.paid? %>
+              <span style="font-family:<%= sans %>;font-size:12px;font-weight:bold;color:<%= green %>;border:1px solid <%= green %>;border-radius:999px;padding:5px 12px">PAID</span>
+            <% else %>
+              <span style="font-family:<%= sans %>;font-size:12px;font-weight:bold;color:<%= accent %>;border:1px solid <%= accent %>;border-radius:999px;padding:5px 12px">DUE</span>
+            <% end %>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Line items -->
+      <tr><td style="padding:16px 30px 4px">
+        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">AI &amp; automation usage</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px">
+          <% inv.line_items.each do |li| %>
+            <tr>
+              <td style="padding:6px 0;color:<%= ink %>;border-bottom:1px solid <%= line %>"><%= li["label"] %></td>
+              <td align="right" style="padding:6px 0;color:<%= mut %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px"><%= li["calls"] %> calls</td>
+              <td align="right" style="padding:6px 0 6px 16px;color:<%= ink %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;white-space:nowrap"><%= cents.(li["cost_cents"]) %></td>
+            </tr>
+          <% end %>
+          <% if inv.line_items.empty? %>
+            <tr><td colspan="3" style="padding:8px 0;color:<%= faint %>;font-style:italic">No usage recorded this period.</td></tr>
+          <% end %>
+        </table>
+      </td></tr>
+
+      <!-- Pricing breakdown -->
+      <tr><td style="padding:16px 30px 6px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>">
+          <tr>
+            <td style="padding:4px 0">Platform fee</td>
+            <td align="right" style="padding:4px 0;font-family:<%= mono %>">
+              <% if inv.base_fee_cents.to_i.zero? %><span style="color:<%= green %>;font-weight:bold">Waived</span><% else %><%= money.(inv.base_fee_dollars) %><% end %>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0">Usage <%= cents.(inv.usage_cost_cents) %> &times; <%= inv.multiplier.to_i %></td>
+            <td align="right" style="padding:4px 0;font-family:<%= mono %>"><%= money.(inv.usage_cost_dollars * inv.multiplier) %></td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid <%= line %>;color:<%= ink %>">Subtotal</td>
+            <td align="right" style="padding:6px 0;border-top:1px solid <%= line %>;color:<%= ink %>;font-family:<%= mono %>"><%= money.(inv.subtotal_dollars) %></td>
+          </tr>
+          <% if inv.discount_percent.to_f.positive? %>
+            <tr>
+              <td style="padding:4px 0;color:<%= green %>">Discount (<%= inv.discount_percent.to_i %>% off)</td>
+              <td align="right" style="padding:4px 0;color:<%= green %>;font-family:<%= mono %>">&minus;<%= money.(inv.discount_dollars) %></td>
+            </tr>
+          <% end %>
+          <tr>
+            <td style="padding:8px 0;border-top:2px solid <%= ink %>;color:<%= ink %>;font-weight:bold;font-family:<%= serif %>;font-size:15px">Total</td>
+            <td align="right" style="padding:8px 0;border-top:2px solid <%= ink %>;color:<%= ink %>;font-weight:bold;font-family:<%= mono %>;font-size:15px"><%= money.(inv.total_dollars) %></td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="padding:18px 30px 26px">
+        <div style="font-family:<%= sans %>;font-size:12px;color:<%= faint %>;line-height:1.5">
+          What NY Kitchen pays: a platform fee plus a <%= inv.multiplier.to_i %>&times; margin on raw fleet cost (covers developer time, hardware, and reserve capacity).
+        </div>
+        <div style="margin-top:14px">
+          <a href="<%= host %>/nykitchen/billing" style="font-family:<%= sans %>;font-size:13px;font-weight:bold;color:<%= accent %>;text-decoration:none">View billing &rarr;</a>
+        </div>
+      </td></tr>
+
+    </table>
+    <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:14px">Agent44 Labs &middot; agent44labs.com</div>
+  </td></tr>
+</table>

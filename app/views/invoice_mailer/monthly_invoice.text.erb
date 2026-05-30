@@ -1,0 +1,30 @@
+<% inv = @invoice; ws = @workspace
+   money = ->(n) { number_to_currency(n) }
+   cents = ->(c) { number_to_currency(c.to_i / 100.0) } -%>
+AGENT44 LABS — INVOICE
+
+Billed to:      <%= ws.name %>
+Billing period: <%= inv.period_label %> (<%= inv.period_start.strftime("%b %-d") %> – <%= inv.period_end.strftime("%b %-d, %Y") %>)
+Status:         <%= inv.paid? ? "PAID" : "DUE" %>
+
+AMOUNT DUE: <%= money.(inv.total_dollars) %>
+
+AI & automation usage
+<% inv.line_items.each do |li| -%>
+  - <%= li["label"] %> (<%= li["calls"] %> calls): <%= cents.(li["cost_cents"]) %>
+<% end -%>
+<% if inv.line_items.empty? -%>
+  (no usage recorded this period)
+<% end -%>
+
+Platform fee:   <%= inv.base_fee_cents.to_i.zero? ? "Waived" : money.(inv.base_fee_dollars) %>
+Usage <%= cents.(inv.usage_cost_cents) %> x <%= inv.multiplier.to_i %>: <%= money.(inv.usage_cost_dollars * inv.multiplier) %>
+Subtotal:       <%= money.(inv.subtotal_dollars) %>
+<% if inv.discount_percent.to_f.positive? -%>
+Discount (<%= inv.discount_percent.to_i %>% off): -<%= money.(inv.discount_dollars) %>
+<% end -%>
+TOTAL:          <%= money.(inv.total_dollars) %>
+
+View billing: https://agent44labs.com/nykitchen/billing
+
+Agent44 Labs · agent44labs.com

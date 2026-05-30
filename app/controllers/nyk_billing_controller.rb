@@ -4,7 +4,7 @@
 class NykBillingController < ApplicationController
   before_action :require_authentication
   before_action :require_visible
-  before_action :require_site_admin, only: %i[update_rate update_pricing]
+  before_action :require_site_admin, only: %i[update_rate update_pricing mark_invoice_paid]
 
   # Customer-view markup. NYK_BASE_FEE_DOLLARS + (raw cost × NYK_RAW_MULTIPLIER).
   # Defaults match the current pricing thesis: $50/mo base + 3× raw.
@@ -40,6 +40,16 @@ class NykBillingController < ApplicationController
     @discount_amount   = (@customer_subtotal * @discount_percent / 100.0).round(2)
     @customer_total    = (@customer_subtotal - @discount_amount).round(2)
     @month_total       = @customer_view ? @customer_total : @raw_total
+
+    @invoices = @workspace ? Invoice.where(workspace_id: @workspace.id).recent.to_a : []
+  end
+
+  # Site-admin only: flip an invoice to paid. Manual for now (no payment
+  # processor) — we just record that NY Kitchen settled the month.
+  def mark_invoice_paid
+    invoice = Invoice.find(params[:id])
+    invoice.mark_paid! unless invoice.paid?
+    redirect_to nyk_billing_path(view: params[:view]), notice: "Invoice for #{invoice.period_label} marked paid."
   end
 
   # Site-admin only: set this workspace's $/min test-run rate, then re-price all
