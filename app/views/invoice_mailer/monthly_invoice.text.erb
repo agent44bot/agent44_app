@@ -17,7 +17,7 @@ AI & automation usage
   (no usage recorded this period)
 <% end -%>
 
-Platform fee:   <%= inv.base_fee_cents.to_i.zero? ? "Waived" : money.(inv.base_fee_dollars) %>
+Platform fee:   <%= inv.base_fee_waived? ? "#{money.(inv.base_fee_configured_dollars)} (waived)" : money.(inv.base_fee_dollars) %>
 Usage <%= cents.(inv.usage_cost_cents) %> x <%= inv.multiplier.to_i %>: <%= money.(inv.usage_cost_dollars * inv.multiplier) %>
 Subtotal:       <%= money.(inv.subtotal_dollars) %>
 <% if inv.discount_percent.to_f.positive? -%>

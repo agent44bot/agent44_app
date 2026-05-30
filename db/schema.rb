@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_30_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_30_160000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -200,6 +200,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_30_130000) do
 
   create_table "invoices", force: :cascade do |t|
     t.integer "base_fee_cents", default: 0, null: false
+    t.integer "base_fee_configured_cents", default: 0, null: false
+    t.boolean "base_fee_waived", default: false, null: false
     t.datetime "created_at", null: false
     t.integer "discount_cents", default: 0, null: false
     t.decimal "discount_percent", precision: 5, scale: 2, default: "0.0", null: false

@@ -27,7 +27,8 @@ class Invoice < ApplicationRecord
   end
 
   # Dollar accessors (storage is integer cents).
-  def base_fee_dollars;   base_fee_cents.to_i   / 100.0; end
+  def base_fee_dollars;            base_fee_cents.to_i            / 100.0; end
+  def base_fee_configured_dollars; base_fee_configured_cents.to_i / 100.0; end
   def usage_cost_dollars; usage_cost_cents.to_i / 100.0; end
   def subtotal_dollars;   subtotal_cents.to_i   / 100.0; end
   def discount_dollars;   discount_cents.to_i   / 100.0; end
@@ -63,8 +64,12 @@ class Invoice < ApplicationRecord
     raw_total = ai_cost + smoke_cost
 
     multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence || DEFAULT_MULTIPLIER).to_f
-    base_fee    = workspace.effective_base_fee(DEFAULT_BASE_FEE)
-    discount_pc = (workspace.discount_percent || 0).to_f
+    # configured = the fee before waiving (mirrors the billing page's
+    # @base_fee_configured); applied = what's actually charged (0 if waived).
+    configured_fee = (workspace.base_fee_dollars || DEFAULT_BASE_FEE).to_f
+    waived         = workspace.base_fee_waived?
+    base_fee       = waived ? 0.0 : configured_fee
+    discount_pc    = (workspace.discount_percent || 0).to_f
 
     subtotal = base_fee + (raw_total * multiplier)
     discount = (subtotal * discount_pc / 100.0).round(2)
@@ -76,8 +81,10 @@ class Invoice < ApplicationRecord
       workspace:       workspace,
       period_start:    period_start,
       period_end:      period_end,
-      base_fee_cents:   (base_fee  * 100).round,
-      usage_cost_cents: (raw_total * 100).round,
+      base_fee_cents:            (base_fee       * 100).round,
+      base_fee_configured_cents: (configured_fee * 100).round,
+      base_fee_waived:           waived,
+      usage_cost_cents:          (raw_total * 100).round,
       multiplier:       multiplier,
       discount_percent: discount_pc,
       subtotal_cents:   (subtotal * 100).round,

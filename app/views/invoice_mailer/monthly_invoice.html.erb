@@ -84,7 +84,7 @@
           <tr>
             <td style="padding:4px 0">Platform fee</td>
             <td align="right" style="padding:4px 0;font-family:<%= mono %>">
-              <% if inv.base_fee_cents.to_i.zero? %><span style="color:<%= green %>;font-weight:bold">Waived</span><% else %><%= money.(inv.base_fee_dollars) %><% end %>
+              <% if inv.base_fee_waived? %><span style="text-decoration:line-through;color:<%= faint %>"><%= money.(inv.base_fee_configured_dollars) %></span> <span style="color:<%= green %>;font-weight:bold">Waived</span><% else %><%= money.(inv.base_fee_dollars) %><% end %>
             </td>
           </tr>
           <tr>

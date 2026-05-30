@@ -26,10 +26,20 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal "unpaid", inv.status
     assert_in_delta 6.00, inv.usage_cost_dollars, 0.001
     assert_equal 3.0, inv.multiplier.to_f
-    assert_equal 0,   inv.base_fee_cents # waived
+    assert_equal 0,   inv.base_fee_cents # applied = 0 (waived)
+    assert inv.base_fee_waived?
+    assert_equal 5000, inv.base_fee_configured_cents # pre-waive $50 frozen for strike-through
     # subtotal = 6.00 * 3 = 18.00; 95% off -> 0.90
     assert_in_delta 18.00, inv.subtotal_dollars, 0.01
     assert_in_delta 0.90,  inv.total_dollars, 0.01
+  end
+
+  test "non-waived workspace freezes the applied fee and is not marked waived" do
+    @ws.update!(base_fee_waived: false, base_fee_dollars: 40, discount_percent: 0)
+    inv = Invoice.generate_for(@ws, @month)
+    assert_not inv.base_fee_waived?
+    assert_equal 4000, inv.base_fee_cents
+    assert_equal 4000, inv.base_fee_configured_cents
   end
 
   test "generate_for excludes usage outside the period" do
