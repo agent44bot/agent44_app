@@ -1,9 +1,9 @@
 class WeeklySalesEmailJob < ApplicationJob
   queue_as :default
 
-  # Sunday-evening sales recap from the Analyst Agent. Recipients are the
-  # workspace members who opted in on the Analyst dashboard (subscriber IDs
-  # stored on the analyst WorkspaceAgent), resolved to emails at send time.
+  # Sunday-evening sales recap from the Analyst Agent. Goes to everyone who
+  # belongs to the NY Kitchen workspace (any membership role), resolved to
+  # emails at send time. Members without an email on file are skipped.
   def perform
     workspace = Workspace.find_by(slug: "nykitchen")
     unless workspace
@@ -11,11 +11,9 @@ class WeeklySalesEmailJob < ApplicationJob
       return
     end
 
-    agent = workspace.agent_for("analyst")
-    ids = Array(agent.setting(:weekly_email_subscriber_ids)).map(&:to_i)
-    recipients = User.where(id: ids).filter_map { |u| u.email_address.presence }.uniq
+    recipients = workspace.users.filter_map { |u| u.email_address.presence }.uniq
     if recipients.empty?
-      Rails.logger.info("WeeklySalesEmailJob: no subscribers opted in, skipping")
+      Rails.logger.info("WeeklySalesEmailJob: no workspace members with an email, skipping")
       return
     end
 

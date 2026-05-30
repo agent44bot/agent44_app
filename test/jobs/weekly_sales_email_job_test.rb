@@ -4,8 +4,8 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
 
   setup do
-    owner = User.create!(email_address: "owner-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    @workspace = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = owner }
+    @owner = User.create!(email_address: "owner-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    @workspace = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @owner }
     snapshot = KitchenSnapshot.create!(taken_on: Date.current)
     snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/e1", name: "Class A", start_at: 3.days.from_now,
@@ -13,19 +13,25 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     )
   end
 
-  test "skips sending when no one has opted in" do
+  test "skips sending when no workspace member has an email" do
+    # Drop the email-bearing owner membership; leave only a Nostr member.
+    @workspace.memberships.destroy_all
+    nostr = User.create!(role: "user", pubkey_hex: SecureRandom.hex(32))
+    @workspace.memberships.create!(user: nostr, role: "viewer")
     assert_no_emails { WeeklySalesEmailJob.perform_now }
   end
 
-  test "emails the opted-in subscribers" do
-    user = User.create!(email_address: "sub-#{SecureRandom.hex(4)}@example.com", role: "user")
-    @workspace.agent_for("analyst").update_settings(weekly_email_subscriber_ids: [ user.id ])
+  test "emails every workspace member" do
+    member = User.create!(email_address: "member-#{SecureRandom.hex(4)}@example.com", role: "user")
+    @workspace.memberships.create!(user: member, role: "admin")
 
+    # Owner + member = 2 recipients on one email.
     assert_emails 1 do
       WeeklySalesEmailJob.perform_now
     end
     mail = ActionMailer::Base.deliveries.last
-    assert_includes mail.to, user.email_address
+    assert_includes mail.to, @owner.email_address
+    assert_includes mail.to, member.email_address
     assert_match "your team's week", mail.subject
   end
 
@@ -46,9 +52,12 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     assert_equal({ "x" => 1 }, echo[:by_platform])
   end
 
-  test "skips a subscriber with no email on file" do
-    user = User.create!(role: "user", pubkey_hex: SecureRandom.hex(32)) # Nostr user, no email_address
-    @workspace.agent_for("analyst").update_settings(weekly_email_subscriber_ids: [ user.id ])
-    assert_no_emails { WeeklySalesEmailJob.perform_now }
+  test "skips a member with no email but still emails the rest" do
+    nostr = User.create!(role: "user", pubkey_hex: SecureRandom.hex(32)) # no email_address
+    @workspace.memberships.create!(user: nostr, role: "viewer")
+    assert_emails 1 do # only the email-bearing owner gets it
+      WeeklySalesEmailJob.perform_now
+    end
+    assert_not_includes ActionMailer::Base.deliveries.last.to, nil
   end
 end

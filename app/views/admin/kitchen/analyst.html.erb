@@ -10,31 +10,20 @@
     </p>
   </div>
 
-  <%# The Analyst's proactive output: opt in to a weekly recap email. The
-      whole row is the toggle (button_to → PATCH); the box just reflects state.
-      No email on file → point them at their profile to add one first. %>
+  <%# The Analyst's proactive output: the weekly recap now goes to everyone on
+      the NY Kitchen workspace automatically (no per-person opt-in). Members
+      without an email on file are simply skipped at send time. %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
-    <% if Current.user&.email_address.present? %>
-      <%= button_to nyk_analyst_subscription_path, method: :patch,
-            class: "group flex items-center gap-3 w-full text-left cursor-pointer" do %>
-        <span class="flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition <%= @analyst_subscribed ? "bg-orange-600 border-orange-600" : "border-gray-600 group-hover:border-orange-500" %>">
-          <% if @analyst_subscribed %>
-            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-          <% end %>
-        </span>
-        <span class="text-sm">
-          <span class="text-gray-200 font-medium">📬 Email me the weekly sales recap</span>
-          <span class="block text-xs text-gray-500"><%= Current.user.email_address %> · Sundays at 8:00 PM ET</span>
-        </span>
-      <% end %>
-    <% else %>
-      <div class="text-sm text-gray-300">
-        <span class="font-medium">📬 Weekly sales recap</span> — emailed Sundays at 8:00 PM ET.
+    <div class="text-sm text-gray-300">
+      <span class="font-medium">📬 Weekly sales recap</span> — emailed to the NY Kitchen team every Sunday at 5:00 PM ET.
+      <% if Current.user&.email_address.blank? %>
         <div class="text-xs text-gray-500 mt-1">
-          <%= link_to "Add an email to your profile", settings_path, class: "text-orange-400 hover:text-orange-300 underline" %> to subscribe.
+          <%= link_to "Add an email to your profile", settings_path, class: "text-orange-400 hover:text-orange-300 underline" %> to receive it.
         </div>
-      </div>
-    <% end %>
+      <% else %>
+        <div class="text-xs text-gray-500 mt-1">Going to <%= Current.user.email_address %>.</div>
+      <% end %>
+    </div>
   </div>
 
   <%# Admin-only: jump to the live weekly team report (same builder as the
