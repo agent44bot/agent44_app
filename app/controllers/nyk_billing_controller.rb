@@ -29,7 +29,10 @@ class NykBillingController < ApplicationController
     @smoke_cost     = smoke_runs_month.sum(:cost_dollars).to_f
 
     @raw_total       = @ai_total + @smoke_cost
-    @customer_view   = params[:view] == "customer"
+    # Customer view is the only view now — the old "Raw" tab exposed our cost
+    # basis ("no markup, what we pay") to customers, so it was removed. The
+    # admin cost readout lives on the hub salary badges / cost dashboard.
+    @customer_view   = true
     @raw_multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence || DEFAULT_MULTIPLIER).to_f
     fee_default          = (ENV["NYK_BASE_FEE_DOLLARS"].presence || DEFAULT_BASE_FEE).to_f
     @base_fee_waived     = @workspace&.base_fee_waived? || false
@@ -49,7 +52,7 @@ class NykBillingController < ApplicationController
   def mark_invoice_paid
     invoice = Invoice.find(params[:id])
     invoice.mark_paid! unless invoice.paid?
-    redirect_to nyk_billing_path(view: params[:view]), notice: "Invoice for #{invoice.period_label} marked paid."
+    redirect_to nyk_billing_path, notice: "Invoice for #{invoice.period_label} marked paid."
   end
 
   # Site-admin only: set this workspace's $/min test-run rate, then re-price all

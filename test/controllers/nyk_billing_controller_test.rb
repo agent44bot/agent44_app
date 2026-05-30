@@ -28,22 +28,22 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/sign_in}
   end
 
-  test "raw view (default) shows raw fleet cost" do
+  test "billing always shows the customer view (no Raw tab)" do
     sign_in_as(@admin)
     get "/nykitchen/billing"
     assert_response :success
-    # Raw fleet cost on this dataset is essentially $0 — no big totals shown
-    refute_match(/\$50\.00/, response.body)
-    assert_match(/Raw monthly cost/, response.body)
+    # The cost-basis "Raw monthly cost / No markup" copy is gone for everyone.
+    refute_match(/Raw monthly cost/, response.body)
+    refute_match(/No markup/, response.body)
+    # Customer markup explainer is what's shown.
+    assert_match(/3.* margin/, response.body)
   end
 
-  test "customer view applies $50 + 3x markup" do
+  test "?view=raw is ignored — still the customer view" do
     sign_in_as(@admin)
-    get "/nykitchen/billing", params: { view: "customer" }
+    get "/nykitchen/billing", params: { view: "raw" }
     assert_response :success
-    # Base fee shows in the explainer
-    assert_match(/\$50/, response.body)
-    # Markup phrasing
+    refute_match(/No markup/, response.body)
     assert_match(/3.* margin/, response.body)
   end
 
@@ -52,7 +52,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     ENV["NYK_RAW_MULTIPLIER"]   = "5"
     begin
       sign_in_as(@admin)
-      get "/nykitchen/billing", params: { view: "customer" }
+      get "/nykitchen/billing"
       assert_response :success
       assert_match(/\$100/, response.body)
       assert_match(/5.* margin/, response.body)
