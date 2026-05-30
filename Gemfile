@@ -56,7 +56,7 @@ gem "thruster", require: false
 gem "image_processing", "~> 1.2"
 
 # QR codes for the printable class schedule (inline SVG, no network calls)
-gem "rqrcode", "~> 2.2"
+gem "rqrcode", "~> 3.2"
 
 # Passkeys / Face ID sign-in (WebAuthn ceremonies)
 gem "webauthn", "~> 3.1"
