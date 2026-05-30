@@ -98,6 +98,7 @@ Rails.application.routes.draw do
   get   "nykitchen/billing",      to: "nyk_billing#show",        as: :nyk_billing
   patch "nykitchen/billing/rate",    to: "nyk_billing#update_rate",    as: :nyk_billing_rate
   patch "nykitchen/billing/pricing", to: "nyk_billing#update_pricing", as: :nyk_billing_pricing
+  patch "nykitchen/billing/invoices/:id/pay", to: "nyk_billing#mark_invoice_paid", as: :nyk_billing_invoice_pay
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
 
