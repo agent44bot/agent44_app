@@ -1,53 +1,72 @@
-/* QR Code Hero Component Styles */
+/* QR Code Hero Component Styles — Desktop-only hero display */
 
 .qr-code-container {
   animation: fadeIn 0.6s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
-.qr-code-svg {
+.qr-code-svg-wrapper {
   background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
 }
 
-.qr-code-svg svg {
+/* SVG QR code — crisp rendering for scanability */
+.qr-code-svg {
+  display: block;
   width: 100%;
-  height: auto;
-  min-width: 200px;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
 }
 
-/* Mobile: QR code appears below CTA */
-@media (max-width: 640px) {
-  .qr-code-container {
-    margin-top: 2rem;
-  }
-  
-  .qr-code-svg {
-    max-width: 200px;
-    margin: 0 auto;
-  }
-}
-
-/* Desktop: QR code in sidebar */
+/* Desktop: QR code appears in hero sidebar */
 @media (min-width: 641px) {
-  .qr-code-container {
-    position: relative;
+  .qr-code-svg-wrapper {
+    width: 180px;
+    height: 180px;
+    max-width: 100%;
   }
-  
-  .qr-code-svg {
-    max-width: 180px;
+
+  .qr-code-container {
+    width: 100%;
   }
 }
 
+/* Fade-in animation on page load */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
+}
+
+/* Hover effect for visual feedback */
+.qr-code-svg-wrapper:hover {
+  transform: translateY(-2px);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Label styling */
+.qr-code-container > p {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #d1d5db;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0;
 }

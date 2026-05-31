@@ -1,20 +1,31 @@
 <%# QR Code for agent44labs.ai — generates SVG on server side using rqrcode gem
-    Displays on home hero page for easy mobile access. Responsive sizing. %>
+    Desktop-only display on home hero page for conference booth scanning.
+    URL: https://agent44labs.ai %>
 
-<div class="qr-code-container flex flex-col items-center gap-2">
-  <%# Generate QR code for agent44labs.ai %>
-  <% qr = RQRCode::QRCode.new("https://agent44labs.ai", size: 8, level: :h) %>
+<div class="qr-code-container flex flex-col items-center gap-3">
+  <%# Generate QR code for agent44labs.ai with high error correction %>
+  <% qr = RQRCode::QRCode.new("https://agent44labs.ai", size: 10, level: :h) %>
+  <% module_count = qr.modules.length %>
   
-  <%# SVG QR code — no external network calls, fully self-contained %>
-  <div class="qr-code-svg bg-white p-2 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-    <%= qr.as_svg(
-      offset: 0,
-      color: "000",
-      shape_rendering: "crispEdges",
-      module_size: 8,
-      standalone: false
-    ).html_safe %>
+  <%# SVG QR code wrapper — white background container with proper sizing %>
+  <div class="qr-code-svg-wrapper bg-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <svg class="qr-code-svg" viewBox="0 0 <%= module_count %> <%= module_count %>" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>
+          .qr-module { fill: #000; }
+          .qr-background { fill: #fff; }
+        </style>
+      </defs>
+      <rect class="qr-background" width="<%= module_count %>" height="<%= module_count %>"/>
+      <% qr.modules.each_with_index do |row, y| %>
+        <% row.each_with_index do |module_value, x| %>
+          <% if module_value %>
+            <rect class="qr-module" x="<%= x %>" y="<%= y %>" width="1" height="1"/>
+          <% end %>
+        <% end %>
+      <% end %>
+    </svg>
   </div>
   
-  <p class="text-xs font-semibold text-gray-300 tracking-wide uppercase">Scan to visit</p>
+  <p class="text-xs font-semibold text-gray-300 tracking-wide uppercase">Scan to visit agent44labs.ai</p>
 </div>

@@ -74,11 +74,6 @@
           <%= render "shared/app_store_badge" %>
         </div>
 
-        <%# QR Code — mobile only in hero, desktop shown in sidebar %>
-        <div class="mt-8 sm:hidden">
-          <%= render "shared/qr_code_hero" %>
-        </div>
-
         <% if false # Hidden for now — bring back later %>
         <div class="mt-6 sm:mt-8 flex flex-col items-start justify-start gap-4">
           <%# Face ID button — shown on mobile native when available %>
@@ -104,11 +99,9 @@
         <% end %>
       </div>
 
-      <%# QR Code — desktop only, pinned to the right %>
-      <div class="hidden sm:flex sm:col-span-2 sm:col-start-7 sm:self-center justify-center">
-        <div class="flex justify-center">
-          <%= render "shared/qr_code_hero" %>
-        </div>
+      <%# QR Code — desktop only on hero, centered vertically for conference booth scanning %>
+      <div class="hidden sm:flex sm:col-span-2 sm:col-start-7 sm:items-center justify-center min-h-[400px]">
+        <%= render "shared/qr_code_hero" %>
       </div>
 
       <%# Agents — desktop only, pinned to the lower-right corner of the hero block %>
