@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-05-31
+  note: The Analyst dashboard now shows yesterday's and today's ticket sales at a glance, so you can see fresh momentum without changing the date range.
+
+- date: 2026-05-31
   note: The sales report's current-month row is now labelled "Rest of <month>" so a near-sold-out final few classes no longer reads as if the whole month hit 100%.
 
 - date: 2026-05-30

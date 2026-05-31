@@ -144,6 +144,12 @@ class KitchenController < ApplicationController
     # weekly email "% of $ sold", rather than seats-sold / seats-total.
     @rev_pct_sold = @rev_total.to_f.positive? ? (100.0 * @rev_sold / @rev_total).round : nil
 
+    # Recent booking momentum — tickets actually sold yesterday and today,
+    # independent of the selected range. Same observed-sales basis as the weekly
+    # chart (bookings_daily_total), so it reconciles with "Booked this week".
+    @today_bookings     = KitchenSnapshot.bookings_daily_total(today, today)
+    @yesterday_bookings = KitchenSnapshot.bookings_daily_total(today - 1, today - 1)
+
     # Pace/at-risk leaderboards make no sense for a past window — forward only.
     # (Overrides the unscoped values load_events_data set.)
     @top_sellers = @needs_a_push = []
