@@ -55,7 +55,27 @@
     <% end %>
   </div>
 
-  <% if has_revenue %>
+  <% if @daily_view %>
+    <%# Day ranges: tickets actually booked that day (observed sales), not the
+        capacity-based revenue rollup. Hero is the ticket count; revenue is
+        secondary and shown only to revenue-cleared viewers. %>
+    <div class="bg-gray-900 rounded-xl p-6 mb-6">
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= @range_label %></div>
+      <div class="text-5xl sm:text-6xl font-black text-white tabular-nums leading-none">
+        <%= number_with_delimiter(@day_booking[:tickets]) %>
+      </div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mt-2"><%= "ticket".pluralize(@day_booking[:tickets]) %> sold</div>
+      <% if @show_revenue && @day_booking[:revenue].to_f.positive? %>
+        <div class="mt-4">
+          <div class="text-xl font-bold text-green-400 tabular-nums"><%= number_to_currency(@day_booking[:revenue], precision: 0) %></div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mt-0.5">Revenue</div>
+        </div>
+      <% end %>
+      <p class="text-xs text-gray-600 mt-4">
+        Tickets booked on <%= @day_date.strftime("%A, %b %-d") %>, from daily snapshots (observed sales).
+      </p>
+    </div>
+  <% elsif has_revenue %>
     <%# Retrospective windows report booked vs missed; forward windows report
         sold vs still-available. Same layout, range-aware labels. %>
     <% sold_label = @retrospective ? "Booked"  : "Sold" %>
@@ -105,8 +125,9 @@
   <% end %>
 
   <%# Recent booking momentum — tickets sold yesterday + today, independent of
-      the selected range. Revenue shown only when the viewer can see revenue. %>
-  <% if @today_bookings && @yesterday_bookings %>
+      the selected range. Hidden on the Yesterday/Today ranges (the hero above
+      already shows the selected day). Revenue shown only to cleared viewers. %>
+  <% if !@daily_view && @today_bookings && @yesterday_bookings %>
     <div class="grid grid-cols-2 gap-3 mb-6">
       <% [["Yesterday", @yesterday_bookings], ["Today", @today_bookings]].each do |label, b| %>
         <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -124,8 +145,8 @@
   <% end %>
 
   <%# Per-class performance: what's hot, and what to hand to the Social Agent.
-      Forward-looking (pace / at-risk), so hidden on retrospective ranges. %>
-  <% unless @retrospective %>
+      Forward-looking (pace / at-risk), so hidden on retrospective + day ranges. %>
+  <% unless @retrospective || @daily_view %>
     <% if @top_sellers.present? || @top_sellers_all.present? %>
       <%= render "admin/kitchen/top_sellers" %>
     <% end %>

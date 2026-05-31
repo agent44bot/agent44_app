@@ -10,7 +10,7 @@ class KitchenController < ApplicationController
   # in Safari (the only place iOS shows a print dialog — the in-app WKWebView
   # can't) without a login wall. Same public class data as :display, no
   # Claude/AI, so anonymous access is safe.
-  allow_unauthenticated_access only: [:hub, :display, :display_heartbeat, :display_print]
+  allow_unauthenticated_access only: [ :hub, :display, :display_heartbeat, :display_print ]
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
@@ -98,13 +98,21 @@ class KitchenController < ApplicationController
       "week"     => { label: "Current week", to: week_end },
       "nextweek" => { label: "Next week",    from: week_end + 1, to: week_end + 7 }, # the discrete next week, like the List bucket
       "month"    => { label: "This month",   to: today.end_of_month },
-      "all"      => { label: "All upcoming", to: nil },
+      "all"      => { label: "All upcoming", to: nil }
     }
     back = {
       "lastweek"    => { label: "Last week",    from: week_start - 7,                                        to: week_start - 1 },
       "lastmonth"   => { label: "Last month",   from: today.last_month.beginning_of_month,                   to: today.last_month.end_of_month },
       "lastquarter" => { label: "Last quarter", from: (today.beginning_of_quarter - 1).beginning_of_quarter, to: today.beginning_of_quarter - 1 },
-      "lastyear"    => { label: "Last year",    from: today.last_year.beginning_of_year,                     to: today.last_year.end_of_year },
+      "lastyear"    => { label: "Last year",    from: today.last_year.beginning_of_year,                     to: today.last_year.end_of_year }
+    }
+
+    # Day-level ranges: tickets actually booked on a single day (observed-sales
+    # basis, same as the momentum cards), not capacity-based revenue like the
+    # week/month ranges. They sit between "Last week" and "Current week".
+    daily = {
+      "yesterday" => { label: "Yesterday", date: today - 1 },
+      "today"     => { label: "Today",     date: today }
     }
 
     # Only offer a retrospective range once it has data (we have ~6 weeks of
@@ -112,14 +120,24 @@ class KitchenController < ApplicationController
     avail_back = back.select { |_k, w| KitchenSnapshot.any_classes_between?(w[:from], w[:to]) }
 
     @range = params[:range].to_s
-    @range = "week" unless forward.key?(@range) || avail_back.key?(@range) # default: current week
+    unless forward.key?(@range) || avail_back.key?(@range) || daily.key?(@range)
+      @range = "week" # default: current week
+    end
     @retrospective = back.key?(@range)
+    @daily_view    = daily.key?(@range)
 
-    # Buttons left→right: oldest retrospective → upcoming.
+    # Buttons left→right: oldest retrospective → Yesterday/Today → upcoming.
     @range_options = avail_back.keys.reverse.map { |k| [ k, back[k][:label] ] } +
+                     daily.keys.map { |k| [ k, daily[k][:label] ] } +
                      forward.keys.map { |k| [ k, forward[k][:label] ] }
 
-    if @retrospective
+    if @daily_view
+      d = daily[@range]
+      @range_label = d[:label]
+      @day_date    = d[:date]
+      @day_booking = KitchenSnapshot.bookings_daily_total(d[:date], d[:date])
+      priced = [] # day ranges use the booking total, not the capacity rollup
+    elsif @retrospective
       w = back[@range]
       @range_label = w[:label]
       priced = KitchenSnapshot.classes_ended_between(w[:from], w[:to]).select(&:capacity_known?)
@@ -150,10 +168,11 @@ class KitchenController < ApplicationController
     @today_bookings     = KitchenSnapshot.bookings_daily_total(today, today)
     @yesterday_bookings = KitchenSnapshot.bookings_daily_total(today - 1, today - 1)
 
-    # Pace/at-risk leaderboards make no sense for a past window — forward only.
-    # (Overrides the unscoped values load_events_data set.)
+    # Pace/at-risk leaderboards make no sense for a past window or a single day
+    # — forward only. (Overrides the unscoped values load_events_data set.)
+    # Day ranges also never define in_window, so this guard avoids a NameError.
     @top_sellers = @needs_a_push = []
-    if !@retrospective && (snap = KitchenSnapshot.latest)
+    if !@retrospective && !@daily_view && (snap = KitchenSnapshot.latest)
       @top_sellers  = KitchenSnapshot.selling_fastest(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
       @needs_a_push = KitchenSnapshot.needs_a_push(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
     end
@@ -606,7 +625,7 @@ class KitchenController < ApplicationController
     user.workspaces
         .joins(:social_accounts)
         .distinct
-        .sort_by { |ws| [ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase] }
+        .sort_by { |ws| [ ws.slug.include?("kitchen") ? 0 : 1, ws.name.to_s.downcase ] }
   end
 
   # Daily Super Agent "morning question" on the hub card, shown only to the
@@ -831,10 +850,10 @@ class KitchenController < ApplicationController
     # and will land as passed/failed when the run finishes.
     windowed_scope = nav_scope.finished.where("started_at >= ?", @smoke_days.days.ago)
     table_scope    = case @smoke_status
-                     when "passed" then windowed_scope.where(status: "passed")
-                     when "failed" then windowed_scope.where(status: "failed")
-                     else               windowed_scope
-                     end
+    when "passed" then windowed_scope.where(status: "passed")
+    when "failed" then windowed_scope.where(status: "failed")
+    else               windowed_scope
+    end
 
     smoke_table_limit = 1000
     @smoke_runs = table_scope.recent.with_attached_video.with_attached_thumbnail.limit(smoke_table_limit)
