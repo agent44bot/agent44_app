@@ -11,11 +11,19 @@ class JobsController < ApplicationController
     @range_days = RANGE_MAP[@range]
 
     @tab = params[:tab].presence || "traditional"
+    @fde = params[:fde].present?
     base = Job.active.where(posted_at: @range_days.days.ago..Time.current)
-    base = case @tab
-    when "ai"       then base.ai_augmented_only
-    when "director" then base.agent_director
-    else                 base.traditional
+    # The FDE filter cuts across all three role classes (most FDE postings read
+    # as AI/agent roles), so it bypasses the tab's role_class filter and scopes
+    # the whole active set instead. Otherwise apply the selected tab.
+    base = if @fde
+      base.forward_deployed
+    else
+      case @tab
+      when "ai"       then base.ai_augmented_only
+      when "director" then base.agent_director
+      else                 base.traditional
+      end
     end
     base = base.search(params[:q]) if params[:q].present?
     base = base.by_skill(params[:skill]) if params[:skill].present?

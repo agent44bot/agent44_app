@@ -47,6 +47,20 @@ class Job < ApplicationRecord
   }
   scope :posted_today, -> { where(created_at: Time.current.beginning_of_day..Time.current.end_of_day) }
   scope :remote, -> { where("location LIKE ? OR location LIKE ? OR title LIKE ?", "%Remote%", "%Anywhere%", "%Remote%") }
+  # Forward-Deployed Engineer roles. The scraper has no FDE role_class, so match
+  # on title/description text. Cuts across all three role classes (most FDE
+  # postings read as AI/agent roles), so the /jobs FDE filter bypasses the tab.
+  # "FDE" (uppercase, word boundary via spaces/parens) catches the acronym; the
+  # spelled-out forms catch the rest.
+  scope :forward_deployed, -> {
+    where(
+      "LOWER(title) LIKE :fd OR LOWER(title) LIKE :fdh OR " \
+      "LOWER(description) LIKE :fd OR LOWER(description) LIKE :fdh OR " \
+      "title LIKE :fde1 OR title LIKE :fde2 OR title LIKE :fde3",
+      fd: "%forward deployed%", fdh: "%forward-deployed%",
+      fde1: "%(FDE)%", fde2: "% FDE %", fde3: "FDE %"
+    )
+  }
   scope :by_skill, ->(skill) {
     next all if skill.blank?
     pattern = SkillExtractor::PATTERNS[skill]
