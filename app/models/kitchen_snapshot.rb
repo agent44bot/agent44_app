@@ -286,7 +286,7 @@ class KitchenSnapshot < ApplicationRecord
         events: classes_ended_between(week_start - 7, week_start - 1) },
       { key: "thisweek",  label: "Current week",  kind: :forward, events: fwd.call(today, week_end) },
       { key: "nextweek",  label: "Next week",     kind: :forward, events: fwd.call(week_end + 1, week_end + 7) },
-      { key: "thismonth", label: mlabel.call(today),    kind: :forward, events: fwd.call(today, today.end_of_month) },
+      { key: "thismonth", label: "Rest of #{mlabel.call(today)}", kind: :forward, events: fwd.call(today, today.end_of_month) },
       { key: "nextmonth", label: mlabel.call(next_mo),  kind: :forward, events: fwd.call(next_mo.beginning_of_month, next_mo.end_of_month) },
       { key: "twomonths", label: mlabel.call(two_mo),   kind: :forward, events: fwd.call(two_mo.beginning_of_month, two_mo.end_of_month) },
       { key: "threemonths", label: mlabel.call(three_mo), kind: :forward, events: fwd.call(three_mo.beginning_of_month, three_mo.end_of_month) }
