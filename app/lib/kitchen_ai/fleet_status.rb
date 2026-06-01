@@ -99,7 +99,7 @@ module KitchenAi
     def social_agent(workspace, this_week_start)
       return nil unless workspace
       accounts = workspace.social_accounts.order(:platform).to_a
-      lines = ["Social Agent (drafts + publishes posts to connected accounts):"]
+      lines = ["Echo, the Social Agent (drafts + publishes posts to connected accounts):"]
 
       if accounts.empty?
         lines << "- No social accounts connected yet"

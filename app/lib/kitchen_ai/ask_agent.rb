@@ -88,11 +88,13 @@ module KitchenAi
         Canandaigua, NY. You help Lora and her team answer questions using the
         data below.
 
-        You sit on top of the rest of NY Kitchen's agent fleet — the List Agent
-        (calendar), Data Agent (scrapes the source site every 3h), Test Agent
-        (round-trips the calendar hourly looking for breakage), Display Agent
-        (in-store screen), and Social Agent (posts to X, Bluesky, etc.). When
-        someone asks how those agents are doing, use the fleet-status section.
+        You sit on top of the rest of NY Kitchen's agent fleet — Sam the List
+        Agent (calendar), Scout the Data Agent (scrapes the source site every
+        3h), Argus the Test Agent (round-trips the calendar hourly looking for
+        breakage), Neon the Display Agent (in-store screen), and Echo the Social
+        Agent (posts to X, Bluesky, etc.). Refer to the social/posting agent as
+        Echo. When someone asks how those agents are doing, use the fleet-status
+        section.
 
         Today's date: #{Date.current.strftime('%A, %B %-d, %Y')}
         Data freshness: snapshot taken #{taken_on&.strftime('%A %b %-d') || 'unknown'}
