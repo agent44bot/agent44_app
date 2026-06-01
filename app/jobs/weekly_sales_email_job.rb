@@ -46,7 +46,10 @@ class WeeklySalesEmailJob < ApplicationJob
 
   # The recap payload the mailer renders, derived from a snapshot. Class method
   # so both the scheduled run and a test send share one source of truth.
-  def self.build_summary(snapshot)
+  # carson: false skips the Carson intro (a paid Claude call) — used by the
+  # admin report preview so eyeballing the report doesn't burn tokens. The
+  # real Sunday send leaves it true.
+  def self.build_summary(snapshot, carson: true)
     today = Date.current
     # Include sold-out classes (their tickets are fully booked revenue) so the
     # headline matches the Analyst dashboard's "All upcoming" rollup.
@@ -101,7 +104,7 @@ class WeeklySalesEmailJob < ApplicationJob
       # Carson's "what's new this week" curated owner-facing changelog.
       changelog:        NykChangelog.recent(since: today - 7)
     }
-    data[:headline] = carson_intro(data) # Carson hosts the report
+    data[:headline] = carson ? carson_intro(data) : nil # Carson hosts the report (skipped on preview)
     data
   end
 

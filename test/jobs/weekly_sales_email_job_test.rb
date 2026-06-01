@@ -13,6 +13,21 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     )
   end
 
+  test "build_summary with carson: false produces no headline (no AI call)" do
+    snapshot = KitchenSnapshot.latest
+    # Stub carson_intro so a regression that calls it despite carson:false is
+    # caught even though carson_intro is a no-op in test env.
+    called = false
+    WeeklySalesEmailJob.define_singleton_method(:carson_intro) { |_| called = true; "INTRO" }
+    begin
+      summary = WeeklySalesEmailJob.build_summary(snapshot, carson: false)
+      assert_nil summary[:headline]
+      assert_not called, "carson_intro must not be called when carson: false"
+    ensure
+      WeeklySalesEmailJob.singleton_class.send(:remove_method, :carson_intro)
+    end
+  end
+
   test "skips sending when no workspace member has an email" do
     # Drop the email-bearing owner membership; leave only a Nostr member.
     @workspace.memberships.destroy_all

@@ -31,6 +31,8 @@ class KitchenMailerPreview < ActionMailer::Preview
     snapshot = KitchenSnapshot.latest
     return unless snapshot
 
-    KitchenMailer.weekly_sales(WeeklySalesEmailJob.build_summary(snapshot), recipients: [ "preview@example.com" ])
+    # carson: false — this mailer preview is for eyeballing layout; don't burn a
+    # Claude call (Carson's intro) every time it's viewed.
+    KitchenMailer.weekly_sales(WeeklySalesEmailJob.build_summary(snapshot, carson: false), recipients: [ "preview@example.com" ])
   end
 end

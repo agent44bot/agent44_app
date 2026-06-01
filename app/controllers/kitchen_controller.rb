@@ -73,7 +73,9 @@ class KitchenController < ApplicationController
     head :not_found and return unless Current.user&.admin?
     snapshot = KitchenSnapshot.latest
     head :not_found and return unless snapshot
-    summary = WeeklySalesEmailJob.build_summary(snapshot)
+    # Preview skips Carson's AI intro so repeatedly viewing the report doesn't
+    # burn Claude tokens; only the real Sunday send pays for it.
+    summary = WeeklySalesEmailJob.build_summary(snapshot, carson: false)
     html = KitchenMailer.weekly_sales(summary, recipients: [ "preview@agent44labs.com" ]).html_part.body.to_s
     render html: html.html_safe, layout: false, content_type: "text/html"
   end
