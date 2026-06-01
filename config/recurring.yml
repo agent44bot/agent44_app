@@ -29,7 +29,7 @@ production:
   # Email Rich the day's new top matches (after ranking).
   job_match_digest:
     class: JobMatchDigestJob
-    schedule: every day at 8am
+    schedule: every day at 8:01am
   kitchen_digest_email:
     class: KitchenDigestEmailJob
     schedule: every day at 10am

@@ -7,14 +7,14 @@ candidate:
   email: botwhisperer@hey.com
   location: Rochester, NY
 
-# Pragmatic bias (his call): AI-augmented QA is the highest-ROI realistic target
-# — 25 yrs SDET = instant credibility + the most listings. Agent-engineer roles
-# are the dream (rarer); kept high AND additionally flagged via dream_keywords so
-# they float to the top. Pure test automation is the safety net.
+# Priority (his call, 2026-06-01): lead with agent/AI-engineer + Forward-Deployed
+# Engineer roles — that's now the target. agent_director ranks highest; AI-augmented
+# QA is the strong fallback (25 yrs SDET = instant credibility, most listings);
+# pure test automation is the safety net. FDE/agent terms also get the dream bonus.
 role_class_weights:
-  ai_augmented: 40
-  agent_director: 36
-  traditional: 22
+  agent_director: 40
+  ai_augmented: 34
+  traditional: 20
 
 # Skill overlap: each skill found (word-boundary) in title+description counts;
 # up to 8 contribute to the score. Lowercase.
@@ -80,7 +80,7 @@ seniority_keywords: [senior, principal, staff, lead, architect, sdet]
 gap_keywords: [java, "c#", ".net", kotlin, swift, scala, golang, rust, kubernetes, k8s, terraform]
 
 # Presence flags a role as a 'dream/stretch' true agent-engineering job.
-dream_keywords: [ai agent, agentic, autonomous agent, llm agent, agent engineer, multi-agent, agent framework, ai engineer]
+dream_keywords: [ai agent, agentic, autonomous agent, llm agent, agent engineer, multi-agent, agent framework, ai engineer, forward deployed, forward-deployed, forward deployed engineer, fde]
 
 remote_preference: strong            # Rochester, NY — remote strongly preferred
 employment_open: [full_time, part_time, contract]  # PT/contract OK to ease the transition
