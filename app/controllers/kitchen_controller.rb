@@ -924,6 +924,11 @@ class KitchenController < ApplicationController
     snapshot = KitchenSnapshot.latest
     @hub_events_total    = snapshot ? snapshot.kitchen_events.upcoming.count : 0
     @hub_events_updated  = snapshot&.taken_on
+    # Genuine sellouts among upcoming classes ("SoldOut", not the "Closed" sales
+    # cutoff) → the "sold-out percentage" Sam's card advertises. SQL counts, no
+    # event load. Iris owns revenue %; Sam owns availability.
+    @hub_events_sold_out = snapshot ? snapshot.kitchen_events.upcoming.where("LOWER(availability) LIKE ?", "%soldout%").count : 0
+    @hub_events_sold_out_pct = @hub_events_total.positive? ? (100.0 * @hub_events_sold_out / @hub_events_total).round : nil
     # Tickets sold since yesterday's snapshot. Only meaningful when the
     # latest snapshot was taken today — otherwise it'd be reporting a
     # delta from two days ago, not "today".

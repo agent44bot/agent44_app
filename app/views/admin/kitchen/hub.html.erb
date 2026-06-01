@@ -243,6 +243,17 @@
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:list]) %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:list) %></div>
       <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
+      <div class="flex-1 flex items-center justify-center py-3">
+        <div class="text-center">
+          <div class="text-3xl font-black text-white tabular-nums">
+            <%= @hub_events_sold_out_pct.nil? ? "—" : "#{@hub_events_sold_out_pct}%" %>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-1">of upcoming classes sold out</div>
+          <% if @hub_events_sold_out_pct %>
+            <div class="text-xs text-gray-500 mt-1 tabular-nums"><%= @hub_events_sold_out %> of <%= @hub_events_total %> classes</div>
+          <% end %>
+        </div>
+      </div>
       <div class="<%= stats_class %>">
         <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
         <% if @hub_events_updated %>
