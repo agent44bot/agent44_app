@@ -243,6 +243,19 @@
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:list]) %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:list) %></div>
       <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
+      <div class="<%= stats_class %>">
+        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
+        <% if @hub_events_updated %>
+          <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# Analyst / Iris (no liveness dot — it's a dashboard, not a worker) %>
+    <%= link_to nyk_analyst_path, class: "ra-card", style: accent_style.call(:analyst) do %>
+      <span class="ra-corner"><span class="ra-chev">▶</span></span>
+      <div class="ra-head"><%= agent_ident.call(:analyst) %></div>
+      <p class="<%= desc_class %>">Sales &amp; revenue trends — what's sold, what's left to sell, and where the money's still on the table.</p>
       <div class="flex-1 flex items-center justify-center py-3">
         <div class="text-center">
           <div class="text-3xl font-black text-white tabular-nums">
@@ -265,19 +278,6 @@
           <% end %>
         </div>
       </div>
-      <div class="<%= stats_class %>">
-        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
-        <% if @hub_events_updated %>
-          <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Analyst / Iris (no liveness dot — it's a dashboard, not a worker) %>
-    <%= link_to nyk_analyst_path, class: "ra-card", style: accent_style.call(:analyst) do %>
-      <span class="ra-corner"><span class="ra-chev">▶</span></span>
-      <div class="ra-head"><%= agent_ident.call(:analyst) %></div>
-      <p class="<%= desc_class %>">Sales &amp; revenue trends — what's sold, what's left to sell, and where the money's still on the table.</p>
       <div class="<%= stats_class %>">
         <div class="text-gray-300">📬 Weekly recap · <span class="text-gray-400">Fridays 6:00 AM ET</span></div>
       </div>
