@@ -36,7 +36,7 @@ export default class extends Controller {
       this._maybeShowIdeaCallout()
     } else {
       panel.classList.add("hidden")
-      this.toggleBtnTarget.textContent = "Send to Echo"
+      this.toggleBtnTarget.textContent = "📣 Send to Echo"
     }
   }
 
