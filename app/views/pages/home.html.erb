@@ -371,8 +371,13 @@
 <%# QR Code — mobile only, pinned at the very bottom of the page. Scroll down
     and show your phone to another phone to scan: /get routes iPhones to the
     App Store, everyone else to the website. Desktop shows the QR in the hero
-    sidebar instead. js-web-only so it's hidden inside the native app. %>
-<section class="sm:hidden border-t border-gray-800 js-web-only">
+    sidebar instead.
+    Visibility: on the web it shows for everyone (js-web-only, stripped inside
+    the native app). For the site admin (botwhisperer) we DROP js-web-only so it
+    also survives inside the iOS app — a personal "scan my screen to grab the
+    app" tool for sharing with friends. Other app users (e.g. Lora) don't see
+    it in-app. %>
+<section class="sm:hidden border-t border-gray-800 <%= "js-web-only" unless Current.user&.admin? %>">
   <div class="px-6 py-10 flex justify-center">
     <%= render "shared/qr_code_hero" %>
   </div>
