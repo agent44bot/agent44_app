@@ -391,17 +391,43 @@
       </div>
     <% end %>
 
-    <%# Test / Argus %>
-    <%= link_to nyk_test_path, class: "ra-card", style: accent_style.call(:test) do %>
+    <%# Test / Argus. The card body links to the test page, but the "Watch
+        recording" button opens the last run's video inline (video-modal) — so
+        it can't be a nested <a>. Wrapper is a div, body is the link (Carson
+        pattern). %>
+    <div class="ra-card" style="<%= accent_style.call(:test) %>" data-controller="video-modal">
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:test]) %><span class="ra-chev">▶</span></span>
-      <div class="ra-head"><%= agent_ident.call(:test) %></div>
-      <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
+      <%= link_to nyk_test_path, class: "block flex-1" do %>
+        <div class="ra-head"><%= agent_ident.call(:test) %></div>
+        <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
+      <% end %>
       <div class="<%= stats_class %>">
         <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last_finished %> <%= time_ago_in_words(@hub_smoke_last_finished.started_at) %> ago<% end %></div>
         <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
         <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
+        <% if @hub_smoke_last_finished&.video&.attached? %>
+          <button type="button"
+                  data-action="click->video-modal#open"
+                  data-video-modal-src-param="<%= url_for(@hub_smoke_last_finished.video) %>"
+                  class="mt-1 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-medium">
+            ▶ Watch last recording (<%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>)
+          </button>
+        <% end %>
       </div>
-    <% end %>
+
+      <dialog data-video-modal-target="dialog"
+              data-action="click->video-modal#backdropClose"
+              class="bg-transparent backdrop:bg-black/80 p-0 max-w-4xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
+        <div class="bg-gray-900 rounded-xl p-4">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-semibold text-gray-400">Argus — last smoke recording</h3>
+            <button type="button" data-action="click->video-modal#close"
+                    class="text-gray-500 hover:text-white text-lg">&times;</button>
+          </div>
+          <video data-video-modal-target="video" controls class="rounded-lg w-full" preload="metadata"></video>
+        </div>
+      </dialog>
+    </div>
 
     <%# Cellar — storage-room wine & spirits inventory. Not a roster worker (no
         codename/liveness dot); links straight to the live stock view. %>
