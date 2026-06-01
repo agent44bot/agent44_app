@@ -988,6 +988,10 @@ class KitchenController < ApplicationController
     # actually broadcasting. nil when nothing's been posted yet.
     @hub_last_post = @nyk_workspace&.workspace_posts&.posted&.order(posted_at: :desc)&.first
 
+    # Iris mini "sales by day of week" sparkline — 6-week avg per weekday
+    # (Sun..Sat). Tiny CSS bars on the hub card; full chart lives on /analyst.
+    @hub_dow_avg = KitchenSnapshot.tickets_sold_by_wday
+
     @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
     @hub_agent_status = {
       list:    list_agent_status,
