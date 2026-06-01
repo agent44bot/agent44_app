@@ -15,8 +15,8 @@
 
   <tr><td style="border-top:4px solid <%= accent %>;padding:24px 30px 12px">
     <div style="font-family:<%= serif %>;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:<%= accent %>;font-weight:bold">Your Job Matches</div>
-    <div style="font-family:<%= serif %>;font-size:25px;font-weight:bold;color:<%= ink %>;margin-top:3px"><%= @matches.size %> new <%= "match".pluralize(@matches.size) %> today</div>
-    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px">Ranked for <%= @profile["name"] %>. AI-augmented QA first, agent roles flagged ★, automation as backstop.</div>
+    <div style="font-family:<%= serif %>;font-size:25px;font-weight:bold;color:<%= ink %>;margin-top:3px">Your top <%= @matches.size %> <%= "match".pluralize(@matches.size) %><% if @fresh_count.to_i.positive? %> &middot; <%= @fresh_count %> new today<% end %></div>
+    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px">Ranked for <%= @profile["name"] %>. Agent &amp; AI-engineer roles first (flagged ★), AI-augmented QA next, automation as backstop.</div>
   </td></tr>
 
   <% @matches.each do |m| %>
@@ -37,6 +37,9 @@
             <td style="vertical-align:top;text-align:right;width:56px">
               <div style="font-family:<%= mono %>;font-size:24px;font-weight:bold;color:<%= m.score >= 85 ? green : accent %>"><%= m.score %></div>
               <div style="font-family:<%= sans %>;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:<%= faint %>">match</div>
+              <% if @fresh_ids.include?(m.id) %>
+                <div style="margin-top:5px"><span style="font-family:<%= sans %>;font-size:8px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;color:#fff;background:<%= green %>;border-radius:9px;padding:2px 6px">New</span></div>
+              <% end %>
             </td>
           </tr></table>
 

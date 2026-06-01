@@ -1,10 +1,10 @@
 <% role = { "agent_director" => "AI Agent", "ai_augmented" => "AI-Augmented QA", "traditional" => "Test Automation" } -%>
-YOUR JOB MATCHES: <%= @matches.size %> new <%= "match".pluralize(@matches.size) %> today
-Ranked for <%= @profile["name"] %> (AI-augmented QA first; ★ = dream/agent role)
+YOUR JOB MATCHES: top <%= @matches.size %> <%= "match".pluralize(@matches.size) %><%= @fresh_count.to_i.positive? ? " (#{@fresh_count} new today)" : "" %>
+Ranked for <%= @profile["name"] %> (agent & AI-engineer roles first; ★ = dream/agent role)
 
 <% @matches.each_with_index do |m, i| -%>
 <% job = m.job -%>
-[<%= m.score %>] <%= m.is_dream ? "★ " : "" %><%= job.title %> · <%= job.company %>
+[<%= m.score %>]<%= @fresh_ids.include?(m.id) ? " [NEW]" : "" %> <%= m.is_dream ? "★ " : "" %><%= job.title %> · <%= job.company %>
     <%= role[job.role_class] || job.role_class %><%= job.location.present? ? " · #{job.location}" : "" %><%= job.salary.present? ? " · #{job.salary}" : "" %>
 <% if m.why.present? -%>
     Why it fits: <%= m.why %>
