@@ -74,14 +74,6 @@
           <%= render "shared/app_store_badge" %>
         </div>
 
-        <%# QR Code — mobile only (desktop shows it in the hero sidebar below).
-            Lets someone show their phone screen to another phone to scan it:
-            /get routes iPhones to the App Store, everyone else to the site.
-            js-web-only so it's hidden inside the native app. %>
-        <div class="sm:hidden mt-8 js-web-only">
-          <%= render "shared/qr_code_hero" %>
-        </div>
-
         <% if false # Hidden for now — bring back later %>
         <div class="mt-6 sm:mt-8 flex flex-col items-start justify-start gap-4">
           <%# Face ID button — shown on mobile native when available %>
@@ -375,6 +367,16 @@
   </div>
 </section>
 <% end %>
+
+<%# QR Code — mobile only, pinned at the very bottom of the page. Scroll down
+    and show your phone to another phone to scan: /get routes iPhones to the
+    App Store, everyone else to the website. Desktop shows the QR in the hero
+    sidebar instead. js-web-only so it's hidden inside the native app. %>
+<section class="sm:hidden border-t border-gray-800 js-web-only">
+  <div class="px-6 py-10 flex justify-center">
+    <%= render "shared/qr_code_hero" %>
+  </div>
+</section>
 
 <% if false # Hidden for now — bring back later %>
 <!-- Contact CTA -->
