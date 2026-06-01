@@ -304,6 +304,32 @@
         <%= agent_ident.call(:social) %>
       <% end %>
       <p class="<%= desc_class %>">Drafts and posts to your connected social accounts. Hand off a class with one click.</p>
+
+      <%# Last published post (any account) — fills the middle and shows Echo is
+          actually broadcasting. Links to the post on its platform. %>
+      <% if @hub_last_post %>
+        <div class="flex-1 flex items-center py-2">
+          <% post_url = @hub_last_post.social_account ? platform_profile_url.call(@hub_last_post.social_account) : social_href %>
+          <%= link_to post_url,
+                target: (@hub_last_post.social_account ? "_blank" : nil), rel: "noopener",
+                class: "block w-full rounded-lg bg-gray-800/40 border border-gray-800 p-3 hover:border-gray-700 transition" do %>
+            <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-1.5">
+              <span class="uppercase tracking-wide text-purple-300/80 font-semibold"><%= @hub_last_post.platform.capitalize %></span>
+              <span>·</span>
+              <span>Last post <%= time_ago_in_words(@hub_last_post.posted_at || @hub_last_post.created_at) %> ago</span>
+            </div>
+            <p class="text-sm text-gray-300 line-clamp-3"><%= @hub_last_post.body %></p>
+            <% if (@hub_last_post.likes + @hub_last_post.reposts + @hub_last_post.replies).positive? %>
+              <div class="flex items-center gap-3 text-xs text-gray-500 mt-2 tabular-nums">
+                <span>♥ <%= @hub_last_post.likes %></span>
+                <span>🔁 <%= @hub_last_post.reposts %></span>
+                <span>💬 <%= @hub_last_post.replies %></span>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="<%= stats_class %>">
         <% if @nyk_workspace %>
           <% connected   = @nyk_workspace.social_accounts.active.order(:platform).to_a %>
@@ -336,9 +362,30 @@
     <%= link_to nyk_display_settings_path, class: "ra-card", style: accent_style.call(:display) do %>
       <span class="ra-corner"><% if @hub_agent_status[:display] %><%= agent_dot.call(@hub_agent_status[:display], @hub_agent_status[:display] == :running ? "Carousel live at NY Kitchen" : "Carousel NOT running at NY Kitchen") %><% end %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:display) %></div>
+      <% display_agent = @workspace_agents["display"] %>
       <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically. Also prints a paper schedule for the front desk.</p>
+
+      <%# Primary action centered in the card's middle (was pinned to the
+          bottom, leaving dead space). Opens the print page (front-desk flyer);
+          its toolbar switches to the stall poster. preventDefault in the
+          print-schedule controller stops the surrounding card link. %>
+      <div class="flex-1 flex flex-col items-center justify-center py-3">
+        <span role="button" tabindex="0"
+              title="Front-desk flyer and bathroom-stall poster; pick either on the print page"
+              data-controller="print-schedule"
+              data-print-schedule-url-value="<%= nyk_display_print_path %>"
+              data-action="click->print-schedule#open keydown.enter->print-schedule#open"
+              class="w-full justify-center inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
+          🖨 Print flyers
+        </span>
+        <% if Current.user&.admin? %>
+          <div class="text-xs text-gray-500 mt-1.5 tabular-nums" title="Total flyer/poster print-page opens (admin only)">
+            🖨 <%= @hub_flyer_prints.to_i %> <%= "print".pluralize(@hub_flyer_prints.to_i) %> all-time
+          </div>
+        <% end %>
+      </div>
+
       <div class="<%= stats_class %>">
-        <% display_agent = @workspace_agents["display"] %>
         <%# Screen liveness (private mode only — see display_agent_status).
             Red = the carousel isn't playing on the NY Kitchen screen. %>
         <% case @hub_agent_status[:display] %>
@@ -348,25 +395,6 @@
           <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
-        <%# One entry point to printing. Opens the print page (front-desk flyer);
-            its top toolbar switches to the bathroom-stall poster, and either
-            prints from there. preventDefault in the print-schedule controller
-            stops the surrounding card link from firing. %>
-        <div class="mt-2">
-          <span role="button" tabindex="0"
-                title="Front-desk flyer and bathroom-stall poster; pick either on the print page"
-                data-controller="print-schedule"
-                data-print-schedule-url-value="<%= nyk_display_print_path %>"
-                data-action="click->print-schedule#open keydown.enter->print-schedule#open"
-                class="w-full justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
-            🖨 Print flyers
-          </span>
-        </div>
-        <% if Current.user&.admin? %>
-          <div class="text-xs text-gray-500 mt-1.5 tabular-nums" title="Total flyer/poster print-page opens (admin only)">
-            🖨 <%= @hub_flyer_prints.to_i %> <%= "print".pluralize(@hub_flyer_prints.to_i) %> all-time
-          </div>
-        <% end %>
       </div>
     <% end %>
 
@@ -411,29 +439,31 @@
           play overlay — tap to watch the test play inline. Gray placeholder
           when no thumbnail. Sits in the card's middle; opens the video-modal. %>
       <% if @hub_smoke_last_finished&.video&.attached? %>
-        <div class="flex-1 flex items-center py-3">
+        <%# Compact recording tile — capped width so it doesn't stretch the
+            equal-height grid row (auto-rows-fr). Centered. %>
+        <div class="flex items-center py-2">
           <button type="button"
                   data-action="click->video-modal#open"
                   data-video-modal-src-param="<%= url_for(@hub_smoke_last_finished.video) %>"
-                  class="group relative block w-full rounded-lg overflow-hidden border border-gray-700 bg-gray-950 aspect-video cursor-pointer"
+                  class="group relative block w-full max-w-[200px] rounded-lg overflow-hidden border border-gray-700 bg-gray-950 aspect-video cursor-pointer"
                   aria-label="Watch last smoke recording (<%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>)">
             <% if @hub_smoke_last_finished.thumbnail.attached? %>
               <img src="<%= url_for(@hub_smoke_last_finished.thumbnail) %>"
                    class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition"
                    alt="Last smoke recording">
             <% else %>
-              <div class="absolute inset-0 flex items-center justify-center text-gray-600 text-5xl">🖥</div>
+              <div class="absolute inset-0 flex items-center justify-center text-gray-600 text-3xl">🖥</div>
             <% end %>
             <%# Scrim: darkens the image so the play button + label stay legible
                 over any screenshot (bright calendar or dark). %>
             <span class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10"></span>
             <span class="absolute inset-0 flex items-center justify-center">
-              <span class="flex items-center justify-center w-14 h-14 rounded-full bg-white/95 shadow-lg group-hover:bg-white group-hover:scale-105 transition">
-                <span class="text-gray-900 text-2xl ml-1">▶</span>
+              <span class="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 shadow-lg group-hover:bg-white group-hover:scale-105 transition">
+                <span class="text-gray-900 text-base ml-0.5">▶</span>
               </span>
             </span>
-            <span class="absolute bottom-2 left-2.5 text-xs font-semibold px-1.5 py-0.5 rounded <%= @hub_smoke_last_finished.passed? ? "text-green-300 bg-green-900/60" : "text-red-300 bg-red-900/60" %>">
-              Last run <%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>
+            <span class="absolute bottom-1 left-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded <%= @hub_smoke_last_finished.passed? ? "text-green-300 bg-green-900/70" : "text-red-300 bg-red-900/70" %>">
+              <%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>
             </span>
           </button>
         </div>

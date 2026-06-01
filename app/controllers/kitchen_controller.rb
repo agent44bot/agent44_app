@@ -984,6 +984,10 @@ class KitchenController < ApplicationController
     # Neon flyer/poster print count — admin-only readout on the Display card.
     @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total") if Current.user&.admin?
 
+    # Echo's last published post (any connected account) — shows the card is
+    # actually broadcasting. nil when nothing's been posted yet.
+    @hub_last_post = @nyk_workspace&.workspace_posts&.posted&.order(posted_at: :desc)&.first
+
     @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
     @hub_agent_status = {
       list:    list_agent_status,
