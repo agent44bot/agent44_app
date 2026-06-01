@@ -960,7 +960,7 @@ class KitchenController < ApplicationController
     @hub_smoke_last       = nav.recent.first
     # Most-recent FINISHED row for the headline "Passed N ago" line — we
     # don't want a momentary in-flight row to wipe out the last result.
-    @hub_smoke_last_finished = nav.finished.recent.with_attached_video.first
+    @hub_smoke_last_finished = nav.finished.recent.with_attached_video.with_attached_thumbnail.first
     @hub_smoke_total      = nav.finished.count
     @hub_smoke_failed_30d = nav.where("started_at >= ?", 30.days.ago).where(status: "failed").count
     @hub_smoke_runs_30d   = nav.finished.where("started_at >= ?", 30.days.ago).count

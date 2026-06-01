@@ -402,22 +402,47 @@
         pattern). %>
     <div class="ra-card" style="<%= accent_style.call(:test) %>" data-controller="video-modal">
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:test]) %><span class="ra-chev">▶</span></span>
-      <%= link_to nyk_test_path, class: "block flex-1" do %>
+      <%= link_to nyk_test_path, class: "block" do %>
         <div class="ra-head"><%= agent_ident.call(:test) %></div>
         <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
       <% end %>
+
+      <%# Clickable recording thumbnail (poster still from the last run) with a
+          play overlay — tap to watch the test play inline. Gray placeholder
+          when no thumbnail. Sits in the card's middle; opens the video-modal. %>
+      <% if @hub_smoke_last_finished&.video&.attached? %>
+        <div class="flex-1 flex items-center py-3">
+          <button type="button"
+                  data-action="click->video-modal#open"
+                  data-video-modal-src-param="<%= url_for(@hub_smoke_last_finished.video) %>"
+                  class="group relative block w-full rounded-lg overflow-hidden border border-gray-700 bg-gray-950 aspect-video cursor-pointer"
+                  aria-label="Watch last smoke recording (<%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>)">
+            <% if @hub_smoke_last_finished.thumbnail.attached? %>
+              <img src="<%= url_for(@hub_smoke_last_finished.thumbnail) %>"
+                   class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition"
+                   alt="Last smoke recording">
+            <% else %>
+              <div class="absolute inset-0 flex items-center justify-center text-gray-600 text-5xl">🖥</div>
+            <% end %>
+            <%# Scrim: darkens the image so the play button + label stay legible
+                over any screenshot (bright calendar or dark). %>
+            <span class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10"></span>
+            <span class="absolute inset-0 flex items-center justify-center">
+              <span class="flex items-center justify-center w-14 h-14 rounded-full bg-white/95 shadow-lg group-hover:bg-white group-hover:scale-105 transition">
+                <span class="text-gray-900 text-2xl ml-1">▶</span>
+              </span>
+            </span>
+            <span class="absolute bottom-2 left-2.5 text-xs font-semibold px-1.5 py-0.5 rounded <%= @hub_smoke_last_finished.passed? ? "text-green-300 bg-green-900/60" : "text-red-300 bg-red-900/60" %>">
+              Last run <%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>
+            </span>
+          </button>
+        </div>
+      <% end %>
+
       <div class="<%= stats_class %>">
         <div class="<%= smoke_status_color %> font-semibold"><%= smoke_status_label %><% if @hub_smoke_last_finished %> <%= time_ago_in_words(@hub_smoke_last_finished.started_at) %> ago<% end %></div>
         <div class="text-gray-400"><span class="<%= fail_rate_color %> font-semibold"><%= @hub_smoke_fail_rate_30d %>%</span> fail rate (30d)</div>
         <div class="text-gray-500">Worked <%= humanize_minutes.call(@hub_smoke_total_minutes) %> · <%= @hub_smoke_total %> runs<% if @can_see_pricing %> · $<%= "%.2f" % @hub_smoke_cost_total %><% end %></div>
-        <% if @hub_smoke_last_finished&.video&.attached? %>
-          <button type="button"
-                  data-action="click->video-modal#open"
-                  data-video-modal-src-param="<%= url_for(@hub_smoke_last_finished.video) %>"
-                  class="mt-1 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-medium">
-            ▶ Watch last recording (<%= @hub_smoke_last_finished.passed? ? "passed" : "failed" %>)
-          </button>
-        <% end %>
       </div>
 
       <dialog data-video-modal-target="dialog"
