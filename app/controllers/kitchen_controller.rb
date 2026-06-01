@@ -970,6 +970,11 @@ class KitchenController < ApplicationController
     @hub_scrape_total        = scrape.finished.count
     @hub_scrape_cost_total   = scrape.sum(:cost_dollars)
     @hub_scrape_total_minutes = (scrape.sum(:duration_ms) / 60_000.0).round
+    # Scout's work product: calendar changes it detected this week (added /
+    # removed / price changes vs the snapshot ~7 days ago). Same builder the
+    # weekly report uses; this is what "powers ticket-change alerts" means.
+    @hub_scrape_churn = KitchenSnapshot.calendar_churn(Date.current - 7)
+    @hub_scrape_changes = @hub_scrape_churn.values.sum
 
     @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
     @hub_agent_status = {

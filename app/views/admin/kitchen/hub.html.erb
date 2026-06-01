@@ -370,6 +370,17 @@
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:data]) %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:data) %></div>
       <p class="<%= desc_class %>">Snapshots the calendar every three hours — feeds Sam and powers ticket-change alerts.</p>
+      <div class="flex-1 flex items-center justify-center py-3">
+        <div class="text-center">
+          <div class="text-3xl font-black text-white tabular-nums"><%= @hub_scrape_changes %></div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-1">changes detected this week</div>
+          <% if @hub_scrape_changes.to_i.positive? %>
+            <div class="text-xs text-gray-500 mt-1 tabular-nums">
+              <%= @hub_scrape_churn[:added] %> added · <%= @hub_scrape_churn[:removed] %> removed · <%= @hub_scrape_churn[:price_changes] %> price
+            </div>
+          <% end %>
+        </div>
+      </div>
       <div class="<%= stats_class %>">
         <% if @hub_scrape_last_finished %>
           <div class="text-green-400 font-semibold">✓ Last snapshot <%= time_ago_in_words(@hub_scrape_last_finished.started_at) %> ago</div>
