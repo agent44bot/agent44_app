@@ -362,6 +362,11 @@
             🖨 Print flyers
           </span>
         </div>
+        <% if Current.user&.admin? %>
+          <div class="text-xs text-gray-500 mt-1.5 tabular-nums" title="Total flyer/poster print-page opens (admin only)">
+            🖨 <%= @hub_flyer_prints.to_i %> <%= "print".pluralize(@hub_flyer_prints.to_i) %> all-time
+          </div>
+        <% end %>
       </div>
     <% end %>
 

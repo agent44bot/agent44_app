@@ -329,6 +329,10 @@ class KitchenController < ApplicationController
     @last_updated = snapshot&.taken_on
     # Photos default on for both layouts; ?photos=0 prints a leaner text-only run.
     @show_photos = params[:photos].to_s != "0"
+    # Count flyer/poster prints (admin-only readout on the Neon hub card). Bump
+    # per print-page open; tracked per variant + a combined total.
+    Setting.increment("nyk_flyer_prints:total")
+    Setting.increment("nyk_flyer_prints:#{@variant}")
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
     render template, layout: false
   end
@@ -971,10 +975,14 @@ class KitchenController < ApplicationController
     @hub_scrape_cost_total   = scrape.sum(:cost_dollars)
     @hub_scrape_total_minutes = (scrape.sum(:duration_ms) / 60_000.0).round
     # Scout's work product: calendar changes it detected this week (added /
-    # removed / price changes vs the snapshot ~7 days ago). Same builder the
-    # weekly report uses; this is what "powers ticket-change alerts" means.
-    @hub_scrape_churn = KitchenSnapshot.calendar_churn(Date.current - 7)
+    # removed / price changes). Same builder the weekly report uses; this is
+    # what "powers ticket-change alerts" means. "This week" = Mon–Sun (Lora's
+    # convention, matches the analyst page), so the count resets each Monday.
+    @hub_scrape_churn = KitchenSnapshot.calendar_churn(Date.current.beginning_of_week(:monday))
     @hub_scrape_changes = @hub_scrape_churn.values.sum
+
+    # Neon flyer/poster print count — admin-only readout on the Display card.
+    @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total") if Current.user&.admin?
 
     @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
     @hub_agent_status = {
