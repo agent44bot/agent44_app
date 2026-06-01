@@ -7,6 +7,16 @@ Rails.application.routes.draw do
 
   get "lab", to: "pages#lab"
   get "privacy", to: "pages#privacy"
+  # QR-code smart redirect: iOS -> App Store, everyone else -> website.
+  # Handled at the routing layer (not a controller action) so it runs before
+  # the app-wide `allow_browser` gate — the iOS Camera/QR preview sends a short
+  # UA that allow_browser would 406. Routing redirect bypasses that entirely.
+  # status 302 (not the redirect{} default 301): the target depends on the
+  # User-Agent, so it must never be cached — every scan re-evaluates.
+  get "get", as: :get_app, to: redirect(status: 302) { |_params, req|
+    ios = req.user_agent.to_s.match?(/iPhone|iPad|iPod/i)
+    ios ? "https://apps.apple.com/app/id6762046812" : "https://agent44labs.ai"
+  }
 
   resource :session do
     post :challenge, on: :collection

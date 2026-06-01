@@ -15,11 +15,12 @@ class WellKnownController < ApplicationController
         details: [
           # Legacy format (older iOS) + modern components — belt-and-suspenders
           # so the magic link (/sign_in/link) reliably opens the app.
-          { "appID" => APP_ID, "paths" => ["/sign_in/*"] },
+          { "appID" => APP_ID, "paths" => ["/sign_in/*", "/get"] },
           {
             "appIDs" => [APP_ID],
             "components" => [
-              { "/" => "/sign_in/*", "comment" => "passwordless magic link opens the app" }
+              { "/" => "/sign_in/*", "comment" => "passwordless magic link opens the app" },
+              { "/" => "/get", "comment" => "QR smart-link opens the app if installed (needs app build claiming /get)" }
             ]
           }
         ]
