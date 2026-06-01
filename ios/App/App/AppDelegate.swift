@@ -68,6 +68,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+        // QR smart-link: /get is a device router on the web (iOS -> App Store,
+        // others -> website). If we're handling its Universal Link here, the app
+        // is already installed and opening, which is the whole goal — so just
+        // swallow it. Do NOT hand /get to the Capacitor proxy: that would try to
+        // navigate the WKWebView to /get, which redirects to the App Store /
+        // website *inside* the app. Everything else (e.g. the /sign_in/* magic
+        // link) flows through to Capacitor exactly as before.
+        if let url = userActivity.webpageURL, url.path == "/get" {
+            return true
+        }
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 

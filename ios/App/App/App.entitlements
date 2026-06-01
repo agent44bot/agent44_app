@@ -8,6 +8,10 @@
 	<array>
 		<string>applinks:agent44labs.com</string>
 		<string>webcredentials:agent44labs.com</string>
+		<!-- agent44labs.ai hosts the QR smart-link (/get). Claim it so an
+		     installed app opens directly instead of going to the App Store.
+		     The AASA at agent44labs.ai already lists /get for this appID. -->
+		<string>applinks:agent44labs.ai</string>
 	</array>
 </dict>
 </plist>
