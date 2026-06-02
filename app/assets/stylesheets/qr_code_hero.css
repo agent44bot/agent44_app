@@ -33,13 +33,13 @@
 /* Desktop: QR code appears in hero sidebar */
 @media (min-width: 641px) {
   .qr-code-svg-wrapper {
-    width: 180px;
-    height: 180px;
+    width: 90px;
+    height: 90px;
     max-width: 100%;
   }
 
   .qr-code-container {
-    width: 100%;
+    width: auto;
   }
 }
 

@@ -99,13 +99,12 @@
         <% end %>
       </div>
 
-      <%# QR Code — desktop only on hero, centered vertically for conference booth scanning %>
-      <div class="hidden sm:flex sm:col-span-2 sm:col-start-7 sm:items-center justify-center min-h-[400px]">
-        <%= render "shared/qr_code_hero" %>
-      </div>
-
-      <%# Agents — desktop only, pinned to the lower-right corner of the hero block %>
-      <div class="hidden sm:block sm:col-span-2 sm:col-start-9 sm:self-end space-y-4">
+      <%# Right column (desktop) — small QR tucked in the top-right corner, agents
+          below. QR is a secondary CTA; the App Store badge on the left is primary. %>
+      <div class="hidden sm:block sm:col-span-4 sm:col-start-7 space-y-4">
+        <div class="flex justify-end">
+          <%= render "shared/qr_code_hero" %>
+        </div>
         <% if @agents.present? %>
           <%= render "shared/agent_profiles", agents: @agents %>
         <% end %>
