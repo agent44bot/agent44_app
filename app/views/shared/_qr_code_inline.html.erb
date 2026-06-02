@@ -1,14 +1,15 @@
-<%# Compact inline QR — sized to sit beside the App Store badge (same height).
-    Encodes the smart redirect (/get): iOS -> App Store, others -> website.
-    Caption sits to the right so the whole thing stays one badge-height row. %>
-<% qr = RQRCode::QRCode.new("https://agent44labs.ai/get", size: 10, level: :h) %>
+<%# Inline QR beside the App Store badge. Encodes the smart redirect (/get):
+    iOS -> App Store, others -> website. Sized ~130px (≈4px/module) and uses
+    :m error-correction (fewer modules = larger, more scannable) so phone
+    cameras trigger reliably. Taller than the badge; centered alongside it. %>
+<% qr = RQRCode::QRCode.new("https://agent44labs.ai/get", size: 6, level: :m) %>
 <% module_count = qr.modules.length %>
 <a href="https://agent44labs.ai/get" target="_blank" rel="noopener"
-   class="inline-flex items-center gap-2.5"
+   class="inline-flex items-center gap-3"
    aria-label="Scan or tap to visit agent44labs.ai">
-  <span class="bg-white rounded-xl p-1.5 shrink-0" style="height:58px;width:58px">
+  <span class="bg-white rounded-xl p-2 shrink-0" style="height:150px;width:150px">
     <svg viewBox="0 0 <%= module_count %> <%= module_count %>" class="w-full h-full block"
-         style="image-rendering:pixelated" xmlns="http://www.w3.org/2000/svg">
+         style="image-rendering:pixelated" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
       <rect width="<%= module_count %>" height="<%= module_count %>" fill="#fff"/>
       <% qr.modules.each_with_index do |row, y| %>
         <% row.each_with_index do |on, x| %>
