@@ -43,6 +43,9 @@ class ApplicationController < ActionController::Base
     return unless authenticated?
     return if Current.user&.admin?
     path = request.path
+    # The marketing home (root) is public — let signed-in non-admins (Lora and
+    # anyone she invites to a workspace) see it too, e.g. to scan the share QR.
+    return if path == "/"
     return if WORKSPACE_ALLOWED_PREFIXES.any? { |prefix| path == prefix || path.start_with?("#{prefix}/") }
     redirect_to "/workspaces"
   end
