@@ -2,14 +2,14 @@
     Desktop-only display on home hero page for conference booth scanning.
     URL: https://agent44labs.ai %>
 
-<div class="qr-code-container flex flex-col items-center gap-3">
+<div class="qr-code-container flex flex-col items-center gap-2 max-w-[120px]">
   <%# Generate QR code for the smart redirect (/get): iOS -> App Store, others
       -> website. High error correction so it scans even if partly obscured. %>
   <% qr = RQRCode::QRCode.new("https://agent44labs.ai/get", size: 10, level: :h) %>
   <% module_count = qr.modules.length %>
   
   <%# SVG QR code wrapper — white background container with proper sizing %>
-  <div class="qr-code-svg-wrapper bg-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+  <div class="qr-code-svg-wrapper bg-white p-2 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
     <svg class="qr-code-svg" viewBox="0 0 <%= module_count %> <%= module_count %>" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <style>

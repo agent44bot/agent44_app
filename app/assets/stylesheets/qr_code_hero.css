@@ -30,16 +30,12 @@
   image-rendering: -webkit-optimize-contrast;
 }
 
-/* Desktop: QR code appears in hero sidebar */
+/* Desktop: QR code appears in hero sidebar — 50% smaller, tucked in a corner */
 @media (min-width: 641px) {
   .qr-code-svg-wrapper {
     width: 90px;
     height: 90px;
     max-width: 100%;
-  }
-
-  .qr-code-container {
-    width: auto;
   }
 }
 
