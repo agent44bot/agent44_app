@@ -55,6 +55,9 @@ scrapers = [
       "DevSecOps engineer",
       "blockchain security engineer web3",
       "AI agent engineer director",
+      "forward deployed engineer",
+      "forward deployed AI engineer",
+      "applied AI engineer",
       "penetration tester pentesting"
     ]
   }
