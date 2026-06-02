@@ -14,11 +14,14 @@
 
   <!-- Header -->
   <div class="mb-6">
-    <%= link_to nykitchen_path, class: "inline-flex items-center gap-1 text-xs text-gray-500 hover:text-orange-400 transition mb-3" do %>
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-      </svg>
-      <span>NY Kitchen</span>
+    <%= link_to nykitchen_path,
+          class: "flex items-center gap-3 rounded-xl bg-orange-500 hover:bg-orange-400 active:bg-orange-600 px-5 py-4 mb-6 shadow-lg shadow-orange-900/30 transition" do %>
+      <span class="text-white text-2xl shrink-0">←</span>
+      <span class="text-2xl shrink-0">🍳</span>
+      <span class="text-left min-w-0">
+        <span class="block text-base font-bold text-white leading-tight">Go to NY Kitchen</span>
+        <span class="block text-xs text-orange-100">Live sellouts, sales &amp; your agents</span>
+      </span>
     <% end %>
     <h1 class="text-3xl font-black text-white tracking-tight">Tickets sold</h1>
     <p class="text-gray-400 mt-1 text-sm">
