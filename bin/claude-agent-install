@@ -16,8 +16,8 @@ key="${CLAUDE_CODE_OAUTH_TOKEN:?export CLAUDE_CODE_OAUTH_TOKEN first (from \`cla
 workflow_src="$(dirname "$0")/../.github/workflows/claude.yml"
 workflow_path=".github/workflows/claude.yml"
 
-echo "==> Setting ANTHROPIC_API_KEY secret on $repo"
-gh secret set ANTHROPIC_API_KEY -R "$repo" --body "$key"
+echo "==> Setting CLAUDE_CODE_OAUTH_TOKEN secret on $repo"
+gh secret set CLAUDE_CODE_OAUTH_TOKEN -R "$repo" --body "$key"
 
 echo "==> Pushing $workflow_path to $repo"
 content="$(base64 < "$workflow_src" | tr -d '\n')"
