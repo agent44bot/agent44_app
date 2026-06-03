@@ -11,7 +11,8 @@
 #   3. implement    - label an issue "claude" and it implements it and opens a PR
 #
 # Requirements in each calling repo:
-#   - ANTHROPIC_API_KEY secret (bin/claude-agent-install sets it)
+#   - CLAUDE_CODE_OAUTH_TOKEN secret (from `claude setup-token`, billed to the
+#     Claude Pro/Max subscription; bin/claude-agent-install sets it)
 #   - Claude GitHub App installed: https://github.com/apps/claude
 #
 # Safety: claude-code-action only honors triggers from users with write
@@ -22,7 +23,7 @@ name: Claude agent (reusable)
 on:
   workflow_call:
     secrets:
-      ANTHROPIC_API_KEY:
+      CLAUDE_CODE_OAUTH_TOKEN:
         required: true
 
 jobs:
@@ -41,7 +42,7 @@ jobs:
           fetch-depth: 0
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
 
@@ -77,7 +78,7 @@ jobs:
       # answers or pushes commits to the PR branch as asked.
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: --max-turns 30
 
   implement:
@@ -95,7 +96,7 @@ jobs:
           fetch-depth: 0
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           branch_prefix: claude/
           prompt: |
             Implement GitHub issue #${{ github.event.issue.number }} in ${{ github.repository }}.

@@ -1,5 +1,5 @@
 # Claude PR agent - thin caller. Drop this file into any agent44bot repo
-# (bin/claude-agent-install does it for you) and set the ANTHROPIC_API_KEY
+# (bin/claude-agent-install does it for you) and set the CLAUDE_CODE_OAUTH_TOKEN
 # secret. All logic lives in the reusable workflow in agent44_app.
 #
 #   - every non-draft PR gets an automatic review
@@ -30,4 +30,4 @@ jobs:
       id-token: write
       actions: read
     secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
