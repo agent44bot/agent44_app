@@ -7,8 +7,8 @@ repo opts in with the thin caller `.github/workflows/claude.yml`.
 ## What it does
 
 - **Auto-review**: every non-draft PR gets a review comment when opened or
-  marked ready for review. Pushes to an open PR do not re-trigger it; comment
-  `@claude review again` when you want a fresh pass.
+  marked ready for review. Pushes to an open PR do not re-trigger it; any
+  `@claude` mention (e.g. `@claude review again`) gets a fresh pass.
 - **`@claude` mentions**: mention `@claude` in an issue or PR comment, a
   review, or a new issue body and it answers or pushes the requested changes
   to the PR branch.
@@ -24,5 +24,9 @@ repo opts in with the thin caller `.github/workflows/claude.yml`.
    CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat... bin/claude-agent-install agent44bot/<repo>
    ```
 
-The token comes from `claude setup-token` and bills to the Claude
-subscription. Only users with write access to the repo can trigger the agent.
+   The installer sets the `CLAUDE_CODE_OAUTH_TOKEN` secret on the repo and
+   commits the caller workflow to its default branch.
+
+The token comes from `claude setup-token` (a Claude Code CLI command) and
+bills to the Claude subscription. Only users with write access to the repo
+can trigger the agent.
