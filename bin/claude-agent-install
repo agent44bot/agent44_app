@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Install the Claude PR agent into another repo:
+#   1. sets the ANTHROPIC_API_KEY actions secret
+#   2. commits .github/workflows/claude.yml (the thin caller) to its default branch
+#
+# Usage:
+#   ANTHROPIC_API_KEY=sk-ant-... bin/claude-agent-install agent44bot/cukehub
+#
+# Also requires the Claude GitHub App (https://github.com/apps/claude) to be
+# installed on the repo - that part is a one-time browser step.
+set -euo pipefail
+
+repo="${1:?usage: bin/claude-agent-install <owner/repo>}"
+key="${ANTHROPIC_API_KEY:?export ANTHROPIC_API_KEY first (the key to store as the repo secret)}"
+workflow_src="$(dirname "$0")/../.github/workflows/claude.yml"
+workflow_path=".github/workflows/claude.yml"
+
+echo "==> Setting ANTHROPIC_API_KEY secret on $repo"
+gh secret set ANTHROPIC_API_KEY -R "$repo" --body "$key"
+
+echo "==> Pushing $workflow_path to $repo"
+content="$(base64 < "$workflow_src" | tr -d '\n')"
+# Include the existing file's SHA when updating, omit when creating.
+sha="$(gh api "repos/$repo/contents/$workflow_path" -q .sha 2>/dev/null || true)"
+gh api -X PUT "repos/$repo/contents/$workflow_path" \
+  -f message="Add Claude PR agent workflow" \
+  -f content="$content" \
+  ${sha:+-f sha="$sha"} >/dev/null
+
+echo "==> Done. Make sure the Claude GitHub App is installed on $repo:"
+echo "    https://github.com/apps/claude"

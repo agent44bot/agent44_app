@@ -1,0 +1,33 @@
+# Claude PR agent - thin caller. Drop this file into any agent44bot repo
+# (bin/claude-agent-install does it for you) and set the ANTHROPIC_API_KEY
+# secret. All logic lives in the reusable workflow in agent44_app.
+#
+#   - every non-draft PR gets an automatic review
+#   - "@claude" in an issue/PR comment answers questions / makes changes
+#   - labeling an issue "claude" implements it and opens a PR
+
+name: Claude
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  claude:
+    uses: agent44bot/agent44_app/.github/workflows/claude-agent.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

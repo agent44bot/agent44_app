@@ -1,0 +1,116 @@
+# Claude PR agent (reusable workflow).
+#
+# Hosted here (public repo) so every agent44bot repo can call it without
+# copying the logic. Repos opt in with the thin caller in
+# .github/workflows/claude.yml (see bin/claude-agent-install).
+#
+# Three behaviors, selected by the triggering event:
+#   1. auto-review  - reviews every non-draft PR when opened / marked ready
+#   2. mention      - "@claude" in an issue/PR comment, review, or issue body;
+#                     answers questions and pushes requested changes
+#   3. implement    - label an issue "claude" and it implements it and opens a PR
+#
+# Requirements in each calling repo:
+#   - ANTHROPIC_API_KEY secret (bin/claude-agent-install sets it)
+#   - Claude GitHub App installed: https://github.com/apps/claude
+#
+# Safety: claude-code-action only honors triggers from users with write
+# access to the repo, so drive-by "@claude" comments from strangers are ignored.
+
+name: Claude agent (reusable)
+
+on:
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+
+jobs:
+  auto-review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+
+            Use `gh pr view` and `gh pr diff` to read it. Focus on real problems:
+            bugs, security issues, data loss, broken behavior, missing migrations,
+            things that will fail in production. Skip style nits unless they hide
+            a bug. If the PR looks good, say so in two sentences, do not pad.
+
+            Post the review as a single PR comment with `gh pr comment`.
+            Never use em dashes or en dashes in anything you write.
+          claude_args: |
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Read,Glob,Grep"
+            --max-turns 25
+
+  mention:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.action == 'opened' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # No prompt: the action runs in tag mode, reads the @claude comment,
+      # answers or pushes commits to the PR branch as asked.
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --max-turns 30
+
+  implement:
+    if: github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'claude'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          branch_prefix: claude/
+          prompt: |
+            Implement GitHub issue #${{ github.event.issue.number }} in ${{ github.repository }}.
+
+            Title: ${{ github.event.issue.title }}
+
+            Read the full issue with `gh issue view ${{ github.event.issue.number }}`
+            (including comments). Implement the change on a new branch named
+            claude/issue-${{ github.event.issue.number }}, run any relevant tests,
+            commit, push, and open a pull request with `gh pr create` that says
+            "Closes #${{ github.event.issue.number }}" in the body.
+
+            If the issue is too vague to implement safely, do not guess: comment
+            on the issue with the specific questions instead and stop.
+            Never use em dashes or en dashes in anything you write.
+          claude_args: |
+            --allowedTools "Bash(git:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr create:*),Edit,Write,Read,Glob,Grep"
+            --max-turns 50
