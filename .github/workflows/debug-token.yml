@@ -1,0 +1,22 @@
+# TEMPORARY: verifies the CLAUDE_CODE_OAUTH_TOKEN secret against the Anthropic
+# API and prints only the HTTP status + token length. Delete after debugging.
+name: Debug Claude token
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe token
+        env:
+          TOK: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          echo "token length: ${#TOK}"
+          echo "prefix ok: $(case "$TOK" in sk-ant-oat01-*) echo yes;; *) echo NO;; esac)"
+          code=$(curl -s -o /tmp/resp -w "%{http_code}" https://api.anthropic.com/v1/messages \
+            -H "Authorization: Bearer $TOK" \
+            -H "anthropic-beta: oauth-2025-04-20" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d '{"model":"claude-haiku-4-5-20251001","max_tokens":1,"system":[{"type":"text","text":"You are Claude Code, Anthropic'"'"'s official CLI for Claude."}],"messages":[{"role":"user","content":[{"type":"text","text":"hi"}]}]}')
+          echo "API HTTP status: $code"
+          head -c 300 /tmp/resp; echo
