@@ -212,55 +212,6 @@
   <% end %>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr <%= "pay-on" if @can_see_pricing %>">
-    <%# Super / Carson. Two click targets, not one: the card body opens a FRESH chat
-        (no prompt inserted), while the suggestion/alert below is its own chip that
-        auto-asks that specific question. Sibling links — never nested. %>
-    <div class="ra-card" style="<%= accent_style.call(:ask) %>">
-      <span class="ra-corner"><%= agent_dot.call(:running, "Always on — ask anytime") %><span class="ra-chev">▶</span></span>
-      <%= link_to nyk_ask_path, class: "block flex-1" do %>
-        <div class="ra-head"><%= agent_ident.call(:ask) %></div>
-        <p class="<%= desc_class %>">Ask anything about NY Kitchen — classes, sales, sold-outs, agent status, smoke tests, social posts. Reads the whole workspace. <span class="text-gray-500">Tap to start a fresh chat.</span></p>
-      <% end %>
-      <div class="<%= stats_class %>">
-        <% chip_class = "block -mx-2 px-2 py-1 rounded-lg hover:bg-gray-800 transition" %>
-        <% if @smoke_alert %>
-          <%= link_to nyk_ask_path(q: @smoke_alert[:prompt], go: 1), class: chip_class do %>
-            <span class="text-red-400 font-semibold">⚠️ The calendar check has failed <%= @smoke_alert[:count] %> times in a row — want me to draft a note to the developer?</span>
-          <% end %>
-        <% elsif @daily_prompt %>
-          <%= link_to nyk_ask_path(q: @daily_prompt, go: 1), class: chip_class do %>
-            <span class="text-orange-300"><%= nyk_time_greeting %></span> <span class="text-gray-300">"<%= @daily_prompt %>"</span>
-          <% end %>
-        <% else %>
-          <div class="text-gray-300">Try: <span class="text-gray-400">"What sold out this week?"</span></div>
-        <% end %>
-      </div>
-    </div>
-
-    <%# List / Sam %>
-    <%= link_to nyk_list_path, class: "ra-card", style: accent_style.call(:list) do %>
-      <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:list]) %><span class="ra-chev">▶</span></span>
-      <div class="ra-head"><%= agent_ident.call(:list) %></div>
-      <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
-      <div class="flex-1 flex items-center justify-center py-3">
-        <div class="text-center">
-          <div class="text-3xl font-black text-white tabular-nums">
-            <%= @hub_events_sold_out_pct.nil? ? "—" : "#{@hub_events_sold_out_pct}%" %>
-          </div>
-          <div class="text-xs uppercase tracking-wide text-gray-500 mt-1">of upcoming classes sold out</div>
-          <% if @hub_events_sold_out_pct %>
-            <div class="text-xs text-gray-500 mt-1 tabular-nums"><%= @hub_events_sold_out %> of <%= @hub_events_total %> classes</div>
-          <% end %>
-        </div>
-      </div>
-      <div class="<%= stats_class %>">
-        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
-        <% if @hub_events_updated %>
-          <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
-        <% end %>
-      </div>
-    <% end %>
-
     <%# Analyst / Iris (no liveness dot — it's a dashboard, not a worker) %>
     <%= link_to nyk_analyst_path, class: "ra-card", style: accent_style.call(:analyst) do %>
       <span class="ra-corner"><span class="ra-chev">▶</span></span>
@@ -315,6 +266,30 @@
       </div>
       <div class="<%= stats_class %>">
         <div class="text-gray-300">📬 Weekly recap · <span class="text-gray-400">Sundays 5:00 PM ET</span></div>
+      </div>
+    <% end %>
+
+    <%# List / Sam %>
+    <%= link_to nyk_list_path, class: "ra-card", style: accent_style.call(:list) do %>
+      <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:list]) %><span class="ra-chev">▶</span></span>
+      <div class="ra-head"><%= agent_ident.call(:list) %></div>
+      <p class="<%= desc_class %>">Watches the calendar and surfaces what's coming up — by week, with sold-out percentages.</p>
+      <div class="flex-1 flex items-center justify-center py-3">
+        <div class="text-center">
+          <div class="text-3xl font-black text-white tabular-nums">
+            <%= @hub_events_sold_out_pct.nil? ? "—" : "#{@hub_events_sold_out_pct}%" %>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-1">of upcoming classes sold out</div>
+          <% if @hub_events_sold_out_pct %>
+            <div class="text-xs text-gray-500 mt-1 tabular-nums"><%= @hub_events_sold_out %> of <%= @hub_events_total %> classes</div>
+          <% end %>
+        </div>
+      </div>
+      <div class="<%= stats_class %>">
+        <div class="text-gray-300"><span class="font-semibold text-white"><%= @hub_events_total %></span> upcoming classes</div>
+        <% if @hub_events_updated %>
+          <div class="text-gray-500">Updated <%= @hub_events_updated.strftime("%b %-d") %></div>
+        <% end %>
       </div>
     <% end %>
 
@@ -532,6 +507,31 @@
         <% end %>
       </div>
     <% end %>
+
+    <%# Super / Carson. Two click targets, not one: the card body opens a FRESH chat
+        (no prompt inserted), while the suggestion/alert below is its own chip that
+        auto-asks that specific question. Sibling links — never nested. %>
+    <div class="ra-card" style="<%= accent_style.call(:ask) %>">
+      <span class="ra-corner"><%= agent_dot.call(:running, "Always on — ask anytime") %><span class="ra-chev">▶</span></span>
+      <%= link_to nyk_ask_path, class: "block flex-1" do %>
+        <div class="ra-head"><%= agent_ident.call(:ask) %></div>
+        <p class="<%= desc_class %>">Ask anything about NY Kitchen — classes, sales, sold-outs, agent status, smoke tests, social posts. Reads the whole workspace. <span class="text-gray-500">Tap to start a fresh chat.</span></p>
+      <% end %>
+      <div class="<%= stats_class %>">
+        <% chip_class = "block -mx-2 px-2 py-1 rounded-lg hover:bg-gray-800 transition" %>
+        <% if @smoke_alert %>
+          <%= link_to nyk_ask_path(q: @smoke_alert[:prompt], go: 1), class: chip_class do %>
+            <span class="text-red-400 font-semibold">⚠️ The calendar check has failed <%= @smoke_alert[:count] %> times in a row — want me to draft a note to the developer?</span>
+          <% end %>
+        <% elsif @daily_prompt %>
+          <%= link_to nyk_ask_path(q: @daily_prompt, go: 1), class: chip_class do %>
+            <span class="text-orange-300"><%= nyk_time_greeting %></span> <span class="text-gray-300">"<%= @daily_prompt %>"</span>
+          <% end %>
+        <% else %>
+          <div class="text-gray-300">Try: <span class="text-gray-400">"What sold out this week?"</span></div>
+        <% end %>
+      </div>
+    </div>
 
   </div>
 
