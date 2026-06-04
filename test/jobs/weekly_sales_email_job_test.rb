@@ -18,13 +18,18 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     # Stub carson_intro so a regression that calls it despite carson:false is
     # caught even though carson_intro is a no-op in test env.
     called = false
+    # Keep a handle on the real method: remove_method here would DELETE it
+    # (define_singleton_method overwrites it on the singleton class), making
+    # every later carson: true test in this process fail with NoMethodError
+    # depending on seed order.
+    original = WeeklySalesEmailJob.method(:carson_intro)
     WeeklySalesEmailJob.define_singleton_method(:carson_intro) { |_| called = true; "INTRO" }
     begin
       summary = WeeklySalesEmailJob.build_summary(snapshot, carson: false)
       assert_nil summary[:headline]
       assert_not called, "carson_intro must not be called when carson: false"
     ensure
-      WeeklySalesEmailJob.singleton_class.send(:remove_method, :carson_intro)
+      WeeklySalesEmailJob.define_singleton_method(:carson_intro, original)
     end
   end
 
