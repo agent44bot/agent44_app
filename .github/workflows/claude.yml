@@ -10,7 +10,9 @@ name: Claude
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    # synchronize: the auto-review is a required status check on main, so it
+    # must re-run on every push to the PR branch.
+    types: [opened, ready_for_review, synchronize]
   issue_comment:
     types: [created]
   pull_request_review_comment:
