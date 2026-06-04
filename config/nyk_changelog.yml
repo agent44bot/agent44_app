@@ -5,7 +5,10 @@
 # surfaces entries from the last 7 days in the Sunday report, newest first.
 # Keep each note short, concrete, and written for Lora — not for engineers.
 #
-#   - date: 2026-05-28
+#   - date: 2026-06-04
+  note: Carson can now send a couple of helpful pings a day to the iOS app (admin-only for now) — a slow sales day, flyers due for a reprint, or a class down to its last seats — each opening the right agent with one tap.
+
+- date: 2026-05-28
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-05-31
