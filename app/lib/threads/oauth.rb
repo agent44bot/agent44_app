@@ -112,7 +112,7 @@ module Threads
         req["Content-Type"] = "application/x-www-form-urlencoded"
         req.body = URI.encode_www_form(params)
         res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(req) }
-        [res.code, parse_json(res.body)]
+        [ res.code, parse_json(res.body) ]
       end
 
       def get_json(url, params: {})
@@ -120,7 +120,7 @@ module Threads
         uri = URI(url)
         uri.query = URI.encode_www_form(params) if params.any?
         res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(Net::HTTP::Get.new(uri)) }
-        [res.code, parse_json(res.body)]
+        [ res.code, parse_json(res.body) ]
       end
 
       def parse_json(body)

@@ -50,7 +50,7 @@ module Bluesky
         rescue JSON::ParserError
           {}
         end
-        [res.code, body]
+        [ res.code, body ]
       end
 
       def parse(status, body)

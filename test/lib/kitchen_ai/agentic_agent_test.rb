@@ -19,16 +19,16 @@ class KitchenAi::AgenticAgentTest < ActiveSupport::TestCase
       calls += 1
       if calls == 1
         { "stop_reason" => "tool_use",
-          "content" => [{ "type" => "tool_use", "id" => "tu_1",
-                          "name" => "list_classes", "input" => { "filter" => "upcoming" } }] }
+          "content" => [ { "type" => "tool_use", "id" => "tu_1",
+                          "name" => "list_classes", "input" => { "filter" => "upcoming" } } ] }
       else
         fed_back = messages.last
         { "stop_reason" => "end_turn",
-          "content" => [{ "type" => "text", "text" => "Here you go." }] }
+          "content" => [ { "type" => "text", "text" => "Here you go." } ] }
       end
     end
 
-    res = KitchenAi::AgenticAgent.new(user: nil).run([{ role: "user", content: "what's on?" }])
+    res = KitchenAi::AgenticAgent.new(user: nil).run([ { role: "user", content: "what's on?" } ])
 
     assert res.ok?, res.error
     assert_equal 2, calls

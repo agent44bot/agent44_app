@@ -8,12 +8,12 @@ require_relative "system_test_helper"
 #  - complete() flips the bubble emerald and fades it out of the DOM
 class WebPulsesSystemTest < SystemTestCase
   STRAND_ENDS = [
-    [198.0, 27.8],
-    [185.4, 75.0],
-    [157.6, 123.2],
-    [123.2, 157.6],
-    [75.0, 185.4],
-    [27.8, 198.0]
+    [ 198.0, 27.8 ],
+    [ 185.4, 75.0 ],
+    [ 157.6, 123.2 ],
+    [ 123.2, 157.6 ],
+    [ 75.0, 185.4 ],
+    [ 27.8, 198.0 ]
   ].freeze
 
   AMBER   = "#fb923c"

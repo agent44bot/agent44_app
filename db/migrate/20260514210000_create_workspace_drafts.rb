@@ -6,7 +6,7 @@ class CreateWorkspaceDrafts < ActiveRecord::Migration[8.1]
       t.text    :body,             null: false
       t.text    :target_platforms, null: false, default: "[]" # JSON-serialized array
       t.datetime :scheduled_for
-      t.string  :status,           null: false, default: "draft"
+      t.string :status,           null: false, default: "draft"
       t.datetime :published_at
       t.text    :error
       t.text    :results # JSON-serialized per-platform result lines
@@ -14,7 +14,7 @@ class CreateWorkspaceDrafts < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :workspace_drafts, [:workspace_id, :created_at]
+    add_index :workspace_drafts, [ :workspace_id, :created_at ]
     add_index :workspace_drafts, :status
     add_index :workspace_drafts, :scheduled_for
   end

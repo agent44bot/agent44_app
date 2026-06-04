@@ -131,7 +131,7 @@ class NyKitchenScraper
     html.scan(%r{<script[^>]*type=["']application/ld\+json["'][^>]*>(.*?)</script>}m).each do |(json)|
       data = JSON.parse(json) rescue next
       nodes = []
-      (data.is_a?(Array) ? data : [data]).each do |d|
+      (data.is_a?(Array) ? data : [ data ]).each do |d|
         next unless d.is_a?(Hash)
         nodes.concat(Array(d["@graph"]))
         nodes << d

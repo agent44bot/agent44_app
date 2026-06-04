@@ -133,7 +133,7 @@ module KitchenAi
         else
           e.availability.to_s.presence || "?"
         end
-        [date, e.name, seats, price].compact.join(" · ")
+        [ date, e.name, seats, price ].compact.join(" · ")
       end.join("\n")
     end
 

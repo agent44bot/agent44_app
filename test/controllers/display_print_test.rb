@@ -92,7 +92,7 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     get nyk_display_print_path
     assert_response :success
     assert_select ".event", 1
-    assert_match    "Open Class", response.body
+    assert_match "Open Class", response.body
     assert_no_match(/Gone Class/, response.body)
     assert_no_match(/Shut Class/, response.body)
   end
@@ -115,7 +115,7 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     add_event("Open Class", 24)
     add_event("Gone Class", 48, availability: "SoldOut")
     get nyk_display_print_path
-    assert_match    "Open Class", response.body
+    assert_match "Open Class", response.body
     assert_no_match(/Gone Class/, response.body)
   end
 end

@@ -5,7 +5,9 @@ require "test_helper"
 #
 # Three actors:
 #   - admin       (site admin, e.g. Rich) — always sees billing, can flip toggle
-#   - member      (workspace member, e.g. Lora) — sees billing iff toggle is on
+#   - member      (non-manager workspace member, role "editor") — sees billing
+#                 iff toggle is on. Managers (owner/admin, e.g. Lora) always
+#                 see billing via Workspace#manager?, so they are not gated.
 #   - outsider    (signed-in user with no NYK membership) — never sees billing
 class BillingVisibilityToggleTest < ActionDispatch::IntegrationTest
   setup do
@@ -15,7 +17,7 @@ class BillingVisibilityToggleTest < ActionDispatch::IntegrationTest
 
     @nyk = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @admin }
     @nyk.memberships.find_or_create_by!(user: @admin) { |m| m.role = "owner" }
-    @nyk.memberships.find_or_create_by!(user: @member) { |m| m.role = "admin" }
+    @nyk.memberships.find_or_create_by!(user: @member) { |m| m.role = "editor" }
     @nyk.update!(pricing_visible_to_members: false)
 
     # A few smoke runs with cost so $ amounts have something to render.

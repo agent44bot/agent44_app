@@ -43,7 +43,7 @@ module Bluesky
         return Result.new(ok?: false, error: "Image upload failed: #{blob[:error]}") unless blob[:ok]
         embed = {
           "$type" => "app.bsky.embed.images",
-          images: [{ alt: text.first(300), image: blob[:blob] }]
+          images: [ { alt: text.first(300), image: blob[:blob] } ]
         }
       end
 
@@ -203,7 +203,7 @@ module Bluesky
         http.get(uri.request_uri, { "User-Agent" => "Agent44LabsBot/1.0 (+https://agent44labs.com)" })
       end
       return nil unless res.is_a?(Net::HTTPSuccess)
-      [res.body, res["Content-Type"] || guess_mime(url)]
+      [ res.body, res["Content-Type"] || guess_mime(url) ]
     end
 
     def guess_mime(url)
@@ -221,10 +221,10 @@ module Bluesky
       end
       uri = URI(url)
       req = case method
-            when :get  then Net::HTTP::Get.new(uri)
-            when :post then Net::HTTP::Post.new(uri)
-            else raise ArgumentError, "unsupported method #{method}"
-            end
+      when :get  then Net::HTTP::Get.new(uri)
+      when :post then Net::HTTP::Post.new(uri)
+      else raise ArgumentError, "unsupported method #{method}"
+      end
       req["Authorization"] = "Bearer #{@account.access_token}"
       if method == :post
         if content_type

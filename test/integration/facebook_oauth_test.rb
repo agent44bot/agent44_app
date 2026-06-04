@@ -37,13 +37,13 @@ class FacebookOauthTest < ActionDispatch::IntegrationTest
     Facebook::Oauth.http_stub = ->(method, url, params, _headers) {
       case
       when url == Facebook::Oauth::TOKEN_URL && params[:grant_type] == "fb_exchange_token"
-        ["200", { "access_token" => "LONG-USER-AT", "expires_in" => 5_184_000 }]
+        [ "200", { "access_token" => "LONG-USER-AT", "expires_in" => 5_184_000 } ]
       when url == Facebook::Oauth::TOKEN_URL
-        ["200", { "access_token" => "SHORT-USER-AT", "expires_in" => 3600 }]
+        [ "200", { "access_token" => "SHORT-USER-AT", "expires_in" => 3600 } ]
       when url == Facebook::Oauth::ME_ACCOUNTS_URL
-        ["200", { "data" => [
+        [ "200", { "data" => [
           { "id" => "555", "name" => "Magenta NYC", "access_token" => "PAGE-AT-555" }
-        ] }]
+        ] } ]
       else
         raise "unexpected #{method} #{url}"
       end
@@ -71,11 +71,11 @@ class FacebookOauthTest < ActionDispatch::IntegrationTest
     Facebook::Oauth.http_stub = ->(method, url, params, _headers) {
       case
       when url == Facebook::Oauth::TOKEN_URL && params[:grant_type] == "fb_exchange_token"
-        ["200", { "access_token" => "LONG-AT" }]
+        [ "200", { "access_token" => "LONG-AT" } ]
       when url == Facebook::Oauth::TOKEN_URL
-        ["200", { "access_token" => "SHORT-AT" }]
+        [ "200", { "access_token" => "SHORT-AT" } ]
       when url == Facebook::Oauth::ME_ACCOUNTS_URL
-        ["200", { "data" => [] }]
+        [ "200", { "data" => [] } ]
       end
     }
 

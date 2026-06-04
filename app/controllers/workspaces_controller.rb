@@ -1,8 +1,8 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,    only: [:show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing]
-  before_action :require_member,    only: [:show, :social, :refresh_metrics]
-  before_action :require_admin,     only: [:update, :destroy]
-  before_action :require_site_admin, only: [:new, :create, :toggle_pricing]
+  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing ]
+  before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
+  before_action :require_admin,     only: [ :update, :destroy ]
+  before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
   def index
     @workspaces = current_user.workspaces.active.order(:name)
     @owned_count = current_user.owned_workspaces.active.count
@@ -89,7 +89,7 @@ class WorkspacesController < ApplicationController
     @bluesky_account  = @workspace.social_accounts.active.for_platform("bluesky").first
     @threads_account  = @workspace.social_accounts.active.for_platform("threads").first
     @facebook_account = @workspace.social_accounts.active.for_platform("facebook").first
-    @connected_platforms = [@x_account && "x", @bluesky_account && "bluesky", @threads_account && "threads", @facebook_account && "facebook"].compact
+    @connected_platforms = [ @x_account && "x", @bluesky_account && "bluesky", @threads_account && "threads", @facebook_account && "facebook" ].compact
     @drafts           = @workspace.workspace_drafts.unscheduled.recent.limit(10)
     @scheduled_drafts = @workspace.workspace_drafts.scheduled.limit(20)
   end

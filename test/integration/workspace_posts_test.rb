@@ -27,7 +27,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(@owner)
     assert_difference -> { WorkspacePost.count }, 1 do
-      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "hello world", target_platforms: ["x"] }
+      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "hello world", target_platforms: [ "x" ] }
     end
     assert_redirected_to social_workspace_path(@ws.slug)
 
@@ -41,7 +41,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
   test "failed X response marks the post failed and stores the error" do
     X::UserClient.http_stub = ->(*) { { status: "403", body: { "detail" => "Duplicate" } } }
     sign_in_as(@owner)
-    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "dup", target_platforms: ["x"] }
+    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "dup", target_platforms: [ "x" ] }
     wp = WorkspacePost.last
     assert_equal "failed", wp.status
     assert_match /403/, wp.error
@@ -61,11 +61,11 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
     refreshed = false
     X::Oauth.http_stub = ->(method, url, params, _headers) {
       refreshed = true if method == :post && params[:grant_type] == "refresh_token"
-      ["200", { "access_token" => "NEW-AT", "refresh_token" => "NEW-RT", "expires_in" => 7200, "scope" => @acct.scopes }]
+      [ "200", { "access_token" => "NEW-AT", "refresh_token" => "NEW-RT", "expires_in" => 7200, "scope" => @acct.scopes } ]
     }
 
     sign_in_as(@owner)
-    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "retry", target_platforms: ["x"] }
+    post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "retry", target_platforms: [ "x" ] }
 
     assert refreshed,           "refresh should have fired"
     assert_equal 2, call_count, "should retry once after refresh"
@@ -76,7 +76,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
   test "viewer cannot post" do
     sign_in_as(@viewer)
     assert_no_difference -> { WorkspacePost.count } do
-      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "no", target_platforms: ["x"] }
+      post workspace_posts_path(workspace_slug: @ws.slug), params: { body: "no", target_platforms: [ "x" ] }
     end
   end
 
@@ -99,7 +99,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
       remote_url: "https://x.com/m/status/DEL-1", posted_at: Time.current)
     called = []
     X::UserClient.http_stub = ->(method, url, _payload, _bearer) {
-      called << [method, url]
+      called << [ method, url ]
       { status: "200", body: { "data" => { "deleted" => true } } }
     }
 
@@ -107,7 +107,7 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
     assert_difference -> { WorkspacePost.count }, -1 do
       delete workspace_post_path(workspace_slug: @ws.slug, id: wp.id)
     end
-    assert_equal [[:delete, "https://api.x.com/2/tweets/DEL-1"]], called
+    assert_equal [ [ :delete, "https://api.x.com/2/tweets/DEL-1" ] ], called
   end
 
   test "trashcan on a failed row drops the row without an X call" do

@@ -27,7 +27,7 @@ class FacebookPostsTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     assert_difference -> { WorkspacePost.count }, 1 do
       post workspace_posts_path(workspace_slug: @ws.slug),
-           params: { body: "hello facebook", target_platforms: ["facebook"] }
+           params: { body: "hello facebook", target_platforms: [ "facebook" ] }
     end
 
     wp = WorkspacePost.last
@@ -44,7 +44,7 @@ class FacebookPostsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(@owner)
     post workspace_posts_path(workspace_slug: @ws.slug),
-         params: { body: "broken", target_platforms: ["facebook"] }
+         params: { body: "broken", target_platforms: [ "facebook" ] }
 
     assert_equal "needs_reauth", @fb.reload.status
     assert_equal "failed",       WorkspacePost.last.status
@@ -56,7 +56,7 @@ class FacebookPostsTest < ActionDispatch::IntegrationTest
       remote_url: "https://www.facebook.com/555/posts/111", posted_at: Time.current)
     called = []
     Facebook::UserClient.http_stub = ->(method, url, _params, _bearer) {
-      called << [method, url]
+      called << [ method, url ]
       { status: "200", body: { "success" => true } }
     }
 

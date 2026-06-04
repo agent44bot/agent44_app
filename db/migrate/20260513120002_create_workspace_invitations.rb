@@ -15,7 +15,7 @@ class CreateWorkspaceInvitations < ActiveRecord::Migration[8.1]
     end
 
     add_index :workspace_invitations, :token, unique: true
-    add_index :workspace_invitations, [:workspace_id, :email]
+    add_index :workspace_invitations, [ :workspace_id, :email ]
     add_index :workspace_invitations, :expires_at
   end
 end

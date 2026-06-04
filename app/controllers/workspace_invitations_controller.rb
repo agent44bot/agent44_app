@@ -1,6 +1,6 @@
 class WorkspaceInvitationsController < ApplicationController
-  before_action :load_workspace,  only: [:create, :destroy]
-  before_action :require_admin,   only: [:create, :destroy]
+  before_action :load_workspace,  only: [ :create, :destroy ]
+  before_action :require_admin,   only: [ :create, :destroy ]
 
   def create
     invitation = @workspace.invitations.new(

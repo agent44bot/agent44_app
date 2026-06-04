@@ -17,7 +17,7 @@ class KitchenEnhancePostTest < ActionDispatch::IntegrationTest
   test "writes an ai_call_logs row attributed to the signed-in user" do
     text_block = OpenStruct.new(text: "Enhanced post text!")
     fake_response = OpenStruct.new(
-      content: [text_block],
+      content: [ text_block ],
       usage:   OpenStruct.new(input_tokens: 1234, output_tokens: 567)
     )
     fake_messages = OpenStruct.new

@@ -166,7 +166,7 @@ module KitchenAi
         description: "Recent NY Kitchen smoke-test failures — each run's error message, network/console errors, and when it ran — plus how many calendar checks have failed in a row and the developer email on file. Call this to ground any 'what's broken with the tests' or 'draft a note/email to the developer' request; never describe a failure you haven't pulled from here.",
         input_schema: { type: "object",
                         properties: { limit: { type: "integer", description: "How many recent failures to return (default 5, max 15)" } },
-                        additionalProperties: false } },
+                        additionalProperties: false } }
     ].freeze
 
     # Low-risk config writes — storing a value the user explicitly provides. Safe
@@ -176,7 +176,7 @@ module KitchenAi
         description: "Save the developer's email address that failure-report drafts should be addressed to. Only call this when the user explicitly gives you an email address to use.",
         input_schema: { type: "object",
                         properties: { email: { type: "string", description: "The developer's email address" } },
-                        required: %w[email], additionalProperties: false } },
+                        required: %w[email], additionalProperties: false } }
     ].freeze
 
     WRITE_TOOLS = [
@@ -192,7 +192,7 @@ module KitchenAi
         description: "Draft a social post about a topic. Creates a DRAFT only — never publishes.",
         input_schema: { type: "object",
                         properties: { topic: { type: "string", description: "What the post should be about" } },
-                        required: %w[topic], additionalProperties: false } },
+                        required: %w[topic], additionalProperties: false } }
     ].freeze
 
     # --- Tool dispatch -----------------------------------------------------

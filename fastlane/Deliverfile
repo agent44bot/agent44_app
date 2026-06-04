@@ -13,4 +13,4 @@ skip_binary_upload true
 force true
 
 # Languages we ship metadata for.
-languages ["en-US"]
+languages [ "en-US" ]

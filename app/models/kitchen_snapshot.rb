@@ -33,7 +33,7 @@ class KitchenSnapshot < ApplicationRecord
       next 0 if e.sales_ended?
       prev_e = prev_events[e.url]
       next 0 unless prev_e
-      [prev_e.spots_left - e.spots_left, 0].max
+      [ prev_e.spots_left - e.spots_left, 0 ].max
     end
   end
 
@@ -135,7 +135,7 @@ class KitchenSnapshot < ApplicationRecord
     ranked = observed_pace_by_url(urls: urls, window_weeks: window_weeks)
       .values
       .select { |h| h[:pace].positive? || h[:days_to_sellout] }
-      .sort_by { |h| [-h[:pace], h[:days_to_sellout] || 9_999, -h[:observed_sold]] }
+      .sort_by { |h| [ -h[:pace], h[:days_to_sellout] || 9_999, -h[:observed_sold] ] }
       .first(limit)
 
     hydrate_events(ranked)
@@ -167,7 +167,7 @@ class KitchenSnapshot < ApplicationRecord
     pace = observed_pace_by_url(urls: candidates.map(&:url), window_weeks: 8)
 
     candidates.filter_map { |e|
-      days_until    = [(e.start_at.to_date - today).to_i, 1].max
+      days_until    = [ (e.start_at.to_date - today).to_i, 1 ].max
       needed_pace   = (e.spots_left.to_f / days_until).round(1)
       observed_pace = pace.dig(e.url, :pace) || 0.0
       shortfall     = (needed_pace - observed_pace).round(1)
@@ -175,7 +175,7 @@ class KitchenSnapshot < ApplicationRecord
 
       { event: e, needed_pace: needed_pace, observed_pace: observed_pace,
         shortfall: shortfall, days_until: days_until }
-    }.sort_by { |h| [-h[:shortfall], h[:days_until]] }
+    }.sort_by { |h| [ -h[:shortfall], h[:days_until] ] }
      .first(limit)
   end
 
@@ -401,7 +401,7 @@ class KitchenSnapshot < ApplicationRecord
     rows.group_by(&:first).transform_values { |obs|
       first_on, first_spots = obs.first[1], obs.first[2]
       last_on,  last_spots  = obs.last[1],  obs.last[2]
-      observed_sold = (first_spots && last_spots) ? [first_spots - last_spots, 0].max : 0
+      observed_sold = (first_spots && last_spots) ? [ first_spots - last_spots, 0 ].max : 0
 
       witnessed_open  = obs.first[3].to_s.downcase !~ sold_out_rx
       sold_out_on     = witnessed_open && (r = obs.find { |o| o[3].to_s.downcase =~ sold_out_rx }) ? r[1] : nil

@@ -100,7 +100,7 @@ module Facebook
         uri.query = URI.encode_www_form(params) if params.any?
         res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(Net::HTTP::Get.new(uri)) }
         body = JSON.parse(res.body.to_s) rescue {}
-        [res.code, body]
+        [ res.code, body ]
       end
 
       def format_error(status, body)

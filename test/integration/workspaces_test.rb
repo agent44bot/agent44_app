@@ -80,7 +80,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     post workspaces_path, params: { workspace: { name: "Magenta", timezone: "UTC" } }
     post workspaces_path, params: { workspace: { name: "Magenta", timezone: "UTC" } }
     slugs = Workspace.where(name: "Magenta").pluck(:slug).sort
-    assert_equal ["magenta", "magenta-2"], slugs
+    assert_equal [ "magenta", "magenta-2" ], slugs
   end
 
   test "non-member cannot view a workspace" do

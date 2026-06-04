@@ -10,7 +10,7 @@ class SocialAccount < ApplicationRecord
 
   validates :platform, presence: true, inclusion: { in: PLATFORMS }
   validates :status,   presence: true, inclusion: { in: STATUSES }
-  validates :external_id, uniqueness: { scope: [:workspace_id, :platform] }, allow_nil: true
+  validates :external_id, uniqueness: { scope: [ :workspace_id, :platform ] }, allow_nil: true
 
   scope :active,        -> { where(status: "active") }
   scope :needs_reauth,  -> { where(status: "needs_reauth") }
