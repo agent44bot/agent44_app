@@ -150,17 +150,69 @@ class CarsonNudgeJob < ApplicationJob
 
     seats = "#{event.spots_left} #{"seat".pluralize(event.spots_left)}"
     when_str = event.start_at.strftime("%-m/%-d")
-    prompt = "Draft a social post to push the last #{seats} of #{event.name} on #{when_str}"
 
-    {
-      key: "almost_sold_out",
-      title: "#{event.name} is almost full",
-      body: pick(
-        "Down to the last #{seats} for #{when_str}. Want a post to sell it out?",
-        "Only #{seats} left for #{when_str}. One tap and we'll draft the announcement.",
-      ),
-      url: "/nykitchen/ask?q=#{ERB::Util.url_encode(prompt)}&go=1"
-    }
+    # Best case: pre-draft the post in Echo so the push is one tap from
+    # publish. Fall back to a pre-filled Carson chat when Echo isn't set up.
+    if (draft = sellout_draft_for(event))
+      {
+        key: "almost_sold_out",
+        title: "#{event.name} is almost full",
+        body: pick(
+          "Down to the last #{seats} for #{when_str}. I left a post in Echo, tap to review and publish.",
+          "Only #{seats} left for #{when_str}. Echo has the announcement drafted, one tap to send it.",
+        ),
+        url: Rails.application.routes.url_helpers.edit_workspace_draft_path(workspace_slug: "nykitchen", id: draft.id)
+      }
+    else
+      prompt = "Draft a social post to push the last #{seats} of #{event.name} on #{when_str}"
+      {
+        key: "almost_sold_out",
+        title: "#{event.name} is almost full",
+        body: pick(
+          "Down to the last #{seats} for #{when_str}. Want a post to sell it out?",
+          "Only #{seats} left for #{when_str}. One tap and we'll draft the announcement.",
+        ),
+        url: "/nykitchen/ask?q=#{ERB::Util.url_encode(prompt)}&go=1"
+      }
+    end
+  end
+
+  # Create the sellout post as an Echo draft (same shape as the hub's
+  # "Send to Echo" handoff and the JS buildPost() template). Returns nil
+  # when the NYK workspace or its social accounts are missing, or on any
+  # error -- the nudge then falls back to the Carson chat link.
+  def sellout_draft_for(event)
+    ws = Workspace.find_by(slug: "nykitchen")
+    return nil unless ws
+
+    platforms = ws.social_accounts.pluck(:platform).uniq
+    return nil if platforms.empty?
+    return nil unless (author = enabled_users.first)
+
+    # A class can sit at 1-2 seats across several nudges; reuse its
+    # unpublished draft instead of stacking duplicates in Echo's list.
+    existing = ws.workspace_drafts.find_by(source_url: event.url, status: "draft")
+    return existing if existing
+
+    lines = [ "\u{1F525} #{event.name}", "",
+              "\u{1F4C5} #{event.start_at.strftime("%A, %B %-d")}",
+              "\u{23F0} #{event.start_at.strftime("%-l:%M %p")}" ]
+    lines << "\u{1F4B2} $#{event.price} per person" if event.price.present?
+    lines << "\u{1F4CD} New York Kitchen, Canandaigua"
+    lines << ""
+    lines << "\u{1F525} Only #{event.spots_left} #{"spot".pluralize(event.spots_left)} left! This class is almost full."
+
+    ws.workspace_drafts.create!(
+      author:           author,
+      body:             lines.join("\n"),
+      target_platforms: platforms,
+      image_url:        event.image_url.presence,
+      source_url:       event.url,
+      status:           "draft"
+    )
+  rescue => e
+    Rails.logger.error("CarsonNudgeJob sellout draft failed: #{e.class}: #{e.message}")
+    nil
   end
 
   def pick(*variants)

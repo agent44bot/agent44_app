@@ -34,7 +34,7 @@ class CarsonNudgeJobTest < ActiveJob::TestCase
     assert_equal 0, Notification.count
   end
 
-  test "almost-sold-out class sends a Carson push with an ask deep link" do
+  test "almost-sold-out class falls back to the ask deep link when Echo is not set up" do
     snapshot_with_event(spots_left: 2, name: "Sweet Heat")
     run_job
     n = Notification.last
@@ -43,7 +43,46 @@ class CarsonNudgeJobTest < ActiveJob::TestCase
     assert_equal @rich, n.user
     assert_match "Sweet Heat", n.title
     assert_match %r{^/nykitchen/ask\?q=}, n.url
+    assert_equal 0, WorkspaceDraft.count
     assert_equal 1, Setting.counter("carson_nudges:sent:#{Date.current.iso8601}")
+  end
+
+  test "almost-sold-out class pre-drafts the post in Echo and links to it" do
+    nyk = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @rich }
+    nyk.social_accounts.create!(platform: "x", external_id: "nudge-test", handle: "@nyk",
+                                connected_by: @rich, access_token: "AT", refresh_token: "RT",
+                                token_expires_at: 2.hours.from_now, status: "active")
+    snapshot_with_event(spots_left: 1, name: "Sweet Heat")
+
+    run_job
+    n = Notification.last
+    assert n, "expected a notification"
+    draft = WorkspaceDraft.last
+    assert draft, "expected an Echo draft"
+    assert_equal @rich, draft.author
+    assert_equal "draft", draft.status
+    assert_match "Sweet Heat", draft.body
+    assert_match "Only 1 spot left", draft.body
+    assert_equal [ "x" ], draft.target_platforms
+    assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit", n.url
+    assert_match "Echo", n.body
+  end
+
+  test "a lingering almost-sold-out class reuses its unpublished draft" do
+    nyk = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @rich }
+    nyk.social_accounts.create!(platform: "x", external_id: "nudge-dedup", handle: "@nyk",
+                                connected_by: @rich, access_token: "AT", refresh_token: "RT",
+                                token_expires_at: 2.hours.from_now, status: "active")
+    snapshot_with_event(spots_left: 1, name: "Sweet Heat")
+
+    run_job
+    # Cooldown elapses, class still at 1 seat: nudge again.
+    Setting.set("carson_nudges:cooldown:almost_sold_out", 4.days.ago.iso8601)
+    run_job
+
+    assert_equal 2, Notification.where(source: "carson").count
+    assert_equal 1, WorkspaceDraft.count, "should reuse the unpublished draft, not duplicate it"
+    assert_equal "/workspaces/nykitchen/drafts/#{WorkspaceDraft.last.id}/edit", Notification.last.url
   end
 
   test "respects the daily budget" do
