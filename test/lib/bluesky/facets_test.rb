@@ -38,7 +38,7 @@ class Bluesky::FacetsTest < ActiveSupport::TestCase
     facets = Bluesky::Facets.build(text)
     assert_equal 3, facets.size
     types = facets.map { |f| f[:features].first["$type"] }.sort
-    assert_equal ["app.bsky.richtext.facet#link", "app.bsky.richtext.facet#tag", "app.bsky.richtext.facet#tag"], types
+    assert_equal [ "app.bsky.richtext.facet#link", "app.bsky.richtext.facet#tag", "app.bsky.richtext.facet#tag" ], types
   end
 
   test "byte offsets are correct when emoji precedes a URL (UTF-8 multibyte)" do

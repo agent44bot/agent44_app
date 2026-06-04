@@ -97,7 +97,7 @@ module X
         req.basic_auth(client_id, client_secret)
         req.body = URI.encode_www_form(params)
         res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
-        [res.code, parse_json(res.body)]
+        [ res.code, parse_json(res.body) ]
       end
 
       def get_json(url, headers: {})
@@ -106,7 +106,7 @@ module X
         req = Net::HTTP::Get.new(uri)
         headers.each { |k, v| req[k] = v }
         res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
-        [res.code, parse_json(res.body)]
+        [ res.code, parse_json(res.body) ]
       end
 
       def parse_json(body)

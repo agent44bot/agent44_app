@@ -4,10 +4,10 @@
 # exercised in dev/test.
 WebAuthn.configure do |config|
   if Rails.env.production?
-    config.allowed_origins = ["https://agent44labs.com"]
+    config.allowed_origins = [ "https://agent44labs.com" ]
     config.rp_id           = "agent44labs.com"
   else
-    config.allowed_origins = ["http://localhost:3000", "https://agent44labs.com"]
+    config.allowed_origins = [ "http://localhost:3000", "https://agent44labs.com" ]
     config.rp_id           = "localhost"
   end
 

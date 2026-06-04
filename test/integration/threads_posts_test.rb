@@ -40,7 +40,7 @@ class ThreadsPostsTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     assert_difference -> { WorkspacePost.count }, 1 do
       post workspace_posts_path(workspace_slug: @ws.slug),
-           params: { body: "hello threads", target_platforms: ["threads"] }
+           params: { body: "hello threads", target_platforms: [ "threads" ] }
     end
 
     wp = WorkspacePost.last
@@ -73,7 +73,7 @@ class ThreadsPostsTest < ActionDispatch::IntegrationTest
     Threads::Oauth.http_stub = ->(method, url, params, _headers) {
       if url == Threads::Oauth::REFRESH_URL && params[:grant_type] == "th_refresh_token"
         refreshed = true
-        ["200", { "access_token" => "REFRESHED-AT", "expires_in" => 5_184_000 }]
+        [ "200", { "access_token" => "REFRESHED-AT", "expires_in" => 5_184_000 } ]
       else
         raise "unexpected oauth call #{url}"
       end
@@ -81,7 +81,7 @@ class ThreadsPostsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(@owner)
     post workspace_posts_path(workspace_slug: @ws.slug),
-         params: { body: "after 401", target_platforms: ["threads"] }
+         params: { body: "after 401", target_platforms: [ "threads" ] }
 
     assert refreshed, "Threads refresh should have fired on 401"
     assert_equal "REFRESHED-AT", @th.reload.access_token
@@ -94,7 +94,7 @@ class ThreadsPostsTest < ActionDispatch::IntegrationTest
       remote_url: "https://www.threads.net/@agent44labs/post/abc", posted_at: Time.current)
     called = []
     Threads::UserClient.http_stub = ->(method, url, _params, _bearer) {
-      called << [method, url]
+      called << [ method, url ]
       { status: "200", body: { "success" => true } }
     }
 

@@ -12,7 +12,7 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
     WorkspaceAi::Drafter.stub = ->(prompt) {
       @captured_prompt = prompt
       OpenStruct.new(
-        content: [OpenStruct.new(text: "shipped: tokens encrypted at rest #builder")],
+        content: [ OpenStruct.new(text: "shipped: tokens encrypted at rest #builder") ],
         usage:   OpenStruct.new(input_tokens: 120, output_tokens: 60)
       )
     }

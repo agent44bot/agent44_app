@@ -15,12 +15,12 @@ class CreateSocialAccounts < ActiveRecord::Migration[8.1]
       t.text   :scopes
       t.string :status, null: false, default: "active"
       t.datetime :last_synced_at
-      t.text   :metadata
+      t.text :metadata
 
       t.timestamps
     end
 
-    add_index :social_accounts, [:workspace_id, :platform, :external_id], unique: true, name: "idx_social_accts_on_ws_platform_extid"
+    add_index :social_accounts, [ :workspace_id, :platform, :external_id ], unique: true, name: "idx_social_accts_on_ws_platform_extid"
     add_index :social_accounts, :status
   end
 end

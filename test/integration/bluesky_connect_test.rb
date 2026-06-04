@@ -14,8 +14,8 @@ class BlueskyConnectTest < ActionDispatch::IntegrationTest
       assert url.end_with?("/com.atproto.server.createSession")
       assert_equal "agent44.bsky.social", payload[:identifier]
       assert_equal "good-pw", payload[:password]
-      ["200", { "did" => "did:plc:abc", "handle" => "agent44.bsky.social",
-                "accessJwt" => "AT-JWT", "refreshJwt" => "REF-JWT" }]
+      [ "200", { "did" => "did:plc:abc", "handle" => "agent44.bsky.social",
+                "accessJwt" => "AT-JWT", "refreshJwt" => "REF-JWT" } ]
     }
 
     sign_in_as(@owner)
@@ -41,7 +41,7 @@ class BlueskyConnectTest < ActionDispatch::IntegrationTest
 
   test "Bluesky rejecting credentials shows the form with an error and creates no account" do
     Bluesky::Session.http_stub = ->(*) {
-      ["401", { "error" => "AuthenticationRequired", "message" => "Invalid identifier or password" }]
+      [ "401", { "error" => "AuthenticationRequired", "message" => "Invalid identifier or password" } ]
     }
     sign_in_as(@owner)
 

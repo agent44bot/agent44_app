@@ -20,7 +20,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     assert_difference -> { WorkspaceDraft.count }, 1 do
       post workspace_drafts_path(workspace_slug: @ws.slug),
-           params: { body: "save me", target_platforms: ["x"], commit: "save" }
+           params: { body: "save me", target_platforms: [ "x" ], commit: "save" }
     end
     d = WorkspaceDraft.last
     assert_equal "draft", d.status
@@ -33,7 +33,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     # 9am workspace time tomorrow
     tomorrow = Time.use_zone("Eastern Time (US & Canada)") { 1.day.from_now.change(hour: 9, min: 0).strftime("%Y-%m-%dT%H:%M") }
     post workspace_drafts_path(workspace_slug: @ws.slug),
-         params: { body: "schedule me", target_platforms: ["x"], commit: "schedule", scheduled_for: tomorrow }
+         params: { body: "schedule me", target_platforms: [ "x" ], commit: "schedule", scheduled_for: tomorrow }
     d = WorkspaceDraft.last
     assert_equal "scheduled", d.status
     assert d.scheduled_for.present?
@@ -44,7 +44,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     sign_in_as(@viewer)
     assert_no_difference -> { WorkspaceDraft.count } do
       post workspace_drafts_path(workspace_slug: @ws.slug),
-           params: { body: "no", target_platforms: ["x"], commit: "save" }
+           params: { body: "no", target_platforms: [ "x" ], commit: "save" }
     end
   end
 
@@ -113,7 +113,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     draft = @ws.workspace_drafts.create!(author: @owner, body: "before", target_platforms: %w[x])
     sign_in_as(@owner)
     patch workspace_draft_path(workspace_slug: @ws.slug, id: draft.id),
-          params: { body: "after", target_platforms: ["x", "bluesky"] }
+          params: { body: "after", target_platforms: [ "x", "bluesky" ] }
     assert_redirected_to social_workspace_path(@ws.slug)
     assert_equal "after", draft.reload.body
     assert_equal %w[x bluesky], draft.target_platforms
@@ -123,7 +123,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     draft = @ws.workspace_drafts.create!(author: @owner, body: "keep", target_platforms: %w[x])
     sign_in_as(@owner)
     patch workspace_draft_path(workspace_slug: @ws.slug, id: draft.id),
-          params: { body: "", target_platforms: ["x"] }
+          params: { body: "", target_platforms: [ "x" ] }
     assert_equal "keep", draft.reload.body
     assert_redirected_to edit_workspace_draft_path(workspace_slug: @ws.slug, id: draft.id)
     assert_match /can't be empty/, flash[:alert]
@@ -136,7 +136,7 @@ class WorkspaceDraftsCrudTest < ActionDispatch::IntegrationTest
     WorkspaceAi::Drafter.stub = ->(prompt) {
       captured = prompt
       OpenStruct.new(
-        content: [OpenStruct.new(text: "tight rewrite")],
+        content: [ OpenStruct.new(text: "tight rewrite") ],
         usage:   OpenStruct.new(input_tokens: 50, output_tokens: 10)
       )
     }

@@ -15,7 +15,7 @@ class CreateWorkspacePosts < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :workspace_posts, [:workspace_id, :created_at]
+    add_index :workspace_posts, [ :workspace_id, :created_at ]
     add_index :workspace_posts, :status
   end
 end

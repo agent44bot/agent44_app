@@ -93,7 +93,7 @@ module ApplicationHelper
     "social"  => { call: "Echo",  tag: "Broadcast", accent: "#a78bfa", emoji: "📣" },
     "display" => { call: "Neon",  tag: "Marquee",   accent: "#fbbf24", emoji: "🖥" },
     "data"    => { call: "Scout", tag: "Recon",     accent: "#fb7185", emoji: "🕷️" },
-    "test"    => { call: "Argus", tag: "Sentry",    accent: "#22d3ee", emoji: "🔁" },
+    "test"    => { call: "Argus", tag: "Sentry",    accent: "#22d3ee", emoji: "🔁" }
   }.freeze
 
   def nyk_agent_meta(kind)

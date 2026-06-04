@@ -47,5 +47,4 @@ class PagesController < ApplicationController
     @recent_director_jobs = Job.active.agent_director.recent.limit(8)
     render layout: "admin"
   end
-
 end

@@ -35,7 +35,7 @@ class LoginCode < ApplicationRecord
       expires_at:    EXPIRY.from_now,
       ip_address:    ip_address
     )
-    [record, plaintext]
+    [ record, plaintext ]
   end
 
   def expired?

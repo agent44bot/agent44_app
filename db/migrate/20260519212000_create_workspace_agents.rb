@@ -7,7 +7,7 @@ class CreateWorkspaceAgents < ActiveRecord::Migration[8.1]
       t.string :display_name
       t.timestamps
     end
-    add_index :workspace_agents, [:workspace_id, :kind],         unique: true
-    add_index :workspace_agents, [:workspace_id, :agent_number], unique: true
+    add_index :workspace_agents, [ :workspace_id, :kind ],         unique: true
+    add_index :workspace_agents, [ :workspace_id, :agent_number ], unique: true
   end
 end

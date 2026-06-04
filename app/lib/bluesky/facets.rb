@@ -16,7 +16,7 @@ module Bluesky
 
     def self.build(text)
       return [] if text.to_s.empty?
-      [link_facets(text), tag_facets(text)].flatten
+      [ link_facets(text), tag_facets(text) ].flatten
     end
 
     def self.link_facets(text)
@@ -28,7 +28,7 @@ module Bluesky
         byte_end   = byte_start + clean.bytesize
         {
           index:    { byteStart: byte_start, byteEnd: byte_end },
-          features: [{ "$type" => "app.bsky.richtext.facet#link", uri: clean }]
+          features: [ { "$type" => "app.bsky.richtext.facet#link", uri: clean } ]
         }
       end.compact
     end
@@ -40,7 +40,7 @@ module Bluesky
         byte_end   = byte_start + m[0].bytesize
         {
           index:    { byteStart: byte_start, byteEnd: byte_end },
-          features: [{ "$type" => "app.bsky.richtext.facet#tag", tag: m[2] }]
+          features: [ { "$type" => "app.bsky.richtext.facet#tag", tag: m[2] } ]
         }
       end
     end

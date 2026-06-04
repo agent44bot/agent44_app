@@ -32,7 +32,7 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     assert_difference -> { WorkspacePost.count }, 1 do
       post workspace_posts_path(workspace_slug: @ws.slug),
-           params: { body: "hello bsky", target_platforms: ["bluesky"] }
+           params: { body: "hello bsky", target_platforms: [ "bluesky" ] }
     end
     wp = WorkspacePost.last
     assert_equal "posted",  wp.status
@@ -54,13 +54,13 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     refreshed = false
     Bluesky::Session.http_stub = ->(method, url, _payload, headers) {
       refreshed = true if url.end_with?("refreshSession") && headers["Authorization"] == "Bearer RT"
-      ["200", { "did" => "did:plc:abc", "handle" => "agent44.bsky.social",
-                "accessJwt" => "NEW-AT", "refreshJwt" => "NEW-RT" }]
+      [ "200", { "did" => "did:plc:abc", "handle" => "agent44.bsky.social",
+                "accessJwt" => "NEW-AT", "refreshJwt" => "NEW-RT" } ]
     }
 
     sign_in_as(@owner)
     post workspace_posts_path(workspace_slug: @ws.slug),
-         params: { body: "after 401", target_platforms: ["bluesky"] }
+         params: { body: "after 401", target_platforms: [ "bluesky" ] }
 
     assert refreshed,            "Bluesky refreshSession should have fired"
     assert_equal 2, call_count,  "should retry once after refresh"
@@ -98,7 +98,7 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     assert_difference -> { WorkspacePost.count }, 2 do
       post workspace_posts_path(workspace_slug: @ws.slug),
-           params: { body: "everywhere", target_platforms: ["x", "bluesky"] }
+           params: { body: "everywhere", target_platforms: [ "x", "bluesky" ] }
     end
 
     rows = @ws.workspace_posts.where(body: "everywhere").index_by(&:platform)
@@ -120,7 +120,7 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(@owner)
     post workspace_posts_path(workspace_slug: @ws.slug),
-         params: { body: "mixed", target_platforms: ["x", "bluesky"] }
+         params: { body: "mixed", target_platforms: [ "x", "bluesky" ] }
     follow_redirect!
     assert_match /Partial/, response.body
     rows = @ws.workspace_posts.where(body: "mixed").index_by(&:platform)
@@ -134,7 +134,7 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     upload_calls = []
     Bluesky::UserClient.image_fetch_stub = ->(url) {
       assert_equal "https://nykitchen.com/photo.jpg", url
-      ["FAKE_JPEG_BYTES", "image/jpeg"]
+      [ "FAKE_JPEG_BYTES", "image/jpeg" ]
     }
     Bluesky::UserClient.http_stub = ->(method, url, payload, bearer) {
       upload_calls << url
@@ -185,7 +185,7 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     }
     sign_in_as(@owner)
     post workspace_posts_path(workspace_slug: @ws.slug),
-         params: { body: "Class at https://nykitchen.com/x #NYKitchen", target_platforms: ["bluesky"] }
+         params: { body: "Class at https://nykitchen.com/x #NYKitchen", target_platforms: [ "bluesky" ] }
 
     facets = captured_payload[:record][:facets]
     assert_equal 2, facets.size, "expected one link facet + one tag facet"

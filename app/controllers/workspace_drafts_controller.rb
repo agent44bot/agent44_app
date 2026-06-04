@@ -35,7 +35,7 @@ class WorkspaceDraftsController < ApplicationController
   def edit
     @draft = @workspace.workspace_drafts.find(params[:id])
     if @draft.published? || @draft.partial? || @draft.failed?
-      return redirect_to social_workspace_path(@workspace.slug), alert: "Can't edit a draft that's already been processed."
+      redirect_to social_workspace_path(@workspace.slug), alert: "Can't edit a draft that's already been processed."
     end
   end
 

@@ -28,7 +28,7 @@ class InventoryControllerTest < ActionDispatch::IntegrationTest
       "/nykitchen/inventory/import",
       "/nykitchen/inventory/items/new",
       nyk_inventory_item_path(item),
-      edit_nyk_inventory_item_path(item),
+      edit_nyk_inventory_item_path(item)
     ].each do |path|
       get path
       assert_response :success, "expected 200 for #{path}"

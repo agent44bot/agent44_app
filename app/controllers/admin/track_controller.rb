@@ -13,11 +13,11 @@ module Admin
 
       @range = %w[today week 30d all].include?(params[:range]) ? params[:range] : "week"
       since = case @range
-              when "today" then today_start
-              when "week"  then week_start
-              when "30d"   then d30_start
-              else              Time.at(0)
-              end
+      when "today" then today_start
+      when "week"  then week_start
+      when "30d"   then d30_start
+      else              Time.at(0)
+      end
 
       # Chips for the user picker: every signed-in user with tracked
       # activity, ordered by most-recent page view (capped at 12).

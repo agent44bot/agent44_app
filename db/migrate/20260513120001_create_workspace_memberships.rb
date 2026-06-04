@@ -9,7 +9,7 @@ class CreateWorkspaceMemberships < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :workspace_memberships, [:workspace_id, :user_id], unique: true
+    add_index :workspace_memberships, [ :workspace_id, :user_id ], unique: true
     add_index :workspace_memberships, :role
   end
 end

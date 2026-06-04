@@ -12,4 +12,3 @@ module CredentialsTestHelper
     creds.singleton_class.send(:remove_method, :dig) rescue nil
   end
 end
-

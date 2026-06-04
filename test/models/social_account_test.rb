@@ -23,7 +23,7 @@ class SocialAccountTest < ActiveSupport::TestCase
 
     # Encrypted columns land as JSON envelopes (e.g. {"p":"...","h":{...}})
     %w[access_token refresh_token token_secret].each do |col|
-      refute_equal "PLAINTEXT-#{col.upcase.sub('_TOKEN','').sub('_SECRET','')}", raw[col],
+      refute_equal "PLAINTEXT-#{col.upcase.sub('_TOKEN', '').sub('_SECRET', '')}", raw[col],
         "#{col} should not be stored as plaintext"
       assert_match(/\A\{.*\}\z/, raw[col], "#{col} should be a JSON envelope")
     end

@@ -50,12 +50,12 @@ class KitchenEvent < ApplicationRecord
 
   def tickets_sold
     if capacity.present?
-      [capacity - (spots_left || 0), 0].max
+      [ capacity - (spots_left || 0), 0 ].max
     elsif last_known_capacity.present?
-      [last_known_capacity - (last_known_spots_left || 0), 0].max
+      [ last_known_capacity - (last_known_spots_left || 0), 0 ].max
     elsif last_known_spots_left.present?
       # Proxy: tickets observed selling = high-water minus current
-      [last_known_spots_left - (spots_left || 0), 0].max
+      [ last_known_spots_left - (spots_left || 0), 0 ].max
     end
   end
 

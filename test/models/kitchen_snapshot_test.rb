@@ -250,7 +250,7 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     today = Date.current
     # 4 seats open, class in 8 days → needs 0.5/day. It's been selling ~3/day,
     # so it'll fill easily → not at risk, excluded.
-    [7, 4].each_with_index do |spots, i|
+    [ 7, 4 ].each_with_index do |spots, i|
       taken = today - (1 - i) # yesterday, then today
       snap  = KitchenSnapshot.find_or_create_by!(taken_on: taken)
       snap.kitchen_events.create!(url: "u/fine", name: "Fine", start_at: today + 8,

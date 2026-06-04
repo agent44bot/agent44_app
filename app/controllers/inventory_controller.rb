@@ -223,7 +223,7 @@ class InventoryController < ApplicationController
           format("%.2f", c.line_total),
           c.destination,
           c.user&.display_identifier,
-          (c.photo.attached? ? rails_blob_url(c.photo) : ""),
+          (c.photo.attached? ? rails_blob_url(c.photo) : "")
         ]
       end
     end

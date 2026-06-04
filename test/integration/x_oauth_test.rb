@@ -40,13 +40,13 @@ class XOauthTest < ActionDispatch::IntegrationTest
 
   test "callback exchanges code, fetches profile, and persists SocialAccount" do
     X::Oauth.http_stub = ->(method, url, params, headers) {
-      case [method, url]
-      when [:post, X::Oauth::TOKEN_URL]
-        ["200", { "access_token" => "AT", "refresh_token" => "RT", "expires_in" => 7200,
-                  "scope" => "tweet.read tweet.write users.read offline.access", "token_type" => "bearer" }]
-      when [:get, X::Oauth::ME_URL]
+      case [ method, url ]
+      when [ :post, X::Oauth::TOKEN_URL ]
+        [ "200", { "access_token" => "AT", "refresh_token" => "RT", "expires_in" => 7200,
+                  "scope" => "tweet.read tweet.write users.read offline.access", "token_type" => "bearer" } ]
+      when [ :get, X::Oauth::ME_URL ]
         assert_equal "Bearer AT", headers["Authorization"]
-        ["200", { "data" => { "id" => "42", "username" => "magenta", "name" => "Magenta" } }]
+        [ "200", { "data" => { "id" => "42", "username" => "magenta", "name" => "Magenta" } } ]
       else
         raise "unexpected #{method} #{url}"
       end
