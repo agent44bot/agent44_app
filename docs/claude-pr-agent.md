@@ -30,3 +30,10 @@ repo opts in with the thin caller `.github/workflows/claude.yml`.
 The token comes from `claude setup-token` (a Claude Code CLI command) and
 bills to the Claude subscription. Only users with write access to the repo
 can trigger the agent.
+
+## Troubleshooting
+
+**401 Invalid bearer token** -- If the workflow logs show a 401 with "Invalid
+bearer token", the `CLAUDE_CODE_OAUTH_TOKEN` secret is either truncated or
+revoked. Regenerate it with `claude setup-token`, then update the secret on
+the repo (Settings > Secrets and variables > Actions) and re-run the workflow.
