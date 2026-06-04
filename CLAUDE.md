@@ -1,5 +1,19 @@
 # agent44_app — notes for agents
 
+## NO direct commits to main — PR-only workflow
+
+- **Never commit or push directly to `main`.** Every change goes on a new
+  branch, pushed as a PR, reviewed by the Claude PR agent
+  (`.github/workflows/claude.yml`), then merged. `main` is branch-protected
+  (required check `claude / auto-review`, enforced for admins), so direct
+  pushes are rejected.
+- Work in a **git worktree** (`git worktree add ... -b <branch> origin/main`)
+  — never switch branches in the shared working tree; other agents may have
+  uncommitted work there.
+- Flow: worktree → commit → push → `gh pr create` → wait for the auto-review
+  run to pass → squash-merge → remove the worktree.
+- This applies to all agent44bot repos, not just this one.
+
 ## Deploys — READ BEFORE `fly deploy`
 
 - **Serialize deploys: only ONE agent runs `fly deploy` at a time.** This app

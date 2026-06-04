@@ -28,7 +28,10 @@ on:
 
 jobs:
   auto-review:
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    # Skip drafts and dependabot (dependabot-triggered runs get no secrets, so
+    # the review would always fail; a skipped job still satisfies the required
+    # status check on main).
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
