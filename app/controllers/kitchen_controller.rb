@@ -333,6 +333,7 @@ class KitchenController < ApplicationController
     # per print-page open; tracked per variant + a combined total.
     Setting.increment("nyk_flyer_prints:total")
     Setting.increment("nyk_flyer_prints:#{@variant}")
+    Setting.touch_time("nyk_flyer_prints:last_at") # CarsonNudgeJob no_flyers trigger
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
     render template, layout: false
   end
