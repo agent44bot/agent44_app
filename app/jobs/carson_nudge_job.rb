@@ -187,6 +187,12 @@ class CarsonNudgeJob < ApplicationJob
 
     platforms = ws.social_accounts.pluck(:platform).uniq
     return nil if platforms.empty?
+    return nil unless (author = enabled_users.first)
+
+    # A class can sit at 1-2 seats across several nudges; reuse its
+    # unpublished draft instead of stacking duplicates in Echo's list.
+    existing = ws.workspace_drafts.find_by(source_url: event.url, status: "draft")
+    return existing if existing
 
     lines = [ "\u{1F525} #{event.name}", "",
               "\u{1F4C5} #{event.start_at.strftime("%A, %B %-d")}",
@@ -197,7 +203,7 @@ class CarsonNudgeJob < ApplicationJob
     lines << "\u{1F525} Only #{event.spots_left} #{"spot".pluralize(event.spots_left)} left! This class is almost full."
 
     ws.workspace_drafts.create!(
-      author:           enabled_users.first,
+      author:           author,
       body:             lines.join("\n"),
       target_platforms: platforms,
       image_url:        event.image_url.presence,

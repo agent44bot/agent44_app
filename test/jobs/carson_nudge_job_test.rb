@@ -68,6 +68,23 @@ class CarsonNudgeJobTest < ActiveJob::TestCase
     assert_match "Echo", n.body
   end
 
+  test "a lingering almost-sold-out class reuses its unpublished draft" do
+    nyk = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @rich }
+    nyk.social_accounts.create!(platform: "x", external_id: "nudge-dedup", handle: "@nyk",
+                                connected_by: @rich, access_token: "AT", refresh_token: "RT",
+                                token_expires_at: 2.hours.from_now, status: "active")
+    snapshot_with_event(spots_left: 1, name: "Sweet Heat")
+
+    run_job
+    # Cooldown elapses, class still at 1 seat: nudge again.
+    Setting.set("carson_nudges:cooldown:almost_sold_out", 4.days.ago.iso8601)
+    run_job
+
+    assert_equal 2, Notification.where(source: "carson").count
+    assert_equal 1, WorkspaceDraft.count, "should reuse the unpublished draft, not duplicate it"
+    assert_equal "/workspaces/nykitchen/drafts/#{WorkspaceDraft.last.id}/edit", Notification.last.url
+  end
+
   test "respects the daily budget" do
     snapshot_with_event(spots_left: 1)
     Setting.set("carson_nudges:sent:#{Date.current.iso8601}", "2")
