@@ -25,7 +25,9 @@ module Trackable
     TrackPageViewJob.perform_later(
       path: request.path,
       method: request.method,
-      ip_address: request.remote_ip,
+      # Fly's edge proxy is what remote_ip sees (the public proxy hop isn't
+      # trusted); the real client IP arrives in Fly-Client-IP.
+      ip_address: request.headers["Fly-Client-IP"].presence || request.remote_ip,
       user_agent: request.user_agent,
       referrer: request.referrer,
       user_id: Current.user&.id,
