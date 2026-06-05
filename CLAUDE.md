@@ -13,6 +13,37 @@
 - Flow: worktree → commit → push → `gh pr create` → wait for the auto-review
   run to pass → squash-merge → remove the worktree.
 - This applies to all agent44bot repos, not just this one.
+- Do not merge a PR yourself unless the owner explicitly says to; open it,
+  wait for checks, and report.
+
+## House rules (for any agent touching this code, incl. PR review)
+
+- **`Current.user`, never `Current.session.user`.** The session user is the
+  real admin even during impersonation ("View as"), so session.user leaks
+  past it. Flag any new `Current.session.user` in review.
+- **User activity = `PageView`, not `Session`.** `Session.updated_at` freezes
+  at sign-in (persistent cookies), so it lies about activity.
+- **Every new foreign key to `users` needs a matching `has_many` on `User`
+  with `dependent: :destroy` or `:nullify`.** Otherwise the Apple-required
+  delete-account flow breaks at runtime.
+- **No em or en dashes (— –) in user-facing or AI-generated copy.** Use
+  commas, colons, or parentheses.
+- **`config/recurring.yml` schedules must parse to `Fugit::Cron`.** A phrase
+  that parses to a point in time crash-loops prod at boot (SolidQueue runs
+  inside puma). Guarded by test/lib/recurring_schedule_test.rb; "every week
+  on X" is the known foot-gun.
+- **Never call the Anthropic API (or any external API) in tests.** Mock it.
+- **Workspace roles are owner/admin/editor/viewer.** Owner/admin =
+  `Workspace#manager?` (always sees billing/pricing); use workspace roles for
+  customer-tier gating, never new global User roles.
+- **User-facing NY Kitchen changes get a line in `config/nyk_changelog.yml`**
+  (plain language, dated; it feeds the Sunday owner report).
+- **Post-deploy verification is two checks**: the site returns 200 AND
+  `SolidQueue::Process.count > 0` in prod. A crash loop can serve a lucky
+  200 while jobs are dead.
+- **Mobile composer inputs**: 16px font minimum (iOS zoom), size chat boxes
+  to `visualViewport`, no autofocus/refocus on touch.
+- The NY Kitchen contact's name is spelled **Lora** (never "Laura").
 
 ## Deploys — READ BEFORE `fly deploy`
 
