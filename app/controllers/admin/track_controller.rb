@@ -29,10 +29,12 @@ module Admin
       users_by_id = User.where(id: tracked_user_ids).index_by(&:id)
       @filter_users = tracked_user_ids.filter_map { |uid| users_by_id[uid] }
 
-      @user = User.find_by(id: params[:user_id]) if params[:user_id].present?
+      # "anonymous" drills into signed-out traffic (user_id is NULL).
+      @anonymous = params[:user_id] == "anonymous"
+      @user = User.find_by(id: params[:user_id]) if params[:user_id].present? && !@anonymous
 
-      if @user
-        scope = PageView.where(user_id: @user.id)
+      if @user || @anonymous
+        scope = @anonymous ? PageView.where(user_id: nil) : PageView.where(user_id: @user.id)
 
         @page_views = scope.where("created_at >= ?", since).order(created_at: :desc).limit(500).to_a
         @range_truncated = scope.where("created_at >= ?", since).count > 500
@@ -70,6 +72,17 @@ module Admin
           next unless user
           { user: user, hits: hits, sessions: sessions, last_seen_at: last_seen_at }
         end.sort_by { |row| -row[:hits] }
+
+        # Signed-out traffic gets one rollup row at the bottom of the table.
+        anon = PageView.where(user_id: nil).where("created_at >= ?", since)
+        anon_hits = anon.count
+        if anon_hits.positive?
+          @anon_summary = {
+            hits:         anon_hits,
+            sessions:     anon.distinct.count(:session_id),
+            last_seen_at: anon.maximum(:created_at)
+          }
+        end
       end
     end
 

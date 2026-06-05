@@ -1,4 +1,4 @@
-<% content_for :title, @user ? "Track · #{@user.email_address}" : "Track users" %>
+<% content_for :title, @user ? "Track · #{@user.email_address}" : (@anonymous ? "Track · anonymous" : "Track users") %>
 
 <% tz = "Eastern Time (US & Canada)" %>
 
@@ -7,6 +7,8 @@
     <h1 class="text-2xl font-bold text-white">
       <% if @user %>
         Track <%= @user.display_identifier %>
+      <% elsif @anonymous %>
+        Track anonymous visitors
       <% else %>
         Track users
       <% end %>
@@ -16,6 +18,8 @@
   <p class="text-sm text-gray-400 mb-6">
     <% if @user %>
       Every page <strong><%= @user.email_address %></strong> hits in the app.
+    <% elsif @anonymous %>
+      Every page hit by <strong>signed-out</strong> visitors. Use the session column to tell visitors apart.
     <% else %>
       Activity across every signed-in user with tracked page views.
     <% end %>
@@ -31,19 +35,21 @@
         <%= link_to u.display_identifier, admin_track_path(user_id: u.id, range: @range),
               class: "text-xs px-3 py-1.5 rounded-full border #{@user&.id == u.id ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
       <% end %>
+      <%= link_to "👻 Anonymous", admin_track_path(user_id: "anonymous", range: @range),
+            class: "text-xs px-3 py-1.5 rounded-full border #{@anonymous ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
     </div>
   <% end %>
 
   <%# Time range filter %>
   <div class="flex flex-wrap gap-2 mb-8">
     <% [["today","Today"], ["week","Last 7d"], ["30d","Last 30d"], ["all","All-time"]].each do |val, label| %>
-      <%= link_to label, admin_track_path(range: val, user_id: @user&.id),
+      <%= link_to label, admin_track_path(range: val, user_id: @anonymous ? "anonymous" : @user&.id),
             class: "text-xs px-3 py-1.5 rounded-full border #{@range == val ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
     <% end %>
   </div>
 
-  <% if @user %>
-    <%# ========== SINGLE-USER DETAIL ========== %>
+  <% if @user || @anonymous %>
+    <%# ========== SINGLE-USER (OR ANONYMOUS) DETAIL ========== %>
 
     <%# Header summary cards %>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
@@ -126,6 +132,9 @@
             <tr>
               <th class="px-4 py-2 text-left">When (ET)</th>
               <th class="px-4 py-2 text-left">Path</th>
+              <% if @anonymous %>
+                <th class="px-4 py-2 text-left">Session</th>
+              <% end %>
               <th class="px-4 py-2 text-left">Device</th>
               <th class="px-4 py-2 text-left">Location</th>
               <th class="px-4 py-2 text-left">IP</th>
@@ -143,6 +152,11 @@
                   <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold mr-2 <%= badge_color %>"><%= method %></span>
                   <span class="font-mono text-orange-300"><%= pv.path %></span>
                 </td>
+                <% if @anonymous %>
+                  <td class="px-4 py-2 font-mono text-gray-500 text-xs" title="<%= pv.session_id %>">
+                    <%= pv.session_id.to_s.first(8).presence || "—" %>
+                  </td>
+                <% end %>
                 <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap">
                   <%= pv.browser.presence || "?" %>
                   <span class="text-gray-600">/</span>
@@ -166,7 +180,7 @@
   <% else %>
     <%# ========== ALL-USERS OVERVIEW ========== %>
 
-    <% if @user_summary.empty? %>
+    <% if @user_summary.empty? && @anon_summary.nil? %>
       <p class="text-sm text-gray-500 italic">No tracked activity in this window yet.</p>
     <% else %>
       <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden">
@@ -196,6 +210,24 @@
                 </td>
                 <td class="px-4 py-2 text-right">
                   <%= link_to "Drill in →", admin_track_path(user_id: u.id, range: @range),
+                        class: "text-xs text-orange-400 hover:text-orange-300 font-semibold" %>
+                </td>
+              </tr>
+            <% end %>
+            <% if @anon_summary %>
+              <tr class="hover:bg-gray-800/40 bg-gray-950/40">
+                <td class="px-4 py-2">
+                  <div class="text-white">👻 Anonymous</div>
+                  <div class="text-xs text-gray-500">signed-out visitors</div>
+                </td>
+                <td class="px-4 py-2 text-right tabular-nums text-white font-semibold"><%= @anon_summary[:hits] %></td>
+                <td class="px-4 py-2 text-right tabular-nums text-gray-300"><%= @anon_summary[:sessions] %></td>
+                <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap">
+                  <%= time_ago_in_words(@anon_summary[:last_seen_at]) %> ago
+                  <div class="text-gray-600"><%= @anon_summary[:last_seen_at].in_time_zone(tz).strftime("%a %b %-d, %-l:%M%P %Z") %></div>
+                </td>
+                <td class="px-4 py-2 text-right">
+                  <%= link_to "Drill in →", admin_track_path(user_id: "anonymous", range: @range),
                         class: "text-xs text-orange-400 hover:text-orange-300 font-semibold" %>
                 </td>
               </tr>
