@@ -1,6 +1,4 @@
 class JobsController < ApplicationController
-  allow_unauthenticated_access only: [ :index, :globe, :today, :show ]
-
   FREE_JOB_VIEWS = 5
 
   RANGE_MAP = { "1d" => 1, "5d" => 5, "1w" => 7, "3w" => 21, "1m" => 30, "3m" => 90, "6m" => 180 }.freeze
