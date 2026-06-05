@@ -64,4 +64,4 @@ production:
     schedule: every hour at minute 23
   device_token_prune:
     class: DeviceTokenPruneJob
-    schedule: every week on Monday at 4:41am
+    schedule: every monday at 4:41am
