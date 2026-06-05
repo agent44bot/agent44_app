@@ -19,6 +19,14 @@ module Api
         end
         device_token.save!
 
+        # One greppable line per registration: which token (prefix), which
+        # user (nil = orphan, e.g. signed-out or display device), new or
+        # re-registered. Saved hours in the 2026-06-05 push-delivery hunt.
+        Rails.logger.info(
+          "DeviceToken register: #{device_token.token[0, 12]}... " \
+          "user=#{device_token.user_id.inspect} #{device_token.previously_new_record? ? "created" : "re-registered"}"
+        )
+
         render json: { id: device_token.id, token: device_token.token, user_id: device_token.user_id }, status: :created
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
