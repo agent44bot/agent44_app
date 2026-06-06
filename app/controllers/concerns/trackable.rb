@@ -16,6 +16,12 @@ module Trackable
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
     return if bot_request?
 
+    # Public (allow_unauthenticated_access) actions skip require_authentication,
+    # so Current.session is never resumed there and signed-in users were
+    # tracked as anonymous on /, /nykitchen, etc. Resume it ourselves so
+    # attribution works on every page.
+    resume_session if Current.session.blank?
+
     session_id = cookies[:visitor_sid]
     unless session_id.present?
       session_id = SecureRandom.uuid
