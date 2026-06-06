@@ -99,7 +99,7 @@ GEM
     bindex (0.8.1)
     bip-schnorr (0.7.0)
       ecdsa_ext (~> 0.5.0)
-    bootsnap (1.23.0)
+    bootsnap (1.24.6)
       msgpack (~> 1.2)
     brakeman (8.0.4)
       racc
@@ -224,7 +224,7 @@ GEM
       builder
       minitest (>= 5.0, < 7)
       ruby-progressbar
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     multi_xml (0.8.1)
       bigdecimal (>= 3.1, < 5)
     net-http2 (0.19.0)
