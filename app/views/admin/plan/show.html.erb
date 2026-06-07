@@ -33,6 +33,14 @@
           <div>
             <p class="text-sm font-semibold <%= done_at ? "text-gray-400 line-through" : "text-white" %>"><%= step[:title] %></p>
             <p class="text-xs text-gray-500 mt-0.5"><%= step[:detail] %></p>
+            <% if step[:links].present? %>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                <% step[:links].each do |l| %>
+                  <%= link_to l[:label], l[:url], target: "_blank", rel: "noopener",
+                        class: "text-[11px] px-2 py-0.5 rounded-full border border-gray-700 text-orange-300 hover:border-orange-500 hover:text-orange-200 transition" %>
+                <% end %>
+              </div>
+            <% end %>
             <% if done_at %>
               <p class="text-[11px] text-orange-400/80 mt-1">Done <%= done_at.strftime("%b %-d, %-l:%M%P") %></p>
             <% end %>
