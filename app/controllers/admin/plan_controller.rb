@@ -14,11 +14,22 @@ module Admin
         title: "Week 1: file the DBA",
         steps: [
           { id: "name_search", title: "Name search",
-            detail: "Check Monroe County clerk assumed-name records and the NY DOS entity database for an Agent44 Labs conflict." },
+            detail: "Check Monroe County clerk assumed-name records and the NY DOS entity database for an Agent44 Labs conflict.",
+            links: [
+              { label: "Monroe County records (SearchIQS)", url: "https://searchiqs.com/nymonr/" },
+              { label: "NY DOS entity search", url: "https://apps.dos.ny.gov/publicInquiry/" }
+            ] },
           { id: "file_x201", title: "File Certificate of Assumed Name (form X-201)",
-            detail: "Monroe County clerk, roughly $25 to $35. Get 2 or 3 certified copies; banks want one." },
+            detail: "Monroe County clerk (39 W. Main St, Room 101, Rochester), roughly $25 to $35. Get 2 or 3 certified copies; banks want one.",
+            links: [
+              { label: "DBA form (PDF)", url: "https://www.monroecounty.gov/files/clerk/DBA%20CERTIFICATE%20OF%20INDIVIDUAL%20v2.pdf" },
+              { label: "Clerk DBA info", url: "https://www.monroecounty.gov/clerk-dba" }
+            ] },
           { id: "ein", title: "Get an EIN",
-            detail: "Free at irs.gov, about 10 minutes. Use it instead of your SSN on W-9s and bank forms." }
+            detail: "Free at irs.gov, about 10 minutes. Use it instead of your SSN on W-9s and bank forms.",
+            links: [
+              { label: "IRS EIN online application", url: "https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online" }
+            ] }
         ]
       },
       {
@@ -36,7 +47,8 @@ module Admin
         title: "Week 3: books and advice",
         steps: [
           { id: "books", title: "Set up bookkeeping",
-            detail: "Wave (free) or a spreadsheet: income (NYK invoices) and categorized expenses. 30 minutes a month." },
+            detail: "Wave (free) or a spreadsheet: income (NYK invoices) and categorized expenses. 30 minutes a month.",
+            links: [ { label: "Wave", url: "https://www.waveapps.com" } ] },
           { id: "cpa", title: "Book the CPA consult",
             detail: "Three questions: profit-motive posture with W-2 offset losses; NY sales tax on SaaS subscriptions; when an LLC becomes worth it." }
         ]
@@ -45,7 +57,11 @@ module Admin
         title: "Week 4: taxes forward",
         steps: [
           { id: "estimates", title: "Set up quarterly estimated taxes",
-            detail: "Federal 1040-ES and NY IT-2105 if you expect to owe $1k or more. TurboTax Premium generates the vouchers." },
+            detail: "Federal 1040-ES and NY IT-2105 if you expect to owe $1k or more. TurboTax Premium generates the vouchers.",
+            links: [
+              { label: "IRS 1040-ES", url: "https://www.irs.gov/forms-pubs/about-form-1040-es" },
+              { label: "NY estimated tax", url: "https://www.tax.ny.gov/pit/estimated_tax/" }
+            ] },
           { id: "home_office", title: "Measure the home office",
             detail: "Simplified deduction is $5 per square foot, up to 300 sq ft. One measurement, deduct every year." }
         ]
