@@ -36,7 +36,12 @@ module Admin
         title: "Week 2: money plumbing",
         steps: [
           { id: "bank_account", title: "Open the business checking account",
-            detail: "Bring a certified DBA copy plus the EIN. Add a business credit card if offered." },
+            detail: "Online-only works: sign up with the EIN plus a scan of the DBA certificate. Found is built for sole props (auto Schedule C categories); Novo and BlueVine are solid free checking. Skip Cash App (payments app, not a bank account).",
+            links: [
+              { label: "Found", url: "https://found.com" },
+              { label: "Novo", url: "https://www.novo.co" },
+              { label: "BlueVine", url: "https://www.bluevine.com" }
+            ] },
           { id: "move_expenses", title: "Move recurring business expenses to the new account",
             detail: "Anthropic/Claude Max, API usage, Fly.io, OpenRouter, GitHub, Apple Developer, domains." },
           { id: "receipts", title: "Gather receipts back to January 2026",
