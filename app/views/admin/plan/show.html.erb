@@ -29,7 +29,7 @@
         <div class="flex items-start gap-3 p-4 <%= "opacity-60" if done_at %>">
           <%= button_to admin_plan_toggle_path(step_id: step[:id]), method: :post,
                 class: "mt-0.5 shrink-0 w-5 h-5 rounded border flex items-center justify-center text-xs
-                        #{done_at ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-950 border-gray-700 text-transparent hover:border-orange-500'}" do %>✓<% end %>
+                        #{done_at ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-950 border-gray-700 hover:border-orange-500'}" do %><%= "\u2713" if done_at %><% end %>
           <div>
             <p class="text-sm font-semibold <%= done_at ? "text-gray-400 line-through" : "text-white" %>"><%= step[:title] %></p>
             <p class="text-xs text-gray-500 mt-0.5"><%= step[:detail] %></p>

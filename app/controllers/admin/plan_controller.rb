@@ -42,8 +42,8 @@ module Admin
               { label: "Novo", url: "https://www.novo.co" },
               { label: "BlueVine", url: "https://www.bluevine.com" }
             ] },
-          { id: "move_expenses", title: "Move recurring business expenses to the new account",
-            detail: "Anthropic/Claude Max, API usage, Fly.io, OpenRouter, GitHub, Apple Developer, domains." },
+          { id: "move_expenses", title: "Point recurring expenses at the business card",
+            detail: "Get a business credit card (Chase Ink or Amex Business; apply with the DBA name and EIN), put Anthropic/Claude Max, API usage, Fly.io, OpenRouter, GitHub, Apple Developer, and domains on it, and autopay the card from the business checking. Business-only spend on the card; charges deduct in the year charged." },
           { id: "receipts", title: "Gather receipts back to January 2026",
             detail: "Anthropic invoices, Apple, Fly, hardware, flights. Label each with its business purpose." }
         ]
