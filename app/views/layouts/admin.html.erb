@@ -18,38 +18,53 @@
 <body class="h-full flex flex-col bg-gray-800 text-white antialiased">
   <%= render "shared/impersonation_banner" %>
 
-  <!-- Admin Navigation -->
+  <!-- Admin Navigation: logo + one menu. All admin destinations live in the
+       dropdown (zero-JS <details>, works in the iOS webview); the bar keeps
+       only the bell, Home, Jobs, and account controls. -->
   <nav class="bg-gray-900 text-white sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-14">
-        <div class="flex items-center space-x-6">
+      <div class="flex justify-between items-center h-14">
+        <div class="flex items-center gap-3">
           <%= link_to admin_dashboard_path, class: "flex items-center space-x-2 font-bold text-lg tracking-tight" do %>
             <span class="text-orange-400">Agent44</span>
-            <span class="text-xs font-medium bg-orange-600 px-2 py-0.5 rounded text-white">Admin</span>
           <% end %>
 
-          <div class="hidden md:flex items-center space-x-4">
-            <%= link_to "Dashboard", admin_dashboard_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == admin_dashboard_path ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Posts", admin_posts_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/posts') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Videos", admin_videos_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/videos') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Scrapers", admin_scrapers_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/scrapers') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Users", admin_users_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/users') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Agents", admin_agents_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/agents') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Kitchen", nykitchen_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/nykitchen') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Chat", admin_chat_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path.start_with?('/admin/chat') ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Visitor Map", admin_visitors_map_path,
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == '/admin/visitors/map' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-            <%= link_to "Lab", "/lab",
-                  class: "text-sm font-medium px-3 py-1.5 rounded-md #{request.path == '/lab' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition" %>
-          </div>
+          <details class="relative group">
+            <summary class="list-none cursor-pointer select-none flex items-center gap-1.5 text-xs font-medium bg-orange-600 hover:bg-orange-500 px-2.5 py-1 rounded text-white transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              Admin
+            </summary>
+            <div class="absolute left-0 mt-2 w-64 rounded-xl bg-gray-900 border border-gray-700 shadow-2xl shadow-black/50 p-2 grid grid-cols-2 gap-x-1 text-sm z-50">
+              <% nav_item = ->(label, path, match = nil) {
+                   active = match ? request.path.start_with?(match) : request.path == path
+                   link_to(label, path, class: "block px-3 py-1.5 rounded-md #{active ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-orange-400 hover:bg-gray-800'} transition")
+                 } %>
+              <div>
+                <p class="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Work</p>
+                <%= nav_item.call("Plan", admin_plan_path) %>
+                <%= nav_item.call("Dashboard", admin_dashboard_path) %>
+                <%= nav_item.call("Track", admin_track_path, "/admin/track") %>
+                <%= nav_item.call("Visitor Map", admin_visitors_map_path) %>
+                <%= nav_item.call("AI Costs", admin_ai_costs_path) %>
+                <p class="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Kitchen</p>
+                <%= nav_item.call("Kitchen", nykitchen_path, "/nykitchen") %>
+                <%= nav_item.call("Chat", admin_chat_path, "/admin/chat") %>
+              </div>
+              <div>
+                <p class="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Content</p>
+                <%= nav_item.call("Posts", admin_posts_path, "/admin/posts") %>
+                <%= nav_item.call("Videos", admin_videos_path, "/admin/videos") %>
+                <%= nav_item.call("Lab", "/lab") %>
+                <p class="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Manage</p>
+                <%= nav_item.call("Scrapers", admin_scrapers_path, "/admin/scrapers") %>
+                <%= nav_item.call("Users", admin_users_path, "/admin/users") %>
+                <%= nav_item.call("Agents", admin_agents_path, "/admin/agents") %>
+                <%= nav_item.call("Notifications", admin_notifications_path, "/admin/notifications") %>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="flex items-center space-x-4">
