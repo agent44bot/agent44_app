@@ -14,7 +14,7 @@ module Admin
         title: "Week 1: file the DBA",
         steps: [
           { id: "name_search", title: "Name search",
-            detail: "Check Monroe County clerk assumed-name records and the NY DOS entity database for an Agent44 Labs conflict.",
+            detail: "Check Monroe County clerk assumed-name records and the NY DOS entity database for an Agent44Labs conflict.",
             links: [
               { label: "Monroe County records (SearchIQS)", url: "https://searchiqs.com/nymonr/" },
               { label: "NY DOS entity search", url: "https://apps.dos.ny.gov/publicInquiry/" }
