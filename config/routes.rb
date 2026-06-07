@@ -214,6 +214,8 @@ Rails.application.routes.draw do
     end
     resources :users, only: [ :index, :destroy ]
     get "track", to: "track#index", as: :track
+    get  "plan",        to: "plan#show",   as: :plan
+    post "plan/toggle", to: "plan#toggle", as: :plan_toggle
     get "visitors/map", to: "visitors#map"
     resources :agents, except: [ :show ]
     get "kitchen", to: redirect("/nykitchen", status: 301)
