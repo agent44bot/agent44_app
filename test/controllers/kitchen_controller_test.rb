@@ -31,6 +31,43 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match "opened the dashboard", response.body
   end
 
+  test "manager can generate the report on demand and it logs a usage event" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    assert_difference -> { UsageEvent.where(kind: "report.on_demand").count }, 1 do
+      post nyk_generate_report_path
+    end
+    assert_response :success
+    assert_match "Team report", response.body
+    assert_match "How it works", response.body
+  end
+
+  test "generate_report 404s for a non-manager" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    sign_in_as(User.create!(email_address: "outsider-#{SecureRandom.hex(4)}@example.com", role: "user"))
+    assert_no_difference -> { UsageEvent.count } do
+      post nyk_generate_report_path
+    end
+    assert_response :not_found
+  end
+
+  test "manager can email the report to any address and it logs a usage event" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    assert_difference -> { UsageEvent.where(kind: "report.email").count }, 1 do
+      post nyk_send_report_path, params: { email: "board@example.com" }
+    end
+    assert_redirected_to nyk_analyst_path
+    event = UsageEvent.where(kind: "report.email").last
+    assert_equal "board@example.com", event.metadata["to"]
+  end
+
+  test "send_report rejects an invalid email without logging usage" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    assert_no_difference -> { UsageEvent.count } do
+      post nyk_send_report_path, params: { email: "not-an-email" }
+    end
+    assert_redirected_to nyk_analyst_path
+  end
+
   test "week headers show availability bar with red and green only" do
     # Create events this week: 2 available, 1 sold out, 1 limited
     # Limited rolls into "available" for the binary bar.

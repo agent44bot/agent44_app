@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-08
+  note: New on the Analyst dashboard: a "Generate report" button. You can now pull a fresh copy of this team report whenever you need one (for example, right before a board meeting), then print it, save it as a PDF, or email it to anyone with one tap, a board member, an outside developer, or yourself. There is a short "How it works" walkthrough on the page.
+
+- date: 2026-06-08
   note: Your team's weekly recap now lands twice a week, every Monday and Friday at 10 AM, instead of Sunday evening. Monday's covers the week that just finished; Friday's is a mid-week check on how the current week is filling. The daily "selling fast" digest still arrives at 10 AM on the other days.
 
 - date: 2026-06-04

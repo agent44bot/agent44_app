@@ -26,6 +26,21 @@
     </div>
   </div>
 
+  <%# Managers (Lora + Rich) can pull a fresh report any time, e.g. before a
+      board meeting, and email it on. The "How it works" walkthrough lives on
+      the generated page. %>
+  <% if @nyk_workspace&.manager?(Current.user) %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-sm text-gray-300">
+          <span class="font-medium">🧾 Need it now?</span> Generate a fresh report on demand, then print it or email it to anyone (a board member, an outside developer, yourself).
+        </div>
+        <%= button_to "Generate report", nyk_generate_report_path, method: :post,
+              class: "shrink-0 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-400 cursor-pointer" %>
+      </div>
+    </div>
+  <% end %>
+
   <%# Admin-only: who actually opened the dashboard after the last report send.
       Reliable engagement signal: PageView is identified + bot-filtered, and
       Outlook prefetching images/links (which fakes open-pixel hits at delivery)
