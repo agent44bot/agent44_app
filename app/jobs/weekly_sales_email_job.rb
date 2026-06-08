@@ -17,7 +17,11 @@ class WeeklySalesEmailJob < ApplicationJob
       return
     end
 
-    deliver_to(recipients)
+    # Stamp the send time only when an email actually went out, so the admin
+    # "report engagement" panel measures dashboard visits AFTER recipients got
+    # this report. (We track real dashboard visits, not an open pixel: Outlook
+    # prefetches images and would report a false open for every recipient.)
+    Setting.touch_time("nyk_weekly_report:last_sent_at") if deliver_to(recipients)
   rescue => e
     Notification.notify!(
       level: "error",
@@ -42,6 +46,32 @@ class WeeklySalesEmailJob < ApplicationJob
 
     KitchenMailer.weekly_sales(self.class.build_summary(snapshot), recipients: recipients).deliver_now
     Rails.logger.info("WeeklySalesEmailJob: sent to #{recipients} (snapshot #{snapshot.taken_on})")
+    true
+  end
+
+  # Did each report recipient open the Analyst dashboard since the last send?
+  # A reliable, pixel-free "did they actually read it" signal: PageView is
+  # identified by user and bot-filtered, and Outlook's image/link prefetching
+  # (which fakes open-pixel hits at delivery) never runs the dashboard, so a
+  # visit here means a real person looked. Admin-only (surfaced on /nykitchen/
+  # analyst). Returns { last_sent:, rows: [{ user:, email:, viewed_at: }] }
+  # with recipients sorted most-recently-engaged first.
+  def self.recipient_engagement
+    last_sent = Setting.time("nyk_weekly_report:last_sent_at")
+    workspace = Workspace.find_by(slug: "nykitchen")
+    return { last_sent: last_sent, rows: [] } unless workspace
+
+    rows = workspace.users.select { |u| u.email_address.present? }.map do |u|
+      viewed_at = if last_sent
+        PageView.where(user_id: u.id)
+                .where("path LIKE ?", "/nykitchen/analyst%")
+                .where("created_at >= ?", last_sent)
+                .maximum(:created_at)
+      end
+      { user: u, email: u.email_address, viewed_at: viewed_at }
+    end
+
+    { last_sent: last_sent, rows: rows.sort_by { |r| [ r[:viewed_at] ? 0 : 1, -(r[:viewed_at]&.to_i || 0) ] } }
   end
 
   # The recap payload the mailer renders, derived from a snapshot. Class method
