@@ -75,6 +75,24 @@
     </td></tr>
   <% end %>
 
+  <%# ════ New this week (Carson's changelog) ════════════════ %>
+  <% if s[:changelog].present? %>
+    <tr><td style="padding:26px 30px 4px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border-left:3px solid <%= accent %>;border-radius:0 8px 8px 0"><tr>
+        <td style="padding:13px 16px">
+          <div style="font-family:<%= serif %>;font-size:15px;font-weight:bold;color:<%= ink %>">&#10024; New this week</div>
+          <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:1px">Improvements your team shipped, with Carson's compliments.</div>
+          <% s[:changelog].each do |c| %>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:9px"><tr>
+              <td width="14" style="vertical-align:top;font-family:<%= sans %>;font-size:13px;color:<%= accent %>">&bull;</td>
+              <td style="font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.5"><%= c[:note] %></td>
+            </tr></table>
+          <% end %>
+        </td>
+      </tr></table>
+    </td></tr>
+  <% end %>
+
   <%# ════ IRIS · Analyst ═════════════════════════════════════ %>
   <%= agent_banner.call("&#128202;", "Iris", "Analyst", iris,
         wow_rev ? "<span style=\"font-family:#{mono};color:#{wow_rev >= 0 ? green : red}\">#{wow_rev >= 0 ? '&#9650;' : '&#9660;'} #{wow_rev.abs}%</span> <span style=\"color:#{mut};font-weight:normal\">wk</span>" : "",
@@ -281,24 +299,6 @@
         <% end %>
       </td></tr>
     <% end %>
-  <% end %>
-
-  <%# ════ New this week (Carson's changelog) ════════════════ %>
-  <% if s[:changelog].present? %>
-    <tr><td style="padding:26px 30px 4px">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border-left:3px solid <%= accent %>;border-radius:0 8px 8px 0"><tr>
-        <td style="padding:13px 16px">
-          <div style="font-family:<%= serif %>;font-size:15px;font-weight:bold;color:<%= ink %>">&#10024; New this week</div>
-          <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:1px">Improvements your team shipped, with Carson's compliments.</div>
-          <% s[:changelog].each do |c| %>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:9px"><tr>
-              <td width="14" style="vertical-align:top;font-family:<%= sans %>;font-size:13px;color:<%= accent %>">&bull;</td>
-              <td style="font-family:<%= sans %>;font-size:13px;color:#444;line-height:1.5"><%= c[:note] %></td>
-            </tr></table>
-          <% end %>
-        </td>
-      </tr></table>
-    </td></tr>
   <% end %>
 
   <%# ── CTA + footer ─────────────────────────────────────── %>

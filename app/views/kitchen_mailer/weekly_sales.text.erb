@@ -16,6 +16,13 @@ NY Kitchen Weekly Team Report
 <%= @s[:headline] %>
   Carson, your concierge
 <% end -%>
+<% if @s[:changelog].present? -%>
+
+NEW THIS WEEK (improvements your team shipped)
+<% @s[:changelog].each do |c| -%>
+- <%= c[:note] %>
+<% end -%>
+<% end -%>
 
 IRIS · ANALYST
 BOOKED · <%= (bw[:label] || "this week").upcase %>: <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
@@ -109,13 +116,6 @@ Ready for your first stock count. Scan a case in or import your list to start tr
 <% else -%>
 <%= "#{number_with_delimiter(cellar[:units].to_i)} unit(s) on hand across #{cellar[:items]} item(s)#{cellar[:low_stock].to_i.positive? ? ", #{cellar[:low_stock]} at or below par" : ''}." %>
 <%= cellar[:moves].to_i.positive? ? "This week: #{cellar[:received].to_i} in, #{cellar[:removed].to_i} out across #{cellar[:moves]} movement(s)." : "No scans this week." %>
-<% end -%>
-<% end -%>
-<% if @s[:changelog].present? -%>
-
-NEW THIS WEEK (improvements your team shipped)
-<% @s[:changelog].each do |c| -%>
-- <%= c[:note] %>
 <% end -%>
 <% end -%>
 
