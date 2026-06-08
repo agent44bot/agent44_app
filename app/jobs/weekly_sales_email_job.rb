@@ -94,10 +94,14 @@ class WeeklySalesEmailJob < ApplicationJob
       week_start = today.beginning_of_week(:monday) - 7 # last Monday
       week_end   = today - 1                            # yesterday = Sunday
       week_label = "last week (Mon-Sun)"
+      # Headline is last week, so the delta compares it to the week before.
+      compare_label = "vs prior week"
     else
       week_start = today.beginning_of_week(:monday)     # this Monday
       week_end   = today
       week_label = "this week so far (Mon-#{today.strftime('%a')})"
+      # Headline is this week so far, so the delta compares it to last week.
+      compare_label = "vs last week"
     end
     # Day-over-day sum (not endpoint diff) so "Booked this week" counts every
     # ticket sold in the window, including classes that already ran, and matches
@@ -116,7 +120,7 @@ class WeeklySalesEmailJob < ApplicationJob
       rev_proxy_count:  upcoming.select(&:capacity_known?).count(&:capacity_via_proxy?),
       booked_week:      { tickets: bw[:tickets], revenue: bw[:revenue],
                           prior_tickets: pw[:tickets], prior_revenue: pw[:revenue],
-                          label: week_label },
+                          label: week_label, compare_label: compare_label },
       movers:           KitchenSnapshot.bookings_between(today - 7, today).first(3),
       newly_sold_out:   KitchenSnapshot.newly_sold_out_since(today - 7),
       empty_last_week:  KitchenSnapshot.classes_ended_between(today - 7, today)

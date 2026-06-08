@@ -23,10 +23,10 @@
       (fill < w ? %(<td height="7" style="background:#{track};font-size:0;line-height:0;border-radius:3px">&nbsp;</td>) : "") +
       %(</tr></table>)
   }
-  delta = ->(pct) {
+  delta = ->(pct, compare = "vs last week") {
     return "" if pct.nil?
     up = pct >= 0
-    %(<span style="font-family:#{mono};font-size:13px;font-weight:bold;color:#{up ? green : red}">#{up ? '&#9650;' : '&#9660;'} #{pct.abs}%</span> <span style="font-family:#{sans};font-size:12px;color:#{mut}">vs last week</span>)
+    %(<span style="font-family:#{mono};font-size:13px;font-weight:bold;color:#{up ? green : red}">#{up ? '&#9650;' : '&#9660;'} #{pct.abs}%</span> <span style="font-family:#{sans};font-size:12px;color:#{mut}">#{compare}</span>)
   }
   # Agent section banner: emoji + codename + classification (accent) + optional
   # status. When `url` is given the codename + tag link to that agent's live
@@ -101,7 +101,7 @@
     <div style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:<%= mut %>">Booked &middot; <%= bw[:label] || "this week" %></div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:2px"><tr>
       <td style="vertical-align:baseline;font-family:<%= mono %>;font-size:36px;font-weight:bold;color:<%= green %>;line-height:1.1"><%= money.call(tw_rev) %></td>
-      <td style="vertical-align:baseline;text-align:right"><%= delta.call(wow_rev).html_safe %></td>
+      <td style="vertical-align:baseline;text-align:right"><%= delta.call(wow_rev, bw[:compare_label] || "vs last week").html_safe %></td>
     </tr></table>
     <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:4px"><%= bw[:tickets].to_i %> <%= "ticket".pluralize(bw[:tickets].to_i) %> sold <%= bw[:label] || "this week" %></div>
 
