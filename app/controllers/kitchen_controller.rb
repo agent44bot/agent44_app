@@ -21,6 +21,8 @@ class KitchenController < ApplicationController
   # of the nykitchen workspace (Lora's team) are allowed; everyone else 404s.
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
+  # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
+  before_action :require_nyk_manager, only: %i[generate_report send_report]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -78,6 +80,41 @@ class KitchenController < ApplicationController
     summary = WeeklySalesEmailJob.build_summary(snapshot, carson: false)
     html = KitchenMailer.weekly_sales(summary, recipients: [ "preview@agent44labs.com" ]).html_part.body.to_s
     render html: html.html_safe, layout: false, content_type: "text/html"
+  end
+
+  # On-demand team report for NY Kitchen managers (Lora + Rich). Builds the full
+  # report (with Carson) from the latest snapshot so Lora can pull a fresh copy
+  # any time, e.g. before a board meeting, then read/print it or email it on.
+  # Uses the exact builder + template as the scheduled send. Each generation is
+  # logged as a metered UsageEvent (we record now, decide billing later).
+  def generate_report
+    snapshot = KitchenSnapshot.latest
+    redirect_to(nyk_analyst_path, alert: "No snapshot yet, so there's nothing to report.") and return unless snapshot
+
+    summary = WeeklySalesEmailJob.build_summary(snapshot)
+    to = Current.user.email_address.presence || "preview@agent44labs.com"
+    @report_html          = KitchenMailer.weekly_sales(summary, recipients: [ to ]).html_part.body.to_s
+    @report_snapshot_date = snapshot.taken_on
+    UsageEvent.record!(workspace: @nyk_workspace, user: Current.user,
+                       kind: "report.on_demand", metadata: { snapshot: snapshot.taken_on.to_s })
+    render "kitchen/generate_report", layout: "application"
+  end
+
+  # Email the on-demand report to any address Lora enters (a board member, an
+  # outside developer, herself). Logged as its own metered UsageEvent.
+  def send_report
+    email = params[:email].to_s.strip
+    unless email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to(nyk_analyst_path, alert: "Enter a valid email address.") and return
+    end
+    snapshot = KitchenSnapshot.latest
+    redirect_to(nyk_analyst_path, alert: "No snapshot yet, so there's nothing to send.") and return unless snapshot
+
+    summary = WeeklySalesEmailJob.build_summary(snapshot)
+    KitchenMailer.weekly_sales(summary, recipients: [ email ]).deliver_later
+    UsageEvent.record!(workspace: @nyk_workspace, user: Current.user,
+                       kind: "report.email", metadata: { to: email, snapshot: snapshot.taken_on.to_s })
+    redirect_to nyk_analyst_path, notice: "Report sent to #{email}."
   end
 
   def analyst
@@ -717,6 +754,13 @@ class KitchenController < ApplicationController
 
   def require_nyk_super_agent_access
     head :not_found unless nyk_super_agent_allowed?
+  end
+
+  # Gate + load for the on-demand report actions: only NY Kitchen managers
+  # (owner/admin = Lora + Rich) may generate or send the report. 404 otherwise.
+  def require_nyk_manager
+    @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
+    head :not_found unless @nyk_workspace&.manager?(Current.user)
   end
 
   def set_common_view_state

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_30_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_08_120000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -533,6 +533,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_30_160000) do
     t.index ["token"], name: "index_subscribers_on_token", unique: true
   end
 
+  create_table "usage_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.text "metadata"
+    t.integer "quantity", default: 1, null: false
+    t.integer "unit_cents", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.integer "workspace_id", null: false
+    t.index ["kind"], name: "index_usage_events_on_kind"
+    t.index ["user_id"], name: "index_usage_events_on_user_id"
+    t.index ["workspace_id", "created_at"], name: "index_usage_events_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_usage_events_on_workspace_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.integer "ai_enhances_used", default: 0, null: false
     t.string "anthropic_api_key"
@@ -711,6 +726,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_30_160000) do
   add_foreign_key "sessions", "users", column: "impersonated_user_id"
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
+  add_foreign_key "usage_events", "workspaces"
   add_foreign_key "workspace_agents", "workspaces"
   add_foreign_key "workspace_drafts", "users", column: "author_id"
   add_foreign_key "workspace_drafts", "workspaces"

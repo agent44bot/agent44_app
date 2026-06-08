@@ -11,6 +11,7 @@ class User < ApplicationRecord
   has_many :notifications, dependent: :nullify
   has_many :device_tokens, dependent: :nullify
   has_many :ai_call_logs, dependent: :nullify
+  has_many :usage_events, dependent: :nullify        # metered actions this user triggered
   has_many :inventory_movements, dependent: :nullify # who scanned stock in/out
   has_many :inventory_captures, dependent: :nullify  # who logged a product photo/price
   has_many :workspace_memberships, dependent: :destroy

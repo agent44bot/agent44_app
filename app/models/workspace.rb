@@ -10,6 +10,7 @@ class Workspace < ApplicationRecord
   has_many :workspace_posts,   dependent: :destroy
   has_many :workspace_drafts,  dependent: :destroy
   has_many :workspace_agents,  dependent: :destroy
+  has_many :usage_events,      dependent: :destroy # metered billable actions
 
   validates :name, presence: true, length: { maximum: 100 }
   validates :slug, presence: true, uniqueness: true,
