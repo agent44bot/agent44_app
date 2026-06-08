@@ -33,6 +33,22 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     end
   end
 
+  test "booked_week label and delta period track the send day" do
+    snapshot = KitchenSnapshot.latest
+    # Monday: headline is the finished last week, delta compares the week before.
+    travel_to Time.zone.parse("2026-06-08 10:00") do
+      bw = WeeklySalesEmailJob.build_summary(snapshot, carson: false)[:booked_week]
+      assert_match "last week", bw[:label]
+      assert_equal "vs prior week", bw[:compare_label]
+    end
+    # Friday: headline is this week so far, delta compares last week.
+    travel_to Time.zone.parse("2026-06-12 10:00") do
+      bw = WeeklySalesEmailJob.build_summary(snapshot, carson: false)[:booked_week]
+      assert_match "this week", bw[:label]
+      assert_equal "vs last week", bw[:compare_label]
+    end
+  end
+
   test "skips sending when no workspace member has an email" do
     # Drop the email-bearing owner membership; leave only a Nostr member.
     @workspace.memberships.destroy_all
