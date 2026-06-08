@@ -87,6 +87,10 @@ class KitchenController < ApplicationController
     subs  = Array(agent&.setting(:weekly_email_subscriber_ids)).map(&:to_i)
     @analyst_subscribed = Current.user && subs.include?(Current.user.id)
 
+    # Admin-only: who actually opened the dashboard after the last report send
+    # (reliable engagement signal vs an Outlook-spoofed open pixel).
+    @report_engagement = WeeklySalesEmailJob.recipient_engagement if Current.user&.admin?
+
     # Time-range scoreboard. Forward windows scope the revenue rollup + the
     # "upcoming" leaderboards over future classes (sold vs left to sell).
     # Retrospective windows ("last …") scope over PAST classes and report what

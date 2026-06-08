@@ -26,6 +26,39 @@
     </div>
   </div>
 
+  <%# Admin-only: who actually opened the dashboard after the last report send.
+      Reliable engagement signal: PageView is identified + bot-filtered, and
+      Outlook prefetching images/links (which fakes open-pixel hits at delivery)
+      never loads the dashboard, so a visit here means a real read. %>
+  <% if Current.user&.admin? && @report_engagement %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
+      <div class="text-sm text-gray-300 font-medium mb-1">📈 Report engagement</div>
+      <% if @report_engagement[:last_sent] %>
+        <div class="text-xs text-gray-500 mb-2">
+          Dashboard visits since the last report (sent <%= @report_engagement[:last_sent].in_time_zone("Eastern Time (US & Canada)").strftime("%b %-d, %-l:%M %p ET") %>).
+          Tracks real visits, not email opens (Outlook prefetching makes open pixels unreliable).
+        </div>
+        <ul class="text-sm space-y-1">
+          <% @report_engagement[:rows].each do |r| %>
+            <li>
+              <% if r[:viewed_at] %>
+                <span class="text-green-400">&#10003;</span>
+                <span class="text-gray-300"><%= r[:email] %></span>
+                <span class="text-gray-500 text-xs">opened the dashboard <%= time_ago_in_words(r[:viewed_at]) %> ago</span>
+              <% else %>
+                <span class="text-gray-600">&#9675;</span>
+                <span class="text-gray-300"><%= r[:email] %></span>
+                <span class="text-gray-500 text-xs">no dashboard visit yet</span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <div class="text-xs text-gray-500">No report has been sent yet, so there is nothing to compare visits against.</div>
+      <% end %>
+    </div>
+  <% end %>
+
   <%# Admin-only: jump to the live weekly team report (same builder as the
       real send). The report_preview action 404s for non-admins, so only
       show the link to site admins to avoid a dead link. %>

@@ -55,6 +55,35 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     assert_match "your team's week", mail.subject
   end
 
+  test "perform stamps the last-sent time when an email goes out" do
+    assert_nil Setting.time("nyk_weekly_report:last_sent_at")
+    WeeklySalesEmailJob.perform_now
+    assert_not_nil Setting.time("nyk_weekly_report:last_sent_at"), "should record the send time"
+  end
+
+  test "recipient_engagement flags only dashboard visits after the last send" do
+    # Owner viewed the dashboard AFTER the send; a second member did not.
+    member = User.create!(email_address: "member-#{SecureRandom.hex(4)}@example.com", role: "user")
+    @workspace.memberships.create!(user: member, role: "admin")
+
+    Setting.touch_time("nyk_weekly_report:last_sent_at")
+    last_sent = Setting.time("nyk_weekly_report:last_sent_at")
+
+    # A pre-send visit must NOT count; a post-send visit must.
+    PageView.create!(user_id: @owner.id, path: "/nykitchen/analyst", method: "GET", created_at: last_sent - 1.hour)
+    PageView.create!(user_id: @owner.id, path: "/nykitchen/analyst", method: "GET", created_at: last_sent + 5.minutes)
+
+    eng = WeeklySalesEmailJob.recipient_engagement
+    owner_row  = eng[:rows].find { |r| r[:user].id == @owner.id }
+    member_row = eng[:rows].find { |r| r[:user].id == member.id }
+
+    assert_not_nil owner_row[:viewed_at], "owner visited after the send"
+    assert owner_row[:viewed_at] >= last_sent
+    assert_nil member_row[:viewed_at], "member never visited"
+    # Engaged recipients sort ahead of non-engaged ones.
+    assert_equal @owner.id, eng[:rows].first[:user].id
+  end
+
   test "weekly_social summarizes this week's posts + engagement when accounts exist" do
     assert_nil WeeklySalesEmailJob.weekly_social(Date.current - 7), "nil when no connected accounts"
 

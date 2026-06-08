@@ -12,6 +12,25 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@default_user)
   end
 
+  test "analyst page renders the admin report-engagement panel" do
+    # No send yet: panel renders its empty state without error.
+    get nyk_analyst_path
+    assert_response :success
+    assert_select "div", text: /Report engagement/
+
+    # After a send + a post-send dashboard visit, the admin sees the recipient
+    # flagged as having opened it.
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    ws.memberships.find_or_create_by!(user: @default_user) { |m| m.role = "admin" }
+    Setting.touch_time("nyk_weekly_report:last_sent_at")
+    PageView.create!(user_id: @default_user.id, path: "/nykitchen/analyst", method: "GET",
+                     created_at: Setting.time("nyk_weekly_report:last_sent_at") + 1.minute)
+
+    get nyk_analyst_path
+    assert_response :success
+    assert_match "opened the dashboard", response.body
+  end
+
   test "week headers show availability bar with red and green only" do
     # Create events this week: 2 available, 1 sold out, 1 limited
     # Limited rolls into "available" for the binary bar.
