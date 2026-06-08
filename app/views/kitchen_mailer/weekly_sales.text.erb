@@ -18,7 +18,7 @@ NY Kitchen Weekly Team Report
 <% end -%>
 
 IRIS · ANALYST
-BOOKED · THIS WEEK (Mon-Sun): <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
+BOOKED · <%= (bw[:label] || "this week").upcase %>: <%= number_to_currency(bw[:revenue].to_i, precision: 0) %><%= wow ? " (#{wow >= 0 ? '+' : ''}#{wow}% vs last week)" : "" %> · <%= bw[:tickets].to_i %> tickets
 Pipeline: <%= number_to_currency(@s[:rev_sold], precision: 0) %> booked of <%= short.call(@s[:rev_total]) %> · <%= @s[:rev_total].to_f.positive? ? (100.0 * @s[:rev_sold] / @s[:rev_total]).round : 0 %>% sold · <%= short.call(@s[:rev_left]) %> still to sell, across <%= @s[:rev_priced_count] %> classes.
 
 <% if @s[:periods].present? -%>
@@ -120,4 +120,4 @@ NEW THIS WEEK (improvements your team shipped)
 <% end -%>
 
 View the full dashboard: https://agent44labs.com/nykitchen/analyst
-Filed every Sunday evening by your NY Kitchen agent team. Manage it on the Analyst dashboard.
+Filed every Monday and Friday by your NY Kitchen agent team. Manage it on the Analyst dashboard.

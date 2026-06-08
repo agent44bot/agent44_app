@@ -78,7 +78,7 @@ Rails.application.routes.draw do
   get   "nykitchen/analyst", to: "kitchen#analyst", as: :nyk_analyst
   patch "nykitchen/analyst/subscription", to: "kitchen#update_analyst_subscription", as: :nyk_analyst_subscription
   # Admin-only live preview of the weekly Agent Team Report (real data, same
-  # builder as the Sunday send). 404s for non-admins. See kitchen#report_preview.
+  # builder as the real send). 404s for non-admins. See kitchen#report_preview.
   get   "nykitchen/analyst/report", to: "kitchen#report_preview", as: :nyk_report_preview
   get  "nykitchen/ask",          to: "kitchen#ask",                as: :nyk_ask
   post "nykitchen/ask/message",  to: "kitchen#ask_message",        as: :nyk_ask_message

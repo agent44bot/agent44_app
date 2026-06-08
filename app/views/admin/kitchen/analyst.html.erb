@@ -15,7 +15,7 @@
       without an email on file are simply skipped at send time. %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
     <div class="text-sm text-gray-300">
-      <span class="font-medium">📬 Weekly sales recap</span> — emailed to the NY Kitchen team every Sunday at 5:00 PM ET.
+      <span class="font-medium">📬 Weekly sales recap</span>: emailed to the NY Kitchen team every Monday and Friday at 10:00 AM ET.
       <% if Current.user&.email_address.blank? %>
         <div class="text-xs text-gray-500 mt-1">
           <%= link_to "Add an email to your profile", settings_path, class: "text-orange-400 hover:text-orange-300 underline" %> to receive it.
@@ -27,7 +27,7 @@
   </div>
 
   <%# Admin-only: jump to the live weekly team report (same builder as the
-      Sunday email). The report_preview action 404s for non-admins, so only
+      real send). The report_preview action 404s for non-admins, so only
       show the link to site admins to avoid a dead link. %>
   <% if Current.user&.admin? %>
     <div class="mb-6 -mt-3 text-xs">

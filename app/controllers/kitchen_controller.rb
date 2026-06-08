@@ -66,7 +66,7 @@ class KitchenController < ApplicationController
   # pieces (revenue rollup + trend charts), while List keeps the operational
   # calendar/leaderboards.
   # Admin-only live preview of the weekly Agent Team Report — rendered with the
-  # latest snapshot's real data using the exact same builder as the Sunday send
+  # latest snapshot's real data using the exact same builder as the real send
   # (one Carson AI call per load). 404s for everyone else. Not linked in the UI;
   # a shareable internal URL for reviewing the report before it goes out.
   def report_preview
@@ -74,7 +74,7 @@ class KitchenController < ApplicationController
     snapshot = KitchenSnapshot.latest
     head :not_found and return unless snapshot
     # Preview skips Carson's AI intro so repeatedly viewing the report doesn't
-    # burn Claude tokens; only the real Sunday send pays for it.
+    # burn Claude tokens; only the real Monday/Friday send pays for it.
     summary = WeeklySalesEmailJob.build_summary(snapshot, carson: false)
     html = KitchenMailer.weekly_sales(summary, recipients: [ "preview@agent44labs.com" ]).html_part.body.to_s
     render html: html.html_safe, layout: false, content_type: "text/html"

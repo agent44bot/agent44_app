@@ -1,9 +1,9 @@
 class WeeklySalesEmailJob < ApplicationJob
   queue_as :default
 
-  # Sunday-evening sales recap from the Analyst Agent. Goes to everyone who
-  # belongs to the NY Kitchen workspace (any membership role), resolved to
-  # emails at send time. Members without an email on file are skipped.
+  # Twice-weekly sales recap from the Analyst Agent (Monday and Friday 10am).
+  # Goes to everyone who belongs to the NY Kitchen workspace (any membership
+  # role), resolved to emails at send time. Members without an email are skipped.
   def perform
     workspace = Workspace.find_by(slug: "nykitchen")
     unless workspace
@@ -46,9 +46,9 @@ class WeeklySalesEmailJob < ApplicationJob
 
   # The recap payload the mailer renders, derived from a snapshot. Class method
   # so both the scheduled run and a test send share one source of truth.
-  # carson: false skips the Carson intro (a paid Claude call) — used by the
+  # carson: false skips the Carson intro (a paid Claude call), used by the
   # admin report preview so eyeballing the report doesn't burn tokens. The
-  # real Sunday send leaves it true.
+  # real Monday/Friday send leaves it true.
   def self.build_summary(snapshot, carson: true)
     today = Date.current
     # Include sold-out classes (their tickets are fully booked revenue) so the
@@ -56,14 +56,23 @@ class WeeklySalesEmailJob < ApplicationJob
     upcoming = snapshot.kitchen_events.upcoming.to_a
     roll     = KitchenSnapshot.revenue_rollup(upcoming)
 
-    # This week = Monday→Sunday (Lora's preference). The recap sends Sunday
-    # evening, so on send day this is the full Mon-Sun week that just finished;
-    # a mid-week preview shows the week so far.
-    week_start = today.beginning_of_week(:monday)
+    # Week = Monday→Sunday (Lora's preference). The recap sends Monday and
+    # Friday at 10am. On Monday we report the full Mon-Sun week that just
+    # finished (last Monday through yesterday's Sunday); on Friday (or any
+    # mid-week send) we show the current week so far (this Monday through today).
+    if today.monday?
+      week_start = today.beginning_of_week(:monday) - 7 # last Monday
+      week_end   = today - 1                            # yesterday = Sunday
+      week_label = "last week (Mon-Sun)"
+    else
+      week_start = today.beginning_of_week(:monday)     # this Monday
+      week_end   = today
+      week_label = "this week so far (Mon-#{today.strftime('%a')})"
+    end
     # Day-over-day sum (not endpoint diff) so "Booked this week" counts every
-    # ticket sold this week, including classes that already ran, and matches
-    # the weekly-tickets chart. Prior week is the full Mon-Sun before this one.
-    bw = KitchenSnapshot.bookings_daily_total(week_start, today)
+    # ticket sold in the window, including classes that already ran, and matches
+    # the weekly-tickets chart. Prior week is the full Mon-Sun before week_start.
+    bw = KitchenSnapshot.bookings_daily_total(week_start, week_end)
     pw = KitchenSnapshot.bookings_daily_total(week_start - 7, week_start - 1)
 
     data = {
@@ -76,7 +85,8 @@ class WeeklySalesEmailJob < ApplicationJob
       rev_priced_count: roll[:count],
       rev_proxy_count:  upcoming.select(&:capacity_known?).count(&:capacity_via_proxy?),
       booked_week:      { tickets: bw[:tickets], revenue: bw[:revenue],
-                          prior_tickets: pw[:tickets], prior_revenue: pw[:revenue] },
+                          prior_tickets: pw[:tickets], prior_revenue: pw[:revenue],
+                          label: week_label },
       movers:           KitchenSnapshot.bookings_between(today - 7, today).first(3),
       newly_sold_out:   KitchenSnapshot.newly_sold_out_since(today - 7),
       empty_last_week:  KitchenSnapshot.classes_ended_between(today - 7, today)
@@ -170,7 +180,7 @@ class WeeklySalesEmailJob < ApplicationJob
     prompt = <<~TXT
       You are Carson, the composed British butler who oversees New York Kitchen's team of AI agents and presents their week to the proprietor. Write 2 short sentences (about 35 words total) to open the weekly team report, warm and dignified, lightly butlerly without caricature, specific to the facts below. No salutation, no emoji, no quotes; just the remarks, leading with what matters most. Lead with sales and mention at most one other genuinely notable item, and do not list every agent. Use numerals for every figure (e.g. $6,384, 53%, 5 classes) and plain modern wording (avoid archaic terms like "whilst"). Do not use em dashes or en dashes; use commas, colons, or separate sentences. State only the facts below. Never invent counts, totals, or labels, and keep "booked this week" distinct from the overall pipeline. Treat any monitoring check "failures" as transient checker hiccups, never call them customer-facing outages, a "site failure rate", or "critical".
       This week across the team:
-      - Sales (Iris): $#{bw[:revenue].to_i} booked in the last 7 days (#{wow}). The full pipeline is $#{data[:rev_total].to_i} across #{data[:total_upcoming]} upcoming classes, of which $#{data[:rev_sold].to_i} (#{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}%) is booked so far. (The pipeline is the $#{data[:rev_total].to_i} total. Do NOT call the $#{data[:rev_sold].to_i} booked figure "the pipeline".)
+      - Sales (Iris): $#{bw[:revenue].to_i} booked #{bw[:label] || 'this week'} (#{wow}). The full pipeline is $#{data[:rev_total].to_i} across #{data[:total_upcoming]} upcoming classes, of which $#{data[:rev_sold].to_i} (#{data[:rev_total].to_f.positive? ? (100.0 * data[:rev_sold] / data[:rev_total]).round : 0}%) is booked so far. (The pipeline is the $#{data[:rev_total].to_i} total. Do NOT call the $#{data[:rev_sold].to_i} booked figure "the pipeline".)
       - Site checks (Argus): #{argus[:passed]} of #{argus[:total]} automated checks completed#{argus[:failed].to_i.positive? ? " (#{argus[:failed]} transient checker hiccups, not real outages)" : "; all clear"}.
       - Data (Scout): #{scout[:snapshots]} snapshots, #{scout[:passed]}/#{scout[:total]} scrape runs passed.
       - Calendar (Sam): #{sam[:added].to_i} classes added, #{sam[:removed].to_i} removed, #{sam[:price_changes].to_i} price changes.
