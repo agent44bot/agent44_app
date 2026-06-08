@@ -22,7 +22,7 @@ class KitchenMailer < ApplicationMailer
     )
   end
 
-  # Sunday-evening weekly team report, hosted by Carson. `summary` is built by
+  # Twice-weekly team report (Monday and Friday), hosted by Carson. `summary` is built by
   # WeeklySalesEmailJob (each agent's week + Carson's intro). Method/template
   # keep the weekly_sales name for wiring; the content is the team report.
   def weekly_sales(summary, recipients:)

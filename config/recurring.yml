@@ -30,12 +30,18 @@ production:
   job_match_digest:
     class: JobMatchDigestJob
     schedule: every day at 8:01am
+  # Daily "selling fast" digest. Runs at 10am on the days the weekly team
+  # report does NOT go out: Sun, Tue, Wed, Thu, Sat (cron dow 0,2,3,4,6).
+  # Mon and Fri get the weekly report instead (nyk_weekly_sales_email below).
   kitchen_digest_email:
     class: KitchenDigestEmailJob
-    schedule: every day at 10am
+    schedule: "0 10 * * 0,2,3,4,6"
+  # Weekly team report (Carson's recap). Now sent 10am Monday and Friday
+  # (cron dow 1,5) instead of Sunday 5pm. Monday reports the just-finished
+  # Mon-Sun week; Friday is a mid-week "week so far" snapshot.
   nyk_weekly_sales_email:
     class: WeeklySalesEmailJob
-    schedule: every sunday at 5pm
+    schedule: "0 10 * * 1,5"
   # Freeze last month's NY Kitchen usage into an Invoice and email it. Runs the
   # 1st at 6am; generation is idempotent so a missed/retried run is safe.
   nyk_month_close_invoice:
