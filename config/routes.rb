@@ -106,6 +106,9 @@ Rails.application.routes.draw do
   get "nykitchen/digests/:id", to: "kitchen#digest", as: :nyk_digest
   get "nykitchen/smoke_runs/:id/page_source", to: "kitchen#download_smoke_page_source", as: :nyk_smoke_page_source
   get "nykitchen/smoke_runs/:id/trace", to: "kitchen#download_smoke_trace", as: :nyk_smoke_trace
+  # Managers email a failed run's report (error + console + artifact links) to
+  # any address, e.g. an outside developer. Metered usage event per send.
+  post "nykitchen/smoke_runs/:id/report", to: "kitchen#send_smoke_report", as: :nyk_send_smoke_report
   post "nykitchen/social_post_log", to: "kitchen#social_post_log"
   post "nykitchen/enhance_post", to: "kitchen#enhance_post"
   post "nykitchen/send_to_workspace", to: "kitchen#send_to_workspace"

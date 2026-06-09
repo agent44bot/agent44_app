@@ -68,6 +68,38 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to nyk_analyst_path
   end
 
+  test "manager can email a failed smoke run report and it logs a usage event" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    run = SmokeTestRun.create!(name: "nyk_calendar_nav", status: "failed",
+                               started_at: 1.hour.ago, error_message: "boom")
+    assert_difference -> { UsageEvent.where(kind: "test_report.send").count }, 1 do
+      post nyk_send_smoke_report_path(run), params: { email: "dev@example.com", note: "please fix" }
+    end
+    assert_redirected_to nyk_test_path(status: "failed")
+    event = UsageEvent.where(kind: "test_report.send").last
+    assert_equal "dev@example.com", event.metadata["to"]
+    assert_equal run.id, event.metadata["smoke_run_id"]
+  end
+
+  test "send_smoke_report 404s for a non-manager" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    run = SmokeTestRun.create!(name: "nyk_calendar_nav", status: "failed", started_at: 1.hour.ago)
+    sign_in_as(User.create!(email_address: "outsider-#{SecureRandom.hex(4)}@example.com", role: "user"))
+    assert_no_difference -> { UsageEvent.count } do
+      post nyk_send_smoke_report_path(run), params: { email: "dev@example.com" }
+    end
+    assert_response :not_found
+  end
+
+  test "send_smoke_report rejects an invalid email without logging usage" do
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    run = SmokeTestRun.create!(name: "nyk_calendar_nav", status: "failed", started_at: 1.hour.ago)
+    assert_no_difference -> { UsageEvent.count } do
+      post nyk_send_smoke_report_path(run), params: { email: "nope" }
+    end
+    assert_redirected_to nyk_test_path(status: "failed")
+  end
+
   test "week headers show availability bar with red and green only" do
     # Create events this week: 2 available, 1 sold out, 1 limited
     # Limited rolls into "available" for the binary bar.
