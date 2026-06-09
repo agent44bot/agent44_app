@@ -4,14 +4,14 @@ require_relative "nyk_smoke_base"
 # /api/v1/kitchen_snapshots so KitchenDigestEmailJob (10am ET) can email
 # Lora the difference vs. yesterday.
 #
-# This test deliberately uses the "click This Month first" workaround for
-# the TEC live_refresh arrow-nav bug — its job is data freshness, not bug
-# detection. The arrow-nav regression is covered by nyk_calendar_nav_test.rb
-# on its own schedule.
+# Its job is data freshness, not bug detection. The < / > arrows were removed
+# from the calendar UI (2026-06), so it walks months through the datepicker
+# dropdown picker (shared click_nav helper). The "This Month" button at the
+# start settles TEC's live_refresh state before walking.
 #
 #   1. Load /calendar/
 #   2. Click "This Month" (stabilizes TEC live_refresh state)
-#   3. Walk forward N months via arrows, collecting event URLs at each
+#   3. Walk forward N months via the month picker, collecting event URLs at each
 #   4. Visit each unique upcoming event URL, scrape detail
 #   5. POST snapshot to /api/v1/kitchen_snapshots
 #
@@ -19,9 +19,9 @@ require_relative "nyk_smoke_base"
 class NykScrapeTest < NykSmokeBase
   TEST_NAME = BROWSER == "chromium" ? "nyk_scrape" : "nyk_scrape_#{BROWSER}"
   ARTIFACT_PREFIX = "nyk-scrape"
-  FORWARD_STEPS = 3 # arrow-clicks past initial load; total months scraped = 4
+  FORWARD_STEPS = 3 # month picks past initial load; total months scraped = 4
 
-  test "scrape: walk forward N months via 'This Month' workaround, scrape events, post snapshot" do
+  test "scrape: walk forward N months via the month picker, scrape events, post snapshot" do
     Playwright.create(playwright_cli_executable_path: playwright_cli) do |pw|
       headful = %w[1 true yes t y].include?(ENV["HEADFUL"].to_s.downcase)
       browser = pw.public_send(BROWSER).launch(headless: !headful)

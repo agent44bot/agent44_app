@@ -2,34 +2,34 @@ require_relative "nyk_smoke_base"
 
 # Black-box regression check for https://nykitchen.com/calendar/.
 #
-# What this test exists to catch: clicking the < / > month-nav arrows
-# leaving the calendar grid empty (a TEC live_refresh handler bug). Workaround
-# is to use the month dropdown / "This Month" button, which is what the
-# scraper test uses to keep Lora's data flowing — but that workaround masks
-# the underlying bug. This test deliberately exercises the user-facing arrow
-# path so the bug regresses loudly.
+# The < / > month-nav arrows were removed from the calendar UI (2026-06), so
+# month navigation now goes through the datepicker dropdown picker. This test
+# walks the next few months one at a time via that picker and back again,
+# asserting each month's event set survives the round-trip. The picker still
+# triggers TEC's live_refresh, so this keeps catching the "events vanish after
+# navigating" class of bug through the control users actually have now.
 #
 #   1. Load /calendar/
 #   2. At month[0], capture the set of events visible
-#   3. Click next → month[+1], capture
-#   4. Click next → month[+2], capture
-#   5. Click next → month[+3], capture
-#   6. Click prev → month[+2], assert events == step-3 capture
-#   7. Click prev → month[+1], assert events == step-2 capture
-#   8. Click prev → month[0],  assert events == step-1 capture
+#   3. Pick next month -> month[+1], capture
+#   4. Pick next month -> month[+2], capture
+#   5. Pick next month -> month[+3], capture
+#   6. Pick prev month -> month[+2], assert events == step-3 capture
+#   7. Pick prev month -> month[+1], assert events == step-2 capture
+#   8. Pick prev month -> month[0],  assert events == step-1 capture
 #
 # Event signature = WP post ID. Title kept alongside for readable error messages.
 #
 # Run with:  RUN_SMOKE=true bin/rails test test/smoke/nyk_calendar_nav_test.rb
 # Watch it:  HEADFUL=true rake test:smoke:nyk
 #
-# This test does NOT scrape event detail pages or update kitchen snapshots —
-# that lives in nyk_scrape_test.rb so a nav-arrow failure here does not
-# block Lora's daily digest.
+# This test does NOT scrape event detail pages or update kitchen snapshots
+# (that lives in nyk_scrape_test.rb), so a nav failure here does not block
+# Lora's daily digest.
 class NykCalendarNavTest < NykSmokeBase
   TEST_NAME = BROWSER == "chromium" ? "nyk_calendar_nav" : "nyk_calendar_nav_#{BROWSER}"
   ARTIFACT_PREFIX = "nyk-calendar-nav"
-  FORWARD_STEPS = 3 # clicks past initial load; total months visited = 4
+  FORWARD_STEPS = 3 # month picks past initial load; total months visited = 4
 
   test "events round-trip: nav forward N months, back N months, event sets match" do
     # Escape hatch for wiring/testing the failure email path — forces a fake

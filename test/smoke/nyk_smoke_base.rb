@@ -146,8 +146,48 @@ class NykSmokeBase < ActiveSupport::TestCase
     ".tribe-events-calendar-month__calendar-event"
   end
 
-  def nav_selector(direction)
-    "a.tribe-events-c-top-bar__nav-link--#{direction == "previous" ? "prev" : "next"}"
+  # The calendar's < / > arrows were removed from the UI (2026-06). Month
+  # navigation is now done through the datepicker dropdown (a bootstrap
+  # datepicker in months view) on the top bar.
+  DATEPICKER_BUTTON    = ".tribe-events-c-top-bar__datepicker-button"
+  DATEPICKER_CONTAINER = ".tribe-events-c-top-bar__datepicker-container"
+
+  # Currently-shown month as "YYYY-MM", read from the datepicker button's
+  # <time datetime> (authoritative even while the grid is mid-refresh).
+  def current_ym(page)
+    page.locator("#{DATEPICKER_BUTTON} time").first.get_attribute("datetime").to_s.strip
+  end
+
+  # Shift a "YYYY-MM" by N months (negative = back).
+  def shift_ym(ym, months)
+    y, m = ym.split("-").map(&:to_i)
+    (Date.new(y, m, 1) >> months).strftime("%Y-%m")
+  end
+
+  # Year currently displayed in the open datepicker's months view.
+  def picker_shown_year(page)
+    page.locator("#{DATEPICKER_CONTAINER} .datepicker-months .datepicker-switch").first.inner_text.to_i
+  end
+
+  # Open the datepicker and select the given "YYYY-MM" month. Walks the year
+  # header (th.prev / th.next) if the target is in another year, then clicks the
+  # month cell. Selecting a month triggers TEC's live_refresh to load it.
+  def select_month_via_picker(page, ym)
+    target_year  = ym[0, 4].to_i
+    target_month = ym[5, 2].to_i # 1-12
+
+    page.locator(DATEPICKER_BUTTON).first.click
+    page.wait_for_selector("#{DATEPICKER_CONTAINER} .datepicker-months", timeout: 8_000)
+
+    deadline = Time.now + 8
+    while picker_shown_year(page) != target_year && Time.now < deadline
+      dir = target_year > picker_shown_year(page) ? "next" : "prev"
+      page.locator("#{DATEPICKER_CONTAINER} .datepicker-months th.#{dir}").first.click
+      page.wait_for_timeout(200)
+    end
+
+    # Month cells are 12 siblings (Jan..Dec); nth-of-type is the month number.
+    page.locator("#{DATEPICKER_CONTAINER} .datepicker-months tbody span.month:nth-of-type(#{target_month})").first.click
   end
 
   def month_title_selector
@@ -212,37 +252,29 @@ class NykSmokeBase < ActiveSupport::TestCase
       .uniq { |e| e[:id] }
   end
 
+  # Move one month forward ("next") or back ("previous") by selecting the
+  # adjacent month in the datepicker dropdown (the < / > arrows were removed
+  # from the calendar UI in 2026-06). Selecting a month triggers TEC's
+  # live_refresh, which we wait on by polling the datepicker's <time datetime>
+  # until it reflects the target month.
   def click_nav(page, direction)
+    before_ym    = current_ym(page)
     before_title = read_month_title(page)
-    before_url = page.url
-    before_event_ids = capture_events(page).map { |e| e[:id] }.sort
-    record_step(kind: "click", direction: direction)
+    target_ym    = shift_ym(before_ym, direction == "previous" ? -1 : 1)
+    record_step(kind: "picker_nav", direction: direction, from: before_ym, to: target_ym)
     scroll_calendar_into_view(page)
-    nav_button = page.locator(nav_selector(direction)).first
-    nav_button.click
+
+    select_month_via_picker(page, target_ym)
 
     if DEBUG_NAV
-      page.wait_for_timeout(3000)
-      now_url = page.url
-      puts "    🔍 DEBUG click_nav(#{direction}):"
-      puts "       before url:   #{before_url}"
-      puts "       after url:    #{now_url}"
-      puts "       url changed?  #{now_url != before_url}"
-      puts "       before title: #{before_title.inspect}"
-      puts "       after title:  #{read_month_title(page).inspect}"
-      puts "       before events: #{before_event_ids.size}"
-      puts "       after events:  #{capture_events(page).map { |e| e[:id] }.sort.size}"
-      puts "       body classes: #{page.evaluate("document.body.className")}"
+      page.wait_for_timeout(2000)
+      puts "    🔍 DEBUG click_nav(#{direction}): #{before_ym} -> target #{target_ym}, now #{current_ym(page)}"
+      puts "       title: #{read_month_title(page).inspect}, events: #{capture_events(page).size}"
     end
 
+    # Wait for the grid to settle on the target month.
     deadline = Time.now + 15
-    while Time.now < deadline
-      title_changed = read_month_title(page) != before_title && !read_month_title(page).empty?
-      now_ids = capture_events(page).map { |e| e[:id] }.sort
-      events_changed = now_ids != before_event_ids
-      break if title_changed && (events_changed || now_ids.any? || Time.now > deadline - 3)
-      page.wait_for_timeout(250)
-    end
+    page.wait_for_timeout(250) until current_ym(page) == target_ym || Time.now > deadline
     page.wait_for_load_state("networkidle", timeout: 5_000) rescue nil
     page.wait_for_timeout(NAV_WAIT_MS)
     scroll_calendar_into_view(page)
@@ -252,10 +284,11 @@ class NykSmokeBase < ActiveSupport::TestCase
     record_step(
       kind: "navigation_settled",
       direction: direction,
+      target: target_ym,
+      reached: current_ym(page),
       title_after: final_title,
       events_after: final_ids.size,
-      title_changed: final_title != before_title && !final_title.empty?,
-      events_changed: final_ids != before_event_ids
+      title_changed: final_title != before_title && !final_title.empty?
     )
   end
 
