@@ -18,6 +18,7 @@ on:
         options:
           - all
           - nav
+          - nav_mobile
           - scrape
           - print
       headful:
@@ -105,12 +106,13 @@ jobs:
           SKIP_VLAD_STATUS: "true"
         run: |
           case "$TEST" in
-            nav)    FILES="test/smoke/nyk_calendar_nav_test.rb" ;;
-            scrape) FILES="test/smoke/nyk_scrape_test.rb" ;;
-            print)  FILES="test/smoke/nyk_print_test.rb" ;;
-            all|*)  FILES="test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_scrape_test.rb test/smoke/nyk_coupon_field_test.rb test/smoke/nyk_print_test.rb" ;;
+            nav)        FILES="test/smoke/nyk_calendar_nav_test.rb" ;;
+            nav_mobile) FILES="test/smoke/nyk_calendar_nav_test.rb"; export MOBILE="true" ;;
+            scrape)     FILES="test/smoke/nyk_scrape_test.rb" ;;
+            print)      FILES="test/smoke/nyk_print_test.rb" ;;
+            all|*)      FILES="test/smoke/nyk_calendar_nav_test.rb test/smoke/nyk_scrape_test.rb test/smoke/nyk_coupon_field_test.rb test/smoke/nyk_print_test.rb" ;;
           esac
-          echo "Running: bin/rails test $FILES (HEADFUL=$HEADFUL)"
+          echo "Running: bin/rails test $FILES (HEADFUL=$HEADFUL MOBILE=${MOBILE:-false})"
           bin/rails test $FILES
 
       - name: Upload smoke artifacts on failure

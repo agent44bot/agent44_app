@@ -27,9 +27,26 @@ require_relative "nyk_smoke_base"
 # (that lives in nyk_scrape_test.rb), so a nav failure here does not block
 # Lora's daily digest.
 class NykCalendarNavTest < NykSmokeBase
-  TEST_NAME = BROWSER == "chromium" ? "nyk_calendar_nav" : "nyk_calendar_nav_#{BROWSER}"
-  ARTIFACT_PREFIX = "nyk-calendar-nav"
+  # MOBILE=true runs the same round-trip in a phone viewport so we catch
+  # mobile-only calendar breakage (most of Lora's customers are on phones). It
+  # posts under a distinct "_mobile" name but still matches the nyk_nav scope,
+  # so it shows in the Test agent stats and freshness checks alongside desktop.
+  MOBILE = ENV["MOBILE"] == "true"
+  base_name = BROWSER == "chromium" ? "nyk_calendar_nav" : "nyk_calendar_nav_#{BROWSER}"
+  TEST_NAME = MOBILE ? "#{base_name}_mobile" : base_name
+  ARTIFACT_PREFIX = MOBILE ? "nyk-calendar-nav-mobile" : "nyk-calendar-nav"
   FORWARD_STEPS = 3 # month picks past initial load; total months visited = 4
+
+  # iPhone-ish context (Chromium mobile emulation) when MOBILE=true. Keys are
+  # camelCase: playwright-ruby passes them straight through to the CDP options.
+  MOBILE_CONTEXT = {
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 3,
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " \
+               "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+  }.freeze
 
   test "events round-trip: nav forward N months, back N months, event sets match" do
     # Escape hatch for wiring/testing the failure email path — forces a fake
@@ -53,11 +70,10 @@ class NykCalendarNavTest < NykSmokeBase
       # force headless (e.g. on a runner without a display).
       headful = ENV["HEADFUL"].to_s.downcase != "false"
       browser = pw.public_send(BROWSER).launch(headless: !headful)
-      puts "  🌐 Driving #{BROWSER} (test name: #{TEST_NAME})#{headful ? " [headful]" : ""}"
-      context = browser.new_context(
-        viewport: { width: 1280, height: 900 },
-        record_video_dir: @video_dir.to_s
-      )
+      puts "  🌐 Driving #{BROWSER} (test name: #{TEST_NAME})#{headful ? " [headful]" : ""}#{MOBILE ? " [mobile]" : ""}"
+      ctx_opts = { record_video_dir: @video_dir.to_s }
+      ctx_opts.merge!(MOBILE ? MOBILE_CONTEXT : { viewport: { width: 1280, height: 900 } })
+      context = browser.new_context(**ctx_opts)
       context.tracing.start(screenshots: true, snapshots: true, sources: false)
       page = context.new_page
       attach_console_listeners(page)
@@ -65,7 +81,9 @@ class NykCalendarNavTest < NykSmokeBase
       begin
         page.goto(TARGET_URL, timeout: 30_000, waitUntil: "domcontentloaded")
         record_step(kind: "load", url: TARGET_URL)
-        page.wait_for_selector(event_selector, timeout: 15_000)
+        # On mobile the month-grid events are in the DOM but visually collapsed,
+        # so wait for "attached" there (capture_events reads the DOM, not pixels).
+        page.wait_for_selector(event_selector, timeout: 15_000, state: MOBILE ? "attached" : "visible")
         dismiss_newsletter_popup(page) unless ENV["NO_POPUP_KILL"] == "true"
         record_step(kind: "popup_dismissed") unless ENV["NO_POPUP_KILL"] == "true"
         page.wait_for_timeout(STEP_PAUSE_MS)
@@ -73,7 +91,9 @@ class NykCalendarNavTest < NykSmokeBase
         # --- Forward phase -------------------------------------------------
         forward = []
         (FORWARD_STEPS + 1).times do |i|
-          capture = { title: read_month_title(page), events: capture_events(page) }
+          # ym ("YYYY-MM") is the stable month identity; the display title varies
+          # (on mobile it shows the selected day, e.g. 6/9 vs 6/1), so compare ym.
+          capture = { title: read_month_title(page), ym: current_ym(page), events: capture_events(page) }
           forward << capture
           record_step(kind: "month_view", direction: "forward", title: capture[:title], events: capture[:events].size)
           puts "  ➡  [#{i}] #{capture[:title]} — #{capture[:events].size} events"
@@ -93,12 +113,12 @@ class NykCalendarNavTest < NykSmokeBase
           page.wait_for_timeout(STEP_PAUSE_MS)
 
           expected = forward[FORWARD_STEPS - 1 - i]
-          actual = { title: read_month_title(page), events: capture_events(page) }
-          record_step(kind: "month_view", direction: "back", title: actual[:title], events: actual[:events].size, expected_events: expected[:events].size)
+          actual = { title: read_month_title(page), ym: current_ym(page), events: capture_events(page) }
+          record_step(kind: "month_view", direction: "back", title: actual[:title], ym: actual[:ym], events: actual[:events].size, expected_events: expected[:events].size)
           puts "  ⬅  #{actual[:title]} — #{actual[:events].size} events (expected #{expected[:events].size})"
 
-          if actual[:title] != expected[:title]
-            @failures << "month title mismatch on return: expected '#{expected[:title]}', got '#{actual[:title]}'"
+          if actual[:ym] != expected[:ym]
+            @failures << "month mismatch on return: expected '#{expected[:ym]}', got '#{actual[:ym]}'"
             next
           end
 
