@@ -81,9 +81,9 @@ Rails.application.routes.draw do
   # builder as the real send). 404s for non-admins. See kitchen#report_preview.
   get   "nykitchen/analyst/report", to: "kitchen#report_preview", as: :nyk_report_preview
   # On-demand report for NY Kitchen managers: generate a fresh copy (POST so it
-  # isn't re-run on refresh/prefetch) and email it on. Each is a metered action.
+  # isn't re-run on refresh/prefetch); it emails a copy to the logged-in user
+  # only. Metered action.
   post  "nykitchen/analyst/report/generate", to: "kitchen#generate_report", as: :nyk_generate_report
-  post  "nykitchen/analyst/report/send",     to: "kitchen#send_report",     as: :nyk_send_report
   get  "nykitchen/ask",          to: "kitchen#ask",                as: :nyk_ask
   post "nykitchen/ask/message",  to: "kitchen#ask_message",        as: :nyk_ask_message
   post "nykitchen/ask/examples", to: "kitchen#update_ask_examples", as: :nyk_ask_examples
