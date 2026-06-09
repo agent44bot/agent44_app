@@ -12,7 +12,7 @@
   note: On the Test agent page, any failed check now has a "Send report" button. You can email the full failure (what broke, the console output, and a link to the video of what happened) straight to a developer, with an optional note. No more screenshots or copy and paste.
 
 - date: 2026-06-08
-  note: New on the Analyst dashboard, a "Generate report" button lets you pull a fresh copy of this team report whenever you need one (for example, right before a board meeting), then print it, save it as a PDF, or email it to anyone with one tap, a board member, an outside developer, or yourself. There is a short "How it works" walkthrough on the page.
+  note: New on the Analyst dashboard, a "Generate report" button lets you pull a fresh copy of this team report whenever you need one (for example, right before a board meeting). We email a copy straight to your own inbox, and you can print it or save it as a PDF. There is a short "How it works" walkthrough on the page.
 
 - date: 2026-06-08
   note: Your team's weekly recap now lands twice a week, every Monday and Friday at 10 AM, instead of Sunday evening. Monday's covers the week that just finished; Friday's is a mid-week check on how the current week is filling. The daily "selling fast" digest still arrives at 10 AM on the other days.

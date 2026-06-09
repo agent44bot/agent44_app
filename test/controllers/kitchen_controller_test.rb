@@ -1,6 +1,8 @@
 require "test_helper"
 
 class KitchenControllerTest < ActionDispatch::IntegrationTest
+  include ActionMailer::TestHelper
+
   setup do
     @today = Date.today
     @snapshot = KitchenSnapshot.create!(taken_on: @today)
@@ -31,14 +33,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match "opened the dashboard", response.body
   end
 
-  test "manager can generate the report on demand and it logs a usage event" do
+  test "generate_report emails the logged-in user only and logs a usage event" do
     Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
     assert_difference -> { UsageEvent.where(kind: "report.on_demand").count }, 1 do
-      post nyk_generate_report_path
+      assert_enqueued_emails 1 do
+        post nyk_generate_report_path
+      end
     end
     assert_response :success
     assert_match "Team report", response.body
-    assert_match "How it works", response.body
+    assert_match "emailed to you", response.body
+    # Email goes to the logged-in user, nobody else (recorded on the event).
+    assert_equal @default_user.email_address,
+      UsageEvent.where(kind: "report.on_demand").last.metadata["emailed_to"]
   end
 
   test "generate_report 404s for a non-manager" do
@@ -48,24 +55,6 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       post nyk_generate_report_path
     end
     assert_response :not_found
-  end
-
-  test "manager can email the report to any address and it logs a usage event" do
-    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
-    assert_difference -> { UsageEvent.where(kind: "report.email").count }, 1 do
-      post nyk_send_report_path, params: { email: "board@example.com" }
-    end
-    assert_redirected_to nyk_analyst_path
-    event = UsageEvent.where(kind: "report.email").last
-    assert_equal "board@example.com", event.metadata["to"]
-  end
-
-  test "send_report rejects an invalid email without logging usage" do
-    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
-    assert_no_difference -> { UsageEvent.count } do
-      post nyk_send_report_path, params: { email: "not-an-email" }
-    end
-    assert_redirected_to nyk_analyst_path
   end
 
   test "manager can email a failed smoke run report and it logs a usage event" do
