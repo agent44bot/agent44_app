@@ -35,7 +35,11 @@
         <div class="text-sm text-gray-300">
           <span class="font-medium">🧾 Need it now?</span> Generate a fresh report on demand. We email a copy straight to your inbox, and you can print it or save it as a PDF.
         </div>
+        <%# turbo: false so the POST does a full-page navigation to the report.
+            generate_report renders a standalone 200 page (not a redirect), which
+            Turbo would otherwise ignore, making the button appear to do nothing. %>
         <%= button_to "Generate report", nyk_generate_report_path, method: :post,
+              form: { data: { turbo: false } },
               class: "shrink-0 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-400 cursor-pointer" %>
       </div>
     </div>
