@@ -1,0 +1,39 @@
+NY KITCHEN TEST FAILURE
+<%= @run.name %>
+<%= @when_str %> · <%= @run.kind %> check · ran <%= @run.duration_label %>
+<% if @from_name -%>
+
+Shared by <%= @from_name %> at NY Kitchen.
+<% end -%>
+<% if @note -%>
+
+Note: <%= @note %>
+<% end -%>
+
+WHAT FAILED
+<%= @run.error_message.presence || "No error message recorded." %>
+<% if @run.summary.present? -%>
+
+STEPS / RESULT
+<%= @run.summary %>
+<% end -%>
+<% if @run.console_errors.present? -%>
+
+CONSOLE OUTPUT
+<%= @run.console_errors %>
+<% end -%>
+
+ARTIFACTS
+<% if @video_url || @trace_url || @page_source_url -%>
+<% if @video_url -%>- Screen recording: <%= @video_url %>
+<% end -%>
+<% if @trace_url -%>- Playwright trace (open at trace.playwright.dev): <%= @trace_url %>
+<% end -%>
+<% if @page_source_url -%>- Captured page HTML: <%= @page_source_url %>
+<% end -%>
+Artifact links are signed and need no login. They expire after a while; ask for a fresh report if a link stops working.
+<% else -%>
+No video or trace was captured for this run.
+<% end -%>
+
+Sent from the NY Kitchen Test agent (Argus).

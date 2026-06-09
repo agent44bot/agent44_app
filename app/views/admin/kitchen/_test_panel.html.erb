@@ -204,6 +204,22 @@
                           console
                         </button>
                       <% end %>
+                      <% if @nyk_workspace&.manager?(Current.user) %>
+                        <details class="mt-2">
+                          <summary class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-orange-950/60 border border-orange-800/60 text-orange-300 hover:text-orange-100 hover:bg-orange-900/50 text-[10px] font-semibold uppercase tracking-wider transition cursor-pointer">
+                            Send report
+                          </summary>
+                          <%= form_with url: nyk_send_smoke_report_path(run), method: :post, class: "mt-2 flex flex-col gap-2 max-w-sm" do %>
+                            <%# 16px (text-base) so iOS doesn't zoom on focus. %>
+                            <%= email_field_tag :email, nil, required: true, placeholder: "developer@example.com",
+                                  class: "text-base px-2 py-1.5 rounded bg-gray-950 border border-gray-700 text-gray-100 placeholder-gray-600" %>
+                            <%= text_field_tag :note, nil, placeholder: "Optional note",
+                                  class: "text-base px-2 py-1.5 rounded bg-gray-950 border border-gray-700 text-gray-100 placeholder-gray-600" %>
+                            <%= submit_tag "Email failure report",
+                                  class: "px-3 py-1.5 rounded bg-orange-500 text-white text-xs font-semibold hover:bg-orange-400 cursor-pointer" %>
+                          <% end %>
+                        </details>
+                      <% end %>
                     <% end %>
                   </td>
                   <td class="px-3 py-3 text-center whitespace-nowrap sm:px-4">

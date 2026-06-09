@@ -22,7 +22,7 @@ class KitchenController < ApplicationController
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
-  before_action :require_nyk_manager, only: %i[generate_report send_report]
+  before_action :require_nyk_manager, only: %i[generate_report send_report send_smoke_report]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -443,6 +443,24 @@ class KitchenController < ApplicationController
     run = SmokeTestRun.find(params[:id])
     return head :not_found unless run.trace.attached?
     redirect_to rails_blob_url(run.trace, disposition: "attachment"), allow_other_host: true
+  end
+
+  # Email a failed smoke run's report to any address a manager enters, e.g. an
+  # outside developer. Bundles the error/console/steps with signed artifact
+  # links (mailer). Logged as a metered UsageEvent. Manager-gated.
+  def send_smoke_report
+    run = SmokeTestRun.find(params[:id])
+    email = params[:email].to_s.strip
+    unless email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to(nyk_test_path(status: "failed"), alert: "Enter a valid email address.") and return
+    end
+
+    KitchenMailer.smoke_failure_report(run, recipient: email,
+      note: params[:note], from_name: Current.user&.email_address).deliver_later
+    UsageEvent.record!(workspace: @nyk_workspace, user: Current.user,
+                       kind: "test_report.send",
+                       metadata: { to: email, smoke_run_id: run.id, name: run.name })
+    redirect_to nyk_test_path(status: "failed"), notice: "Failure report sent to #{email}."
   end
 
   def social_post_log
