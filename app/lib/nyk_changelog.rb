@@ -1,5 +1,7 @@
 # Reads the curated owner-facing changelog (config/nyk_changelog.yml) that
-# Carson surfaces in the weekly team report. Each entry is { date:, note: }.
+# Carson surfaces in the weekly team report. Each entry is
+# { date:, note:, link:, link_label: } where link/link_label are optional and,
+# when present, render a "go see it" button on the matching page in the report.
 # Parsing failures degrade to an empty list — a malformed changelog must never
 # break the email.
 class NykChangelog
@@ -14,7 +16,14 @@ class NykChangelog
       next if note.blank?
       date = e["date"] || e[:date]
       date = (Date.parse(date.to_s) rescue nil) unless date.is_a?(Date)
-      { date: date, note: note }
+      # Optional deep link to the page where the change is visible. Only same-app
+      # relative paths ("/nykitchen/...") are allowed, so a typo can't point Lora
+      # at an external site.
+      link = (e["link"] || e[:link]).to_s.strip
+      link = nil unless link.start_with?("/")
+      label = (e["link_label"] || e[:link_label]).to_s.strip
+      label = "View" if link && label.blank?
+      { date: date, note: note, link: link, link_label: (link ? label : nil) }
     end
   rescue => e
     Rails.logger.warn("NykChangelog parse failed: #{e.class}: #{e.message}")

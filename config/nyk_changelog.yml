@@ -10,12 +10,18 @@
 
 - date: 2026-06-08
   note: On the Test agent page, any failed check now has a "Send report" button. You can email the full failure (what broke, the console output, and a link to the video of what happened) straight to a developer, with an optional note. No more screenshots or copy and paste.
+  link: /nykitchen/test
+  link_label: Open the Test agent
 
 - date: 2026-06-08
   note: New on the Analyst dashboard, a "Generate report" button lets you pull a fresh copy of this team report whenever you need one (for example, right before a board meeting). We email a copy straight to your own inbox, and you can print it or save it as a PDF. There is a short "How it works" walkthrough on the page.
+  link: /nykitchen/analyst
+  link_label: Open the Analyst dashboard
 
 - date: 2026-06-08
   note: Your team's weekly recap now lands twice a week, every Monday and Friday at 10 AM, instead of Sunday evening. Monday's covers the week that just finished; Friday's is a mid-week check on how the current week is filling. The daily "selling fast" digest still arrives at 10 AM on the other days.
+  link: /nykitchen/analyst
+  link_label: See the Analyst dashboard
 
 - date: 2026-06-04
   note: Carson can now send a couple of helpful pings a day to the iOS app (on for a few of us while we try it out), like a slow sales day, flyers due for a reprint, or a class down to its last seats. Each one opens the right agent with a tap.
