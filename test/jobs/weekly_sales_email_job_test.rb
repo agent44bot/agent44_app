@@ -49,6 +49,18 @@ class WeeklySalesEmailJobTest < ActiveSupport::TestCase
     end
   end
 
+  test "a changelog entry with a link renders a button in the report (html + text)" do
+    summary = WeeklySalesEmailJob.build_summary(KitchenSnapshot.latest, carson: false)
+    summary[:changelog] = [ { date: Date.current, note: "Shiny new thing",
+                              link: "/nykitchen/analyst", link_label: "Open the Analyst dashboard" } ]
+    mail = KitchenMailer.weekly_sales(summary, recipients: [ "x@example.com" ])
+
+    html = mail.html_part.body.to_s
+    assert_match "Open the Analyst dashboard", html
+    assert_match "https://agent44labs.com/nykitchen/analyst", html
+    assert_match "https://agent44labs.com/nykitchen/analyst", mail.text_part.body.to_s
+  end
+
   test "skips sending when no workspace member has an email" do
     # Drop the email-bearing owner membership; leave only a Nostr member.
     @workspace.memberships.destroy_all

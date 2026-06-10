@@ -21,6 +21,9 @@ NY Kitchen Weekly Team Report
 NEW THIS WEEK (improvements your team shipped)
 <% @s[:changelog].each do |c| -%>
 - <%= c[:note] %>
+<% if c[:link].present? -%>
+  <%= c[:link_label] %>: https://agent44labs.com<%= c[:link] %>
+<% end -%>
 <% end -%>
 <% end -%>
 
