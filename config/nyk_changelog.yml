@@ -9,6 +9,11 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-11
+  note: The printed flyer now lists each class as just the name, date, price, and spots, with no menu line. Cleaner and quicker to read on the wall.
+  link: /nykitchen/display/print
+  link_label: Open the flyer
+
+- date: 2026-06-11
   note: The printed flyer no longer shows class descriptions. Each class is just the name, date, price, spots, and the menu when one is listed, so the sheet is cleaner and easier to scan.
   link: /nykitchen/display/print
   link_label: Open the flyer

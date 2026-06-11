@@ -117,15 +117,16 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_no_match(/Gone Class/, response.body)
   end
 
-  test "menu is the only third line, shown when present" do
+  test "neither the menu nor the description prints on the flyer" do
     add_event("Strawberries Class", 24,
       menu: "Strawberry Crostini / Strawberry Basil Chicken",
       description: "A lovely class about strawberries and friendship.")
     get nyk_display_print_path
     assert_response :success
-    assert_match "Menu:", response.body
-    assert_match "Strawberry Crostini / Strawberry Basil Chicken", response.body
+    assert_no_match "Menu:", response.body
+    assert_no_match "Strawberry Crostini", response.body
     assert_no_match "lovely class about strawberries", response.body
+    assert_select ".desc", 0
   end
 
   test "photos render at 16:9, not square" do

@@ -45,14 +45,6 @@
     }
     .info { font-size: 9pt; color: #333; }
     .info .sep { color: #bbb; padding: 0 2px; }
-    /* Two lines still fits the fixed row height (2-line name + info + 2-line
-       desc ≈ 0.86in < 0.98in), and stops menus/blurbs reading as cut off. */
-    .desc {
-      font-size: 8.5pt; color: #555; margin-top: 3px; line-height: 1.25;
-      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
-      -webkit-box-orient: vertical; overflow: hidden;
-    }
-    .desc .menu-label { font-weight: 700; color: #c2410c; }
     .qr { flex: 0 0 auto; text-align: center; width: 0.8in; }
     .qr svg { width: 0.72in; height: 0.72in; display: block; margin: 0 auto; }
     .qr-cap { font-size: 6pt; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
@@ -122,15 +114,12 @@
             <% if @show_photos && event.image_url.present? %>
               <img class="thumb" src="<%= event.image_url %>" alt="" loading="eager">
             <% end %>
+            <%# Per Lora, the flyer is name + details + QR only: no menu, no
+                description. The menu is still scraped and stored on the event
+                for other surfaces, just not printed here. %>
             <div class="body">
               <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
               <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
-              <%# Menu only, never the description: per Lora, the blurbs read
-                  as noise on paper (truncated text, booking fine print).
-                  Rows without a menu stay name + details + QR. %>
-              <% if event.menu.present? %>
-                <div class="desc"><span class="menu-label">Menu:</span> <%= event.menu %></div>
-              <% end %>
             </div>
             <% if event.url.present? %>
               <div class="qr">
