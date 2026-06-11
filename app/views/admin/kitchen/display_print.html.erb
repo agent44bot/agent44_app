@@ -31,8 +31,10 @@
       page-break-inside: avoid; overflow: hidden;
     }
     .event:last-child { border-bottom: 0; }
+    /* 16:9 to match the site's featured photos (768x433) — a square crop
+       was cutting the sides off every image. */
     .thumb {
-      width: 0.82in; height: 0.82in; flex: 0 0 auto;
+      width: 1.46in; height: 0.82in; flex: 0 0 auto;
       object-fit: cover; border-radius: 6px; background: #f1f1f1;
     }
     .body { flex: 1 1 auto; min-width: 0; }
@@ -43,12 +45,14 @@
     }
     .info { font-size: 9pt; color: #333; }
     .info .sep { color: #bbb; padding: 0 2px; }
-    /* One line so the row stays within its fixed height. */
+    /* Two lines still fits the fixed row height (2-line name + info + 2-line
+       desc ≈ 0.86in < 0.98in), and stops menus/blurbs reading as cut off. */
     .desc {
       font-size: 8.5pt; color: #555; margin-top: 3px; line-height: 1.25;
-      display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
       -webkit-box-orient: vertical; overflow: hidden;
     }
+    .desc .menu-label { font-weight: 700; color: #c2410c; }
     .qr { flex: 0 0 auto; text-align: center; width: 0.8in; }
     .qr svg { width: 0.72in; height: 0.72in; display: block; margin: 0 auto; }
     .qr-cap { font-size: 6pt; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
@@ -121,9 +125,16 @@
             <div class="body">
               <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
               <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
-              <% blurb = class_blurb(event.description) %>
-              <% if blurb.present? %>
-                <div class="desc"><%= blurb %></div>
+              <%# The menu beats the description blurb: it is what the guest
+                  is deciding on, and blurbs often lead with boilerplate
+                  (Chef's Table's "1 ticket is for 2 people" disclosure). %>
+              <% if event.menu.present? %>
+                <div class="desc"><span class="menu-label">Menu:</span> <%= event.menu %></div>
+              <% else %>
+                <% blurb = class_blurb(event.description) %>
+                <% if blurb.present? %>
+                  <div class="desc"><%= blurb %></div>
+                <% end %>
               <% end %>
             </div>
             <% if event.url.present? %>

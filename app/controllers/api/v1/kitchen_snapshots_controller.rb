@@ -125,6 +125,7 @@ module Api
             venue:        e[:venue],
             instructor:   e[:instructor],
             description:  e[:description],
+            menu:         e[:menu],
             image_url:    e[:image_url],
             spots_left:   spots_left,
             capacity:     capacity,

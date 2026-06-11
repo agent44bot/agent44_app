@@ -31,8 +31,10 @@
       page-break-inside: avoid; overflow: hidden;
     }
     .event:last-child { border-bottom: 0; }
+    /* 16:9 to match the site's featured photos (768x433) — a square crop
+       was cutting the sides off every image. */
     .thumb {
-      width: 1.05in; height: 1.05in; flex: 0 0 auto;
+      width: 1.87in; height: 1.05in; flex: 0 0 auto;
       object-fit: cover; border-radius: 8px; background: #f1f1f1;
     }
     .body { flex: 1 1 auto; min-width: 0; }

@@ -29,6 +29,7 @@ class ScrapeKitchenJob < ApplicationJob
         # Detail-page image as a fallback when the calendar JSON-LD
         # didn't include one (which is currently always).
         e[:image_url] ||= info[:image_url]
+        e[:menu] = info[:menu]
         if info[:closed]
           e[:availability] = "Closed"
           e[:closed] = true
@@ -87,6 +88,7 @@ class ScrapeKitchenJob < ApplicationJob
         venue:        e[:venue],
         instructor:   e[:instructor],
         description:  e[:description],
+        menu:         e[:menu],
         image_url:    e[:image_url],
         spots_left:   e[:spots_left],
         capacity:     e[:capacity],
