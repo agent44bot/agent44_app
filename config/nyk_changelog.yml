@@ -9,6 +9,11 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-11
+  note: The agent cards on your hub page now arrange themselves around how you work. The agents you open most rise to the top, and any agent that needs attention jumps straight to first place.
+  link: /nykitchen
+  link_label: Open the hub
+
+- date: 2026-06-11
   note: The iOS app button in the daily email now goes straight to the App Store. The app is officially published, so there is no more TestFlight beta invite step.
 
 - date: 2026-06-08

@@ -33,10 +33,7 @@
   .ra-card:hover::before{opacity:1;width:4px}
   @keyframes ra-rise{to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){.ra-card{animation:none;opacity:1;transform:none}}
-  .ra-card:nth-child(1){animation-delay:.04s}.ra-card:nth-child(2){animation-delay:.10s}
-  .ra-card:nth-child(3){animation-delay:.16s}.ra-card:nth-child(4){animation-delay:.22s}
-  .ra-card:nth-child(5){animation-delay:.28s}.ra-card:nth-child(6){animation-delay:.34s}
-  .ra-card:nth-child(7){animation-delay:.40s}
+  <%# Entrance stagger follows the visual (CSS order) position, set inline per card. %>
 
   .ra-head{display:flex;align-items:flex-start;gap:13px}
   .ra-avatar{flex-shrink:0;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
@@ -80,7 +77,13 @@
   # cards drop the repeated word "Agent" — each leads with its callsign instead.
   roster = ApplicationHelper::NYK_ROSTER
 
-  accent_style = ->(kind) { "--accent:#{roster[kind.to_s][:accent]}" }
+  # CSS order: most-opened cards first (per-user, computed in the controller).
+  # DOM order stays fixed; the grid just paints cards in @hub_card_order.
+  card_order   = ->(kind) {
+    n = (@hub_card_order || {})[kind.to_s] || 0
+    "order:#{n};animation-delay:#{(0.04 + 0.06 * n).round(2)}s"
+  }
+  accent_style = ->(kind) { "--accent:#{roster[kind.to_s][:accent]};#{card_order.call(kind)}" }
 
   # Avatar + callsign + classification + codename for a card header. Uses the
   # saved display_name when present; codename is the real agent_number.
@@ -490,7 +493,7 @@
 
     <%# Cellar — storage-room wine & spirits inventory. Not a roster worker (no
         codename/liveness dot); links straight to the live stock view. %>
-    <%= link_to nyk_inventory_path, class: "ra-card", style: "--accent:#be123c" do %>
+    <%= link_to nyk_inventory_path, class: "ra-card", style: "--accent:#be123c;#{card_order.call(:cellar)}" do %>
       <span class="ra-corner"><span class="ra-chev">▶</span></span>
       <div class="ra-head">
         <span class="ra-avatar">🍷</span>
