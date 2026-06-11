@@ -38,8 +38,8 @@ class NyKitchenScraper
     seen.values.filter_map { |raw| normalize(raw) }
   end
 
-  # Scrape an event detail page for live ticket availability + image.
-  # Returns { spots_left:, capacity:, closed:, image_url: } or nil.
+  # Scrape an event detail page for live ticket availability + image + menu.
+  # Returns { spots_left:, capacity:, closed:, image_url:, menu: } or nil.
   # The image_url is extracted from the page's og:image / twitter:image /
   # JSON-LD as a fallback because the calendar listing's JSON-LD often
   # omits the image field for newer events.
@@ -49,9 +49,10 @@ class NyKitchenScraper
     return nil unless html
 
     image_url = extract_event_image(html)
+    menu      = extract_event_menu(html)
 
     if html.include?("Tickets are no longer available")
-      return { spots_left: 0, capacity: nil, closed: true, image_url: image_url }
+      return { spots_left: 0, capacity: nil, closed: true, image_url: image_url, menu: menu }
     end
 
     blocks = html.split(/class="[^"]*tribe-tickets__tickets-item[ "][^"]*"/)[1..] || []
@@ -94,7 +95,7 @@ class NyKitchenScraper
       end
     end
 
-    { spots_left: spots_left, capacity: cap_known ? capacity : nil, image_url: image_url }
+    { spots_left: spots_left, capacity: cap_known ? capacity : nil, image_url: image_url, menu: menu }
   end
 
   # Pull the event page's primary image. Priority:
@@ -105,6 +106,18 @@ class NyKitchenScraper
   #   2. og:image meta tag
   #   3. twitter:image meta tag
   #   4. image field on a JSON-LD Event block
+  # The class menu from the detail page: an <h3 class="nyk-event-meta-title">
+  # heading reading "Menu" followed by <p> item lines, between the price block
+  # and the disclosures link. Returns the joined item text or nil.
+  def extract_event_menu(html)
+    m = html.match(%r{<h[23][^>]*class="[^"]*nyk-event-meta-title[^"]*"[^>]*>\s*Menu\s*</h[23]>(.*?)(?:<h[23]|<a\s|</div>)}mi)
+    return nil unless m
+    items = m[1].scan(%r{<p[^>]*>(.*?)</p>}mi).flatten
+    text = items.map { |t| CGI.unescapeHTML(t.gsub(/<[^>]+>/, " ")).gsub(/\s+/, " ").strip }
+                .reject(&:blank?).join(" / ")
+    text.presence&.slice(0, 500)
+  end
+
   def extract_event_image(html)
     if (primary = extract_primary_image(html))
       return primary

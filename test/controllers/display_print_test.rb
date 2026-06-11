@@ -118,4 +118,32 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_match "Open Class", response.body
     assert_no_match(/Gone Class/, response.body)
   end
+
+  test "menu replaces the description blurb when present" do
+    add_event("Strawberries Class", 24,
+      menu: "Strawberry Crostini / Strawberry Basil Chicken",
+      description: "A lovely class about strawberries and friendship.")
+    get nyk_display_print_path
+    assert_response :success
+    assert_match "Menu:", response.body
+    assert_match "Strawberry Crostini / Strawberry Basil Chicken", response.body
+    assert_no_match "lovely class about strawberries", response.body
+  end
+
+  test "blurb fallback strips bolded booking disclosures" do
+    add_event("Chefs Table", 24,
+      description: "**PLEASE NOTE THAT 1 TICKET IS FOR 2 PEOPLE.** Everyone wants a seat at the Chefs Table!")
+    get nyk_display_print_path
+    assert_response :success
+    assert_match "Everyone wants a seat", response.body
+    assert_no_match "PLEASE NOTE THAT 1 TICKET", response.body
+  end
+
+  test "photos render at 16:9, not square" do
+    add_event("Wide Photo Class", 24, image_url: "https://img.test/a.jpg")
+    get nyk_display_print_path
+    assert_match(/\.thumb \{\s*width: 1\.46in; height: 0\.82in/, response.body)
+    get nyk_display_print_path(variant: "stall")
+    assert_match(/\.thumb \{\s*width: 1\.87in; height: 1\.05in/, response.body)
+  end
 end

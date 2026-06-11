@@ -101,6 +101,22 @@ module NykEventScraperHelper
         const descEl = document.querySelector('.tribe-events-content');
         const description = descEl ? descEl.textContent.trim().substring(0, 500) : null;
 
+        // Menu: <h3 class="nyk-event-meta-title">Menu</h3> followed by <p>
+        // item lines (between the price block and the disclosures link).
+        let menu = null;
+        for (const h of document.querySelectorAll('.nyk-event-meta-title')) {
+          if (h.textContent.trim().toLowerCase() !== 'menu') continue;
+          const items = [];
+          let el = h.nextElementSibling;
+          while (el && el.tagName === 'P') {
+            const t = el.textContent.trim();
+            if (t) items.push(t);
+            el = el.nextElementSibling;
+          }
+          if (items.length) menu = items.join(' / ').substring(0, 500);
+          break;
+        }
+
         // NOTE: the event image is deliberately NOT extracted here. og:image
         // alone is wrong for ~4 classes (e.g. "Pinot Noir Decoded") — when no
         // social image is set, Yoast falls back to the site-default building
@@ -108,7 +124,7 @@ module NykEventScraperHelper
         // the page's JSON-LD #primaryimage via NyKitchenScraper#extract_event_image,
         // a single shared + tested code path so the two scrapers can't drift.
 
-        return { name, startAt, endAt, price, venue, description, passed };
+        return { name, startAt, endAt, price, venue, description, menu, passed };
       })()
     JS
   end
@@ -199,6 +215,7 @@ module NykEventScraperHelper
       event[:price]       = dom_data["price"]
       event[:venue]       = html_unescape(dom_data["venue"])
       event[:description] = html_unescape(dom_data["description"])
+      event[:menu]        = html_unescape(dom_data["menu"])
       event[:image_url]   = dom_data["imageUrl"]
       event[:passed]      = dom_data["passed"]
     end

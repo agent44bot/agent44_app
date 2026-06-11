@@ -44,4 +44,20 @@ class NyKitchenScraperTest < ActiveSupport::TestCase
     assert_equal "https://nykitchen.com/wp-content/uploads/wine.avif",
                  @scraper.extract_event_image(html)
   end
+
+  test "extracts the menu from the nyk-event-meta-title section" do
+    html = <<~HTML
+      <div class="tribe-events-cost">&#036;85.00</div>
+      <h3 class="nyk-event-meta-title">Menu</h3>
+      <p>Strawberry Balsamic Crostini, Strawberry Basil Chicken</p>
+      <p>Puff Pastry Strawberry Shortcake</p>
+      <a href="#event-disclosures" class="button--disclosures">Event/Class Disclosures</a>
+    HTML
+    assert_equal "Strawberry Balsamic Crostini, Strawberry Basil Chicken / Puff Pastry Strawberry Shortcake",
+                 @scraper.extract_event_menu(html)
+  end
+
+  test "menu is nil when the page has no Menu section" do
+    assert_nil @scraper.extract_event_menu("<h3 class=\"nyk-event-meta-title\">Tasting Notes</h3><p>Dry</p>")
+  end
 end

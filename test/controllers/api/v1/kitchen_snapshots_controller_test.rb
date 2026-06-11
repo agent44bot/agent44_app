@@ -610,4 +610,17 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_includes notification.title, "2"
     assert_includes notification.title, "SOLD OUT"
   end
+
+  test "persists the scraped menu on the event" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/strawberries", name: "Strawberries Class",
+          start_at: 3.days.from_now.iso8601, availability: "InStock",
+          menu: "Strawberry Crostini / Strawberry Shortcake" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :success
+    assert_equal "Strawberry Crostini / Strawberry Shortcake",
+                 KitchenSnapshot.find_by(taken_on: @today).kitchen_events.first.menu
+  end
 end

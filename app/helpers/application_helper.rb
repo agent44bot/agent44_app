@@ -67,6 +67,12 @@ module ApplicationHelper
     return "" if clean.blank?
     after = clean.split(/\d{1,2}:\d{2}\s*[ap]m\s*[-–]\s*\d{1,2}:\d{2}\s*[ap]m/i).last.to_s.strip
     blurb = after.length >= 20 ? after : clean
+    # Drop **bolded** booking disclosures ("**PLEASE NOTE THAT 1 TICKET IS
+    # FOR 2 PEOPLE...**") so the blurb leads with what the class is, not the
+    # fine print. Keep them when nothing else remains (SOLD OUT waitlist
+    # stubs are sometimes all disclosure).
+    without_disclosures = blurb.gsub(/\*\*[^*]+\*\*/, " ").gsub(/\p{Space}+/, " ").strip
+    blurb = without_disclosures if without_disclosures.length >= 20
     truncate(blurb, length: length, separator: " ")
   end
 
