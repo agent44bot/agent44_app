@@ -125,16 +125,11 @@
             <div class="body">
               <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
               <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
-              <%# The menu beats the description blurb: it is what the guest
-                  is deciding on, and blurbs often lead with boilerplate
-                  (Chef's Table's "1 ticket is for 2 people" disclosure). %>
+              <%# Menu only, never the description: per Lora, the blurbs read
+                  as noise on paper (truncated text, booking fine print).
+                  Rows without a menu stay name + details + QR. %>
               <% if event.menu.present? %>
                 <div class="desc"><span class="menu-label">Menu:</span> <%= event.menu %></div>
-              <% else %>
-                <% blurb = class_blurb(event.description) %>
-                <% if blurb.present? %>
-                  <div class="desc"><%= blurb %></div>
-                <% end %>
               <% end %>
             </div>
             <% if event.url.present? %>
