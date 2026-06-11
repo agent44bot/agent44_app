@@ -52,6 +52,8 @@ class KitchenController < ApplicationController
 
   def list
     @sendable_workspaces = sendable_workspaces_for(Current.user)
+    # Recipe handout per class (keyed by event URL) for the card row action.
+    @handouts_by_url = KitchenHandoutLink.pluck(:event_url, :kitchen_handout_id).to_h
     load_events_data
     render "admin/kitchen/list", layout: "application"
   end
