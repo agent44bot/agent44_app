@@ -45,15 +45,13 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_select ".qr svg", 1
   end
 
-  test "third line shows the class blurb, with the scraped title/date header stripped" do
+  test "descriptions never print, even when the event has one" do
     add_event("Italian Classics Cooking Class", 24,
-      description: "<p>Italian Cla ic  Cooking Cla  5/31/26</p>" \
-                   "<p>Sunday May 31 @ 5:00 pm - 7:00 pm</p>" \
-                   "<p>Join the New York Kitchen Culinary Team for a hands-on tour of regional Italian cooking.</p>")
+      description: "<p>Join the New York Kitchen Culinary Team for a hands-on tour.</p>")
     get nyk_display_print_path
     assert_response :success
-    assert_select ".desc", /Join the New York Kitchen Culinary Team/
-    assert_no_match(/Cla ic  Cooking/, response.body) # mangled title header dropped
+    assert_select ".desc", 0
+    assert_no_match(/Join the New York Kitchen Culinary Team/, response.body)
   end
 
   test "caps to one double-sided sheet (default 18) and footer-summarizes the rest" do
@@ -119,7 +117,7 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_no_match(/Gone Class/, response.body)
   end
 
-  test "menu replaces the description blurb when present" do
+  test "menu is the only third line, shown when present" do
     add_event("Strawberries Class", 24,
       menu: "Strawberry Crostini / Strawberry Basil Chicken",
       description: "A lovely class about strawberries and friendship.")
@@ -128,15 +126,6 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_match "Menu:", response.body
     assert_match "Strawberry Crostini / Strawberry Basil Chicken", response.body
     assert_no_match "lovely class about strawberries", response.body
-  end
-
-  test "blurb fallback strips bolded booking disclosures" do
-    add_event("Chefs Table", 24,
-      description: "**PLEASE NOTE THAT 1 TICKET IS FOR 2 PEOPLE.** Everyone wants a seat at the Chefs Table!")
-    get nyk_display_print_path
-    assert_response :success
-    assert_match "Everyone wants a seat", response.body
-    assert_no_match "PLEASE NOTE THAT 1 TICKET", response.body
   end
 
   test "photos render at 16:9, not square" do
