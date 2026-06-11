@@ -46,7 +46,7 @@ module Trackable
   # default flyer; without the query string both collapse to one path in the
   # PageView analytics (grouped by :path). Every other page records bare
   # request.path so pagination/filter params don't fragment the grouping.
-  QUERY_TRACKED_PATHS = ["/nykitchen/display/print"].freeze
+  QUERY_TRACKED_PATHS = [ "/nykitchen/display/print" ].freeze
 
   def tracked_path
     QUERY_TRACKED_PATHS.include?(request.path) ? request.fullpath : request.path
