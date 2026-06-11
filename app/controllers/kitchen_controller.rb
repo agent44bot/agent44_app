@@ -41,6 +41,9 @@ class KitchenController < ApplicationController
     @hub_inventory_low   = InventoryItem.where.not(par_level: nil).count { |i| i.low_stock?(inv_on_hand[i.id].to_i) }
     # Per-agent "salary" (this month's tokens + cost). Owner/admin only.
     @hub_salary = hub_salary_by_agent if @can_see_pricing
+    # Most-opened cards rise to the top (CSS order); needs load_hub_summary
+    # to have set @hub_agent_status so failed agents can jump the queue.
+    @hub_card_order = hub_card_order
     # Team management is rendered below the agent cards for members; load
     # the workspace data so the partial can render.
     load_nyk_team_data if @nyk_workspace
@@ -782,6 +785,48 @@ class KitchenController < ApplicationController
     @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
     @workspace_agents = @nyk_workspace ? WorkspaceAgent::KINDS.index_with { |k| @nyk_workspace.agent_for(k) } : {}
     @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
+  end
+
+  # Hub cards self-organize: the agents you open most rise to the top.
+  # The default order doubles as the layout for anonymous viewers and the
+  # tie-break, so rarely-used cards never shuffle among themselves.
+  HUB_CARD_DEFAULT_ORDER = %w[analyst list social display data test cellar ask].freeze
+
+  # Ranking signal: visits to the page each card opens (already in PageView,
+  # per user) — no separate click tracking needed.
+  HUB_CARD_PATHS = {
+    "analyst" => "/nykitchen/analyst",
+    "list"    => "/nykitchen/list",
+    "social"  => "/nykitchen/social",
+    "display" => "/nykitchen/display/settings",
+    "data"    => "/nykitchen/data",
+    "test"    => "/nykitchen/test",
+    "cellar"  => "/nykitchen/inventory",
+    "ask"     => "/nykitchen/ask"
+  }.freeze
+
+  # kind => CSS order index. Agents flagging a problem (red dot) jump the
+  # queue regardless of usage, so a dead marquee can't hide at the bottom
+  # just because it's rarely opened. Pinning is live (never cached) — a
+  # failure must surface immediately.
+  def hub_card_order
+    order = hub_card_frequency_order
+    failed = (@hub_agent_status || {}).filter_map { |kind, s| kind.to_s if s == :failed }
+    pinned = order.select { |k| failed.include?(k) }
+    (pinned + (order - pinned)).each_with_index.to_h
+  end
+
+  # Frequency ranking from the last 30 days of the user's page views,
+  # cached for the rest of the day so cards don't reshuffle mid-session.
+  def hub_card_frequency_order
+    return HUB_CARD_DEFAULT_ORDER unless Current.user
+
+    Rails.cache.fetch("nyk_hub_card_order:v1:#{Current.user.id}:#{Date.current}", expires_in: 1.day) do
+      counts = PageView.where(user_id: Current.user.id, path: HUB_CARD_PATHS.values)
+                       .where("created_at >= ?", 30.days.ago)
+                       .group(:path).count
+      HUB_CARD_DEFAULT_ORDER.sort_by.with_index { |kind, i| [ -counts.fetch(HUB_CARD_PATHS[kind], 0), i ] }
+    end
   end
 
   # The user's NYK-flavored workspace, if any — backs the Social Agent card
