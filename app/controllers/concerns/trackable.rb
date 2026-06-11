@@ -29,7 +29,7 @@ module Trackable
     end
 
     TrackPageViewJob.perform_later(
-      path: request.path,
+      path: tracked_path,
       method: request.method,
       # Fly's edge proxy is what remote_ip sees (the public proxy hop isn't
       # trusted); the real client IP arrives in Fly-Client-IP.
@@ -39,6 +39,17 @@ module Trackable
       user_id: Current.user&.id,
       session_id: session_id
     )
+  end
+
+  # Routes where the query string is a distinct page worth tracking on its
+  # own. /nykitchen/display/print?variant=stall is the stall poster vs the
+  # default flyer; without the query string both collapse to one path in the
+  # PageView analytics (grouped by :path). Every other page records bare
+  # request.path so pagination/filter params don't fragment the grouping.
+  QUERY_TRACKED_PATHS = ["/nykitchen/display/print"].freeze
+
+  def tracked_path
+    QUERY_TRACKED_PATHS.include?(request.path) ? request.fullpath : request.path
   end
 
   BOT_PATTERNS = /
