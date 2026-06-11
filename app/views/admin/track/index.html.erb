@@ -20,6 +20,7 @@
       Every page <strong><%= @user.email_address %></strong> hits in the app.
     <% elsif @anonymous %>
       Every page hit by <strong>signed-out</strong> visitors. Use the session column to tell visitors apart.
+      Anonymous hits to <code class="text-orange-300">/</code> and <code class="text-orange-300">/sign_in</code> are hidden (bot probes that pass the UA filter).
     <% else %>
       Activity across every signed-in user with tracked page views.
     <% end %>
@@ -30,13 +31,18 @@
   <% if @filter_users.any? %>
     <div class="flex flex-wrap gap-2 mb-4">
       <%= link_to "All users", admin_track_path(range: @range),
-            class: "text-xs px-3 py-1.5 rounded-full border #{@user.nil? ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
+            class: "text-xs px-3 py-1.5 rounded-full border #{@user.nil? && !@anonymous ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
       <% @filter_users.each do |u| %>
+        <%# Chips are all-time recency; dim anyone with no hits in the selected range so the chip row matches the table. %>
+        <% dimmed = @user&.id != u.id && !@active_user_ids.include?(u.id) %>
         <%= link_to u.display_identifier, admin_track_path(user_id: u.id, range: @range),
-              class: "text-xs px-3 py-1.5 rounded-full border #{@user&.id == u.id ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
+              title: (dimmed ? "No activity in selected range" : nil),
+              class: "text-xs px-3 py-1.5 rounded-full border #{@user&.id == u.id ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}#{' opacity-40' if dimmed}" %>
       <% end %>
+      <% anon_dimmed = !@anonymous && !@anon_active %>
       <%= link_to "👻 Anonymous", admin_track_path(user_id: "anonymous", range: @range),
-            class: "text-xs px-3 py-1.5 rounded-full border #{@anonymous ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
+            title: (anon_dimmed ? "No activity in selected range" : nil),
+            class: "text-xs px-3 py-1.5 rounded-full border #{@anonymous ? 'bg-orange-600 border-orange-500 text-white font-semibold' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}#{' opacity-40' if anon_dimmed}" %>
     </div>
   <% end %>
 
