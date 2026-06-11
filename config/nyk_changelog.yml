@@ -9,6 +9,11 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-11
+  note: New on Sam's schedule page, recipe handouts. Click "+ Recipe" on any class, paste the recipe text (or upload a PDF), and the agent builds the printable packet for you, including the single station amounts, ready to review and print. Upload once and reuse the same packet every time the class runs again.
+  link: /nykitchen/list
+  link_label: Open Sam's schedule
+
+- date: 2026-06-11
   note: The agent cards on your hub page now arrange themselves around how you work. The agents you open most rise to the top, and any agent that needs attention jumps straight to first place.
   link: /nykitchen
   link_label: Open the hub

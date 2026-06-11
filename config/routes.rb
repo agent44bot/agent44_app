@@ -99,6 +99,13 @@ Rails.application.routes.draw do
   post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
   # Printer-friendly list of the same N classes the display cycles. Admin-only.
   get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
+  # Recipe handouts: printable class recipe packets, attached from Sam's
+  # list page (upload or paste -> AI extraction -> review -> branded print).
+  get   "nykitchen/handouts/new",        to: "kitchen_handouts#new",    as: :new_nyk_handout
+  post  "nykitchen/handouts",            to: "kitchen_handouts#create", as: :nyk_handouts
+  get   "nykitchen/handouts/:id/edit",   to: "kitchen_handouts#edit",   as: :edit_nyk_handout
+  patch "nykitchen/handouts/:id",        to: "kitchen_handouts#update", as: :nyk_handout
+  get   "nykitchen/handouts/:id/print",  to: "kitchen_handouts#print",  as: :print_nyk_handout
   # /nykitchen/social renders the NYK workspace's social composer in-place
   # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
   # WorkspacesController#social by baking the slug in as a default param.

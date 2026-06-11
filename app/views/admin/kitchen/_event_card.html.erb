@@ -63,6 +63,18 @@
           </button>
           <span data-social-post-target="status"></span>
         <% end %>
+        <%# Recipe handout: print when attached, add when not. Only on pages
+            that load @handouts_by_url (Sam's list). %>
+        <% if defined?(@handouts_by_url) && @handouts_by_url %>
+          <span>&middot;</span>
+          <% if (handout_id = @handouts_by_url[event.url]) %>
+            <%= link_to "🖨 Recipe", print_nyk_handout_path(handout_id),
+                  class: "text-emerald-400 hover:text-emerald-300 transition" %>
+          <% else %>
+            <%= link_to "+ Recipe", new_nyk_handout_path(event_url: event.url, event_name: event.name),
+                  class: "text-gray-500 hover:text-gray-300 transition" %>
+          <% end %>
+        <% end %>
       </div>
     </div>
     <div class="shrink-0 flex flex-col items-end gap-1">

@@ -1,0 +1,137 @@
+require "test_helper"
+require "ostruct"
+
+# Recipe handouts: AI-extracted printable recipe packets attached to classes
+# by event URL from Sam's list page. The extractor is stubbed (never hit the
+# Anthropic API in tests).
+class KitchenHandoutsTest < ActionDispatch::IntegrationTest
+  EXTRACTED = [
+    {
+      "title" => "Fresh Pasta",
+      "ingredients" => [
+        { "qty" => "2½ c", "station_qty" => "1¼ c", "item" => "All-purpose flour", "section" => nil },
+        { "qty" => "", "station_qty" => "", "item" => "Salt, to taste", "section" => nil }
+      ],
+      "directions" => [ { "section" => nil, "steps" => [ "Pour flour in a bowl.", "Knead." ] } ]
+    }
+  ].freeze
+
+  EVENT_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-8-6-26/".freeze
+
+  setup do
+    @user = User.create!(email_address: "handout-#{SecureRandom.hex(4)}@example.com", role: "user")
+    sign_in_as(@user)
+  end
+
+  teardown do
+    KitchenAi::RecipeExtractor.stub = nil
+  end
+
+  def stub_extractor_success
+    text = OpenStruct.new(text: { "recipes" => EXTRACTED }.to_json)
+    KitchenAi::RecipeExtractor.stub = ->(messages:) {
+      OpenStruct.new(content: [ text ], usage: OpenStruct.new(input_tokens: 100, output_tokens: 200))
+    }
+  end
+
+  test "create extracts recipes, saves the handout, and links the class" do
+    stub_extractor_success
+    post nyk_handouts_path, params: {
+      event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
+      recipe_text: "Fresh Pasta... 2 1/2 c flour..."
+    }
+
+    handout = KitchenHandout.last
+    assert_redirected_to edit_nyk_handout_path(handout)
+    assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", handout.title
+    assert_equal "1¼ c", handout.recipes.first["ingredients"].first["station_qty"]
+    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+  end
+
+  test "create with empty input bounces back with an error" do
+    post nyk_handouts_path, params: { event_url: EVENT_URL, event_name: "X", recipe_text: "" }
+    assert_redirected_to new_nyk_handout_path(event_url: EVENT_URL, event_name: "X")
+    assert_match(/Paste the recipe/, flash[:alert])
+    assert_equal 0, KitchenHandout.count
+  end
+
+  test "reusing an existing packet links it without calling the AI" do
+    handout = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
+    post nyk_handouts_path, params: { existing_id: handout.id, event_url: EVENT_URL }
+    assert_redirected_to nyk_list_path
+    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+  end
+
+  test "attaching moves the link when the class already had a packet" do
+    old = KitchenHandout.create!(title: "Old", data: { "recipes" => EXTRACTED })
+    old.attach_to!(EVENT_URL)
+    new_h = KitchenHandout.create!(title: "New", data: { "recipes" => EXTRACTED })
+    new_h.attach_to!(EVENT_URL)
+    assert_equal new_h, KitchenHandout.for_event_url(EVENT_URL)
+  end
+
+  test "update parses the review form and drops blank ingredient rows" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_handout_path(handout), params: {
+      title: "Packet", station_label: "Single station",
+      recipes: {
+        "0" => {
+          title: "Fresh Pasta",
+          ingredients: {
+            "0" => { qty: "2½ c", station_qty: "1¼ c", item: "All-purpose flour", section: "" },
+            "1" => { qty: "", station_qty: "", item: "", section: "" } # spare row
+          },
+          directions: { "0" => { section: "", steps: "Pour flour in a bowl.\nKnead." } }
+        }
+      }
+    }
+    assert_redirected_to print_nyk_handout_path(handout)
+    handout.reload
+    assert_equal 1, handout.recipes.first["ingredients"].size
+    assert_equal [ "Pour flour in a bowl.", "Knead." ], handout.recipes.first["directions"].first["steps"]
+  end
+
+  test "print renders both the full and station versions" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get print_nyk_handout_path(handout)
+    assert_response :success
+    assert_match "2½ c", response.body
+    assert_match "1¼ c", response.body
+    assert_match "Single station", response.body
+    assert_match "800 South Main Street", response.body
+    # One page per recipe per version.
+    assert_equal 2, response.body.scan('class="page"').size
+  end
+
+  test "new page suggests a similarly named existing packet" do
+    KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 5/14", data: { "recipes" => EXTRACTED })
+    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
+    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26")
+    assert_response :success
+    assert_match "Reuse this packet", response.body
+    assert_match "Fresh Pasta: Ravioli Workshop 5/14", response.body
+  end
+
+  test "signed-out users cannot reach handout pages" do
+    delete session_path rescue nil
+    reset!
+    get new_nyk_handout_path
+    assert_response :redirect
+  end
+
+  test "list page shows print link for linked classes and add link otherwise" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    handout.attach_to!(EVENT_URL)
+    snapshot = KitchenSnapshot.create!(taken_on: Date.current)
+    snapshot.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 8/6/26", url: EVENT_URL,
+                                    start_at: 2.weeks.from_now, availability: "InStock")
+    snapshot.kitchen_events.create!(name: "Sourdough Basics", url: "https://nykitchen.com/event/sourdough/",
+                                    start_at: 3.weeks.from_now, availability: "InStock")
+
+    get "/nykitchen/list"
+    assert_response :success
+    assert_match print_nyk_handout_path(handout), response.body
+    # & is HTML-escaped in the rendered href, so match on the escaped form.
+    assert_match ERB::Util.html_escape(new_nyk_handout_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
+  end
+end
