@@ -16,5 +16,9 @@ class WellKnownTest < ActionDispatch::IntegrationTest
     assert_equal [ app_id ], modern["appIDs"]
     assert_includes legacy["paths"], "/sign_in/*"
     assert_includes modern["components"].first.values, "/sign_in/*"
+
+    # In-app deep links (the report's "Open the ..." buttons) must open the app.
+    assert_includes legacy["paths"], "/nykitchen/*"
+    assert_includes modern["components"].flat_map(&:values), "/nykitchen/*"
   end
 end
