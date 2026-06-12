@@ -69,7 +69,9 @@ class KitchenController < ApplicationController
 
     snapshot = KitchenSnapshot.latest
     handouts = KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
-    events   = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?)
+    # Include SOLD-OUT classes: those are the fullest ones, exactly what you
+    # need to shop for. (Unlike the promo flyer, which hides sold-out classes.)
+    events   = snapshot ? snapshot.kitchen_events.upcoming
                                   .select { |e| @range.cover?(e.start_at.to_date) }
                                   .sort_by(&:start_at) : []
 

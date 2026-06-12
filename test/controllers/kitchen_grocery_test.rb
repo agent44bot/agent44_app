@@ -67,6 +67,19 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_match "No classes in this range have a recipe", response.body
   end
 
+  test "includes sold-out classes (the fullest ones to shop for)" do
+    url = "https://nykitchen.com/event/groc-soldout/"
+    @snap.kitchen_events.create!(name: "Sold Out Dinner", url: url, start_at: 1.day.from_now.change(hour: 18),
+                                 availability: "SoldOut", capacity: 20, spots_left: 0)
+    h = KitchenHandout.create!(title: "Sold Out Dinner", data: { "recipes" => RECIPE })
+    h.attach_to!(url)
+    get nyk_grocery_path
+    assert_response :success
+    assert_match "NY Kitchen Grocery List", response.body
+    assert_equal 1, @captured.size
+    assert_equal 10, @captured.first[:stations] # 20 booked => 10 stations
+  end
+
   test "days param widens the window" do
     add_class("Far Out", "groc-far", 12, booked: 6)
     get nyk_grocery_path # default weekend window excludes day +12
