@@ -66,15 +66,21 @@ export default class extends Controller {
 
     this.titleTarget.textContent = tag
     this.listTarget.innerHTML = ""
+    let firstMatch = null
     lines.forEach((line) => {
       const li = document.createElement("li")
       li.textContent = line
-      li.className = matches(line)
+      const hit = matches(line)
+      li.className = hit
         ? "px-1.5 py-0.5 rounded bg-yellow-200 text-gray-900 font-semibold"
-        : "px-1.5 py-0.5 text-gray-600"
+        : "px-1.5 py-0.5 text-gray-300"
       this.listTarget.appendChild(li)
+      if (hit && !firstMatch) firstMatch = li
     })
     this.panelTarget.classList.remove("hidden")
+    // Scroll the highlighted ingredient into view (it may be far down a long
+    // recipe); otherwise start at the top.
+    this.panelTarget.scrollTop = firstMatch ? Math.max(0, firstMatch.offsetTop - 56) : 0
   }
 
   // Position the panel near the chip, clamped to the viewport.
