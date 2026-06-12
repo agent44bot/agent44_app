@@ -18,7 +18,7 @@ module KitchenAi
     BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36".freeze
 
-    Result = Struct.new(:ok?, :recipes, :error, keyword_init: true)
+    Result = Struct.new(:ok?, :recipes, :error, :cost_cents, keyword_init: true)
 
     class << self
       attr_accessor :stub
@@ -57,12 +57,13 @@ module KitchenAi
           )
         end
 
-      AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      log = AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      cost_cents = log&.cost_cents&.round
 
       recipes = parse(response)
       return Result.new(ok?: false, error: "Could not find a recipe in that text. Try pasting just the recipe.") if recipes.blank?
 
-      Result.new(ok?: true, recipes: recipes)
+      Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
     rescue Anthropic::Errors::APIError => e
       Result.new(ok?: false, error: "Anthropic: #{e.message}")
     rescue => e

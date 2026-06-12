@@ -46,6 +46,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", handout.title
     assert_equal "1¼ c", handout.recipes.first["ingredients"].first["station_qty"]
     assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    assert handout.extract_cost_cents.to_i.positive?, "captures the Opus extraction cost"
+    assert_match(/cost \$/, handout.extract_cost_label)
   end
 
   test "create with empty input bounces back with an error" do

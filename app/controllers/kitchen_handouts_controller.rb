@@ -52,12 +52,13 @@ class KitchenHandoutsController < ApplicationController
       title: params[:event_name].presence || result.recipes.first["title"],
       data: { "recipes" => result.recipes },
       source_url: source_url,
-      source_kind: source_kind_for(pdf: pdf, url: source_url)
+      source_kind: source_kind_for(pdf: pdf, url: source_url),
+      extract_cost_cents: result.cost_cents
     )
     handout.attach_to!(event_url) if event_url.present?
 
     redirect_to edit_nyk_handout_path(handout),
-                notice: "Recipes extracted. Review them against the preview, then save."
+                notice: "Recipes built with the Opus model#{handout.extract_cost_label}. Review them against the preview, then save."
   end
 
   def edit
