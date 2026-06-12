@@ -1,21 +1,26 @@
 require "test_helper"
 require "ostruct"
 
-# The /nykitchen/grocery page: gathers in-range classes with recipes, scales by
-# station count, and renders the aggregated list. The aggregator is stubbed.
+# The /nykitchen/grocery page: a fast shell + a lazy turbo frame that gathers
+# in-range classes with recipes, scales by station count, tags each item with
+# its classes, and renders the aggregated list. The aggregator is stubbed; the
+# heavy content is only rendered on a turbo-frame request.
 class KitchenGroceryTest < ActionDispatch::IntegrationTest
   RECIPE = [ { "title" => "Pasta",
                "ingredients" => [ { "qty" => "2½ c", "station_qty" => "1¼ c", "item" => "Flour", "section" => nil } ],
                "directions" => [] } ].freeze
   AGG = { "categories" => [ { "name" => "Pantry and dry goods",
-                              "items" => [ { "item" => "Flour", "quantity" => "7 1/2 c" } ] } ],
+                              "items" => [ { "item" => "Flour", "quantity" => "7 1/2 c", "classes" => [ "Ravioli" ] } ] } ],
           "to_taste" => [ "Salt" ] }.freeze
+  FRAME = { "Turbo-Frame" => "grocery_list" }.freeze
 
   setup do
     @user = User.create!(email_address: "groc-#{SecureRandom.hex(4)}@example.com", role: "admin")
     sign_in_as(@user)
     @snap = KitchenSnapshot.create!(taken_on: Date.current)
+    @agg_calls = 0
     KitchenAi::GroceryAggregator.stub = lambda do |items:|
+      @agg_calls += 1
       @captured = items
       OpenStruct.new(content: [ OpenStruct.new(text: AGG.to_json) ],
                      usage: OpenStruct.new(input_tokens: 10, output_tokens: 10))
@@ -35,25 +40,35 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     url
   end
 
-  test "renders the aggregated list for in-range classes with recipes" do
+  test "the page shell loads fast with a spinner and does not build the list" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
-    get nyk_grocery_path
+    get nyk_grocery_path # no Turbo-Frame header
+    assert_response :success
+    assert_match "Building your grocery list", response.body
+    assert_no_match "NY Kitchen Grocery List", response.body
+    assert_equal 0, @agg_calls, "shell must not call the aggregator"
+  end
+
+  test "the frame renders the aggregated list with item class tags" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path, headers: FRAME
     assert_response :success
     assert_match "NY Kitchen Grocery List", response.body
     assert_match "Flour", response.body
-    assert_match "Salt", response.body # to_taste
+    assert_match "Salt", response.body         # to_taste
+    assert_match "Ravioli", response.body      # class tag chip
   end
 
   test "scales by stations: 12 booked => 6 stations" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
-    get nyk_grocery_path
+    get nyk_grocery_path, headers: FRAME
     assert_equal 6, @captured.first[:stations]
   end
 
   test "flags in-range classes that have no recipe and excludes them" do
     add_class("Has Recipe", "groc-has", 1, booked: 8)
     add_class("No Recipe", "groc-no", 1, booked: 4, recipe: false)
-    get nyk_grocery_path
+    get nyk_grocery_path, headers: FRAME
     assert_response :success
     assert_match "No Recipe", response.body
     assert_match "no recipe", response.body
@@ -62,7 +77,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
 
   test "empty when no in-range class has a recipe" do
     add_class("Future No Recipe", "groc-fut", 1, booked: 4, recipe: false)
-    get nyk_grocery_path
+    get nyk_grocery_path, headers: FRAME
     assert_response :success
     assert_match "No classes in this range have a recipe", response.body
   end
@@ -73,7 +88,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
                                  availability: "SoldOut", capacity: 20, spots_left: 0)
     h = KitchenHandout.create!(title: "Sold Out Dinner", data: { "recipes" => RECIPE })
     h.attach_to!(url)
-    get nyk_grocery_path
+    get nyk_grocery_path, headers: FRAME
     assert_response :success
     assert_match "NY Kitchen Grocery List", response.body
     assert_equal 1, @captured.size
@@ -82,9 +97,22 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
 
   test "days param widens the window" do
     add_class("Far Out", "groc-far", 12, booked: 6)
-    get nyk_grocery_path # default weekend window excludes day +12
+    get nyk_grocery_path, headers: FRAME # default weekend window excludes day +12
     assert_match "No classes in this range have a recipe", response.body
-    get nyk_grocery_path(days: 14)
+    get nyk_grocery_path(days: 14), headers: FRAME
     assert_match "NY Kitchen Grocery List", response.body
+  end
+
+  test "caches the aggregation: same recipe set does not re-bill Claude" do
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+
+    get nyk_grocery_path, headers: FRAME
+    get nyk_grocery_path, headers: FRAME # same inputs -> served from cache
+    assert_equal 1, @agg_calls, "aggregator should run once, then hit cache"
+    assert_match "Saved list (no new AI cost)", response.body
+  ensure
+    Rails.cache = original
   end
 end

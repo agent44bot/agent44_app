@@ -9,75 +9,26 @@
     </div>
   </div>
 
-  <h1 class="text-2xl font-bold text-white mt-3 mb-1">Grocery list</h1>
-  <p class="text-sm text-gray-400 mb-6">
-    <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
-    <%= pluralize(@with_recipe.size, "class") %> with recipes ·
-    <%= pluralize(@total_headcount, "person") %> booked
-  </p>
+  <h1 class="text-2xl font-bold text-white mt-3 mb-6">Grocery list</h1>
 
-  <% if @with_recipe.empty? %>
-    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400">
-      No classes in this range have a recipe attached yet. Add recipes from
-      <%= link_to "Sam's schedule", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>
-      and they will roll into this list.
-    </div>
-  <% elsif @result&.ok? %>
-    <%# The aggregated, printable list. %>
-    <div class="bg-white text-gray-900 rounded-xl p-6 print-sheet">
-      <div class="flex items-baseline justify-between border-b-2 border-gray-900 pb-2 mb-4">
-        <span class="text-lg font-extrabold">NY Kitchen Grocery List</span>
-        <span class="text-xs text-gray-500"><%= @range.first.strftime("%b %-d") %> to <%= @range.last.strftime("%b %-d") %></span>
-      </div>
-      <% @result.categories.each do |cat| %>
-        <% next if Array(cat["items"]).empty? %>
-        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1"><%= cat["name"] %></h2>
-        <ul class="mb-2">
-          <% cat["items"].each do |it| %>
-            <li class="flex items-baseline gap-2 py-0.5 text-sm border-b border-gray-100">
-              <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
-              <span class="font-semibold w-24 shrink-0"><%= it["quantity"] %></span>
-              <span><%= it["item"] %></span>
-            </li>
-          <% end %>
-        </ul>
-      <% end %>
-      <% if @result.to_taste.present? %>
-        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1">To taste / on hand</h2>
-        <p class="text-sm text-gray-600"><%= @result.to_taste.join(", ") %></p>
-      <% end %>
-      <div class="mt-6 pt-3 border-t border-gray-200 text-xs text-gray-500">
-        Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:stations]} stations)" }.join(" · ") %>
-      </div>
-    </div>
-
-    <div class="mt-4 flex items-center gap-4 no-print">
-      <button type="button" class="px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" id="print-btn">🖨 Print</button>
-      <% if @result.cost_cents %><span class="text-xs text-gray-500">Built with the Opus model (cost <%= format("$%.2f", @result.cost_cents / 100.0) %>)</span><% end %>
-    </div>
-  <% else %>
-    <div class="bg-red-900/30 border border-red-800 rounded-xl p-4 text-red-300">
-      Could not build the list: <%= @result&.error %>
-    </div>
-  <% end %>
-
-  <% if @without_recipe.any? %>
-    <div class="mt-8 no-print">
-      <h2 class="text-sm font-semibold text-amber-400 mb-2">⚠ Classes in range with no recipe (not in the list)</h2>
-      <ul class="space-y-1">
-        <% @without_recipe.each do |e| %>
-          <li class="text-sm text-gray-400">
-            <%= e.start_at.strftime("%a %-m/%-d") %> · <%= e.name %>
-            <%= link_to "add recipe", new_nyk_handout_path(event_url: e.url, event_name: e.name), class: "text-orange-400 hover:text-orange-300 ml-1" %>
-          </li>
-        <% end %>
-      </ul>
+  <%# The list is built by an Opus call, so load it lazily in a frame: this page
+      paints instantly and the spinner shows while the list is built (or fetched
+      from cache). %>
+  <%= turbo_frame_tag "grocery_list", src: nyk_grocery_path(days: @days), loading: "eager" do %>
+    <div class="flex flex-col items-center justify-center py-24 text-gray-500">
+      <svg class="animate-spin w-8 h-8 text-orange-500 mb-3" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <p class="text-sm">Building your grocery list...</p>
     </div>
   <% end %>
 </div>
 
 <%= javascript_tag nonce: true do %>
-  document.getElementById("print-btn")?.addEventListener("click", function () { window.print(); });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#grocery-print-btn")) window.print();
+  });
 <% end %>
 
 <style>

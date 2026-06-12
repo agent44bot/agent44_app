@@ -60,15 +60,17 @@ module KitchenAi
       You build a single consolidated grocery list for a kitchen's cooking classes.
 
       Reply with ONLY a JSON object, no prose, no code fences:
-      {"categories": [{"name": "Produce", "items": [{"item": "Lemons", "quantity": "3"}]}],
+      {"categories": [{"name": "Produce", "items": [{"item": "Lemons", "quantity": "3", "classes": ["Coq au Vin"]}]}],
        "to_taste": ["Salt", "Black pepper"]}
 
-      Input: several classes. Each lists how many STATIONS are booked and its recipes.
+      Input: several classes, each with a short TAG. Each lists how many STATIONS are booked and its recipes.
       Each ingredient shows a per-station amount (station_qty). Compute the total to buy:
       - Multiply each ingredient's per-station amount by that class's station count.
       - Then sum the same ingredient across every class and recipe into one line.
       - Combine units sensibly (e.g. 3 T + 1/4 c -> about 1/2 c; round up to friendly
         shopping amounts). Use ASCII fractions like 1/2, 1/4, 2 1/2.
+      - Set "classes" on each item to the exact TAGS of the classes that need it (one or
+        more). Use the tags given in the input verbatim.
       - Ingredients with no amount ("Salt, to taste") go in to_taste as a deduped list of
         plain names (no "to taste" suffix), NOT in categories.
       - Organize the rest into common grocery sections in this order when present:
@@ -79,14 +81,14 @@ module KitchenAi
     PROMPT
 
     def build_prompt(items)
-      lines = items.map.with_index(1) do |it, idx|
+      lines = items.map do |it|
         recipe_text = Array(it[:recipes]).flat_map do |r|
           Array(r["ingredients"]).map do |ing|
             amt = ing["station_qty"].presence || ing["qty"].to_s
             "    - #{amt} #{ing['item']}".rstrip
           end
         end.join("\n")
-        "Class #{idx}: #{it[:class_name]} (#{it[:stations]} stations)\n#{recipe_text}"
+        "Class tag: #{it[:tag].presence || it[:class_name]} (#{it[:stations]} stations)\n#{recipe_text}"
       end
       "Build the grocery list for these classes:\n\n#{lines.join("\n\n")}"
     end
