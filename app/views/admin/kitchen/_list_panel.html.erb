@@ -54,41 +54,57 @@
               "No capacity data — falling back to class-count ratio (#{sold} of #{denom} classes sold out)"
             end
           %>
-          <button type="button"
-                  data-action="click->collapsible#toggle"
-                  class="w-full text-left border-b border-gray-700 pb-2 mb-4 hover:text-orange-400 transition">
+          <% week_has_recipe = defined?(@handouts_by_url) && @handouts_by_url &&
+                               week[:events].any? { |e| @handouts_by_url[e.url] } %>
+          <div class="border-b border-gray-700 pb-2 mb-4">
             <div class="flex items-center justify-between gap-3">
-              <span class="text-lg font-bold text-white min-w-0 truncate">
-                <%= week[:label] %>
+              <button type="button" data-action="click->collapsible#toggle"
+                      class="flex items-baseline gap-2 min-w-0 text-left hover:text-orange-400 transition">
+                <span class="text-lg font-bold text-white truncate"><%= week[:label] %></span>
                 <span class="text-gray-500 font-normal">(<%= total %>)</span>
-              </span>
+              </button>
               <div class="flex items-center gap-3 shrink-0">
-                <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
-                <svg data-collapsible-target="icon"
-                     class="w-5 h-5 text-gray-500 transition-transform"
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
+                <%# Grocery cart for this week, only when a class here has a recipe. %>
+                <% if week_has_recipe %>
+                  <%= link_to nyk_grocery_path(from: week[:start].iso8601, to: week[:end].iso8601),
+                        title: "Grocery list for #{week[:label]}",
+                        class: "text-gray-500 hover:text-orange-400 transition" do %>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                  <% end %>
+                <% end %>
+                <button type="button" data-action="click->collapsible#toggle"
+                        class="flex items-center gap-3 hover:text-orange-400 transition">
+                  <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
+                  <svg data-collapsible-target="icon"
+                       class="w-5 h-5 text-gray-500 transition-transform"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
               </div>
             </div>
-            <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
-              <% if sold > 0 %>
-                <div class="bg-red-500 h-full" style="width: <%= pct_sold %>%" title="<%= sold %> sold out / closed"></div>
-              <% end %>
-              <% if avail > 0 %>
-                <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>
-              <% end %>
-            </div>
-            <% if @show_revenue && week_rev_total.positive? %>
-              <div class="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
-                <span><span class="text-green-400 font-semibold"><%= number_to_currency(week_rev_sold, precision: 0) %></span> sold</span>
-                <span class="text-gray-600">·</span>
-                <span><span class="text-amber-400 font-semibold"><%= number_to_currency(week_rev_left, precision: 0) %></span> left</span>
-                <span class="text-gray-600">·</span>
-                <span><%= number_to_currency(week_rev_total, precision: 0) %> total</span>
+            <button type="button" data-action="click->collapsible#toggle" class="block w-full text-left cursor-pointer">
+              <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
+                <% if sold > 0 %>
+                  <div class="bg-red-500 h-full" style="width: <%= pct_sold %>%" title="<%= sold %> sold out / closed"></div>
+                <% end %>
+                <% if avail > 0 %>
+                  <div class="bg-green-500 h-full" style="width: <%= pct_avail %>%" title="<%= avail %> available"></div>
+                <% end %>
               </div>
-            <% end %>
-          </button>
+              <% if @show_revenue && week_rev_total.positive? %>
+                <div class="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
+                  <span><span class="text-green-400 font-semibold"><%= number_to_currency(week_rev_sold, precision: 0) %></span> sold</span>
+                  <span class="text-gray-600">·</span>
+                  <span><span class="text-amber-400 font-semibold"><%= number_to_currency(week_rev_left, precision: 0) %></span> left</span>
+                  <span class="text-gray-600">·</span>
+                  <span><%= number_to_currency(week_rev_total, precision: 0) %> total</span>
+                </div>
+              <% end %>
+            </button>
+          </div>
           <div data-collapsible-target="body" class="space-y-3">
             <% week[:events].each do |e| %>
               <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>

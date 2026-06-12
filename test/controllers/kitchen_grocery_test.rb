@@ -103,6 +103,16 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_match "NY Kitchen Grocery List", response.body
   end
 
+  test "from/to params scope the list to a specific week" do
+    add_class("This week", "groc-now", 1, booked: 8)
+    add_class("Two weeks out", "groc-far", 13, booked: 6)
+    far = 13.days.from_now.to_date
+    get nyk_grocery_path(from: far.beginning_of_week.iso8601, to: far.end_of_week.iso8601), headers: FRAME
+    assert_response :success
+    assert_equal 1, @captured.size
+    assert_equal "Two weeks out", @captured.first[:class_name]
+  end
+
   test "caches the aggregation: same recipe set does not re-bill Claude" do
     original = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new

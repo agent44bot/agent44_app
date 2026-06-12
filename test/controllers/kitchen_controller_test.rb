@@ -484,6 +484,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match /← NY Kitchen/, response.body
   end
 
+  test "list shows a week grocery cart only when a class that week has a recipe" do
+    with_r = create_event("Has Recipe", 2.days.from_now, "InStock")
+    create_event("No Recipe Next Week", 9.days.from_now, "InStock")
+    KitchenHandout.create!(title: "Has Recipe", data: { "recipes" => [ { "title" => "X", "ingredients" => [], "directions" => [] } ] })
+                  .attach_to!(with_r.url)
+    get nyk_list_path
+    assert_response :success
+    # The current week (with a recipe) links to its grocery list; the recipe-less
+    # week shows no cart link.
+    assert_select "a[title=?]", "Grocery list for Current Week", 1
+    assert_select "a[title=?]", "Grocery list for Next Week", 0
+  end
+
   # ----- Display Agent (/nykitchen/display + /nykitchen/display/settings) -----
 
   test "display: public, no auth, filters out sold-out events" do

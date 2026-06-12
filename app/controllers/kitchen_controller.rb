@@ -64,8 +64,15 @@ class KitchenController < ApplicationController
   # use case); ?days=N widens the window.
   def grocery
     @default_days = default_grocery_days
-    @days  = params[:days].presence&.to_i&.clamp(1, 30) || @default_days
-    @range = Date.current..(Date.current + @days.days)
+    # A specific week (from the cart icon on Sam's list) takes priority; else a
+    # forward "next N days" window from today.
+    if (from = parse_date(params[:from])) && (to = parse_date(params[:to])) && from <= to
+      @range = from..to
+      @week_mode = true
+    else
+      @days  = params[:days].presence&.to_i&.clamp(1, 30) || @default_days
+      @range = Date.current..(Date.current + @days.days)
+    end
 
     # The aggregation is a slow + paid Opus call, so the heavy work runs in a
     # lazy turbo frame (spinner while it loads) and the result is cached by the
@@ -796,6 +803,12 @@ class KitchenController < ApplicationController
     head :not_found unless @nyk_workspace&.manager?(Current.user)
   end
 
+  def parse_date(str)
+    Date.parse(str.to_s)
+  rescue ArgumentError, TypeError
+    nil
+  end
+
   # Today through the end of this week (Sunday). Min 3 days so a Friday/Saturday
   # still gives a usable weekend window.
   def default_grocery_days
@@ -979,7 +992,8 @@ class KitchenController < ApplicationController
       while week_start <= last_event_date
         week_events = @events.select { |e| (week_start..week_end).cover?(e.start_at.to_date) }
         label = @weeks.size < labels.size ? labels[@weeks.size] : week_start.strftime("Week of %b %-d")
-        @weeks << { label: label, events: week_events, expanded: @weeks.size < 2 }
+        @weeks << { label: label, events: week_events, expanded: @weeks.size < 2,
+                    start: week_start, end: week_end }
         week_start = week_end + 1
         week_end = week_start + 6
       end
