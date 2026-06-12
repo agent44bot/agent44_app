@@ -153,4 +153,16 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     # & is HTML-escaped in the rendered href, so match on the escaped form.
     assert_match ERB::Util.html_escape(new_nyk_handout_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
   end
+
+  test "print and edit allow same-origin framing for the PDF preview" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+
+    get print_nyk_handout_path(handout, format: :pdf)
+    assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
+    assert_match "frame-ancestors 'self'", response.headers["Content-Security-Policy"].to_s
+
+    get edit_nyk_handout_path(handout)
+    assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
+    assert_match "frame-ancestors 'self'", response.headers["Content-Security-Policy"].to_s
+  end
 end

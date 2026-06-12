@@ -6,6 +6,15 @@
 class KitchenHandoutsController < ApplicationController
   MAX_PDF_BYTES = 10.megabytes
 
+  # The edit and print pages embed the recipe PDF (served by #print) in an
+  # iframe. The app-wide CSP sets frame-ancestors 'none' and production sets
+  # X-Frame-Options: DENY, which block even same-origin framing, so relax both
+  # to self for these actions (mirrors KitchenController's display preview).
+  content_security_policy(only: %i[edit print]) do |policy|
+    policy.frame_ancestors :self
+  end
+  after_action :allow_same_origin_framing, only: %i[edit print]
+
   def new
     @event_url  = params[:event_url].to_s
     @event_name = params[:event_name].to_s
@@ -85,6 +94,12 @@ class KitchenHandoutsController < ApplicationController
   end
 
   private
+
+  # Production sets a global X-Frame-Options: DENY; override to SAMEORIGIN so
+  # the recipe PDF can be framed by our own edit/print pages.
+  def allow_same_origin_framing
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+  end
 
   def back_to_new(event_url, alert)
     redirect_to new_nyk_handout_path(event_url: event_url, event_name: params[:event_name]), alert: alert
