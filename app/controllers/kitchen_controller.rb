@@ -854,6 +854,13 @@ class KitchenController < ApplicationController
     # Index per tag -> the view maps it to a (Tailwind-scannable) chip color.
     @tag_index = {}
     @with_recipe.each_with_index { |c, i| @tag_index[c[:tag]] = i }
+    # Per-tag recipe lines for the hover/tap popover (full recipe amounts).
+    @recipe_by_tag = @with_recipe.to_h do |c|
+      lines = c[:handout].recipes.flat_map do |r|
+        Array(r["ingredients"]).map { |i| [ i["qty"], i["item"] ].map(&:to_s).reject(&:blank?).join(" ") }
+      end.reject(&:blank?)
+      [ c[:tag], lines ]
+    end
     return if @with_recipe.empty?
 
     @result = cached_grocery_list(@with_recipe)
