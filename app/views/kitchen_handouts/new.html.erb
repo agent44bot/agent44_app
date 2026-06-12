@@ -22,9 +22,16 @@
     <%= hidden_field_tag :event_name, @event_name %>
 
     <label class="block text-sm font-semibold text-gray-300 mb-2">Upload a recipe PDF</label>
-    <%= file_field_tag :pdf, accept: "application/pdf",
-          class: "block w-full text-sm text-gray-400 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-gray-800 file:text-gray-300 file:cursor-pointer" %>
-    <p class="text-xs text-gray-600 mt-1">Have a Publisher (.pub) file? Print it to PDF first, then upload that.</p>
+    <div data-controller="dropzone" data-dropzone-accept-value="application/pdf"
+         data-action="click->dropzone#browse dragover->dropzone#over dragleave->dropzone#leave drop->dropzone#drop"
+         class="dropzone flex flex-col items-center justify-center text-center gap-1 rounded-xl border-2 border-dashed border-gray-700 bg-gray-900/60 px-4 py-8 cursor-pointer hover:border-orange-500 transition">
+      <%= file_field_tag :pdf, accept: "application/pdf", class: "hidden",
+            data: { dropzone_target: "input", action: "change->dropzone#changed" } %>
+      <span class="text-2xl">📄</span>
+      <span class="text-sm text-gray-300"><span class="text-orange-400 font-medium">Choose a PDF</span> or drag it here</span>
+      <span class="text-xs text-gray-500" data-dropzone-target="name">No file chosen</span>
+    </div>
+    <p class="text-xs text-gray-600 mt-1">Have a Publisher (.pub) file? Print it to PDF first, then drop that here.</p>
 
     <div class="my-4 text-center text-xs text-gray-600">or</div>
 

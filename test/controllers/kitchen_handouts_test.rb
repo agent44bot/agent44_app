@@ -124,6 +124,14 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
   end
 
+  test "new page renders the drag-and-drop PDF zone with the pdf input intact" do
+    get new_nyk_handout_path
+    assert_response :success
+    assert_select "[data-controller='dropzone']"
+    assert_select "input[type=file][name=pdf][data-dropzone-target=input]"
+    assert_match "drag it here", response.body
+  end
+
   test "new page suggests a similarly named existing packet" do
     KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 5/14", data: { "recipes" => EXTRACTED })
     KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
