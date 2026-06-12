@@ -1,8 +1,8 @@
 # Recipe handouts for NY Kitchen classes, attached from Sam's list page.
-# Flow: "+ Recipe" on a class -> new (paste text / upload PDF, or reuse an
-# existing packet) -> create runs the AI extraction -> edit to review and fix
-# (especially the proposed single-station quantities) -> print renders the
-# branded packet, full pages then station pages.
+# Flow: open a class on Sam's list -> "+ Recipe" -> new (upload a PDF, paste a
+# recipe URL, or reuse an existing packet) -> create runs the AI extraction ->
+# edit reviews the recipe with a live PDF preview -> print renders the branded
+# NY Kitchen PDF (full pages then single-station pages).
 class KitchenHandoutsController < ApplicationController
   MAX_PDF_BYTES = 10.megabytes
 
@@ -28,28 +28,27 @@ class KitchenHandoutsController < ApplicationController
 
     pdf = params[:pdf].presence
     if pdf && pdf.size > MAX_PDF_BYTES
-      return redirect_to new_nyk_handout_path(event_url: event_url, event_name: params[:event_name]),
-                         alert: "PDF is too large (10 MB max)."
+      return back_to_new(event_url, "PDF is too large (10 MB max).")
     end
 
+    source_url = params[:recipe_url].to_s.strip.presence
     result = KitchenAi::RecipeExtractor.new(user: Current.user).extract(
       text: params[:recipe_text].presence,
-      pdf: pdf&.read
+      pdf: pdf&.read,
+      url: source_url
     )
-
-    unless result.ok?
-      return redirect_to new_nyk_handout_path(event_url: event_url, event_name: params[:event_name]),
-                         alert: result.error
-    end
+    return back_to_new(event_url, result.error) unless result.ok?
 
     handout = KitchenHandout.create!(
       title: params[:event_name].presence || result.recipes.first["title"],
-      data: { "recipes" => result.recipes }
+      data: { "recipes" => result.recipes },
+      source_url: source_url,
+      source_kind: source_kind_for(pdf: pdf, url: source_url)
     )
     handout.attach_to!(event_url) if event_url.present?
 
     redirect_to edit_nyk_handout_path(handout),
-                notice: "Recipes extracted. Review the quantities below, the station column is a proposal."
+                notice: "Recipes extracted. Review them against the preview, then save."
   end
 
   def edit
@@ -63,17 +62,39 @@ class KitchenHandoutsController < ApplicationController
       station_label: params[:station_label].presence || @handout.station_label,
       data: { "recipes" => parse_recipes_params }
     )
-    redirect_to print_nyk_handout_path(@handout), notice: "Saved."
+    # Stay on edit so the refreshed PDF preview shows the change; "Done" on the
+    # edit page is what returns to the class list once the packet looks right.
+    redirect_to edit_nyk_handout_path(@handout), notice: "Saved. Preview updated."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to edit_nyk_handout_path(@handout), alert: e.message
   end
 
+  # The print page (HTML) embeds the PDF; the .pdf format streams it, used by
+  # the preview iframe, the print page, and direct download.
   def print
     @handout = KitchenHandout.find(params[:id])
-    render layout: false
+    respond_to do |format|
+      format.html { render layout: false }
+      format.pdf do
+        send_data KitchenHandoutPdf.new(@handout).render,
+                  filename: "#{@handout.title.parameterize}.pdf",
+                  type: "application/pdf",
+                  disposition: params[:download].present? ? "attachment" : "inline"
+      end
+    end
   end
 
   private
+
+  def back_to_new(event_url, alert)
+    redirect_to new_nyk_handout_path(event_url: event_url, event_name: params[:event_name]), alert: alert
+  end
+
+  def source_kind_for(pdf:, url:)
+    return "url" if url.present?
+    return "pdf" if pdf.present?
+    "text"
+  end
 
   # The edit form posts recipes as nested hashes keyed by index:
   # recipes[0][title], recipes[0][ingredients][0][qty], ... Blank ingredient

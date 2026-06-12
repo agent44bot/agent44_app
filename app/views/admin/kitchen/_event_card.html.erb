@@ -68,7 +68,7 @@
         <% if defined?(@handouts_by_url) && @handouts_by_url %>
           <span>&middot;</span>
           <% if (handout_id = @handouts_by_url[event.url]) %>
-            <%= link_to "🖨 Recipe", print_nyk_handout_path(handout_id),
+            <%= link_to "🖨 Print recipe", print_nyk_handout_path(handout_id),
                   class: "text-emerald-400 hover:text-emerald-300 transition" %>
           <% else %>
             <%= link_to "+ Recipe", new_nyk_handout_path(event_url: event.url, event_name: event.name),

@@ -21,19 +21,26 @@
     <%= hidden_field_tag :event_url, @event_url %>
     <%= hidden_field_tag :event_name, @event_name %>
 
-    <label class="block text-sm font-semibold text-gray-300 mb-2">Paste the recipe text</label>
-    <%= text_area_tag :recipe_text, "", rows: 12, placeholder: "Paste everything: ingredients, amounts, and directions. Multiple recipes are fine (dough, filling, sauce).",
-          class: "w-full rounded-xl bg-gray-900 border border-gray-800 text-gray-200 text-base p-4 focus:border-orange-500 focus:outline-none" %>
-
-    <div class="my-4 text-center text-xs text-gray-600">or</div>
-
-    <label class="block text-sm font-semibold text-gray-300 mb-2">Upload a PDF</label>
+    <label class="block text-sm font-semibold text-gray-300 mb-2">Upload a recipe PDF</label>
     <%= file_field_tag :pdf, accept: "application/pdf",
           class: "block w-full text-sm text-gray-400 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-gray-800 file:text-gray-300 file:cursor-pointer" %>
     <p class="text-xs text-gray-600 mt-1">Have a Publisher (.pub) file? Print it to PDF first, then upload that.</p>
 
-    <%= submit_tag "Extract recipes", class: "mt-6 px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" %>
-    <p class="text-xs text-gray-500 mt-2">The agent reads the recipe, splits out each part, and proposes single-station amounts. You review everything before printing.</p>
+    <div class="my-4 text-center text-xs text-gray-600">or</div>
+
+    <label class="block text-sm font-semibold text-gray-300 mb-2">Paste a recipe link</label>
+    <%= url_field_tag :recipe_url, "", placeholder: "https://...",
+          class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none" %>
+    <p class="text-xs text-gray-600 mt-1">A link to a recipe online. We read the page and rebuild it in the NY Kitchen format.</p>
+
+    <div class="my-4 text-center text-xs text-gray-600">or</div>
+
+    <label class="block text-sm font-semibold text-gray-300 mb-2">Paste the recipe text</label>
+    <%= text_area_tag :recipe_text, "", rows: 8, placeholder: "Ingredients, amounts, and directions. Multiple recipes are fine (dough, filling, sauce).",
+          class: "w-full rounded-xl bg-gray-900 border border-gray-800 text-gray-200 text-base p-4 focus:border-orange-500 focus:outline-none" %>
+
+    <%= submit_tag "Build the recipe", class: "mt-6 px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" %>
+    <p class="text-xs text-gray-500 mt-2">The agent reads the recipe, splits out each part, and proposes single-station amounts. You review it against a live PDF preview before printing.</p>
   <% end %>
 
   <% others = @existing - [ @suggested ].compact %>

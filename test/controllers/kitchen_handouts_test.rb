@@ -51,7 +51,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   test "create with empty input bounces back with an error" do
     post nyk_handouts_path, params: { event_url: EVENT_URL, event_name: "X", recipe_text: "" }
     assert_redirected_to new_nyk_handout_path(event_url: EVENT_URL, event_name: "X")
-    assert_match(/Paste the recipe/, flash[:alert])
+    assert_match(/Paste a recipe/, flash[:alert])
     assert_equal 0, KitchenHandout.count
   end
 
@@ -85,22 +85,41 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
         }
       }
     }
-    assert_redirected_to print_nyk_handout_path(handout)
+    assert_redirected_to edit_nyk_handout_path(handout)
     handout.reload
     assert_equal 1, handout.recipes.first["ingredients"].size
     assert_equal [ "Pour flour in a bowl.", "Knead." ], handout.recipes.first["directions"].first["steps"]
   end
 
-  test "print renders both the full and station versions" do
+  test "print page embeds the recipe PDF" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     get print_nyk_handout_path(handout)
     assert_response :success
-    assert_match "2½ c", response.body
-    assert_match "1¼ c", response.body
-    assert_match "Single station", response.body
-    assert_match "800 South Main Street", response.body
-    # One page per recipe per version.
-    assert_equal 2, response.body.scan('class="page"').size
+    assert_match print_nyk_handout_path(handout, format: :pdf), response.body
+    assert_match "Packet", response.body
+  end
+
+  test "print.pdf streams a branded recipe PDF" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get print_nyk_handout_path(handout, format: :pdf)
+    assert_response :success
+    assert_equal "application/pdf", response.media_type
+    assert response.body.start_with?("%PDF"), "expected PDF bytes"
+    # 1 recipe x (full + station) = 2 content pages.
+    assert_equal 2, response.body.scan("/Type /Page\n").size + response.body.scan("/Type /Page ").size
+  end
+
+  test "create from a recipe URL builds and links a handout" do
+    stub_extractor_success
+    post nyk_handouts_path, params: {
+      event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
+      recipe_url: "https://example.com/recipes/fresh-pasta"
+    }
+    handout = KitchenHandout.last
+    assert_redirected_to edit_nyk_handout_path(handout)
+    assert_equal "url", handout.source_kind
+    assert_equal "https://example.com/recipes/fresh-pasta", handout.source_url
+    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
   end
 
   test "new page suggests a similarly named existing packet" do
