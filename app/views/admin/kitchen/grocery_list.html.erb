@@ -9,7 +9,8 @@
      "bg-rose-100 text-rose-800 border-rose-300", "bg-teal-100 text-teal-800 border-teal-300" ] %>
 <% chip = ->(tag) { chip_colors[(@tag_index[tag] || 0) % chip_colors.size] } %>
 
-<%= turbo_frame_tag "grocery_list" do %>
+<%= turbo_frame_tag "grocery_list",
+      data: { controller: "recipe-popover", recipe_popover_recipes_value: (@recipe_by_tag || {}).to_json } do %>
   <p class="text-sm text-gray-400 mb-6">
     <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
     <%= pluralize(@with_recipe.size, "class") %> with recipes ·
@@ -26,7 +27,10 @@
     <%# Legend: which color is which class. %>
     <div class="flex flex-wrap gap-2 mb-4 no-print">
       <% @with_recipe.each do |c| %>
-        <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border <%= chip.call(c[:tag]) %>">
+        <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer <%= chip.call(c[:tag]) %>"
+              tabindex="0" role="button"
+              data-action="mouseenter->recipe-popover#show mouseleave->recipe-popover#hide click->recipe-popover#toggle"
+              data-recipe-popover-tag-param="<%= c[:tag] %>" data-recipe-popover-item-param="">
           <%= c[:tag] %> <span class="opacity-70">· <%= c[:headcount] %> ppl</span>
         </span>
       <% end %>
@@ -50,7 +54,10 @@
                   list wraps inside the sheet instead of overflowing the edge. %>
               <span class="flex flex-wrap gap-1 justify-end shrink-0 max-w-[48%]">
                 <% Array(it["classes"]).each do |tag| %>
-                  <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap <%= chip.call(tag) %>"><%= tag %></span>
+                  <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap cursor-pointer <%= chip.call(tag) %>"
+                        tabindex="0" role="button"
+                        data-action="mouseenter->recipe-popover#show mouseleave->recipe-popover#hide click->recipe-popover#toggle"
+                        data-recipe-popover-tag-param="<%= tag %>" data-recipe-popover-item-param="<%= it["item"] %>"><%= tag %></span>
                 <% end %>
               </span>
             </li>
@@ -79,6 +86,17 @@
       Could not build the list: <%= @result&.error %>
     </div>
   <% end %>
+
+  <%# Hover/tap a class tag to see that class's recipe with this ingredient
+      highlighted. One shared panel, positioned by the controller. %>
+  <div data-recipe-popover-target="panel"
+       class="hidden fixed z-50 w-72 max-h-80 overflow-auto rounded-xl border border-gray-700 bg-gray-900 shadow-2xl p-3 text-sm">
+    <div data-recipe-popover-target="title" class="font-semibold text-white mb-1 pb-1 border-b border-gray-800"></div>
+    <ul data-recipe-popover-target="list" class="space-y-0.5 mt-1"></ul>
+  </div>
+  <%# Safelist: the popover JS applies these classes to recipe lines at runtime,
+      so they must exist in a scanned template for Tailwind to generate them. %>
+  <span class="hidden bg-yellow-200 text-gray-900 font-semibold text-gray-600 px-1.5 py-0.5 rounded"></span>
 
   <% if @without_recipe.any? %>
     <div class="mt-8 no-print">

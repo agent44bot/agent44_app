@@ -65,6 +65,16 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 6, @captured.first[:stations]
   end
 
+  test "embeds per-class recipe data and interactive tag chips for the popover" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path, headers: FRAME
+    assert_response :success
+    assert_match 'data-controller="recipe-popover"', response.body
+    assert_match "data-recipe-popover-recipes-value", response.body
+    assert_match "Flour", response.body                                  # recipe line in the embedded data
+    assert_match 'data-recipe-popover-item-param="Flour"', response.body # item chip carries the row's item
+  end
+
   test "flags in-range classes that have no recipe and excludes them" do
     add_class("Has Recipe", "groc-has", 1, booked: 8)
     add_class("No Recipe", "groc-no", 1, booked: 4, recipe: false)
