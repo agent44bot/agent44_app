@@ -9,6 +9,11 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-12
+  note: New grocery list. From Sam's schedule, click "Grocery list" to get one combined shopping list for every class in the next few days that has a recipe, scaled to how many people are booked, with duplicate ingredients merged and grouped by store section. Print it Wednesday and shop for the weekend. Classes still missing a recipe are flagged so nothing gets left off.
+  link: /nykitchen/grocery
+  link_label: Open the grocery list
+
+- date: 2026-06-12
   note: You can now delete a recipe from a class (open it on Sam's schedule and click "Delete this recipe"). When you build a recipe, the page now shows what the AI cost to create it, usually a few cents.
 
 - date: 2026-06-12
