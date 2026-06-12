@@ -9,8 +9,11 @@
      "bg-rose-100 text-rose-800 border-rose-300", "bg-teal-100 text-teal-800 border-teal-300" ] %>
 <% chip = ->(tag) { chip_colors[(@tag_index[tag] || 0) % chip_colors.size] } %>
 
-<%= turbo_frame_tag "grocery_list",
-      data: { controller: "recipe-popover", recipe_popover_recipes_value: (@recipe_by_tag || {}).to_json } do %>
+<%# data-controller goes on a wrapper INSIDE the frame, not on the frame tag:
+    Turbo replaces only the frame's inner HTML on a lazy load and keeps the
+    shell frame's attributes, so a controller on the frame tag never attaches. %>
+<%= turbo_frame_tag "grocery_list" do %>
+  <div data-controller="recipe-popover" data-recipe-popover-recipes-value="<%= (@recipe_by_tag || {}).to_json %>">
   <p class="text-sm text-gray-400 mb-6">
     <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
     <%= pluralize(@with_recipe.size, "class") %> with recipes ·
@@ -111,4 +114,5 @@
       </ul>
     </div>
   <% end %>
+  </div>
 <% end %>
