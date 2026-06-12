@@ -96,13 +96,80 @@ module KitchenAi
       body = http_get(url.strip)
       return body if body.is_a?(Result) # validation / fetch error
 
+      # Prefer the page's JSON-LD Recipe schema (recipeIngredient +
+      # recipeInstructions). Nearly every recipe site embeds it, and it carries
+      # the full ingredient list regardless of how far down the page the recipe
+      # card sits, which plain tag-stripping (capped for prompt size) misses.
+      structured = recipe_from_jsonld(body)
+      return structured if structured.present?
+
       text = ActionController::Base.helpers.strip_tags(body)
       text = CGI.unescapeHTML(text).gsub(/\s+\n/, "\n").gsub(/[ \t]{2,}/, " ").strip
       return Result.new(ok?: false, error: "That page had no readable recipe text.") if text.blank?
 
-      text[0, 12_000] # plenty for a recipe; keeps the prompt bounded
+      text[0, 16_000] # fallback for pages with no JSON-LD; bounded for prompt size
     rescue => e
       Result.new(ok?: false, error: "Could not load that page: #{e.message}")
+    end
+
+    # Pull every JSON-LD block, find Recipe object(s), and render them as plain
+    # recipe text (name, ingredients, steps) for the extractor. Returns nil when
+    # the page has no usable Recipe schema.
+    def recipe_from_jsonld(html)
+      blocks = html.scan(%r{<script[^>]+type=["']application/ld\+json["'][^>]*>(.*?)</script>}mi).flatten
+      recipes = blocks.flat_map { |raw| jsonld_recipes(safe_json(raw)) }.compact
+      return nil if recipes.empty?
+
+      recipes.filter_map { |r| render_jsonld_recipe(r) }.join("\n\n").presence
+    end
+
+    def safe_json(raw)
+      JSON.parse(raw)
+    rescue JSON::ParserError
+      nil
+    end
+
+    # Walk a parsed JSON-LD value (object, @graph, or array) for Recipe nodes.
+    def jsonld_recipes(node)
+      case node
+      when Array then node.flat_map { |n| jsonld_recipes(n) }
+      when Hash
+        return jsonld_recipes(node["@graph"]) if node["@graph"]
+        types = Array(node["@type"]).map(&:to_s)
+        types.include?("Recipe") ? [ node ] : []
+      else []
+      end
+    end
+
+    def render_jsonld_recipe(r)
+      ingredients = Array(r["recipeIngredient"]).map { |i| CGI.unescapeHTML(i.to_s).strip }.reject(&:blank?)
+      return nil if ingredients.empty?
+      steps = jsonld_steps(r["recipeInstructions"])
+      name  = CGI.unescapeHTML(r["name"].to_s).strip
+      yield_txt = r["recipeYield"].is_a?(Array) ? r["recipeYield"].first : r["recipeYield"]
+      lines = [ name.presence ].compact
+      lines << "Serves: #{yield_txt}" if yield_txt.present?
+      lines << "Ingredients:"
+      lines.concat(ingredients.map { |i| "- #{i}" })
+      if steps.any?
+        lines << "Directions:"
+        lines.concat(steps.each_with_index.map { |s, i| "#{i + 1}. #{s}" })
+      end
+      lines.join("\n")
+    end
+
+    # recipeInstructions can be a string, an array of strings, HowToStep objects,
+    # or HowToSection objects wrapping steps. Flatten to step text.
+    def jsonld_steps(node)
+      case node
+      when String then CGI.unescapeHTML(ActionController::Base.helpers.strip_tags(node)).split(/\n+/).map(&:strip).reject(&:blank?)
+      when Array  then node.flat_map { |n| jsonld_steps(n) }
+      when Hash
+        return jsonld_steps(node["itemListElement"]) if node["itemListElement"]
+        text = node["text"] || node["name"]
+        text.present? ? [ CGI.unescapeHTML(ActionController::Base.helpers.strip_tags(text.to_s)).strip ] : []
+      else []
+      end
     end
 
     # Net::HTTP GET with a small manual redirect chain. Uses the stdlib (not a
