@@ -42,14 +42,15 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1"><%= cat["name"] %></h2>
         <ul class="mb-2">
           <% cat["items"].each do |it| %>
-            <li class="flex items-baseline gap-2 py-1 text-sm border-b border-gray-100">
+            <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
               <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
               <span class="font-semibold w-24 shrink-0"><%= it["quantity"] %></span>
-              <span class="flex-1"><%= it["item"] %></span>
-              <%# Which classes need this item. %>
-              <span class="flex flex-wrap gap-1 justify-end shrink-0">
+              <span class="flex-1 min-w-0"><%= it["item"] %></span>
+              <%# Which classes need this item. Capped + wrapping so a long tag
+                  list wraps inside the sheet instead of overflowing the edge. %>
+              <span class="flex flex-wrap gap-1 justify-end shrink-0 max-w-[48%]">
                 <% Array(it["classes"]).each do |tag| %>
-                  <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border <%= chip.call(tag) %>"><%= tag %></span>
+                  <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap <%= chip.call(tag) %>"><%= tag %></span>
                 <% end %>
               </span>
             </li>

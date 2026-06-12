@@ -13,8 +13,9 @@
 
   <%# The list is built by an Opus call, so load it lazily in a frame: this page
       paints instantly and the spinner shows while the list is built (or fetched
-      from cache). %>
-  <%= turbo_frame_tag "grocery_list", src: nyk_grocery_path(days: @days), loading: "eager" do %>
+      from cache). The frame src carries either a specific week or a day window. %>
+  <% frame_params = @week_mode ? { from: @range.first.iso8601, to: @range.last.iso8601 } : { days: @days } %>
+  <%= turbo_frame_tag "grocery_list", src: nyk_grocery_path(frame_params), loading: "eager" do %>
     <div class="flex flex-col items-center justify-center py-24 text-gray-500">
       <svg class="animate-spin w-8 h-8 text-orange-500 mb-3" viewBox="0 0 24 24" fill="none">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

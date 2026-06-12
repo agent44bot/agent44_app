@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-12
+  note: Each week on Sam's schedule now has a little grocery cart icon (only when a class that week has a recipe). Click it to jump straight to the running grocery list for that exact week.
+
+- date: 2026-06-12
   note: The grocery list now shows a colored tag on each item for the class (or classes) that need it, so you can see at a glance what is for which class. It also loads with a spinner and remembers the list, so opening it again or switching the date range is instant and does not cost anything unless a recipe or headcount changed.
 
 - date: 2026-06-12
