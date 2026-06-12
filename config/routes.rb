@@ -73,6 +73,7 @@ Rails.application.routes.draw do
   resources :saved_jobs, only: [ :index ]
   get "nykitchen",        to: "kitchen#hub"
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
+  get "nykitchen/grocery", to: "kitchen#grocery", as: :nyk_grocery
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
   get   "nykitchen/analyst", to: "kitchen#analyst", as: :nyk_analyst

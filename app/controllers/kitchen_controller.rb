@@ -14,7 +14,7 @@ class KitchenController < ApplicationController
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
-  before_action :set_common_view_state, only: %i[hub list test data ask analyst]
+  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery]
   # Super Agent (admin/customer-only): once App Review approved the app, we
   # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
   # credits via the chat. Admins, the App Store reviewer account, and members
@@ -56,6 +56,40 @@ class KitchenController < ApplicationController
     @handouts_by_url = KitchenHandoutLink.pluck(:event_url, :kitchen_handout_id).to_h
     load_events_data
     render "admin/kitchen/list", layout: "application"
+  end
+
+  # Consolidated shopping list for every class in a date range that has a
+  # recipe attached, scaled by how many stations are booked. Defaults to
+  # today through the end of the week (the "Wednesday, shop for the weekend"
+  # use case); ?days=N widens the window.
+  def grocery
+    @default_days = default_grocery_days
+    @days  = params[:days].presence&.to_i&.clamp(1, 30) || @default_days
+    @range = Date.current..(Date.current + @days.days)
+
+    snapshot = KitchenSnapshot.latest
+    handouts = KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
+    events   = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?)
+                                  .select { |e| @range.cover?(e.start_at.to_date) }
+                                  .sort_by(&:start_at) : []
+
+    @with_recipe = []
+    @without_recipe = []
+    events.each do |e|
+      if (h = handouts[e.url])
+        @with_recipe << { event: e, handout: h, headcount: grocery_headcount(e), stations: grocery_stations(e) }
+      else
+        @without_recipe << e
+      end
+    end
+
+    @total_headcount = @with_recipe.sum { |c| c[:headcount].to_i }
+    if @with_recipe.any?
+      items = @with_recipe.map { |c| { class_name: c[:event].name, stations: c[:stations], recipes: c[:handout].recipes } }
+      @result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items)
+    end
+
+    render "admin/kitchen/grocery", layout: "application"
   end
 
   def test
@@ -776,6 +810,25 @@ class KitchenController < ApplicationController
   def require_nyk_manager
     @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
     head :not_found unless @nyk_workspace&.manager?(Current.user)
+  end
+
+  # Today through the end of this week (Sunday). Min 3 days so a Friday/Saturday
+  # still gives a usable weekend window.
+  def default_grocery_days
+    [ (7 - Date.current.cwday) % 7, 3 ].max
+  end
+
+  # Bookings for a class. tickets_sold is the live count; fall back to 0 so the
+  # class still appears (the list flags it) rather than vanishing.
+  def grocery_headcount(event)
+    event.tickets_sold.to_i
+  end
+
+  # Hands-On Kitchen stations are ~2 people each, and recipe station_qty is
+  # per station. Round up so a half-full station still gets bought for; at
+  # least 1 so a booked class always contributes.
+  def grocery_stations(event)
+    [ (grocery_headcount(event) / 2.0).ceil, 1 ].max
   end
 
   def set_common_view_state
