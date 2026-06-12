@@ -78,6 +78,13 @@ class KitchenHandoutsController < ApplicationController
     redirect_to edit_nyk_handout_path(@handout), alert: e.message
   end
 
+  # Remove a recipe handout (and its class links via dependent: :destroy).
+  # Open to any signed-in user for now; can be gated to owner/admin later.
+  def destroy
+    KitchenHandout.find(params[:id]).destroy!
+    redirect_to nyk_list_path, notice: "Recipe deleted."
+  end
+
   # The print page (HTML) embeds the PDF; the .pdf format streams it, used by
   # the preview iframe, the print page, and direct download.
   def print

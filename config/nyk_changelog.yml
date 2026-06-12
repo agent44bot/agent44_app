@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-12
+  note: You can now delete a recipe from a class. Open the recipe on Sam's schedule and click "Delete this recipe" to remove it and start over.
+
+- date: 2026-06-12
   note: Recipe handouts can now be built from a PDF or a recipe link. Open a class on Sam's schedule, click "+ Recipe", and either upload a PDF or paste a link to a recipe online. The agent rebuilds it in the New York Kitchen format with the single station amounts, and you get a live PDF preview you can edit until it looks right. After saving, the class shows "Print recipe" and opens the finished PDF.
   link: /nykitchen/list
   link_label: Open Sam's schedule

@@ -165,4 +165,13 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
     assert_match "frame-ancestors 'self'", response.headers["Content-Security-Policy"].to_s
   end
+
+  test "destroy removes the handout and its class link" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    handout.attach_to!(EVENT_URL)
+    delete nyk_handout_path(handout)
+    assert_redirected_to nyk_list_path
+    assert_not KitchenHandout.exists?(handout.id)
+    assert_nil KitchenHandout.for_event_url(EVENT_URL)
+  end
 end
