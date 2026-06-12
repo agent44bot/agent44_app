@@ -6,11 +6,14 @@ class AiCallLog < ApplicationRecord
   # which is fine for our trial billing. If we ever need rate-as-of, snapshot
   # the rate onto the row at create time instead.
   RATES = {
-    "claude-haiku-4-5-20251001" => { input: 1.00, output: 5.00 }
+    "claude-haiku-4-5-20251001" => { input: 1.00, output: 5.00 },
+    "claude-opus-4-8"           => { input: 5.00, output: 25.00 }
   }.freeze
   DEFAULT_RATE = { input: 1.00, output: 5.00 }.freeze
 
-  NYK_SOURCES = %w[nyk_enhance nyk_x_autopost nyk_team_report].freeze
+  # nyk_recipe_extract is Opus, not Haiku; cost_dollars/total_cost_dollars
+  # price it correctly via RATES, but keep it out of any Haiku-flat usage_rollup.
+  NYK_SOURCES = %w[nyk_enhance nyk_x_autopost nyk_team_report nyk_recipe_extract].freeze
   # The /nykitchen/ask Super Agent chat: nyk_ask is the single-shot AskAgent
   # (what customers like Lora get), nyk_agent is the read-only AgenticAgent
   # (admin dogfood). Both are Haiku 4.5, so usage_rollup's flat-rate cost holds.

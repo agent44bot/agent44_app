@@ -46,6 +46,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", handout.title
     assert_equal "1¼ c", handout.recipes.first["ingredients"].first["station_qty"]
     assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    assert handout.extract_cost_cents.to_i.positive?, "captures the Opus extraction cost"
+    assert_match(/cost \$/, handout.extract_cost_label)
   end
 
   test "create with empty input bounces back with an error" do
@@ -164,5 +166,14 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     get edit_nyk_handout_path(handout)
     assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
     assert_match "frame-ancestors 'self'", response.headers["Content-Security-Policy"].to_s
+  end
+
+  test "destroy removes the handout and its class link" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    handout.attach_to!(EVENT_URL)
+    delete nyk_handout_path(handout)
+    assert_redirected_to nyk_list_path
+    assert_not KitchenHandout.exists?(handout.id)
+    assert_nil KitchenHandout.for_event_url(EVENT_URL)
   end
 end

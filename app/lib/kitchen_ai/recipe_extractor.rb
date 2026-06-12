@@ -6,6 +6,8 @@
 #
 # Stateless; mirrors KitchenAi::AskAgent (class-level stub for tests, every
 # response logged through AiCallLogger).
+require "net/http"
+
 module KitchenAi
   class RecipeExtractor
     # Opus: extraction + scaling judgment is quality-sensitive and runs a few
@@ -13,8 +15,10 @@ module KitchenAi
     MODEL      = "claude-opus-4-8"
     SOURCE     = "nyk_recipe_extract"
     MAX_TOKENS = 4000
+    BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+                 "(KHTML, like Gecko) Chrome/124.0 Safari/537.36".freeze
 
-    Result = Struct.new(:ok?, :recipes, :error, keyword_init: true)
+    Result = Struct.new(:ok?, :recipes, :error, :cost_cents, keyword_init: true)
 
     class << self
       attr_accessor :stub
@@ -53,12 +57,13 @@ module KitchenAi
           )
         end
 
-      AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      log = AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      cost_cents = log&.cost_cents&.round
 
       recipes = parse(response)
       return Result.new(ok?: false, error: "Could not find a recipe in that text. Try pasting just the recipe.") if recipes.blank?
 
-      Result.new(ok?: true, recipes: recipes)
+      Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
     rescue Anthropic::Errors::APIError => e
       Result.new(ok?: false, error: "Anthropic: #{e.message}")
     rescue => e
@@ -88,27 +93,46 @@ module KitchenAi
     # SSRF guard: only public http(s); reject localhost / private / link-local
     # hosts so this can't be pointed at internal services.
     def fetch_url(url)
-      uri = URI.parse(url.strip)
-      unless uri.is_a?(URI::HTTP) && uri.host.present?
-        return Result.new(ok?: false, error: "That does not look like a web address.")
-      end
-      if private_host?(uri.host)
-        return Result.new(ok?: false, error: "That URL is not allowed.")
-      end
+      body = http_get(url.strip)
+      return body if body.is_a?(Result) # validation / fetch error
 
-      resp = HTTParty.get(uri.to_s, follow_redirects: true, timeout: 15,
-                          headers: { "User-Agent" => "Agent44Labs-RecipeBot/1.0" })
-      return Result.new(ok?: false, error: "Could not load that page (#{resp.code}).") unless resp.success?
-
-      text = ActionController::Base.helpers.strip_tags(resp.body.to_s)
+      text = ActionController::Base.helpers.strip_tags(body)
       text = CGI.unescapeHTML(text).gsub(/\s+\n/, "\n").gsub(/[ \t]{2,}/, " ").strip
       return Result.new(ok?: false, error: "That page had no readable recipe text.") if text.blank?
 
       text[0, 12_000] # plenty for a recipe; keeps the prompt bounded
-    rescue URI::InvalidURIError
-      Result.new(ok?: false, error: "That does not look like a web address.")
     rescue => e
       Result.new(ok?: false, error: "Could not load that page: #{e.message}")
+    end
+
+    # Net::HTTP GET with a small manual redirect chain. Uses the stdlib (not a
+    # gem) so it works in production; the SSRF guard re-runs on every hop so a
+    # redirect can't bounce us to an internal host. Returns the body or a Result.
+    def http_get(url, redirects_left: 4)
+      uri = URI.parse(url)
+      unless uri.is_a?(URI::HTTP) && uri.host.present?
+        return Result.new(ok?: false, error: "That does not look like a web address.")
+      end
+      return Result.new(ok?: false, error: "That URL is not allowed.") if private_host?(uri.host)
+
+      resp = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
+                             open_timeout: 10, read_timeout: 15) do |http|
+        # A normal browser UA: many recipe sites 403/404 unfamiliar agents,
+        # and this is a user-initiated fetch of a page they pasted.
+        http.get(uri.request_uri, { "User-Agent" => BROWSER_UA, "Accept" => "text/html" })
+      end
+
+      case resp
+      when Net::HTTPSuccess
+        resp.body.to_s
+      when Net::HTTPRedirection
+        return Result.new(ok?: false, error: "Too many redirects.") if redirects_left <= 0
+        http_get(URI.join(uri, resp["location"]).to_s, redirects_left: redirects_left - 1)
+      else
+        Result.new(ok?: false, error: "Could not load that page (#{resp.code}).")
+      end
+    rescue URI::InvalidURIError
+      Result.new(ok?: false, error: "That does not look like a web address.")
     end
 
     def private_host?(host)

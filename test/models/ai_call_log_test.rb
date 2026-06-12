@@ -8,6 +8,16 @@ class AiCallLogTest < ActiveSupport::TestCase
     assert_in_delta expected, log.cost_dollars, 1e-9
   end
 
+  test "cost_dollars uses opus 4.8 published rates ($5/MTok in, $25/MTok out)" do
+    log = AiCallLog.new(model: "claude-opus-4-8", input_tokens: 1_000_000, output_tokens: 1_000_000)
+    assert_in_delta 30.00, log.cost_dollars, 0.0001
+  end
+
+  test "nyk scope includes recipe extraction" do
+    AiCallLog.create!(model: "claude-opus-4-8", source: "nyk_recipe_extract", input_tokens: 1, output_tokens: 1)
+    assert_includes AiCallLog.nyk.pluck(:source), "nyk_recipe_extract"
+  end
+
   test "cost_dollars falls back to default rate for unknown model" do
     log = AiCallLog.new(model: "claude-future-9000", source: "nyk_enhance",
                         input_tokens: 1_000_000, output_tokens: 0)

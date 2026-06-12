@@ -32,6 +32,13 @@ class KitchenHandout < ApplicationRecord
     Array(data["recipes"])
   end
 
+  # What the Opus extraction cost, as a short dollar string ("$0.04"), or nil
+  # when unknown (older handouts / reused packets that skipped extraction).
+  def extract_cost_label
+    return if extract_cost_cents.blank?
+    " (cost #{format('$%.2f', extract_cost_cents / 100.0)})"
+  end
+
   def recipes=(list)
     self.data = data.merge("recipes" => list)
   end

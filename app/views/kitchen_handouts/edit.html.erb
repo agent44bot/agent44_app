@@ -5,10 +5,18 @@
     rows are dropped on save. %>
 <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
   <%= link_to "← Back to Sam's list", nyk_list_path, class: "text-sm text-gray-500 hover:text-orange-400" %>
-  <h1 class="text-2xl font-bold text-white mt-3 mb-6">Review the handout</h1>
+  <h1 class="text-2xl font-bold text-white mt-3 mb-1">Review the handout</h1>
+  <% if @handout.extract_cost_cents.present? %>
+    <p class="text-xs text-gray-500 mb-6">
+      Built with the Opus model<span class="text-gray-400 font-medium"><%= @handout.extract_cost_label %></span>.
+    </p>
+  <% else %>
+    <div class="mb-6"></div>
+  <% end %>
 
   <div class="grid lg:grid-cols-2 gap-8 items-start">
-    <%# Left: the editable recipe form %>
+    <%# Left column: the editable recipe form plus the delete control. %>
+    <div>
     <%= form_with url: nyk_handout_path(@handout), method: :patch do |f| %>
       <div class="grid grid-cols-2 gap-4 mb-8">
         <div>
@@ -57,6 +65,14 @@
         <%= link_to "Done, back to schedule", nyk_list_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
       </div>
     <% end %>
+
+    <%# Delete is a separate form (button_to) so it isn't nested in the edit
+        form above; a confirm guards the destructive action. %>
+    <%= button_to "Delete this recipe", nyk_handout_path(@handout), method: :delete,
+          form: { class: "mt-4" },
+          data: { turbo_confirm: "Delete this recipe handout? This removes it from the class and cannot be undone." },
+          class: "text-sm text-red-400 hover:text-red-300 cursor-pointer" %>
+    </div>
 
     <%# Right: live PDF preview, sticky so it stays in view while editing. %>
     <div class="lg:sticky lg:top-6">
