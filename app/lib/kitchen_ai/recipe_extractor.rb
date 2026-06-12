@@ -24,16 +24,24 @@ module KitchenAi
       @user = user
     end
 
-    # text: pasted recipe text. pdf: raw PDF bytes (either may be nil).
-    def extract(text: nil, pdf: nil)
-      return Result.new(ok?: false, error: "Paste the recipe text or attach a PDF.") if text.blank? && pdf.blank?
-
-      messages = [ { role: "user", content: build_content(text: text, pdf: pdf) } ]
+    # text: pasted recipe text. pdf: raw PDF bytes. url: a recipe page to fetch.
+    # Any one is enough.
+    def extract(text: nil, pdf: nil, url: nil)
+      if text.blank? && pdf.blank? && url.blank?
+        return Result.new(ok?: false, error: "Paste a recipe, add a recipe URL, or attach a PDF.")
+      end
 
       response =
         if self.class.stub
-          self.class.stub.call(messages: messages)
+          # Tests set the stub; never fetch a URL or call the API there.
+          self.class.stub.call(messages: [ { role: "user", content: [] } ])
         else
+          if url.present? && text.blank?
+            fetched = fetch_url(url)
+            return fetched if fetched.is_a?(Result) # SSRF/fetch error
+            text = fetched
+          end
+
           api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
           return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
           client = Anthropic::Client.new(api_key: api_key)
@@ -41,7 +49,7 @@ module KitchenAi
             model:      MODEL,
             max_tokens: MAX_TOKENS,
             system:     SYSTEM_PROMPT,
-            messages:   messages
+            messages:   [ { role: "user", content: build_content(text: text, pdf: pdf) } ]
           )
         end
 
@@ -75,6 +83,40 @@ module KitchenAi
       - directions: keep the document's steps verbatim, in order, grouped under their sub-headings ("Filling", "Assembly") when present; otherwise one group with section null.
       - Do not invent ingredients, steps, or quantities that are not in the document.
     PROMPT
+
+    # Fetch a recipe page and return its readable text, or a Result on error.
+    # SSRF guard: only public http(s); reject localhost / private / link-local
+    # hosts so this can't be pointed at internal services.
+    def fetch_url(url)
+      uri = URI.parse(url.strip)
+      unless uri.is_a?(URI::HTTP) && uri.host.present?
+        return Result.new(ok?: false, error: "That does not look like a web address.")
+      end
+      if private_host?(uri.host)
+        return Result.new(ok?: false, error: "That URL is not allowed.")
+      end
+
+      resp = HTTParty.get(uri.to_s, follow_redirects: true, timeout: 15,
+                          headers: { "User-Agent" => "Agent44Labs-RecipeBot/1.0" })
+      return Result.new(ok?: false, error: "Could not load that page (#{resp.code}).") unless resp.success?
+
+      text = ActionController::Base.helpers.strip_tags(resp.body.to_s)
+      text = CGI.unescapeHTML(text).gsub(/\s+\n/, "\n").gsub(/[ \t]{2,}/, " ").strip
+      return Result.new(ok?: false, error: "That page had no readable recipe text.") if text.blank?
+
+      text[0, 12_000] # plenty for a recipe; keeps the prompt bounded
+    rescue URI::InvalidURIError
+      Result.new(ok?: false, error: "That does not look like a web address.")
+    rescue => e
+      Result.new(ok?: false, error: "Could not load that page: #{e.message}")
+    end
+
+    def private_host?(host)
+      return true if host =~ /\A(localhost|.*\.local)\z/i
+      addr = IPAddr.new(host) rescue nil
+      return false unless addr # hostnames resolve at request time; allow them
+      addr.loopback? || addr.private? || addr.link_local?
+    end
 
     def build_content(text:, pdf:)
       blocks = []

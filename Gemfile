@@ -58,6 +58,11 @@ gem "image_processing", "~> 2.0"
 # QR codes for the printable class schedule (inline SVG, no network calls)
 gem "rqrcode", "~> 2.2"
 
+# Server-side PDF for branded recipe handouts. Pure Ruby (no Chromium/
+# wkhtmltopdf binary) so it adds nothing to the single-machine prod image.
+gem "prawn", "~> 2.5"
+gem "prawn-table", "~> 0.2"
+
 # Passkeys / Face ID sign-in (WebAuthn ceremonies)
 gem "webauthn", "~> 3.1"
 
