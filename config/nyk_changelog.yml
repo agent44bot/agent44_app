@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-12
+  note: The grocery list now shows a colored tag on each item for the class (or classes) that need it, so you can see at a glance what is for which class. It also loads with a spinner and remembers the list, so opening it again or switching the date range is instant and does not cost anything unless a recipe or headcount changed.
+
+- date: 2026-06-12
   note: New grocery list. From Sam's schedule, click "Grocery list" to get one combined shopping list for every class in the next few days that has a recipe, scaled to how many people are booked, with duplicate ingredients merged and grouped by store section. Print it Wednesday and shop for the weekend. Classes still missing a recipe are flagged so nothing gets left off.
   link: /nykitchen/grocery
   link_label: Open the grocery list

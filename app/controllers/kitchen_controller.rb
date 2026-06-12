@@ -67,31 +67,13 @@ class KitchenController < ApplicationController
     @days  = params[:days].presence&.to_i&.clamp(1, 30) || @default_days
     @range = Date.current..(Date.current + @days.days)
 
-    snapshot = KitchenSnapshot.latest
-    handouts = KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
-    # Include SOLD-OUT classes: those are the fullest ones, exactly what you
-    # need to shop for. (Unlike the promo flyer, which hides sold-out classes.)
-    events   = snapshot ? snapshot.kitchen_events.upcoming
-                                  .select { |e| @range.cover?(e.start_at.to_date) }
-                                  .sort_by(&:start_at) : []
+    # The aggregation is a slow + paid Opus call, so the heavy work runs in a
+    # lazy turbo frame (spinner while it loads) and the result is cached by the
+    # recipe set, so a reload or range switch doesn't re-bill Claude.
+    return render("admin/kitchen/grocery", layout: "application") unless turbo_frame_request?
 
-    @with_recipe = []
-    @without_recipe = []
-    events.each do |e|
-      if (h = handouts[e.url])
-        @with_recipe << { event: e, handout: h, headcount: grocery_headcount(e), stations: grocery_stations(e) }
-      else
-        @without_recipe << e
-      end
-    end
-
-    @total_headcount = @with_recipe.sum { |c| c[:headcount].to_i }
-    if @with_recipe.any?
-      items = @with_recipe.map { |c| { class_name: c[:event].name, stations: c[:stations], recipes: c[:handout].recipes } }
-      @result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items)
-    end
-
-    render "admin/kitchen/grocery", layout: "application"
+    load_grocery_data
+    render "admin/kitchen/grocery_list", layout: false
   end
 
   def test
@@ -831,6 +813,70 @@ class KitchenController < ApplicationController
   # least 1 so a booked class always contributes.
   def grocery_stations(event)
     [ (grocery_headcount(event) / 2.0).ceil, 1 ].max
+  end
+
+  # Gather the in-range classes, split into with/without recipe, assign each a
+  # short colored tag, and run (or fetch from cache) the aggregated list.
+  def load_grocery_data
+    snapshot = KitchenSnapshot.latest
+    handouts = KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
+    # Include SOLD-OUT classes: those are the fullest ones, exactly what you
+    # need to shop for (unlike the promo flyer, which hides sold-out classes).
+    events = snapshot ? snapshot.kitchen_events.upcoming
+                                .select { |e| @range.cover?(e.start_at.to_date) }
+                                .sort_by(&:start_at) : []
+
+    @with_recipe = []
+    @without_recipe = []
+    events.each do |e|
+      if (h = handouts[e.url])
+        @with_recipe << { event: e, handout: h, tag: grocery_tag(e),
+                          headcount: grocery_headcount(e), stations: grocery_stations(e) }
+      else
+        @without_recipe << e
+      end
+    end
+
+    @total_headcount = @with_recipe.sum { |c| c[:headcount].to_i }
+    # Index per tag -> the view maps it to a (Tailwind-scannable) chip color.
+    @tag_index = {}
+    @with_recipe.each_with_index { |c, i| @tag_index[c[:tag]] = i }
+    return if @with_recipe.empty?
+
+    @result = cached_grocery_list(@with_recipe)
+  end
+
+  # Cache the aggregation by the exact recipe set (urls + station counts +
+  # recipe contents), so a reload or range switch reuses it and only a real
+  # change (new recipe, edited recipe, changed headcount) re-bills Claude.
+  def cached_grocery_list(with_recipe)
+    fingerprint = with_recipe.sort_by { |c| c[:event].url }
+                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }.to_json
+    key = "nyk_grocery_list:v1:#{Digest::SHA256.hexdigest(fingerprint)}"
+
+    if (hit = Rails.cache.read(key))
+      @from_cache = true
+      return hit
+    end
+
+    items = with_recipe.map { |c| { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: c[:handout].recipes } }
+    result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items)
+    Rails.cache.write(key, result, expires_in: 14.days) if result&.ok?
+    result
+  end
+
+  # Short, mostly-unique chip label for a class: drop the trailing date and the
+  # "Class" filler, collapse junk, then append M/D so two same-named classes in
+  # the window stay distinct.
+  def grocery_tag(event)
+    base = event.name.to_s
+                .gsub(%r{\b\d{1,2}/\d{1,2}/\d{2,4}\b}, "")
+                .gsub(/\b(cooking\s+)?class\b/i, "")
+                .gsub(/[^\p{Alpha}\s&':\-]/, " ").squeeze(" ").strip
+    base = event.name.to_s.strip if base.blank?
+    base = base.truncate(22, separator: " ", omission: "")
+    d = event.start_at&.strftime("%-m/%-d")
+    d ? "#{base} #{d}" : base
   end
 
   def set_common_view_state
