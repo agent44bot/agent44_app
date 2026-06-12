@@ -1,10 +1,12 @@
 <%# Frame content: the aggregated, printable grocery list. Loaded lazily into
     the #grocery_list frame from the shell. Literal color classes live here so
     Tailwind picks them up. %>
+<%# Light chips (tint background, dark saturated text): readable on the white
+    grocery sheet and on the dark page legend, and they print cleanly. %>
 <% chip_colors = [
-     "bg-sky-900/50 text-sky-300 border-sky-800", "bg-emerald-900/50 text-emerald-300 border-emerald-800",
-     "bg-amber-900/50 text-amber-300 border-amber-800", "bg-violet-900/50 text-violet-300 border-violet-800",
-     "bg-rose-900/50 text-rose-300 border-rose-800", "bg-teal-900/50 text-teal-300 border-teal-800" ] %>
+     "bg-sky-100 text-sky-800 border-sky-300", "bg-emerald-100 text-emerald-800 border-emerald-300",
+     "bg-amber-100 text-amber-800 border-amber-300", "bg-violet-100 text-violet-800 border-violet-300",
+     "bg-rose-100 text-rose-800 border-rose-300", "bg-teal-100 text-teal-800 border-teal-300" ] %>
 <% chip = ->(tag) { chip_colors[(@tag_index[tag] || 0) % chip_colors.size] } %>
 
 <%= turbo_frame_tag "grocery_list" do %>
@@ -47,7 +49,7 @@
               <%# Which classes need this item. %>
               <span class="flex flex-wrap gap-1 justify-end shrink-0">
                 <% Array(it["classes"]).each do |tag| %>
-                  <span class="text-[10px] px-1.5 py-px rounded-full border <%= chip.call(tag) %>"><%= tag %></span>
+                  <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border <%= chip.call(tag) %>"><%= tag %></span>
                 <% end %>
               </span>
             </li>
