@@ -69,6 +69,7 @@
           <span>&middot;</span>
           <% if (handout_id = @handouts_by_url[event.url]) %>
             <%= link_to "🖨 Print recipe", print_nyk_handout_path(handout_id),
+                  target: "_blank", rel: "noopener",
                   class: "text-emerald-400 hover:text-emerald-300 transition" %>
           <% else %>
             <%= link_to "+ Recipe", new_nyk_handout_path(event_url: event.url, event_name: event.name),
