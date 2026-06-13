@@ -8,6 +8,7 @@
      "bg-amber-100 text-amber-800 border-amber-300", "bg-violet-100 text-violet-800 border-violet-300",
      "bg-rose-100 text-rose-800 border-rose-300", "bg-teal-100 text-teal-800 border-teal-300" ] %>
 <% chip = ->(tag) { chip_colors[(@tag_index[tag] || 0) % chip_colors.size] } %>
+<% est_total = @result&.ok? ? @result.categories.sum { |cat| Array(cat["items"]).sum { |i| i["price"].to_f } } : 0 %>
 
 <%# data-controller goes on a wrapper INSIDE the frame, not on the frame tag:
     Turbo replaces only the frame's inner HTML on a lazy load and keeps the
@@ -52,7 +53,10 @@
             <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
               <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
               <span class="font-semibold w-24 shrink-0"><%= it["quantity"] %></span>
-              <span class="flex-1 min-w-0"><%= it["item"] %></span>
+              <span class="flex-1 min-w-0">
+                <%= it["item"] %>
+                <% if it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
+              </span>
               <%# Which classes need this item. Capped + wrapping so a long tag
                   list wraps inside the sheet instead of overflowing the edge. %>
               <span class="flex flex-wrap gap-1 justify-end shrink-0 max-w-[48%]">
@@ -70,6 +74,13 @@
       <% if @result.to_taste.present? %>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1">To taste / on hand</h2>
         <p class="text-sm text-gray-600"><%= @result.to_taste.join(", ") %></p>
+      <% end %>
+      <% if est_total > 0 %>
+        <div class="mt-5 pt-3 border-t-2 border-gray-900 flex items-baseline justify-between">
+          <span class="text-base font-extrabold">Estimated total</span>
+          <span class="text-lg font-extrabold"><%= format("$%.2f", est_total) %></span>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Rough estimate of typical US grocery prices, for budgeting only. Actual cost varies by store and season.</p>
       <% end %>
       <div class="mt-6 pt-3 border-t border-gray-200 text-xs text-gray-500">
         Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:stations]} stations)" }.join(" · ") %>

@@ -8,7 +8,7 @@ require "ostruct"
 class GroceryAggregatorTest < ActiveSupport::TestCase
   RESPONSE = {
     "categories" => [ { "name" => "Pantry and dry goods",
-                        "items" => [ { "item" => "All-purpose flour", "quantity" => "15 1/2 c" } ] } ],
+                        "items" => [ { "item" => "All-purpose flour", "quantity" => "15 1/2 c", "price" => 6.0 } ] } ],
     "to_taste" => [ "Salt" ]
   }.freeze
 
@@ -32,6 +32,7 @@ class GroceryAggregatorTest < ActiveSupport::TestCase
     r = KitchenAi::GroceryAggregator.new.build(items)
     assert r.ok?
     assert_equal "All-purpose flour", r.categories.first["items"].first["item"]
+    assert_equal 6.0, r.categories.first["items"].first["price"]
     assert_equal [ "Salt" ], r.to_taste
     assert r.cost_cents.to_i.positive?
     # The per-station amount and station count both reach the aggregator.

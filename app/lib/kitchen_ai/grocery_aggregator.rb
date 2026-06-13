@@ -60,7 +60,7 @@ module KitchenAi
       You build a single consolidated grocery list for a kitchen's cooking classes.
 
       Reply with ONLY a JSON object, no prose, no code fences:
-      {"categories": [{"name": "Produce", "items": [{"item": "Lemons", "quantity": "3", "classes": ["Coq au Vin"]}]}],
+      {"categories": [{"name": "Produce", "items": [{"item": "Lemons", "quantity": "3", "price": 1.50, "classes": ["Coq au Vin"]}]}],
        "to_taste": ["Salt", "Black pepper"]}
 
       Input: several classes, each with a short TAG. Each lists how many STATIONS are booked and its recipes.
@@ -71,6 +71,9 @@ module KitchenAi
         shopping amounts). Use ASCII fractions like 1/2, 1/4, 2 1/2.
       - Set "classes" on each item to the exact TAGS of the classes that need it (one or
         more). Use the tags given in the input verbatim.
+      - Set "price" on each item to a rough typical US grocery cost in dollars for the
+        TOTAL quantity on that line (a plain number, e.g. 1.5, 8, 12.99). Estimate
+        generously rather than precisely; it is a budgeting guide, not a quote.
       - Ingredients with no amount ("Salt, to taste") go in to_taste as a deduped list of
         plain names (no "to taste" suffix), NOT in categories.
       - Organize the rest into common grocery sections in this order when present:
