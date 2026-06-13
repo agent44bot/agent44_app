@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-13
+  note: The Print recipe link on Sam's schedule now opens in a new tab, so your place on the schedule stays put after you print.
+
+- date: 2026-06-13
   note: Each week's grocery cart on Sam's schedule now shows the week's ballpark grocery total right next to the cart icon, so you can see roughly what a week will cost without opening the full list. The price appears once that week's list has been built.
 
 - date: 2026-06-13

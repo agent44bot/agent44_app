@@ -160,6 +160,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     get "/nykitchen/list"
     assert_response :success
     assert_match print_nyk_handout_path(handout), response.body
+    # The print link opens in a new tab so Sam's schedule stays put.
+    assert_select "a[href=?][target=_blank]", print_nyk_handout_path(handout)
     # & is HTML-escaped in the rendered href, so match on the escaped form.
     assert_match ERB::Util.html_escape(new_nyk_handout_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
   end
