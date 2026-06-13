@@ -10,7 +10,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
                "ingredients" => [ { "qty" => "2½ c", "station_qty" => "1¼ c", "item" => "Flour", "section" => nil } ],
                "directions" => [] } ].freeze
   AGG = { "categories" => [ { "name" => "Pantry and dry goods",
-                              "items" => [ { "item" => "Flour", "quantity" => "7 1/2 c", "classes" => [ "Ravioli" ] } ] } ],
+                              "items" => [ { "item" => "Flour", "quantity" => "7 1/2 c", "price" => 4.50, "classes" => [ "Ravioli" ] } ] } ],
           "to_taste" => [ "Salt" ] }.freeze
   FRAME = { "Turbo-Frame" => "grocery_list" }.freeze
 
@@ -57,6 +57,15 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_match "Flour", response.body
     assert_match "Salt", response.body         # to_taste
     assert_match "Ravioli", response.body      # class tag chip
+  end
+
+  test "shows per-item price and an estimated total" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path, headers: FRAME
+    assert_response :success
+    assert_match "~$4.50", response.body          # per-item estimate
+    assert_match "Estimated total", response.body
+    assert_match "$4.50", response.body           # total (single item)
   end
 
   test "scales by stations: 12 booked => 6 stations" do

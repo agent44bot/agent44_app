@@ -485,8 +485,10 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "list shows a week grocery cart only when a class that week has a recipe" do
-    with_r = create_event("Has Recipe", 2.days.from_now, "InStock")
-    create_event("No Recipe Next Week", 9.days.from_now, "InStock")
+    # "Today" (upcoming) is always in the Current Week bucket regardless of
+    # weekday; +8 days lands in the Next Week bucket.
+    with_r = create_event("Has Recipe", 1.hour.from_now, "InStock")
+    create_event("No Recipe Next Week", 8.days.from_now, "InStock")
     KitchenHandout.create!(title: "Has Recipe", data: { "recipes" => [ { "title" => "X", "ingredients" => [], "directions" => [] } ] })
                   .attach_to!(with_r.url)
     get nyk_list_path

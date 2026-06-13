@@ -872,7 +872,7 @@ class KitchenController < ApplicationController
   def cached_grocery_list(with_recipe)
     fingerprint = with_recipe.sort_by { |c| c[:event].url }
                              .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }.to_json
-    key = "nyk_grocery_list:v1:#{Digest::SHA256.hexdigest(fingerprint)}"
+    key = "nyk_grocery_list:v2:#{Digest::SHA256.hexdigest(fingerprint)}"
 
     if (hit = Rails.cache.read(key))
       @from_cache = true
