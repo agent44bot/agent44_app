@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-13
+  note: Each week's grocery cart on Sam's schedule now shows the week's ballpark grocery total right next to the cart icon, so you can see roughly what a week will cost without opening the full list. The price appears once that week's list has been built.
+
+- date: 2026-06-13
   note: The grocery list now shows a rough price next to each item and an estimated total at the bottom, so you can budget the week at a glance. These are ballpark US grocery prices, not exact quotes.
 
 - date: 2026-06-12

@@ -55,6 +55,10 @@ class KitchenController < ApplicationController
     # Recipe handout per class (keyed by event URL) for the card row action.
     @handouts_by_url = KitchenHandoutLink.pluck(:event_url, :kitchen_handout_id).to_h
     load_events_data
+    # Ballpark grocery total per week, read from cache only (no AI call). Shows
+    # next to the week's cart once that week's grocery list has been built.
+    handout_objs = KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
+    @weeks.each { |w| w[:grocery_total] = cached_grocery_total(w[:events], handout_objs) }
     render "admin/kitchen/list", layout: "application"
   end
 
@@ -870,10 +874,7 @@ class KitchenController < ApplicationController
   # recipe contents), so a reload or range switch reuses it and only a real
   # change (new recipe, edited recipe, changed headcount) re-bills Claude.
   def cached_grocery_list(with_recipe)
-    fingerprint = with_recipe.sort_by { |c| c[:event].url }
-                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }.to_json
-    key = "nyk_grocery_list:v2:#{Digest::SHA256.hexdigest(fingerprint)}"
-
+    key = grocery_cache_key(with_recipe)
     if (hit = Rails.cache.read(key))
       @from_cache = true
       return hit
@@ -883,6 +884,30 @@ class KitchenController < ApplicationController
     result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items)
     Rails.cache.write(key, result, expires_in: 14.days) if result&.ok?
     result
+  end
+
+  def grocery_cache_key(with_recipe)
+    fingerprint = with_recipe.sort_by { |c| c[:event].url }
+                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }.to_json
+    "nyk_grocery_list:v2:#{Digest::SHA256.hexdigest(fingerprint)}"
+  end
+
+  # Ballpark grocery total for a set of events, READ FROM CACHE ONLY (never
+  # triggers an Opus call), so it's cheap to show on Sam's list. Returns the
+  # summed estimate in dollars, or nil when that week's list hasn't been built
+  # yet (or has no priced items).
+  def cached_grocery_total(events, handouts_by_url)
+    with_recipe = events.filter_map do |e|
+      h = handouts_by_url[e.url]
+      next unless h
+      { event: e, handout: h, tag: grocery_tag(e), stations: grocery_stations(e) }
+    end
+    return nil if with_recipe.empty?
+
+    result = Rails.cache.read(grocery_cache_key(with_recipe))
+    return nil unless result&.ok?
+    total = result.categories.sum { |cat| Array(cat["items"]).sum { |i| i["price"].to_f } }
+    total.positive? ? total : nil
   end
 
   # Short, mostly-unique chip label for a class: drop the trailing date and the
