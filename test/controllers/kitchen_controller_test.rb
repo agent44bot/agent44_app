@@ -577,6 +577,28 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "190.00",  response.body
   end
 
+  test "display: shows a reserve QR code per class by default" do
+    create_event("QR Pasta", 3.days.from_now, "InStock")
+    create_event("QR Wine",  4.days.from_now, "InStock")
+
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    assert_select ".qr-code svg", 2, "one QR per class slide"
+    assert_match "Scan to reserve", response.body
+  end
+
+  test "display: show_qr=false hides the QR code" do
+    create_event("QR Pasta", 3.days.from_now, "InStock")
+    nyk_display_agent.update_settings(show_qr: false)
+
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    assert_select ".qr-code svg", false
+    refute_match "Scan to reserve", response.body
+  end
+
   test "display_settings: requires authentication" do
     delete session_path
     get nyk_display_settings_path
@@ -589,7 +611,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     patch nyk_display_settings_path, params: {
       settings: { slide_count: 9, advance_seconds: 15, refresh_minutes: 30,
                   show_price: "1", show_spots: "0", show_end_time: "1", show_image: "1",
-                  visibility: "public" }
+                  show_qr: "0", visibility: "public" }
     }
     assert_redirected_to nyk_display_settings_path
 
@@ -597,6 +619,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal 9,     agent.setting(:slide_count)
     assert_equal false, agent.setting(:show_spots)
     assert_equal true,  agent.setting(:show_image)
+    assert_equal false, agent.setting(:show_qr)
   end
 
   test "update_display_settings: non-admin gets alerted, settings unchanged" do

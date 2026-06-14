@@ -105,7 +105,8 @@
                  [:show_price, "Show price"],
                  [:show_spots, "Show spots remaining"],
                  [:show_end_time, "Show end time"],
-                 [:show_image, "Show class image (when available)"]
+                 [:show_image, "Show class image (when available)"],
+                 [:show_qr, "Show reserve QR code"]
                ].each do |key, label| %>
               <label class="flex items-center gap-3 text-sm text-gray-300 cursor-pointer">
                 <%= hidden_field_tag "settings[#{key}]", "0" %>

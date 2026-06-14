@@ -132,6 +132,36 @@
       color: #6b7280;
       font-size: clamp(22px, 2.6vw, 40px);
     }
+    .qr-block {
+      margin-top: 4vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2vh;
+    }
+    .slide.with-image .qr-block {
+      margin-top: 3vh;
+      align-items: flex-start;
+    }
+    /* White card behind the QR: the helper draws black modules on a
+       transparent ground, which is invisible (and unscannable) on the
+       near-black page. The card gives the scanner the contrast it needs. */
+    .qr-code {
+      background: #fff;
+      padding: 1.4vh;
+      border-radius: 12px;
+      line-height: 0;
+    }
+    .qr-code svg {
+      width: clamp(110px, 11vw, 190px);
+      height: clamp(110px, 11vw, 190px);
+      display: block;
+    }
+    .qr-cap {
+      font-size: clamp(13px, 1.3vw, 22px);
+      color: #9ca3af;
+      letter-spacing: 0.01em;
+    }
   </style>
 </head>
 <body>
@@ -172,6 +202,12 @@
                   <span class="icon">⚡</span><span class="value"><%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left</span>
                 <% end %>
               </div>
+              <% if @agent.setting(:show_qr) && event.url.present? %>
+                <div class="qr-block">
+                  <div class="qr-code"><%= qr_svg(event.url) %></div>
+                  <div class="qr-cap">Scan to reserve</div>
+                </div>
+              <% end %>
             </div>
           </article>
         <% end %>
