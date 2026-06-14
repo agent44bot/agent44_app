@@ -33,10 +33,6 @@
       <code class="flex-1 min-w-0 text-sm text-orange-300 bg-black/40 border border-gray-800 rounded-md px-3 py-2 truncate font-mono"><%= display_url %></code>
       <%= link_to "Open ↗", display_url, target: "_blank", rel: "noopener",
             class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200" %>
-      <%= link_to nyk_display_print_path, target: "_blank", rel: "noopener",
-            class: "inline-flex items-center gap-1 px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200" do %>
-        🖨 Print
-      <% end %>
       <button type="button" data-action="click->clipboard#copy"
               class="inline-flex items-center px-3 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-sm font-semibold text-white cursor-pointer">
         <span data-clipboard-target="label">Share</span>
