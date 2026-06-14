@@ -47,18 +47,12 @@
                 <%= nav_item.call("Dashboard", admin_dashboard_path) %>
                 <%= nav_item.call("Track", admin_track_path, "/admin/track") %>
                 <%= nav_item.call("Visitor Map", admin_visitors_map_path) %>
-                <%= nav_item.call("AI Costs", admin_ai_costs_path) %>
                 <%= nav_item.call("Finance", admin_finance_path, "/admin/finance") %>
                 <p class="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Kitchen</p>
                 <%= nav_item.call("Kitchen", nykitchen_path, "/nykitchen") %>
-                <%= nav_item.call("Chat", admin_chat_path, "/admin/chat") %>
               </div>
               <div>
-                <p class="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Content</p>
-                <%= nav_item.call("Posts", admin_posts_path, "/admin/posts") %>
-                <%= nav_item.call("Videos", admin_videos_path, "/admin/videos") %>
-                <%= nav_item.call("Lab", "/lab") %>
-                <p class="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Manage</p>
+                <p class="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-wide text-gray-600">Manage</p>
                 <%= nav_item.call("Scrapers", admin_scrapers_path, "/admin/scrapers") %>
                 <%= nav_item.call("Users", admin_users_path, "/admin/users") %>
                 <%= nav_item.call("Agents", admin_agents_path, "/admin/agents") %>

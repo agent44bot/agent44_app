@@ -35,16 +35,4 @@ class PagesController < ApplicationController
 
   def privacy
   end
-
-  def lab
-    unless authenticated? && Current.user.admin?
-      redirect_to root_path, alert: "Not found." and return
-    end
-    @ai_demand_meter = Job.ai_demand_meter
-    @director_salary = Job.salary_stats(role_class: "agent_director")
-    @ai_salary = Job.salary_stats(role_class: "ai_augmented")
-    @trad_salary = Job.salary_stats(role_class: "traditional")
-    @recent_director_jobs = Job.active.agent_director.recent.limit(8)
-    render layout: "admin"
-  end
 end

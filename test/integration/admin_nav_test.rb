@@ -8,10 +8,19 @@ class AdminNavTest < ActionDispatch::IntegrationTest
     sign_in_as(admin)
     get admin_dashboard_path
     assert_response :success
-    %w[Plan Dashboard Track Posts Videos Scrapers Users Agents Kitchen Chat Lab Notifications].each do |label|
+    %w[Plan Dashboard Track Scrapers Users Agents Kitchen Notifications Finance].each do |label|
       assert_match %r{>#{label}<}, response.body, "menu should include #{label}"
     end
     assert_match "Visitor Map", response.body
-    assert_match "AI Costs", response.body
+  end
+
+  test "pruned destinations are gone from the menu" do
+    admin = User.create!(email_address: "nav-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    sign_in_as(admin)
+    get admin_dashboard_path
+    %w[Posts Videos Chat Lab].each do |label|
+      assert_no_match %r{>#{label}<}, response.body, "menu should no longer include #{label}"
+    end
+    assert_no_match "AI Costs", response.body
   end
 end

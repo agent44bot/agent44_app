@@ -18,6 +18,8 @@ module Admin
 
       @net_profit = @revenue_total - @expense_total
       @set_aside = [ @net_profit, 0 ].max * SET_ASIDE_RATE
+
+      load_ai_spend
     end
 
     def import
@@ -56,6 +58,17 @@ module Admin
     end
 
     private
+
+    # AI / Anthropic spend (merged in from the retired AI Costs page). This is
+    # internal token spend, separate from the cash expense ledger above.
+    def load_ai_spend
+      month_start = Time.zone.now.beginning_of_month
+      logs = AiCallLog.where("created_at >= ?", month_start)
+      @ai_summary_by_source = AiCallLog.summary_by_source(logs)
+      @ai_month_total = AiCallLog.total_cost_dollars(logs)
+      @ai_nyk_month   = AiCallLog.total_cost_dollars(logs.where(source: AiCallLog::NYK_SOURCES))
+      @ai_nyk_all     = AiCallLog.total_cost_dollars(AiCallLog.where(source: AiCallLog::NYK_SOURCES))
+    end
 
     def available_years
       years = (Expense.distinct.pluck(:tax_year) + RevenueEntry.distinct.pluck(:tax_year)).compact.uniq
