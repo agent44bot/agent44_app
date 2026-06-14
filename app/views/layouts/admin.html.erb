@@ -15,13 +15,13 @@
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
 </head>
-<body class="h-full flex flex-col bg-gray-800 text-white antialiased">
+<body class="h-full flex flex-col bg-gray-950 text-white antialiased">
   <%= render "shared/impersonation_banner" %>
 
   <!-- Admin Navigation: logo + one menu. All admin destinations live in the
        dropdown (zero-JS <details>, works in the iOS webview); the bar keeps
        only the bell, Home, Jobs, and account controls. -->
-  <nav class="bg-gray-900 text-white sticky top-0 z-50">
+  <nav class="bg-gray-950/80 backdrop-blur-md border-b border-gray-800 text-white sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-14">
         <div class="flex items-center gap-3">
