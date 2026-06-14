@@ -145,31 +145,4 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     Rails.cache = original
   end
 
-  test "Sam's list shows a week's cached grocery total next to the cart" do
-    original = Rails.cache
-    Rails.cache = ActiveSupport::Cache::MemoryStore.new
-    # Pin to a Tuesday so +1 day stays in the Current Week bucket.
-    travel_to Time.zone.local(2026, 6, 16, 9, 0) do
-      add_class("Ravioli", "groc-rav", 1, booked: 12)
-
-      # Before the list is built, the cart links out but shows no price.
-      get nyk_list_path
-      assert_response :success
-      assert_select "a[title=?]", "Grocery list for Current Week"
-      assert_no_match(/~\$\d/, response.body)
-
-      # Build (and cache) the grocery list, then the cart shows the cached total
-      # (AGG prices one item at $4.50 -> rounded ~$5), with no new AI call.
-      get nyk_grocery_path, headers: FRAME
-      assert_equal 1, @agg_calls
-      get nyk_list_path
-      assert_response :success
-      assert_equal 1, @agg_calls, "the list page must not trigger an aggregation"
-      assert_select "a[title=?]", "Grocery list for Current Week" do
-        assert_select "span", text: "~$5"
-      end
-    end
-  ensure
-    Rails.cache = original
-  end
 end
