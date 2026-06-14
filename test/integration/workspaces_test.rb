@@ -136,7 +136,9 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
   test "admin can update timezone inline" do
     ws = Workspace.create!(name: "TZWS", owner: @owner, timezone: "UTC")
     sign_in_as(@owner)
-    patch workspace_path(ws.slug), params: { workspace: { timezone: "Eastern Time (US & Canada)" } }
+    # The timezone form lives on the Social Agent page; update returns there.
+    patch workspace_path(ws.slug), params: { workspace: { timezone: "Eastern Time (US & Canada)" } },
+          headers: { "HTTP_REFERER" => social_workspace_path(ws.slug) }
     assert_redirected_to social_workspace_path(ws.slug)
     assert_equal "Eastern Time (US & Canada)", ws.reload.timezone
   end

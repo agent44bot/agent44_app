@@ -17,12 +17,25 @@ class WorkspaceLogoIntegrationTest < ActionDispatch::IntegrationTest
                     filename: "logo.png", content_type: "image/png")
   end
 
-  test "owner can upload a brand logo" do
+  test "owner can upload a brand logo and returns to where they were" do
     sign_in_as(@owner)
     assert_changes -> { @ws.reload.logo.attached? }, from: false, to: true do
-      patch workspace_path(@ws.slug), params: { workspace: { logo: png_upload } }
+      patch workspace_path(@ws.slug), params: { workspace: { logo: png_upload } },
+            headers: { "HTTP_REFERER" => workspace_path(@ws.slug) }
     end
-    assert_redirected_to social_workspace_path(@ws.slug)
+    # Returns to the submitting page, NOT the Social/Echo page (the reported bug).
+    assert_redirected_to workspace_path(@ws.slug)
+  end
+
+  test "creating a workspace with a brand logo attaches it" do
+    # Creating a workspace is site-admin gated during the dogfood phase.
+    site_admin = User.create!(email_address: "wsl-sa-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
+    sign_in_as(site_admin)
+    assert_difference -> { Workspace.count }, 1 do
+      post workspaces_path, params: { workspace: { name: "Logo At Create", logo: png_upload } }
+    end
+    ws = Workspace.find_by(name: "Logo At Create")
+    assert ws.logo.attached?, "logo uploaded on /new should attach at create"
   end
 
   test "editor (non-admin) cannot change the logo" do

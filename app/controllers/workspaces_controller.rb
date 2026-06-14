@@ -31,10 +31,13 @@ class WorkspacesController < ApplicationController
 
   def update
     @workspace.logo.purge if params.dig(:workspace, :remove_logo) == "1"
+    # Return to the page the edit was submitted from (hub, overview, or the
+    # Social Agent settings) instead of always bouncing to the Social page.
+    back = workspace_path(@workspace.slug)
     if @workspace.update(workspace_params)
-      redirect_to social_workspace_path(@workspace.slug), notice: "Workspace updated."
+      redirect_back fallback_location: back, notice: "Workspace updated."
     else
-      redirect_to social_workspace_path(@workspace.slug), alert: "Update failed: #{@workspace.errors.full_messages.to_sentence}"
+      redirect_back fallback_location: back, alert: "Update failed: #{@workspace.errors.full_messages.to_sentence}"
     end
   end
 
