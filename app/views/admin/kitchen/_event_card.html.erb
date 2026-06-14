@@ -17,7 +17,8 @@
      data-social-post-workspace-slug-value="<%= default_ws.slug %>"<% end %>
      data-social-post-posted-value="<%= post_log&.posted? ? 'true' : 'false' %>"
      data-social-post-enhanced-text-value="<%= post_log&.enhanced_text %>"
-     class="bg-gray-900 rounded-lg p-4">
+     class="bg-gray-900 rounded-lg p-4 flex items-stretch gap-3">
+  <div class="flex-1 min-w-0">
   <div class="flex items-start justify-between gap-4">
     <div class="min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
@@ -52,28 +53,6 @@
                         title: "Open #{ws_status[:workspace_name]} workspace" do %>
               ✓ Drafted <%= time_ago_in_words(ws_status[:time]) %> ago
             <% end %>
-          <% end %>
-        <% end %>
-        <% if !event.sold_out? && default_ws %>
-          <span>&middot;</span>
-          <button data-action="social-post#sendToWorkspace"
-                  data-social-post-target="sendToWorkspaceBtn"
-                  class="text-blue-400 hover:text-blue-300 transition cursor-pointer">
-            📣 Send to Echo
-          </button>
-          <span data-social-post-target="status"></span>
-        <% end %>
-        <%# Recipe handout: print when attached, add when not. Only on pages
-            that load @handouts_by_url (Sam's list). %>
-        <% if defined?(@handouts_by_url) && @handouts_by_url %>
-          <span>&middot;</span>
-          <% if (handout_id = @handouts_by_url[event.url]) %>
-            <%= link_to "🖨 Print recipe", print_nyk_handout_path(handout_id),
-                  target: "_blank", rel: "noopener",
-                  class: "text-emerald-400 hover:text-emerald-300 transition" %>
-          <% else %>
-            <%= link_to "+ Recipe", new_nyk_handout_path(event_url: event.url, event_name: event.name),
-                  class: "text-gray-500 hover:text-gray-300 transition" %>
           <% end %>
         <% end %>
       </div>
@@ -112,4 +91,55 @@
       <% end %>
     </div>
   </div>
+  </div>
+  <%# Action rail: per-class icon buttons on the right edge of each card, each
+      a stacked emoji + tiny label. Echo draft post, recipe (add/print), and a
+      grocery list for the class (only once a recipe is attached, since the
+      list is built from the recipe). Recipe/grocery only render on pages that
+      load @handouts_by_url (Sam's list). %>
+  <% recipe_col = defined?(@handouts_by_url) && @handouts_by_url %>
+  <% handout_id = recipe_col ? @handouts_by_url[event.url] : nil %>
+  <% echo_col   = !event.sold_out? && default_ws %>
+  <% if recipe_col || echo_col %>
+    <div class="shrink-0 flex items-stretch divide-x divide-gray-800 border-l border-gray-800">
+      <% if echo_col %>
+        <div class="flex flex-col items-center justify-center gap-0.5 w-16 px-1">
+          <button data-action="social-post#sendToWorkspace"
+                  data-social-post-target="sendToWorkspaceBtn"
+                  title="Draft a social post to Echo"
+                  class="text-2xl leading-none text-blue-400 hover:text-blue-300 transition cursor-pointer">🔈</button>
+          <span class="text-[10px] font-medium text-blue-400">Draft Post</span>
+        </div>
+      <% end %>
+      <% if recipe_col %>
+        <div class="flex flex-col items-center justify-center w-16 px-1">
+          <% if handout_id %>
+            <%= link_to print_nyk_handout_path(handout_id), target: "_blank", rel: "noopener",
+                  title: "Print recipe",
+                  class: "flex flex-col items-center gap-0.5 text-emerald-400 hover:text-emerald-300 transition" do %>
+              <span class="text-2xl leading-none">🖨</span>
+              <span class="text-[10px] font-medium">Print</span>
+            <% end %>
+          <% else %>
+            <%= link_to new_nyk_handout_path(event_url: event.url, event_name: event.name),
+                  title: "Add a recipe",
+                  class: "flex flex-col items-center gap-0.5 text-gray-500 hover:text-gray-300 transition" do %>
+              <span class="text-2xl leading-none grayscale opacity-60">📝</span>
+              <span class="text-[10px] font-medium">Recipe</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+      <% if handout_id && event.start_at %>
+        <div class="flex flex-col items-center justify-center w-16 px-1">
+          <%= link_to nyk_grocery_path(from: event.start_at.to_date.iso8601, to: event.start_at.to_date.iso8601),
+                title: "Grocery list for this class",
+                class: "flex flex-col items-center gap-0.5 text-gray-400 hover:text-orange-400 transition" do %>
+            <span class="text-2xl leading-none">🛒</span>
+            <span class="text-[10px] font-medium">Grocery</span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 </div>

@@ -12,6 +12,9 @@
   note: The walk-in display screen got a fresh look. It now uses a clean white layout like the printed flyer, with the class photo, a short class description, and the reserve QR code, so it's easy to read from across the room.
 
 - date: 2026-06-14
+  note: Each class on Sam's schedule now has a row of buttons on the right. Draft Post sends a social post to Echo, the recipe button lets you add a recipe (and then turns into a printer you can tap to print), and the Grocery button opens the shopping list for that class once a recipe is attached. The controls are easier to spot than the old text links.
+
+- date: 2026-06-14
   note: The tasting-room display monitor now shows a "Scan to reserve" QR code on each upcoming class, just like the printed flyer, so guests can book straight from the screen. You can turn it off under Display settings.
 
 - date: 2026-06-13
