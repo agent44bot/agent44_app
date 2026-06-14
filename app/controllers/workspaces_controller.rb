@@ -29,6 +29,7 @@ class WorkspacesController < ApplicationController
   end
 
   def update
+    @workspace.logo.purge if params.dig(:workspace, :remove_logo) == "1"
     if @workspace.update(workspace_params)
       redirect_to social_workspace_path(@workspace.slug), notice: "Workspace updated."
     else
@@ -97,7 +98,7 @@ class WorkspacesController < ApplicationController
   private
 
   def workspace_params
-    params.require(:workspace).permit(:name, :description, :timezone)
+    params.require(:workspace).permit(:name, :description, :timezone, :logo)
   end
 
   def load_workspace

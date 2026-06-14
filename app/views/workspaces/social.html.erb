@@ -15,6 +15,11 @@
 
   <div class="flex items-start justify-between gap-2 mb-6 flex-wrap">
     <div>
+      <% if @workspace.logo.attached? %>
+        <%= image_tag @workspace.logo.variant(resize_to_limit: [ 180, 48 ]),
+              alt: "#{@workspace.name} logo",
+              class: "h-10 w-auto mb-2 rounded bg-white/5 p-1" %>
+      <% end %>
       <%# NY Kitchen uses the "Field Roster" identity (Echo · BROADCAST · #n) to
           match the hub + other agent pages; other workspaces keep the generic
           "Social Agent" heading. %>
@@ -65,6 +70,23 @@
             { default: @workspace.timezone },
             { class: "rounded-md bg-gray-900 border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" } %>
         <%= f.submit "Save", class: "text-xs text-gray-300 hover:text-white px-3 py-1 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
+      <% end %>
+
+      <%= form_with model: @workspace, url: workspace_path(@workspace.slug), method: :patch, local: true,
+                    html: { multipart: true }, class: "flex flex-wrap items-center gap-3" do |f| %>
+        <label class="text-xs text-gray-500 uppercase tracking-wide">Brand logo</label>
+        <% if @workspace.logo.attached? %>
+          <%= image_tag @workspace.logo.variant(resize_to_limit: [ 120, 36 ]), alt: "current logo", class: "h-8 w-auto rounded bg-white/5 p-1" %>
+        <% end %>
+        <%= f.file_field :logo, accept: "image/png,image/jpeg,image/webp",
+              class: "text-xs text-gray-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white file:cursor-pointer" %>
+        <% if @workspace.logo.attached? %>
+          <label class="text-xs text-gray-400 inline-flex items-center gap-1">
+            <%= check_box_tag "workspace[remove_logo]", "1" %> remove
+          </label>
+        <% end %>
+        <%= f.submit "Save logo", class: "text-xs text-gray-300 hover:text-white px-3 py-1 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
+        <span class="text-[11px] text-gray-600">PNG, JPEG, or WebP, up to 2 MB</span>
       <% end %>
 
       <div>
