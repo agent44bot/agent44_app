@@ -63,7 +63,7 @@
     .slide.active { display: block; animation: fade 0.6s ease-out; }
     .slide.with-image {
       display: none;
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
       gap: 3vw;
       align-items: center;
       text-align: left;
@@ -203,9 +203,6 @@
           <% show_image = @agent.setting(:show_image) && event.image_url.present? %>
           <% blurb = event.description.present? ? truncate(strip_tags(event.description).squish, length: 180, separator: " ") : nil %>
           <article class="slide<%= ' with-image' if show_image %><%= ' active' if i == 0 %>">
-            <% if show_image %>
-              <img class="hero-image" src="<%= event.image_url %>" alt="" loading="lazy">
-            <% end %>
             <div>
               <h1 class="name"><%= event.name.presence || "Class at NY Kitchen" %></h1>
               <div class="meta-block">
@@ -229,6 +226,9 @@
                 </div>
               <% end %>
             </div>
+            <% if show_image %>
+              <img class="hero-image" src="<%= event.image_url %>" alt="" loading="lazy">
+            <% end %>
           </article>
         <% end %>
       <% else %>
