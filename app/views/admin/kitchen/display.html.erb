@@ -30,11 +30,13 @@
     }
     .header {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       padding-bottom: 2vh;
       border-bottom: 2px solid var(--navy);
     }
+    .brand-row { display: flex; align-items: center; gap: clamp(10px, 1.2vw, 20px); min-width: 0; }
+    .brand-logo { height: clamp(32px, 3.6vw, 64px); width: auto; display: block; }
     .brand {
       font-size: clamp(20px, 2.4vw, 36px);
       font-weight: 700;
@@ -186,7 +188,12 @@
 <body>
   <div class="page">
     <header class="header">
-      <div class="brand">NY Kitchen · What's Coming Up</div>
+      <div class="brand-row">
+        <% if @display_workspace&.logo&.attached? %>
+          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="">
+        <% end %>
+        <div class="brand">NY Kitchen · What's Coming Up</div>
+      </div>
       <div class="meta">
         <span class="pulse"></span>
         <span>Next <%= @events.size %> of <%= @available_total %> available<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></span>
@@ -240,7 +247,7 @@
     </main>
 
     <footer class="footer">
-      <span>Visit <strong>nykitchen.com</strong> to reserve</span>
+      <span>Visit <strong>nykitchen.com/calendar</strong> to reserve</span>
       <span>Auto-refreshes every <%= @agent.setting(:refresh_minutes) %> min</span>
     </footer>
   </div>

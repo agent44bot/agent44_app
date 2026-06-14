@@ -339,6 +339,7 @@ class KitchenController < ApplicationController
     @events = available.first(@agent.setting(:slide_count).to_i)
     @available_total = available.size
     @last_updated = snapshot&.taken_on
+    @display_workspace = Workspace.find_by(slug: "nykitchen")
     render "admin/kitchen/display", layout: false
   end
 

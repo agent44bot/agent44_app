@@ -577,6 +577,24 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "190.00",  response.body
   end
 
+  test "display: shows the workspace logo in the header when one is attached" do
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    ws.logo.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")),
+                   filename: "logo.png", content_type: "image/png")
+    create_event("Logo Class", 3.days.from_now, "InStock")
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    assert_select "img.brand-logo"
+  end
+
+  test "display: footer points to the calendar to reserve" do
+    create_event("Footer Class", 3.days.from_now, "InStock")
+    delete session_path
+    get nyk_display_path
+    assert_match "nykitchen.com/calendar", response.body
+  end
+
   test "display: shows a brief, HTML-stripped class description when present" do
     @snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/events/blurb",
