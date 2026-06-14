@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_14_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_14_150000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -145,6 +145,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_14_130000) do
     t.index ["user_id"], name: "index_fleet_requests_on_user_id"
   end
 
+  create_table "grocery_receipts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "created_by_id"
+    t.text "notes"
+    t.text "parse_error"
+    t.date "purchased_on"
+    t.string "status", default: "pending", null: false
+    t.string "store"
+    t.integer "total_cents"
+    t.datetime "updated_at", null: false
+    t.date "week_end"
+    t.date "week_start"
+    t.index ["created_by_id"], name: "index_grocery_receipts_on_created_by_id"
+  end
+
   create_table "hidden_jobs", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "job_id", null: false
@@ -164,6 +179,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_14_130000) do
     t.index ["actor_id"], name: "index_impersonation_logs_on_actor_id"
     t.index ["created_at"], name: "index_impersonation_logs_on_created_at"
     t.index ["target_id"], name: "index_impersonation_logs_on_target_id"
+  end
+
+  create_table "ingredient_prices", force: :cascade do |t|
+    t.string "canonical_name", null: false
+    t.datetime "created_at", null: false
+    t.integer "grocery_receipt_id"
+    t.date "observed_on", null: false
+    t.decimal "quantity", precision: 10, scale: 2
+    t.string "raw_label"
+    t.string "unit"
+    t.integer "unit_price_cents", null: false
+    t.datetime "updated_at", null: false
+    t.index ["canonical_name", "observed_on"], name: "index_ingredient_prices_on_canonical_name_and_observed_on"
+    t.index ["grocery_receipt_id"], name: "index_ingredient_prices_on_grocery_receipt_id"
   end
 
   create_table "inventory_captures", force: :cascade do |t|
@@ -755,10 +784,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_14_130000) do
   add_foreign_key "credentials", "users"
   add_foreign_key "device_tokens", "users"
   add_foreign_key "fleet_requests", "users"
+  add_foreign_key "grocery_receipts", "users", column: "created_by_id"
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "impersonation_logs", "users", column: "actor_id"
   add_foreign_key "impersonation_logs", "users", column: "target_id"
+  add_foreign_key "ingredient_prices", "grocery_receipts"
   add_foreign_key "inventory_captures", "users", on_delete: :nullify
   add_foreign_key "inventory_movements", "inventory_items", on_delete: :cascade
   add_foreign_key "inventory_movements", "users", on_delete: :nullify

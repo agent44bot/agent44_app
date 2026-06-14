@@ -56,4 +56,13 @@ class GroceryAggregatorTest < ActiveSupport::TestCase
     r = KitchenAi::GroceryAggregator.new.build(items + [ { class_name: "Empty", stations: 1, recipes: [] } ])
     assert r.ok?
   end
+
+  test "folds known observed prices into the prompt" do
+    agg = KitchenAi::GroceryAggregator.new
+    its = [ { class_name: "Pasta", tag: "Pasta", stations: 2,
+              recipes: [ { "ingredients" => [ { "item" => "flour", "station_qty" => "1 c" } ] } ] } ]
+    prompt = agg.send(:build_prompt, its, { "chicken breast" => { "price" => 6.99, "unit" => "lb" } })
+    assert_includes prompt, "KNOWN RECENT PRICES"
+    assert_includes prompt, "chicken breast: $6.99 per lb"
+  end
 end
