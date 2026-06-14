@@ -190,29 +190,29 @@
         </p>
       </div>
     </div>
-    <% if @nyk_workspace %>
-      <button type="button"
-              data-action="click->collapsible#toggle"
-              aria-label="Workspace settings"
-              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
-        </svg>
-        Settings
-      </button>
-    <% end %>
+    <div class="flex flex-col items-end gap-2 shrink-0">
+      <% if @nyk_workspace %>
+        <button type="button"
+                data-action="click->collapsible#toggle"
+                aria-label="Workspace settings"
+                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition text-sm font-medium">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+          </svg>
+          Settings
+        </button>
+      <% end %>
+      <% if @can_see_pricing %>
+        <%= link_to nyk_billing_path,
+              class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-900/40 border border-emerald-800/60 text-emerald-300 hover:border-emerald-500 text-xs font-semibold" do %>
+          💵 Billing
+        <% end %>
+      <% end %>
+    </div>
   </div>
 
   <% if @nyk_workspace %>
     <div data-collapsible-target="body" class="mb-8">
-      <% if @can_see_pricing %>
-        <div class="mb-6">
-          <%= link_to nyk_billing_path,
-                class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-900/40 border border-emerald-800/60 text-emerald-300 hover:border-emerald-500 text-xs font-semibold" do %>
-            💵 Billing
-          <% end %>
-        </div>
-      <% end %>
       <%= render "workspaces/team",
             workspace:       @nyk_workspace,
             memberships:     @nyk_memberships,
