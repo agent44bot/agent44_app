@@ -7,13 +7,19 @@
       between refreshes from the JS below. %>
   <meta http-equiv="refresh" content="<%= @agent.setting(:refresh_minutes).to_i * 60 %>">
   <title>NY Kitchen · What's Coming Up</title>
+  <%# NY Kitchen uses Proxima Nova (Adobe, domain-locked); Montserrat is the
+      standard free stand-in and matches the site's clean geometric sans. %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root { --navy: #1b1e34; --ink: #1b1e34; --muted: #6b7280; --body: #374151; }
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
       background: #ffffff;
-      color: #111827;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       overflow: hidden;
     }
     .page {
@@ -27,18 +33,18 @@
       align-items: baseline;
       justify-content: space-between;
       padding-bottom: 2vh;
-      border-bottom: 2px solid #111827;
+      border-bottom: 2px solid var(--navy);
     }
     .brand {
       font-size: clamp(20px, 2.4vw, 36px);
       font-weight: 800;
       letter-spacing: 0.01em;
-      color: #111827;
+      color: var(--navy);
+      text-transform: uppercase;
     }
-    .brand .accent { color: #ea580c; }
     .header .meta {
       font-size: clamp(12px, 1vw, 16px);
-      color: #6b7280;
+      color: var(--muted);
       font-variant-numeric: tabular-nums;
     }
     .stage {
@@ -66,25 +72,16 @@
     .slide.with-image .name {
       text-align: left;
       margin-bottom: 2.5vh;
-      /* Smaller cap than the no-image variant; long titles otherwise
-         dominate the narrow right column. Line-clamp guarantees the
-         block height stays sane even for absurdly long class names. */
-      font-size: clamp(24px, 3.4vw, 56px);
+      font-size: clamp(24px, 3.2vw, 52px);
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 4;
       line-clamp: 4;
       overflow: hidden;
     }
-    .slide.with-image .details {
-      grid-template-columns: auto 1fr;
-      justify-content: start;
-      gap: 1.4vh 2vw;
-      font-size: clamp(15px, 1.9vw, 30px);
-    }
-    .slide.with-image .details .icon { text-align: right; }
-    .slide.with-image .blurb { text-align: left; }
-    .slide.with-image .qr-block { align-items: flex-start; }
+    .slide.with-image .meta-block,
+    .slide.with-image .blurb,
+    .slide.with-image .qr-block { text-align: left; align-items: flex-start; }
     .hero-image {
       width: 100%;
       max-height: 70vh;
@@ -94,31 +91,41 @@
     }
     @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     .slide .name {
-      font-size: clamp(32px, 5.4vw, 92px);
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      line-height: 1.05;
-      color: #111827;
-      margin-bottom: 3.5vh;
+      font-size: clamp(30px, 4.8vw, 80px);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.06;
+      text-transform: uppercase;
+      color: var(--navy);
+      margin-bottom: 3vh;
     }
-    .details {
-      display: grid;
-      grid-template-columns: auto auto;
-      gap: 2vh 4vw;
-      justify-content: center;
-      align-items: center;
-      font-size: clamp(18px, 2.6vw, 44px);
+    /* Date line in the NYK event-page style: navy, uppercase, e.g.
+       "SUNDAY, JUNE 14 @ 6:00 PM". */
+    .meta-block { display: flex; flex-direction: column; gap: 1vh; align-items: center; }
+    .when {
+      color: var(--navy);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      font-size: clamp(16px, 2.1vw, 34px);
+    }
+    .price {
+      color: var(--navy);
+      font-weight: 800;
+      font-size: clamp(18px, 2.4vw, 40px);
+    }
+    .where {
+      color: var(--muted);
       font-weight: 500;
-      color: #1f2937;
+      font-size: clamp(14px, 1.6vw, 26px);
     }
-    .details .icon  { font-size: 1.1em; text-align: right; }
-    .details .value { text-align: left; }
     .blurb {
       margin-top: 2.6vh;
-      color: #4b5563;
-      font-size: clamp(14px, 1.7vw, 26px);
-      line-height: 1.4;
-      max-width: 46ch;
+      color: var(--body);
+      font-weight: 400;
+      font-size: clamp(14px, 1.6vw, 25px);
+      line-height: 1.45;
+      max-width: 48ch;
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 3;
@@ -132,9 +139,9 @@
       padding-top: 2vh;
       border-top: 1px solid #e5e7eb;
       font-size: clamp(12px, 1.1vw, 18px);
-      color: #6b7280;
+      color: var(--muted);
     }
-    .footer strong { color: #111827; }
+    .footer strong { color: var(--navy); }
     .pulse {
       display: inline-block;
       width: 8px; height: 8px;
@@ -146,7 +153,7 @@
     @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
     .empty {
       text-align: center;
-      color: #6b7280;
+      color: var(--muted);
       font-size: clamp(22px, 2.6vw, 40px);
     }
     .qr-block {
@@ -156,8 +163,6 @@
       align-items: center;
       gap: 1.2vh;
     }
-    /* QR is black modules on white; on the light page a thin border makes it
-       read as a tidy little card. */
     .qr-code {
       background: #fff;
       padding: 1.2vh;
@@ -172,15 +177,16 @@
     }
     .qr-cap {
       font-size: clamp(13px, 1.3vw, 22px);
-      color: #6b7280;
+      color: var(--muted);
       letter-spacing: 0.01em;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
   <div class="page">
     <header class="header">
-      <div class="brand">NY Kitchen <span class="accent">· What's Coming Up</span></div>
+      <div class="brand">NY Kitchen · What's Coming Up</div>
       <div class="meta">
         <span class="pulse"></span>
         <span>Next <%= @events.size %> of <%= @available_total %> available<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></span>
@@ -191,9 +197,8 @@
       <% if @events.any? %>
         <% @events.each_with_index do |event, i| %>
           <% start = event.start_at %>
-          <% date_str = start.strftime("%A, %B %-d") %>
-          <% time_str = start.strftime("%-l:%M %p") %>
-          <% time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if @agent.setting(:show_end_time) && event.end_at.present? %>
+          <% when_str = "#{start.strftime('%A, %B %-d').upcase} @ #{start.strftime('%-l:%M %p')}" %>
+          <% when_str += " – #{event.end_at.strftime('%-l:%M %p')}" if @agent.setting(:show_end_time) && event.end_at.present? %>
           <% venue = event.venue.presence || "New York Kitchen, Canandaigua" %>
           <% show_image = @agent.setting(:show_image) && event.image_url.present? %>
           <% blurb = event.description.present? ? truncate(strip_tags(event.description).squish, length: 180, separator: " ") : nil %>
@@ -203,18 +208,16 @@
             <% end %>
             <div>
               <h1 class="name"><%= event.name.presence || "Class at NY Kitchen" %></h1>
-              <div class="details">
-                <span class="icon">📅</span><span class="value"><%= date_str %></span>
-                <span class="icon">⏰</span><span class="value"><%= time_str %></span>
+              <div class="meta-block">
+                <p class="when"><%= when_str %></p>
                 <% if @agent.setting(:show_price) && event.price.present? %>
                   <% price = event.price.to_s.strip %>
                   <% price = "$#{price}" unless price.match?(/[$£€]/) %>
-                  <span class="icon">💵</span><span class="value"><%= price %></span>
+                  <p class="price"><%= price %></p>
                 <% end %>
-                <span class="icon">📍</span><span class="value"><%= venue %></span>
-                <% if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0 %>
-                  <span class="icon">⚡</span><span class="value"><%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left</span>
-                <% end %>
+                <p class="where">
+                  <%= venue %><% if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0 %> · <%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left<% end %>
+                </p>
               </div>
               <% if blurb.present? %>
                 <p class="blurb"><%= blurb %></p>
