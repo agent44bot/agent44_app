@@ -136,4 +136,81 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     get nyk_display_print_path(variant: "stall")
     assert_match(/\.thumb \{\s*width: 1\.87in; height: 1\.05in/, response.body)
   end
+
+  # --- The link must not break (the front desk relies on it). ---
+  # These cover the failure and empty paths someone could hit live: no data,
+  # no auth, missing fields, and odd ?n= values.
+
+  test "renders 200 even when no snapshot exists yet (scraper never ran)" do
+    KitchenSnapshot.delete_all
+    get nyk_display_print_path
+    assert_response :success
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+  end
+
+  test "renders 200 when the snapshot has zero upcoming classes" do
+    # snapshot exists (from setup) but is empty
+    get nyk_display_print_path
+    assert_response :success
+    assert_select ".event", 0
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+    assert_select ".event", 0
+  end
+
+  test "all past or all sold-out classes still render a 200 (empty schedule)" do
+    add_event("Yesterday", -24)
+    add_event("Sold Out", 24, availability: "SoldOut")
+    get nyk_display_print_path
+    assert_response :success
+    assert_select ".event", 0
+  end
+
+  test "is publicly accessible with no signed-in user (front desk is not logged in)" do
+    delete session_path # ensure fully signed out
+    add_event("Walk-in Class", 24)
+    get nyk_display_print_path
+    assert_response :success
+    assert_match "Walk-in Class", response.body
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+  end
+
+  test "renders both variants when a class is missing photo, price, and spots" do
+    # A bare event (no image_url, price, spots_left, or menu) must not crash
+    # either template.
+    add_event("Bare Class", 24)
+    get nyk_display_print_path
+    assert_response :success
+    assert_match "Bare Class", response.body
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+    assert_match "Bare Class", response.body
+  end
+
+  test "?n= is clamped to a sane range and never errors" do
+    5.times { |i| add_event("Class #{i}", (i + 1) * 24) }
+    # zero, negative, non-numeric, and absurdly large all stay safe
+    [ "0", "-5", "abc", "9999" ].each do |n|
+      get nyk_display_print_path(n: n)
+      assert_response :success, "n=#{n} should not error"
+      count = css_select(".event").size
+      assert count.between?(1, 60), "n=#{n} produced #{count} events, out of range"
+    end
+  end
+
+  test "opening the print page bumps the flyer print counter and last_at" do
+    add_event("Counted Class", 24)
+    assert_difference -> { Setting.counter("nyk_flyer_prints:total") }, 1 do
+      assert_difference -> { Setting.counter("nyk_flyer_prints:flyer") }, 1 do
+        get nyk_display_print_path
+      end
+    end
+    assert Setting.time("nyk_flyer_prints:last_at").present?, "last_at drives Carson's no-flyers nudge"
+
+    assert_difference -> { Setting.counter("nyk_flyer_prints:stall") }, 1 do
+      get nyk_display_print_path(variant: "stall")
+    end
+  end
 end
