@@ -5,7 +5,6 @@ Rails.application.routes.draw do
   get "/.well-known/apple-app-site-association",
       to: "well_known#apple_app_site_association", defaults: { format: "json" }
 
-  get "lab", to: "pages#lab"
   get "privacy", to: "pages#privacy"
   # QR-code smart redirect: iOS -> App Store, everyone else -> website.
   # Handled at the routing layer (not a controller action) so it runs before
@@ -153,9 +152,8 @@ Rails.application.routes.draw do
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"
   # Pulse retired 2026-05-28: public route, controller, and views removed.
-  # Posts are still managed under /admin/posts. Old /pulse and /newsletter
-  # URLs now 404 (intentional — the feature is no longer offered).
-  # resources :videos, only: [:index, :show]
+  # Old /pulse and /newsletter URLs now 404 (intentional). The admin Posts and
+  # Videos managers were retired 2026-06-14; Post/Video models remain.
   resources :subscribers, only: [ :create ]
   get "soft_gate", to: "soft_gates#show", as: :soft_gate
 
@@ -220,9 +218,6 @@ Rails.application.routes.draw do
 
   namespace :admin do
     get "dashboard", to: "dashboard#index"
-    get "ai_costs",  to: "ai_costs#index"
-    resources :posts
-    resources :videos
     resources :scrapers do
       member do
         post :run
@@ -242,9 +237,6 @@ Rails.application.routes.draw do
     get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
-    get "chat", to: "chat#index"
-    post "chat", to: "chat#create"
-    get "chat/messages", to: "chat#messages"
     resources :notifications, only: [ :index, :update, :destroy ] do
       collection do
         post :mark_all_read

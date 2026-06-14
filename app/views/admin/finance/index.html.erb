@@ -147,5 +147,46 @@
     <p class="text-sm text-gray-500 italic">No expenses yet. Upload a RocketMoney CSV above to get started.</p>
   <% end %>
 
+  <%# AI / Anthropic spend, merged in from the old AI Costs page. Internal token
+      spend by feature this month, separate from the cash expense ledger above. %>
+  <div class="mt-10">
+    <h2 class="text-base font-semibold text-white mb-1">AI spend this month</h2>
+    <p class="text-xs text-gray-500 mb-3">Anthropic token spend by feature, from logged token counts. Internal usage, not a cash expense.</p>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="rounded-lg bg-gray-900 border border-gray-700 p-3">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">This month</p>
+        <p class="text-xl font-bold text-white"><%= number_to_currency(@ai_month_total, precision: 4) %></p>
+      </div>
+      <div class="rounded-lg bg-gray-900 border border-orange-700/40 p-3">
+        <p class="text-xs text-orange-400 uppercase tracking-wide mb-1">NYK this month</p>
+        <p class="text-xl font-bold text-white"><%= number_to_currency(@ai_nyk_month, precision: 4) %></p>
+      </div>
+      <div class="rounded-lg bg-gray-900 border border-gray-700 p-3">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">NYK all-time</p>
+        <p class="text-xl font-bold text-white"><%= number_to_currency(@ai_nyk_all, precision: 4) %></p>
+      </div>
+    </div>
+    <% if @ai_summary_by_source.present? %>
+      <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
+            <tr><th class="px-4 py-2 text-left">Feature</th><th class="px-4 py-2 text-right">Calls</th><th class="px-4 py-2 text-right">Cost</th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800">
+            <% @ai_summary_by_source.sort_by { |_, v| -v[:cost_dollars] }.each do |source, v| %>
+              <tr>
+                <td class="px-4 py-2 text-gray-300"><%= source %></td>
+                <td class="px-4 py-2 text-right text-gray-400"><%= v[:calls] %></td>
+                <td class="px-4 py-2 text-right text-white"><%= number_to_currency(v[:cost_dollars], precision: 4) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-gray-500 italic">No AI calls yet this month.</p>
+    <% end %>
+  </div>
+
   <p class="text-xs text-gray-600 mt-6">Tax set-aside is a rough 30% of net profit for planning (SE tax plus income plus NY). It is not a filed figure or tax advice.</p>
 </div>

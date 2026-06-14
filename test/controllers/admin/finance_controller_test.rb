@@ -25,6 +25,16 @@ class Admin::FinanceControllerTest < ActionDispatch::IntegrationTest
     assert_match "$300.00", response.body
   end
 
+  test "shows the merged AI spend section" do
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_enhance",
+                      input_tokens: 1_000_000, output_tokens: 0)
+    sign_in_as(@admin)
+    get admin_finance_path
+    assert_response :success
+    assert_select "h2", text: /AI spend this month/
+    assert_match "nyk_enhance", response.body
+  end
+
   test "import endpoint ingests an uploaded RocketMoney CSV" do
     csv = <<~CSV
       Date,Original Date,Name,Custom Name,Amount,Description,Category
