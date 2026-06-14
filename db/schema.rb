@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_133035) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_14_130000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -112,6 +112,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_133035) do
     t.integer "user_id"
     t.index ["token"], name: "index_device_tokens_on_token", unique: true
     t.index ["user_id"], name: "index_device_tokens_on_user_id"
+  end
+
+  create_table "expenses", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.text "business_purpose"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.boolean "excluded", default: false, null: false
+    t.string "fingerprint", null: false
+    t.date "incurred_on", null: false
+    t.string "raw_description"
+    t.string "review_flag"
+    t.string "source", default: "manual", null: false
+    t.integer "tax_year", null: false
+    t.datetime "updated_at", null: false
+    t.string "vendor", null: false
+    t.index ["fingerprint"], name: "index_expenses_on_fingerprint", unique: true
+    t.index ["tax_year"], name: "index_expenses_on_tax_year"
   end
 
   create_table "fleet_requests", force: :cascade do |t|
@@ -443,6 +461,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_133035) do
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_posts_on_user_id"
+  end
+
+  create_table "revenue_entries", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.text "note"
+    t.date "received_on", null: false
+    t.string "source", null: false
+    t.integer "tax_year", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tax_year"], name: "index_revenue_entries_on_tax_year"
   end
 
   create_table "saved_jobs", force: :cascade do |t|
