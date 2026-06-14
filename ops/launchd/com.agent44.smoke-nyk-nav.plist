@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Hourly NYK arrow-nav regression check on the Mac mini runner.
+  Twice-daily NYK arrow-nav regression check on the Mac mini runner.
 
-  - Fires every hour at :00, but the command sleeps a uniformly random
-    0–1799 seconds before triggering the workflow. Final fire times are
-    spread randomly across each hour so the cadence doesn't look like a
-    bot signing in on the dot.
+  - Fires at midnight (00:00) and noon (12:00) local time, but the command
+    sleeps a uniformly random 0–1799 seconds before triggering the
+    workflow. Final fire times are spread randomly across the half hour so
+    the cadence doesn't look like a bot signing in on the dot.
   - Runs headed by default (the test file's own default) for a less
     detectable Chromium fingerprint. Requires the agent44 user to be
     logged in on the Mac mini (display can sleep — only the user session
@@ -43,10 +43,11 @@
         <string>/opt/homebrew/bin:/usr/bin:/bin</string>
     </dict>
 
-    <!-- Fire every hour at :00. Command-level sleep adds 0–30 min jitter. -->
+    <!-- Fire at 00:00 and 12:00. Command-level sleep adds 0–30 min jitter. -->
     <key>StartCalendarInterval</key>
     <array>
-        <dict><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
     </array>
 
     <key>StandardOutPath</key>

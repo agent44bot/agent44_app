@@ -22,7 +22,7 @@ class NykSmokeFreshnessCheckJobTest < ActiveJob::TestCase
   end
 
   test "alerts when nav is stale" do
-    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 5.hours.ago, duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 16.hours.ago, duration_ms: 30_000)
     SmokeTestRun.create!(name: "nyk_scrape_fresh",      status: "passed", started_at: 1.hour.ago,  duration_ms: 600_000)
 
     assert_difference -> { Notification.count }, 1 do
@@ -48,7 +48,7 @@ class NykSmokeFreshnessCheckJobTest < ActiveJob::TestCase
   end
 
   test "alerts both when both are stale" do
-    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 5.hours.ago, duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 16.hours.ago, duration_ms: 30_000)
     SmokeTestRun.create!(name: "nyk_scrape_old",        status: "passed", started_at: 8.hours.ago, duration_ms: 600_000)
 
     assert_difference -> { Notification.count }, 2 do
@@ -57,7 +57,7 @@ class NykSmokeFreshnessCheckJobTest < ActiveJob::TestCase
   end
 
   test "does not re-alert within the 6-hour cooldown" do
-    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 5.hours.ago, duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 16.hours.ago, duration_ms: 30_000)
     Setting.set("nyk.smoke_freshness.nav.last_alert_at", 1.hour.ago.iso8601)
 
     assert_no_difference -> { Notification.count } do
@@ -66,7 +66,7 @@ class NykSmokeFreshnessCheckJobTest < ActiveJob::TestCase
   end
 
   test "re-alerts after the cooldown elapses" do
-    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 12.hours.ago, duration_ms: 30_000)
+    SmokeTestRun.create!(name: "nyk_calendar_nav_old", status: "passed", started_at: 16.hours.ago, duration_ms: 30_000)
     Setting.set("nyk.smoke_freshness.nav.last_alert_at", 7.hours.ago.iso8601)
 
     assert_difference -> { Notification.count }, 1 do

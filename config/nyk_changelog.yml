@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-14
+  note: Argus now runs its calendar health checks twice a day (around midnight and noon) instead of every hour. That is plenty to catch a broken or wrong page quickly while keeping the checking light.
+
+- date: 2026-06-14
   note: The walk-in display screen now matches the look of your nykitchen.com class pages, the same clean font, navy headings, and the "DAY, MONTH D @ TIME" date style, so the screen and the website feel like one brand.
 
 - date: 2026-06-14

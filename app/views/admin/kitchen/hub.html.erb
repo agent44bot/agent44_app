@@ -440,7 +440,7 @@
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:test]) %><span class="ra-chev">▶</span></span>
       <%= link_to nyk_test_path, class: "block" do %>
         <div class="ra-head"><%= agent_ident.call(:test) %></div>
-        <p class="<%= desc_class %>">Round-trips the calendar every hour to catch broken pages or missing classes before customers do.</p>
+        <p class="<%= desc_class %>">Round-trips the calendar twice a day to catch broken pages or missing classes before customers do.</p>
       <% end %>
 
       <%# Clickable recording thumbnail (poster still from the last run) with a
