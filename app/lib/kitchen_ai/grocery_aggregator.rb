@@ -24,7 +24,9 @@ module KitchenAi
 
     # items: array of { class_name:, stations:, recipes: [ KitchenHandout#recipes ] }.
     # stations is the multiplier for that class's per-station amounts.
-    def build(items)
+    # observed_prices: optional hash of canonical_name => { "price" => dollars,
+    # "unit" => unit } from past receipts; the model prefers these over guesses.
+    def build(items, observed_prices: {})
       items = Array(items).reject { |i| Array(i[:recipes]).empty? }
       return Result.new(ok?: false, error: "No classes with recipes in range.") if items.empty?
 
@@ -38,7 +40,7 @@ module KitchenAi
             model:      MODEL,
             max_tokens: MAX_TOKENS,
             system:     SYSTEM_PROMPT,
-            messages:   [ { role: "user", content: build_prompt(items) } ]
+            messages:   [ { role: "user", content: build_prompt(items, observed_prices) } ]
           )
         end
 
@@ -74,6 +76,10 @@ module KitchenAi
       - Set "price" on each item to a rough typical US grocery cost in dollars for the
         TOTAL quantity on that line (a plain number, e.g. 1.5, 8, 12.99). Estimate
         generously rather than precisely; it is a budgeting guide, not a quote.
+      - If a KNOWN RECENT PRICES table is provided and an ingredient matches one of
+        its names, use that observed unit price (scaled to the total quantity you
+        computed) instead of guessing. Only estimate prices for ingredients that
+        have no known price.
       - Ingredients with no amount ("Salt, to taste") go in to_taste as a deduped list of
         plain names (no "to taste" suffix), NOT in categories.
       - Organize the rest into common grocery sections in this order when present:
@@ -83,7 +89,7 @@ module KitchenAi
       Do not invent ingredients that are not in the input.
     PROMPT
 
-    def build_prompt(items)
+    def build_prompt(items, observed_prices = {})
       lines = items.map do |it|
         recipe_text = Array(it[:recipes]).flat_map do |r|
           Array(r["ingredients"]).map do |ing|
@@ -93,7 +99,15 @@ module KitchenAi
         end.join("\n")
         "Class tag: #{it[:tag].presence || it[:class_name]} (#{it[:stations]} stations)\n#{recipe_text}"
       end
-      "Build the grocery list for these classes:\n\n#{lines.join("\n\n")}"
+      prompt = "Build the grocery list for these classes:\n\n#{lines.join("\n\n")}"
+      if observed_prices.present?
+        known = observed_prices.map do |name, info|
+          unit = info["unit"].presence ? " per #{info['unit']}" : ""
+          "- #{name}: $#{format('%.2f', info['price'].to_f)}#{unit}"
+        end
+        prompt += "\n\nKNOWN RECENT PRICES (from past receipts; prefer these over guesses):\n#{known.join("\n")}"
+      end
+      prompt
     end
 
     def parse(response)

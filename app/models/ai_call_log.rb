@@ -13,7 +13,7 @@ class AiCallLog < ApplicationRecord
 
   # nyk_recipe_extract is Opus, not Haiku; cost_dollars/total_cost_dollars
   # price it correctly via RATES, but keep it out of any Haiku-flat usage_rollup.
-  NYK_SOURCES = %w[nyk_enhance nyk_x_autopost nyk_team_report nyk_recipe_extract].freeze
+  NYK_SOURCES = %w[nyk_enhance nyk_x_autopost nyk_team_report nyk_recipe_extract nyk_receipt_extract].freeze
   # The /nykitchen/ask Super Agent chat: nyk_ask is the single-shot AskAgent
   # (what customers like Lora get), nyk_agent is the read-only AgenticAgent
   # (admin dogfood). Both are Haiku 4.5, so usage_rollup's flat-rate cost holds.
