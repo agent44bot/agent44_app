@@ -67,7 +67,7 @@ module KitchenAi
       recent_failures = nav.where(status: "failed").order(started_at: :desc).limit(5).to_a
 
       lines = [
-        "Test Agent (hourly smoke checks on the calendar — round-trips the page looking for breakage):",
+        "Test Agent (twice-daily smoke checks on the calendar, round-trips the page looking for breakage):",
         "- This week: #{week_total} runs, #{week_failed} failed",
         "- Last 30 days: #{d30_total} runs, #{d30_failed} failed (#{d30_fail_rate}% fail rate)",
         "- Last passed: #{last_passed&.started_at ? time_phrase(last_passed.started_at) : 'never'}",

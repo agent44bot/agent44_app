@@ -4,8 +4,11 @@ class NykSmokeFreshnessCheckJob < ApplicationJob
   THRESHOLDS = {
     nav: {
       scope:     :nyk_nav,
-      label:     "nav (hourly)",
-      max_age:   2.hours,
+      label:     "nav (twice daily)",
+      # Fires at 00:00 and 12:00 with up to 30 min jitter, so the worst-case
+      # gap between runs is ~12.5h. 14h leaves headroom for a slow run before
+      # we cry stale.
+      max_age:   14.hours,
       state_key: "nyk.smoke_freshness.nav.last_alert_at"
     },
     scrape: {
