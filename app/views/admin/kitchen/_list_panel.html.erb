@@ -54,25 +54,26 @@
               "No capacity data — falling back to class-count ratio (#{sold} of #{denom} classes sold out)"
             end
           %>
+          <% week_has_recipe = defined?(@handouts_by_url) && @handouts_by_url &&
+                               week[:events].any? { |e| @handouts_by_url[e.url] } %>
           <div class="border-b border-gray-700 pb-2 mb-4">
-            <div class="flex items-center justify-between gap-3">
-              <button type="button" data-action="click->collapsible#toggle"
-                      class="flex items-baseline gap-2 min-w-0 text-left hover:text-orange-400 transition">
+            <%# Whole header row is one toggle target so the gap between the
+                label and the "% sold" is clickable too (no dead space). %>
+            <button type="button" data-action="click->collapsible#toggle"
+                    class="flex items-center justify-between gap-3 w-full text-left cursor-pointer hover:text-orange-400 transition">
+              <span class="flex items-baseline gap-2 min-w-0">
                 <span class="text-lg font-bold text-white truncate"><%= week[:label] %></span>
                 <span class="text-gray-500 font-normal">(<%= total %>)</span>
-              </button>
-              <div class="flex items-center gap-3 shrink-0">
-                <button type="button" data-action="click->collapsible#toggle"
-                        class="flex items-center gap-3 hover:text-orange-400 transition">
-                  <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
-                  <svg data-collapsible-target="icon"
-                       class="w-5 h-5 text-gray-500 transition-transform"
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
+              </span>
+              <span class="flex items-center gap-3 shrink-0">
+                <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
+                <svg data-collapsible-target="icon"
+                     class="w-5 h-5 text-gray-500 transition-transform"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </span>
+            </button>
             <button type="button" data-action="click->collapsible#toggle" class="block w-full text-left cursor-pointer">
               <div class="flex w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-800">
                 <% if sold > 0 %>
@@ -94,6 +95,28 @@
             </button>
           </div>
           <div data-collapsible-target="body" class="space-y-3">
+            <%# One grocery list for the whole week, shown once the week is
+                expanded and at least one class here has a recipe. Styled as a
+                prominent branded call-to-action so it stands out from the rows. %>
+            <% if week_has_recipe %>
+              <% recipe_count = week[:events].count { |e| @handouts_by_url[e.url] } %>
+              <%= link_to nyk_grocery_path(from: week[:start].iso8601, to: week[:end].iso8601),
+                    title: "Grocery list for #{week[:label]}",
+                    class: "group flex items-center gap-3 px-4 py-3 rounded-lg border border-orange-500/40 bg-gradient-to-r from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10 transition" do %>
+                <span class="flex items-center justify-center w-9 h-9 rounded-full bg-orange-500/20 text-orange-300 shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </span>
+                <span class="flex flex-col min-w-0">
+                  <span class="text-sm font-semibold text-orange-200">Grocery list for this week</span>
+                  <span class="text-xs text-orange-300/70">Combined shopping list for <%= pluralize(recipe_count, "class") %> with a recipe</span>
+                </span>
+                <svg class="w-5 h-5 text-orange-400/60 ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              <% end %>
+            <% end %>
             <% week[:events].each do |e| %>
               <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
             <% end %>
