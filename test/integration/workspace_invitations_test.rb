@@ -117,4 +117,40 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
     assert_redirected_to workspaces_path
     assert_match /no longer valid/, flash[:alert]
   end
+
+  test "passwordless sign-in auto-accepts a matching pending invitation" do
+    # The primary auth path (email code). A brand-new person who was invited
+    # should land directly in the workspace on first sign-in.
+    invitee_email = "pwless-#{SecureRandom.hex(4)}@example.com"
+    @ws.invitations.create!(invited_by: @owner, email: invitee_email, role: "viewer")
+
+    _record, plaintext = LoginCode.issue!(email_address: invitee_email, ip_address: "127.0.0.1")
+    assert_difference -> { @ws.memberships.count }, 1 do
+      post verify_sign_in_path, params: { email_address: invitee_email, code: plaintext }
+    end
+    new_user = User.find_by!(email_address: invitee_email)
+    assert_equal "viewer", @ws.role_for(new_user)
+    assert_redirected_to workspace_path(@ws.slug)
+    assert_match /You've joined/, flash[:notice]
+  end
+
+  test "admin can revoke a pending invitation" do
+    inv = @ws.invitations.create!(invited_by: @owner, email: "revoke-me@example.com", role: "editor")
+    sign_in_as(@owner)
+    delete workspace_invitation_path(workspace_slug: @ws.slug, id: inv.id)
+    assert inv.reload.revoked?
+    refute inv.pending?
+    assert_match /revoked/i, flash[:notice]
+  end
+
+  test "creating an invitation with an invalid email is rejected" do
+    sign_in_as(@owner)
+    assert_no_enqueued_emails do
+      assert_no_difference -> { WorkspaceInvitation.count } do
+        post workspace_invitations_path(workspace_slug: @ws.slug),
+             params: { email: "not-an-email", role: "editor" }
+      end
+    end
+    assert_match /Couldn't invite/, flash[:alert]
+  end
 end
