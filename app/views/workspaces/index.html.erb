@@ -24,7 +24,6 @@
     <div class="space-y-3">
       <% @workspaces.each do |ws| %>
         <% role = ws.role_for(Current.user) %>
-        <% admin = %w[owner admin].include?(role) %>
         <div class="rounded-lg border border-gray-800 bg-gray-900 hover:border-orange-500 transition flex items-center justify-between gap-2 pr-2">
           <%= link_to workspace_path(ws.slug), class: "flex-1 min-w-0 p-4 flex items-center justify-between gap-3" do %>
             <div class="min-w-0">
@@ -33,7 +32,7 @@
             </div>
             <span class="text-xs uppercase tracking-wide text-gray-500 shrink-0"><%= role %></span>
           <% end %>
-          <% if admin %>
+          <% if role == "owner" %>
             <%= button_to workspace_path(ws.slug),
                 method: :delete,
                 form: { data: { turbo_confirm: "Permanently delete '#{ws.name}' and everything in it? This cannot be undone." } },

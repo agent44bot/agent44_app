@@ -121,14 +121,16 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert_equal 0, WorkspacePost.where(workspace_id: ws.id).count
   end
 
-  test "workspace-admin (non-owner) can also delete" do
+  test "workspace-admin (non-owner) cannot delete the workspace" do
+    # Deleting is owner-only: an admin (e.g. a customer contact) manages the
+    # team and content but must not be able to delete the workspace.
     ws = Workspace.create!(name: "AdminDoomed", owner: @owner)
     admin = User.create!(email_address: "ws-a-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
     ws.memberships.create!(user: admin, role: "admin")
     sign_in_as(admin)
     delete workspace_path(ws.slug)
-    assert_redirected_to workspaces_path
-    refute Workspace.exists?(ws.id)
+    assert_redirected_to workspace_path(ws.slug)
+    assert Workspace.exists?(ws.id), "an admin must not be able to delete the workspace"
   end
 
   test "admin can update timezone inline" do

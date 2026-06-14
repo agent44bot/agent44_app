@@ -1,7 +1,8 @@
 class WorkspacesController < ApplicationController
   before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing ]
   before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
-  before_action :require_admin,     only: [ :update, :destroy ]
+  before_action :require_admin,     only: [ :update ]
+  before_action :require_owner,     only: [ :destroy ]
   before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
   def index
     @workspaces = current_user.workspaces.active.order(:name)
@@ -113,6 +114,14 @@ class WorkspacesController < ApplicationController
   def require_admin
     return if @workspace.memberships.find_by(user_id: current_user.id)&.admin?
     redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace admins can do that."
+  end
+
+  # Deleting a workspace is destructive and irreversible, so it's owner-only.
+  # Admins (e.g. a customer contact) can manage the team and content but cannot
+  # delete the workspace out from under the owner.
+  def require_owner
+    return if @workspace.memberships.find_by(user_id: current_user.id)&.owner?
+    redirect_to workspace_path(@workspace.slug), alert: "Only the workspace owner can delete the workspace."
   end
 
   def require_site_admin

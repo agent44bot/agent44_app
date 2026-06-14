@@ -40,12 +40,21 @@ class WorkspaceLogoIntegrationTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the workspace page shows the logo when one is attached" do
+  test "the workspace overview shows the logo when one is attached" do
     attach_existing_logo
     sign_in_as(@owner)
-    get social_workspace_path(@ws.slug)
+    get workspace_path(@ws.slug)
     assert_response :success
     assert_select "img[alt=?]", "#{@ws.name} logo"
+  end
+
+  test "an admin (not just the owner) can upload the logo" do
+    admin = User.create!(email_address: "wsl-a-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: admin, role: "admin")
+    sign_in_as(admin)
+    assert_changes -> { @ws.reload.logo.attached? }, from: false, to: true do
+      patch workspace_path(@ws.slug), params: { workspace: { logo: png_upload } }
+    end
   end
 
   test "uploading a non-image is rejected with an alert" do
