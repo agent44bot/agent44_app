@@ -14,6 +14,7 @@ class User < ApplicationRecord
   has_many :usage_events, dependent: :nullify        # metered actions this user triggered
   has_many :inventory_movements, dependent: :nullify # who scanned stock in/out
   has_many :inventory_captures, dependent: :nullify  # who logged a product photo/price
+  has_many :grocery_receipts, foreign_key: :created_by_id, dependent: :nullify # who uploaded a grocery receipt
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
   has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :destroy

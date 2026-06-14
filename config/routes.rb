@@ -73,6 +73,7 @@ Rails.application.routes.draw do
   get "nykitchen",        to: "kitchen#hub"
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/grocery", to: "kitchen#grocery", as: :nyk_grocery
+  post "nykitchen/grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
   get   "nykitchen/analyst", to: "kitchen#analyst", as: :nyk_analyst

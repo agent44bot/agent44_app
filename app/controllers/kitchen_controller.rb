@@ -54,6 +54,10 @@ class KitchenController < ApplicationController
     @sendable_workspaces = sendable_workspaces_for(Current.user)
     # Recipe handout per class (keyed by event URL) for the card row action.
     @handouts_by_url = KitchenHandoutLink.pluck(:event_url, :kitchen_handout_id).to_h
+    # Latest uploaded grocery receipt per week (keyed by week_start) so each
+    # expanded week can show whether a receipt is in / being read.
+    @receipt_by_week_start = GroceryReceipt.recent_first.where.not(week_start: nil)
+                                           .group_by(&:week_start).transform_values(&:first)
     load_events_data
     render "admin/kitchen/list", layout: "application"
   end
@@ -81,6 +85,29 @@ class KitchenController < ApplicationController
 
     load_grocery_data
     render "admin/kitchen/grocery_list", layout: false
+  end
+
+  # Upload a photographed/scanned grocery receipt for a week. We store the
+  # image and parse it (Opus vision) in the background into IngredientPrice
+  # rows, which future grocery estimates read from. The week is passed as
+  # from/to from the list page.
+  RECEIPT_MAX_BYTES = 15.megabytes
+  def upload_receipt
+    file = params[:receipt]
+    from = parse_date(params[:from])
+    to   = parse_date(params[:to])
+    if file.blank?
+      return redirect_to(nyk_list_path, alert: "Choose a receipt photo or PDF to upload.")
+    end
+    if file.size > RECEIPT_MAX_BYTES
+      return redirect_to(nyk_list_path, alert: "That file is too large (max 15 MB).")
+    end
+
+    receipt = GroceryReceipt.create!(week_start: from, week_end: to, purchased_on: Date.current,
+                                     created_by: Current.user, status: "pending")
+    receipt.image.attach(file)
+    GroceryReceiptExtractionJob.perform_later(receipt.id)
+    redirect_to nyk_list_path, notice: "Receipt uploaded. Reading the items now; the prices will save in a minute and sharpen future grocery estimates."
   end
 
   def test
@@ -871,22 +898,35 @@ class KitchenController < ApplicationController
   # recipe contents), so a reload or range switch reuses it and only a real
   # change (new recipe, edited recipe, changed headcount) re-bills Claude.
   def cached_grocery_list(with_recipe)
-    key = grocery_cache_key(with_recipe)
+    observed = observed_prices_hint
+    key = grocery_cache_key(with_recipe, observed)
     if (hit = Rails.cache.read(key))
       @from_cache = true
       return hit
     end
 
     items = with_recipe.map { |c| { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: c[:handout].recipes } }
-    result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items)
+    result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items, observed_prices: observed)
     Rails.cache.write(key, result, expires_in: 14.days) if result&.ok?
     result
   end
 
-  def grocery_cache_key(with_recipe)
-    fingerprint = with_recipe.sort_by { |c| c[:event].url }
-                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }.to_json
-    "nyk_grocery_list:v2:#{Digest::SHA256.hexdigest(fingerprint)}"
+  # Most recent observed unit price per ingredient (from uploaded receipts) as a
+  # plain hash the aggregator folds into its prompt: { name => {price, unit} }.
+  def observed_prices_hint
+    IngredientPrice.recent_by_name.transform_values do |ip|
+      { "price" => ip.unit_price_dollars, "unit" => ip.unit }
+    end
+  end
+
+  # Cache key folds in BOTH the recipe set and the observed prices, so a newly
+  # uploaded receipt (new or changed prices) rebuilds the list instead of
+  # serving a stale estimate.
+  def grocery_cache_key(with_recipe, observed = {})
+    recipes = with_recipe.sort_by { |c| c[:event].url }
+                         .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }
+    payload = { recipes: recipes, observed: observed.sort.to_h }.to_json
+    "nyk_grocery_list:v3:#{Digest::SHA256.hexdigest(payload)}"
   end
 
   # Short, mostly-unique chip label for a class: drop the trailing date and the

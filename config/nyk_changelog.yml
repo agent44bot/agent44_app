@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-14
+  note: You can now upload a photo of your grocery receipt for a week (tap Upload receipt next to the week's grocery list, or snap it right from your phone camera in the app). We read the items and prices off the receipt automatically and remember them, so each week the estimated grocery list gets closer to what you actually pay instead of a guess.
+
+- date: 2026-06-14
   note: Argus now runs its calendar health checks twice a day (around midnight and noon) instead of every hour. That is plenty to catch a broken or wrong page quickly while keeping the checking light.
 
 - date: 2026-06-14
