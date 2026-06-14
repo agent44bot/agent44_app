@@ -6,6 +6,8 @@ require "ostruct"
 # its classes, and renders the aggregated list. The aggregator is stubbed; the
 # heavy content is only rendered on a turbo-frame request.
 class KitchenGroceryTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   RECIPE = [ { "title" => "Pasta",
                "ingredients" => [ { "qty" => "2½ c", "station_qty" => "1¼ c", "item" => "Flour", "section" => nil } ],
                "directions" => [] } ].freeze
@@ -189,6 +191,46 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match "est. total", response.body
     assert_equal 0, @agg_calls, "a cold list render never calls the aggregator"
+  end
+
+  # --- Background warm job: populates the card total without a manual visit ---
+
+  test "a cold list render enqueues a background warm for the week" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    assert_enqueued_with(job: GroceryListWarmJob) { get nyk_list_path }
+    assert_equal 0, @agg_calls, "enqueue only; the job runs later"
+  end
+
+  test "a week with no recipe does not enqueue a warm job" do
+    add_class("No Recipe", "groc-no", 1, booked: 4, recipe: false)
+    assert_no_enqueued_jobs(only: GroceryListWarmJob) { get nyk_list_path }
+  end
+
+  test "a cached week does not enqueue another warm job" do
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME # warm
+    assert_no_enqueued_jobs(only: GroceryListWarmJob) { get nyk_list_path }
+  ensure
+    Rails.cache = original
+  end
+
+  test "the warm job builds and caches the week's list" do
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+
+    GroceryListWarmJob.perform_now(Date.current.iso8601, (Date.current + 7).iso8601)
+    assert_equal 1, @agg_calls, "the job builds the list once"
+
+    # The list card now reads the warmed total without re-billing.
+    get nyk_list_path
+    assert_response :success
+    assert_match "est. total", response.body
+    assert_equal 1, @agg_calls, "the list render reuses the warmed cache"
+  ensure
+    Rails.cache = original
   end
 
   test "caches the aggregation: same recipe set does not re-bill Claude" do
