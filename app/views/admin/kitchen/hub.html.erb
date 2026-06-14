@@ -181,6 +181,9 @@
   </div>
 
   <div class="mb-8">
+    <% if @nyk_workspace&.logo&.attached? %>
+      <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-12 w-auto mb-3 rounded bg-white/5 p-1" %>
+    <% end %>
     <div class="ra-eyebrow mb-2">Agent 44 · Field Roster</div>
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <h1 class="ra-h1 text-4xl text-white">NY Kitchen</h1>
