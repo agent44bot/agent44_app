@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-14
+  note: New Pantry page on Sam's schedule (tap Pantry at the top). It lists the latest price we have for each ingredient, learned from your uploaded receipts, and you can fix a price or remove a line that is not a real ingredient. Reading receipts also got smarter, we now skip bottle deposits and fees and do a better job catching the total.
+
+- date: 2026-06-14
   note: You can now upload a photo of your grocery receipt for a week (tap Upload receipt next to the week's grocery list, or snap it right from your phone camera in the app). We read the items and prices off the receipt automatically and remember them, so each week the estimated grocery list gets closer to what you actually pay instead of a guess.
 
 - date: 2026-06-14

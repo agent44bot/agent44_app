@@ -14,7 +14,7 @@ class KitchenController < ApplicationController
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
-  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery]
+  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices]
   # Super Agent (admin/customer-only): once App Review approved the app, we
   # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
   # credits via the chat. Admins, the App Store reviewer account, and members
@@ -108,6 +108,35 @@ class KitchenController < ApplicationController
     receipt.image.attach(file)
     GroceryReceiptExtractionJob.perform_later(receipt.id)
     redirect_to nyk_list_path, notice: "Receipt uploaded. Reading the items now; the prices will save in a minute and sharpen future grocery estimates."
+  end
+
+  # The pantry: the latest observed price per ingredient (from receipts), which
+  # feeds future grocery estimates. Editable so Lora can fix a misread or drop a
+  # junk line (a bottle deposit, a fee).
+  def prices
+    @prices = IngredientPrice.recent_by_name.values.sort_by(&:canonical_name)
+    render "admin/kitchen/prices", layout: "application"
+  end
+
+  def update_price
+    price = IngredientPrice.find(params[:id])
+    attrs = { unit: params[:unit].to_s.strip.presence }
+    if params[:unit_price_dollars].present?
+      cents = begin
+        (Float(params[:unit_price_dollars]) * 100).round
+      rescue ArgumentError, TypeError
+        nil
+      end
+      attrs[:unit_price_cents] = cents if cents
+    end
+    price.update(attrs)
+    redirect_to nyk_prices_path, notice: "Updated #{price.canonical_name}."
+  end
+
+  def destroy_price
+    price = IngredientPrice.find(params[:id])
+    price.destroy
+    redirect_to nyk_prices_path, notice: "Removed #{price.canonical_name}."
   end
 
   def test
