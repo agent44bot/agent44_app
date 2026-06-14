@@ -230,6 +230,11 @@ Rails.application.routes.draw do
     end
     resources :users, only: [ :index, :destroy ]
     get "track", to: "track#index", as: :track
+    get    "finance",              to: "finance#index",           as: :finance
+    post   "finance/import",       to: "finance#import",          as: :finance_import
+    patch  "finance/expenses/:id", to: "finance#update_expense",  as: :finance_expense
+    post   "finance/revenues",     to: "finance#create_revenue",  as: :finance_revenues
+    delete "finance/revenues/:id", to: "finance#destroy_revenue", as: :finance_revenue
     get  "plan",        to: "plan#show",   as: :plan
     post "plan/toggle", to: "plan#toggle", as: :plan_toggle
     get "visitors/map", to: "visitors#map"

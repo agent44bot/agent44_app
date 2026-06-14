@@ -1,0 +1,151 @@
+<% content_for :title, "Finance" %>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-baseline justify-between mb-1">
+    <h1 class="text-2xl font-bold text-white">Agent44 Labs Finance</h1>
+    <div class="flex gap-1">
+      <% @years.each do |y| %>
+        <%= link_to y, admin_finance_path(year: y),
+              class: "px-2.5 py-1 rounded-md text-sm #{y == @year ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-300 hover:text-orange-400'}" %>
+      <% end %>
+    </div>
+  </div>
+  <p class="text-sm text-gray-400 mb-6">Business income, expenses, and a rough tax reserve for <%= @year %>. Planning only, not tax advice.</p>
+
+  <%# Summary cards %>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Revenue</p>
+      <p class="text-2xl font-bold text-emerald-400"><%= number_to_currency(@revenue_total) %></p>
+    </div>
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Expenses</p>
+      <p class="text-2xl font-bold text-white"><%= number_to_currency(@expense_total) %></p>
+    </div>
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Net profit</p>
+      <p class="text-2xl font-bold <%= @net_profit.negative? ? 'text-red-400' : 'text-white' %>"><%= number_to_currency(@net_profit) %></p>
+    </div>
+    <div class="rounded-lg bg-gray-900 border border-orange-700/40 p-4">
+      <p class="text-xs text-orange-400 uppercase tracking-wide mb-1">Tax set-aside (30%)</p>
+      <p class="text-2xl font-bold text-white"><%= number_to_currency(@set_aside) %></p>
+    </div>
+  </div>
+
+  <%# Upload %>
+  <div class="rounded-lg bg-gray-900 border border-gray-800 p-4 mb-8">
+    <h2 class="text-base font-semibold text-white mb-1">Import RocketMoney CSV</h2>
+    <p class="text-xs text-gray-500 mb-3">Export the "Agent44Labs" category from RocketMoney and upload it here. New rows are auto-categorized and added; duplicates are skipped.</p>
+    <%= form_with url: admin_finance_import_path(year: @year), method: :post, multipart: true, class: "flex flex-wrap items-center gap-3" do %>
+      <input type="file" name="file" accept=".csv" required
+             class="text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-gray-700 file:text-white file:cursor-pointer">
+      <%= submit_tag "Upload", class: "px-4 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+  </div>
+
+  <%# Category breakdown %>
+  <h2 class="text-base font-semibold text-white mb-3">Expenses by category</h2>
+  <% if @category_totals.empty? %>
+    <p class="text-sm text-gray-500 italic mb-8">No expenses for <%= @year %> yet.</p>
+  <% else %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden mb-8">
+      <table class="w-full text-sm">
+        <tbody class="divide-y divide-gray-800">
+          <% @category_totals.each do |category, total| %>
+            <tr>
+              <td class="px-4 py-2 text-gray-300"><%= category %></td>
+              <td class="px-4 py-2 text-right text-white font-medium"><%= number_to_currency(total) %></td>
+            </tr>
+          <% end %>
+          <tr class="bg-gray-800/40">
+            <td class="px-4 py-2 font-semibold text-white">Total</td>
+            <td class="px-4 py-2 text-right font-bold text-white"><%= number_to_currency(@expense_total) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <%# Revenue %>
+  <h2 class="text-base font-semibold text-white mb-3">Revenue</h2>
+  <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden mb-3">
+    <table class="w-full text-sm">
+      <tbody class="divide-y divide-gray-800">
+        <% if @revenues.empty? %>
+          <tr><td class="px-4 py-2 text-gray-500 italic">No revenue recorded for <%= @year %>.</td></tr>
+        <% end %>
+        <% @revenues.each do |r| %>
+          <tr>
+            <td class="px-4 py-2 text-gray-400 whitespace-nowrap"><%= r.received_on.strftime("%b %-d") %></td>
+            <td class="px-4 py-2 text-gray-300"><%= r.source %><% if r.note.present? %> <span class="text-gray-500">(<%= r.note %>)</span><% end %></td>
+            <td class="px-4 py-2 text-right text-emerald-400 font-medium whitespace-nowrap"><%= number_to_currency(r.amount) %></td>
+            <td class="px-4 py-2 text-right">
+              <%= button_to "Remove", admin_finance_revenue_path(r), method: :delete,
+                    form: { data: { turbo_confirm: "Remove this revenue entry?" } },
+                    class: "text-xs text-gray-500 hover:text-red-400 cursor-pointer" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <%= form_with url: admin_finance_revenues_path(year: @year), method: :post, class: "flex flex-wrap items-end gap-2 mb-8" do %>
+    <%= date_field_tag "revenue_entry[received_on]", Date.current, required: true, class: "rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm px-2 py-1.5" %>
+    <%= text_field_tag "revenue_entry[source]", nil, placeholder: "Source (e.g. NY Kitchen)", required: true, class: "rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm px-2 py-1.5" %>
+    <%= number_field_tag "revenue_entry[amount]", nil, step: "0.01", placeholder: "Amount", required: true, class: "rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm px-2 py-1.5 w-28" %>
+    <%= text_field_tag "revenue_entry[note]", nil, placeholder: "Note (optional)", class: "rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm px-2 py-1.5" %>
+    <%= submit_tag "Add", class: "px-4 py-1.5 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-semibold cursor-pointer" %>
+  <% end %>
+
+  <%# Line items %>
+  <div class="flex items-baseline justify-between mb-3">
+    <h2 class="text-base font-semibold text-white">Expense line items</h2>
+    <% if @flagged_count.positive? %>
+      <span class="text-xs text-amber-400"><%= pluralize(@flagged_count, "item") %> flagged for review</span>
+    <% end %>
+  </div>
+  <% if @expenses.any? %>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
+          <tr>
+            <th class="px-3 py-2 text-left">Date</th>
+            <th class="px-3 py-2 text-left">Vendor</th>
+            <th class="px-3 py-2 text-right">Amount</th>
+            <th class="px-3 py-2 text-left">Category</th>
+            <th class="px-3 py-2 text-center">Excluded</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          <% @expenses.each do |e| %>
+            <%= form_with url: admin_finance_expense_path(e), method: :patch, class: "contents" do %>
+              <tr class="<%= 'opacity-40' if e.excluded %>">
+                <td class="px-3 py-2 text-gray-400 whitespace-nowrap"><%= e.incurred_on.strftime("%-m/%-d") %></td>
+                <td class="px-3 py-2 text-gray-200">
+                  <%= e.vendor %>
+                  <% if e.review_flag.present? %><span class="block text-[11px] text-amber-400"><%= e.review_flag %></span><% end %>
+                </td>
+                <td class="px-3 py-2 text-right text-white font-medium whitespace-nowrap"><%= number_to_currency(e.amount) %></td>
+                <td class="px-3 py-2">
+                  <%= text_field_tag "expense[category]", e.category, class: "w-full rounded bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1" %>
+                </td>
+                <td class="px-3 py-2 text-center">
+                  <%= hidden_field_tag "expense[excluded]", "0", id: nil %>
+                  <%= check_box_tag "expense[excluded]", "1", e.excluded, id: nil, class: "align-middle" %>
+                </td>
+                <td class="px-3 py-2 text-right">
+                  <%= submit_tag "Save", class: "text-xs text-orange-400 hover:text-orange-300 cursor-pointer bg-transparent border-0" %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="text-sm text-gray-500 italic">No expenses yet. Upload a RocketMoney CSV above to get started.</p>
+  <% end %>
+
+  <p class="text-xs text-gray-600 mt-6">Tax set-aside is a rough 30% of net profit for planning (SE tax plus income plus NY). It is not a filed figure or tax advice.</p>
+</div>
