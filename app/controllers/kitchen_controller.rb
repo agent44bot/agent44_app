@@ -359,10 +359,10 @@ class KitchenController < ApplicationController
     agent = workspace.agent_for("display")
     permitted = params.require(:settings).permit(
       :visibility, :slide_count, :advance_seconds, :refresh_minutes,
-      :show_price, :show_spots, :show_end_time, :show_image
+      :show_price, :show_spots, :show_end_time, :show_image, :show_qr
     ).to_h
     permitted["visibility"] = "public" unless %w[public private].include?(permitted["visibility"])
-    %w[show_price show_spots show_end_time show_image].each do |k|
+    %w[show_price show_spots show_end_time show_image show_qr].each do |k|
       permitted[k] = ActiveModel::Type::Boolean.new.cast(permitted[k]) if permitted.key?(k)
     end
     %w[slide_count advance_seconds refresh_minutes].each do |k|

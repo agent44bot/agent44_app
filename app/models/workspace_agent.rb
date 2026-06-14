@@ -17,7 +17,8 @@ class WorkspaceAgent < ApplicationRecord
       "show_price"       => true,
       "show_spots"       => true,
       "show_end_time"    => true,
-      "show_image"       => false
+      "show_image"       => false,
+      "show_qr"          => true
     }
   }.freeze
 
