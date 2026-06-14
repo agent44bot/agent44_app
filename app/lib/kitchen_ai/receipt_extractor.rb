@@ -67,9 +67,12 @@ module KitchenAi
 
       Rules:
       - store: the store name if printed, else null.
-      - total: the grand total in dollars as a plain number, else null.
-      - One item per purchased product line. Skip subtotals, tax, fees, coupons,
-        bag charges, loyalty/discount lines, and totals.
+      - total: the final amount paid in dollars as a plain number. Look for the
+        largest summary line labelled TOTAL, BALANCE, BALANCE DUE, or AMOUNT DUE
+        (not SUBTOTAL). Use null only if no total is printed at all.
+      - One item per purchased PRODUCT line. Skip every non-product line:
+        subtotals, totals, balance/amount due, tax, store/bag fees, coupons,
+        discounts, savings, loyalty, change/tender, and BOTTLE OR CAN DEPOSITS.
       - raw_label: the line text exactly as printed on the receipt.
       - canonical_name: a clean, lower-case, generic ingredient name a recipe
         would use ("chicken breast", "romaine lettuce", "olive oil", "kosher
@@ -113,12 +116,18 @@ module KitchenAi
       nil
     end
 
+    # Non-product lines the model sometimes lists as items anyway (a bottle
+    # deposit, tax, a fee). Drop them so they never become a "price".
+    SKIP_LINE = /\b(deposit|btl|bottle\s*ret|tax|subtotal|total|balance|amount\s*due|coupon|discount|savings|loyalty|tender|change\s*due|bag\s*fee)\b/i
+
     def normalize_item(item)
       return nil unless item.is_a?(Hash)
       name = item["canonical_name"].to_s.strip.downcase
+      raw  = item["raw_label"].to_s
       cents = dollars_to_cents(item["unit_price"])
       return nil if name.blank? || cents.nil?
-      { canonical_name: name, raw_label: item["raw_label"].to_s.strip.presence,
+      return nil if SKIP_LINE.match?(name) || SKIP_LINE.match?(raw)
+      { canonical_name: name, raw_label: raw.strip.presence,
         unit: item["unit"].to_s.strip.presence, quantity: numeric(item["quantity"]),
         unit_price_cents: cents }
     end

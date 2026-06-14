@@ -14,7 +14,8 @@ class KitchenReceiptTest < ActionDispatch::IntegrationTest
     "items" => [
       { "raw_label" => "BNLS CHKN BRST", "canonical_name" => "Chicken Breast", "quantity" => 2.0, "unit" => "lb", "unit_price" => 6.99 },
       { "raw_label" => "ROMAINE",        "canonical_name" => "romaine lettuce", "quantity" => 1,   "unit" => "each", "unit_price" => 2.99 },
-      { "raw_label" => "TAX",            "canonical_name" => "",               "quantity" => 1,   "unit" => "each", "unit_price" => 3.10 }
+      { "raw_label" => "TAX",            "canonical_name" => "",               "quantity" => 1,   "unit" => "each", "unit_price" => 3.10 },
+      { "raw_label" => "BTL/CAN DEPOSIT", "canonical_name" => "bottle deposit", "quantity" => 1,  "unit" => "each", "unit_price" => 0.60 }
     ]
   }.freeze
 
@@ -64,8 +65,10 @@ class KitchenReceiptTest < ActionDispatch::IntegrationTest
     assert_equal "parsed", receipt.reload.status
     assert_equal 4250, receipt.total_cents
     assert_equal "Wegmans", receipt.store
-    # Two real lines; the TAX line (blank canonical_name) is skipped.
+    # Two real lines; the TAX line (blank name) and the bottle deposit (matches
+    # SKIP_LINE) are both dropped.
     assert_equal 2, receipt.ingredient_prices.count
+    assert_nil receipt.ingredient_prices.find_by(canonical_name: "bottle deposit")
     chicken = receipt.ingredient_prices.find_by(canonical_name: "chicken breast")
     assert_not_nil chicken, "caps name should be normalized to lower-case"
     assert_equal 699, chicken.unit_price_cents
