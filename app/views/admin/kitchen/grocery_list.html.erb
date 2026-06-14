@@ -9,6 +9,11 @@
      "bg-rose-100 text-rose-800 border-rose-300", "bg-teal-100 text-teal-800 border-teal-300" ] %>
 <% chip = ->(tag) { chip_colors[(@tag_index[tag] || 0) % chip_colors.size] } %>
 <% est_total = @result&.ok? ? @result.categories.sum { |cat| Array(cat["items"]).sum { |i| i["price"].to_f } } : 0 %>
+<%# A "pull sheet" is this same list scoped to a single class: drop the
+    multi-class legend / per-item class chips and title it for that one class. %>
+<% single = @single_class %>
+<% single_event = single ? @with_recipe.first&.dig(:event) : nil %>
+<% sheet_title = single ? "NY Kitchen Pull Sheet" : "NY Kitchen Grocery List" %>
 
 <%# data-controller goes on a wrapper INSIDE the frame, not on the frame tag:
     Turbo replaces only the frame's inner HTML on a lazy load and keeps the
@@ -16,35 +21,57 @@
 <%= turbo_frame_tag "grocery_list" do %>
   <div data-controller="recipe-popover" data-recipe-popover-recipes-value="<%= (@recipe_by_tag || {}).to_json %>">
   <p class="text-sm text-gray-400 mb-6">
-    <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
-    <%= pluralize(@with_recipe.size, "class") %> with recipes ·
-    <%= pluralize(@total_headcount, "person") %> booked
+    <% if single && single_event %>
+      <%= single_event.start_at.strftime("%a %b %-d") %> ·
+      <%= pluralize(@total_headcount, "person") %> booked
+    <% else %>
+      <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
+      <%= pluralize(@with_recipe.size, "class") %> with recipes ·
+      <%= pluralize(@total_headcount, "person") %> booked
+    <% end %>
   </p>
 
   <% if @with_recipe.empty? %>
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400">
-      No classes in this range have a recipe attached yet. Add recipes from
-      <%= link_to "Sam's schedule", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>
-      and they will roll into this list.
-    </div>
-  <% elsif @result&.ok? %>
-    <%# Legend: which color is which class. %>
-    <div class="flex flex-wrap gap-2 mb-4 no-print">
-      <% @with_recipe.each do |c| %>
-        <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer <%= chip.call(c[:tag]) %>"
-              tabindex="0" role="button"
-              data-action="mouseenter->recipe-popover#show mouseleave->recipe-popover#hide click->recipe-popover#toggle"
-              data-recipe-popover-tag-param="<%= c[:tag] %>" data-recipe-popover-item-param="">
-          <%= c[:tag] %> <span class="opacity-70">· <%= c[:headcount] %> ppl</span>
-        </span>
+      <% if single %>
+        This class has no recipe attached yet. Add one from
+        <%= link_to "Sam's schedule", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>
+        and the pull sheet will fill in.
+      <% else %>
+        No classes in this range have a recipe attached yet. Add recipes from
+        <%= link_to "Sam's schedule", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>
+        and they will roll into this list.
       <% end %>
     </div>
+  <% elsif @result&.ok? %>
+    <%# Legend: which color is which class. Skipped on a single-class pull sheet. %>
+    <% unless single %>
+      <div class="flex flex-wrap gap-2 mb-4 no-print">
+        <% @with_recipe.each do |c| %>
+          <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer <%= chip.call(c[:tag]) %>"
+                tabindex="0" role="button"
+                data-action="mouseenter->recipe-popover#show mouseleave->recipe-popover#hide click->recipe-popover#toggle"
+                data-recipe-popover-tag-param="<%= c[:tag] %>" data-recipe-popover-item-param="">
+            <%= c[:tag] %> <span class="opacity-70">· <%= c[:headcount] %> ppl</span>
+          </span>
+        <% end %>
+      </div>
+    <% end %>
 
     <div class="bg-white text-gray-900 rounded-xl p-6 print-sheet">
       <div class="flex items-baseline justify-between border-b-2 border-gray-900 pb-2 mb-4">
-        <span class="text-lg font-extrabold">NY Kitchen Grocery List</span>
-        <span class="text-xs text-gray-500"><%= @range.first.strftime("%b %-d") %> to <%= @range.last.strftime("%b %-d") %></span>
+        <span class="text-lg font-extrabold"><%= sheet_title %></span>
+        <span class="text-xs text-gray-500">
+          <% if single && single_event %>
+            <%= single_event.start_at.strftime("%b %-d") %>
+          <% else %>
+            <%= @range.first.strftime("%b %-d") %> to <%= @range.last.strftime("%b %-d") %>
+          <% end %>
+        </span>
       </div>
+      <% if single && single_event %>
+        <p class="text-sm font-semibold text-gray-700 -mt-2 mb-4"><%= single_event.name %></p>
+      <% end %>
       <% @result.categories.each do |cat| %>
         <% next if Array(cat["items"]).empty? %>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1"><%= cat["name"] %></h2>
@@ -58,15 +85,19 @@
                 <% if it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
               </span>
               <%# Which classes need this item. Capped + wrapping so a long tag
-                  list wraps inside the sheet instead of overflowing the edge. %>
-              <span class="flex flex-wrap gap-1 justify-end shrink-0 max-w-[48%]">
-                <% Array(it["classes"]).each do |tag| %>
-                  <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap cursor-pointer <%= chip.call(tag) %>"
-                        tabindex="0" role="button"
-                        data-action="mouseenter->recipe-popover#show mouseleave->recipe-popover#hide click->recipe-popover#toggle"
-                        data-recipe-popover-tag-param="<%= tag %>" data-recipe-popover-item-param="<%= it["item"] %>"><%= tag %></span>
-                <% end %>
-              </span>
+                  list wraps inside the sheet instead of overflowing the edge.
+                  Skipped on a single-class pull sheet (every line is that one
+                  class, so the tags add no information). %>
+              <% unless single %>
+                <span class="flex flex-wrap gap-1 justify-end shrink-0 max-w-[48%]">
+                  <% Array(it["classes"]).each do |tag| %>
+                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap cursor-pointer <%= chip.call(tag) %>"
+                          tabindex="0" role="button"
+                          data-action="mouseenter->recipe-popover#show mouseleave->recipe-popover#hide click->recipe-popover#toggle"
+                          data-recipe-popover-tag-param="<%= tag %>" data-recipe-popover-item-param="<%= it["item"] %>"><%= tag %></span>
+                  <% end %>
+                </span>
+              <% end %>
             </li>
           <% end %>
         </ul>

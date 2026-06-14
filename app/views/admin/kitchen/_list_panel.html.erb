@@ -102,6 +102,7 @@
             <% if week_has_recipe %>
               <% recipe_count = week[:events].count { |e| @handouts_by_url[e.url] } %>
               <% receipt = @receipt_by_week_start && @receipt_by_week_start[week[:start]] %>
+              <% grocery_total = @grocery_total_by_week_start && @grocery_total_by_week_start[week[:start]] %>
               <div class="flex flex-col sm:flex-row gap-3">
                 <%= link_to nyk_grocery_path(from: week[:start].iso8601, to: week[:end].iso8601),
                       title: "Grocery list for #{week[:label]}",
@@ -115,7 +116,15 @@
                     <span class="text-sm font-semibold text-orange-200">Grocery list for this week</span>
                     <span class="text-xs text-orange-300/70">Combined shopping list for <%= pluralize(recipe_count, "class") %> with a recipe</span>
                   </span>
-                  <svg class="w-5 h-5 text-orange-400/60 ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <%# Estimated grocery $ total across the week's classes. Only
+                      shows once the list has been built (read from cache). %>
+                  <% if grocery_total && grocery_total > 0 %>
+                    <span class="ml-auto shrink-0 text-right leading-tight">
+                      <span class="block text-base font-extrabold text-orange-200">~<%= number_to_currency(grocery_total, precision: 0) %></span>
+                      <span class="block text-[10px] uppercase tracking-wide text-orange-300/60">est. total</span>
+                    </span>
+                  <% end %>
+                  <svg class="w-5 h-5 text-orange-400/60 <%= grocery_total && grocery_total > 0 ? "ml-2" : "ml-auto" %> shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                   </svg>
                 <% end %>
