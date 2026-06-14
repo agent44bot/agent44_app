@@ -11,8 +11,8 @@
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
-      background: #0a0a0a;
-      color: #fff;
+      background: #ffffff;
+      color: #111827;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       overflow: hidden;
     }
@@ -27,12 +27,13 @@
       align-items: baseline;
       justify-content: space-between;
       padding-bottom: 2vh;
-      border-bottom: 1px solid #1f1f1f;
+      border-bottom: 2px solid #111827;
     }
     .brand {
       font-size: clamp(20px, 2.4vw, 36px);
       font-weight: 800;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.01em;
+      color: #111827;
     }
     .brand .accent { color: #ea580c; }
     .header .meta {
@@ -64,15 +65,15 @@
     .slide.with-image.active { display: grid; animation: fade 0.6s ease-out; }
     .slide.with-image .name {
       text-align: left;
-      margin-bottom: 3vh;
+      margin-bottom: 2.5vh;
       /* Smaller cap than the no-image variant; long titles otherwise
          dominate the narrow right column. Line-clamp guarantees the
          block height stays sane even for absurdly long class names. */
       font-size: clamp(24px, 3.4vw, 56px);
       display: -webkit-box;
       -webkit-box-orient: vertical;
-      -webkit-line-clamp: 5;
-      line-clamp: 5;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
       overflow: hidden;
     }
     .slide.with-image .details {
@@ -82,12 +83,14 @@
       font-size: clamp(15px, 1.9vw, 30px);
     }
     .slide.with-image .details .icon { text-align: right; }
+    .slide.with-image .blurb { text-align: left; }
+    .slide.with-image .qr-block { align-items: flex-start; }
     .hero-image {
       width: 100%;
       max-height: 70vh;
       object-fit: cover;
       border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.12);
     }
     @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     .slide .name {
@@ -95,7 +98,8 @@
       font-weight: 900;
       letter-spacing: -0.02em;
       line-height: 1.05;
-      margin-bottom: 4vh;
+      color: #111827;
+      margin-bottom: 3.5vh;
     }
     .details {
       display: grid;
@@ -105,19 +109,32 @@
       align-items: center;
       font-size: clamp(18px, 2.6vw, 44px);
       font-weight: 500;
-      color: #e5e7eb;
+      color: #1f2937;
     }
     .details .icon  { font-size: 1.1em; text-align: right; }
     .details .value { text-align: left; }
+    .blurb {
+      margin-top: 2.6vh;
+      color: #4b5563;
+      font-size: clamp(14px, 1.7vw, 26px);
+      line-height: 1.4;
+      max-width: 46ch;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
     .footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding-top: 2vh;
-      border-top: 1px solid #1f1f1f;
+      border-top: 1px solid #e5e7eb;
       font-size: clamp(12px, 1.1vw, 18px);
       color: #6b7280;
     }
+    .footer strong { color: #111827; }
     .pulse {
       display: inline-block;
       width: 8px; height: 8px;
@@ -133,22 +150,18 @@
       font-size: clamp(22px, 2.6vw, 40px);
     }
     .qr-block {
-      margin-top: 4vh;
+      margin-top: 3.5vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 1.2vh;
     }
-    .slide.with-image .qr-block {
-      margin-top: 3vh;
-      align-items: flex-start;
-    }
-    /* White card behind the QR: the helper draws black modules on a
-       transparent ground, which is invisible (and unscannable) on the
-       near-black page. The card gives the scanner the contrast it needs. */
+    /* QR is black modules on white; on the light page a thin border makes it
+       read as a tidy little card. */
     .qr-code {
       background: #fff;
-      padding: 1.4vh;
+      padding: 1.2vh;
+      border: 1px solid #e5e7eb;
       border-radius: 12px;
       line-height: 0;
     }
@@ -159,7 +172,7 @@
     }
     .qr-cap {
       font-size: clamp(13px, 1.3vw, 22px);
-      color: #9ca3af;
+      color: #6b7280;
       letter-spacing: 0.01em;
     }
   </style>
@@ -183,6 +196,7 @@
           <% time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if @agent.setting(:show_end_time) && event.end_at.present? %>
           <% venue = event.venue.presence || "New York Kitchen, Canandaigua" %>
           <% show_image = @agent.setting(:show_image) && event.image_url.present? %>
+          <% blurb = event.description.present? ? truncate(strip_tags(event.description).squish, length: 180, separator: " ") : nil %>
           <article class="slide<%= ' with-image' if show_image %><%= ' active' if i == 0 %>">
             <% if show_image %>
               <img class="hero-image" src="<%= event.image_url %>" alt="" loading="lazy">
@@ -202,6 +216,9 @@
                   <span class="icon">⚡</span><span class="value"><%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left</span>
                 <% end %>
               </div>
+              <% if blurb.present? %>
+                <p class="blurb"><%= blurb %></p>
+              <% end %>
               <% if @agent.setting(:show_qr) && event.url.present? %>
                 <div class="qr-block">
                   <div class="qr-code"><%= qr_svg(event.url) %></div>

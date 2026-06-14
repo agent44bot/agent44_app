@@ -577,6 +577,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "190.00",  response.body
   end
 
+  test "display: shows a brief, HTML-stripped class description when present" do
+    @snapshot.kitchen_events.create!(
+      url: "https://nykitchen.com/events/blurb",
+      name: "Blurb Class", start_at: 3.days.from_now, availability: "InStock",
+      description: "<p>Hands-on <strong>pasta</strong> night with the chefs.</p>"
+    )
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    assert_match "Hands-on pasta night with the chefs.", response.body
+    refute_match "<strong>pasta</strong>", response.body, "HTML tags must be stripped from the blurb"
+  end
+
   test "display: shows a reserve QR code per class by default" do
     create_event("QR Pasta", 3.days.from_now, "InStock")
     create_event("QR Wine",  4.days.from_now, "InStock")
