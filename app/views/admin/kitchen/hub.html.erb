@@ -173,12 +173,6 @@
       <%= link_to workspaces_path(force: 1), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
         ← All workspaces
       <% end %>
-      <% if @can_see_pricing %>
-        <%= link_to nyk_billing_path,
-              class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-900/40 border border-emerald-800/60 text-emerald-300 hover:border-emerald-500 text-xs font-semibold" do %>
-          💵 Billing
-        <% end %>
-      <% end %>
     </div>
   </div>
 
@@ -211,6 +205,14 @@
 
   <% if @nyk_workspace %>
     <div data-collapsible-target="body" class="mb-8">
+      <% if @can_see_pricing %>
+        <div class="mb-6">
+          <%= link_to nyk_billing_path,
+                class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-900/40 border border-emerald-800/60 text-emerald-300 hover:border-emerald-500 text-xs font-semibold" do %>
+            💵 Billing
+          <% end %>
+        </div>
+      <% end %>
       <%= render "workspaces/team",
             workspace:       @nyk_workspace,
             memberships:     @nyk_memberships,
