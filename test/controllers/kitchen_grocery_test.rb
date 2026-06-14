@@ -144,5 +144,4 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
   ensure
     Rails.cache = original
   end
-
 end
