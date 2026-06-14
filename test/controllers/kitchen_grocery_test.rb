@@ -132,6 +132,65 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal "Two weeks out", @captured.first[:class_name]
   end
 
+  # --- Pull sheet: the same list scoped to a single class -------------------
+
+  test "the pull sheet shell shows the class and hides the day-range pills" do
+    url = add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path(event_url: url, name: "Ravioli") # no Turbo-Frame header
+    assert_response :success
+    assert_match "Pull sheet", response.body
+    assert_match "Ravioli", response.body
+    assert_match "Building your grocery list", response.body
+    assert_no_match "This weekend", response.body, "day-range pills don't apply to one class"
+    assert_equal 0, @agg_calls, "shell must not call the aggregator"
+  end
+
+  test "the pull sheet frame builds a list for only the selected class" do
+    url = add_class("Ravioli", "groc-rav", 1, booked: 12)
+    add_class("Other Class", "groc-other", 1, booked: 8) # also has a recipe, same week
+    get nyk_grocery_path(event_url: url, name: "Ravioli"), headers: FRAME
+    assert_response :success
+    assert_match "NY Kitchen Pull Sheet", response.body
+    assert_match "Flour", response.body
+    assert_equal 1, @captured.size, "only the selected class goes to the aggregator"
+    assert_equal "Ravioli", @captured.first[:class_name]
+  end
+
+  test "the pull sheet flags a class that has no recipe" do
+    url = add_class("No Recipe", "groc-no", 1, booked: 4, recipe: false)
+    get nyk_grocery_path(event_url: url, name: "No Recipe"), headers: FRAME
+    assert_response :success
+    assert_match "no recipe attached yet", response.body
+    assert_equal 0, @agg_calls
+  end
+
+  # --- Week card estimated total (read from cache, never re-bills) -----------
+
+  test "the week grocery card shows the estimated total once the list is built" do
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    # Warm the cache. The key is the recipe set (not the date range), so any
+    # range covering the class produces the same key the list card reads.
+    get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME
+    assert_equal 1, @agg_calls
+
+    get nyk_list_path
+    assert_response :success
+    assert_match "est. total", response.body
+    assert_equal 1, @agg_calls, "the list render must not re-bill the aggregator"
+  ensure
+    Rails.cache = original
+  end
+
+  test "the week grocery card omits the total when no list is cached yet" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_list_path
+    assert_response :success
+    assert_no_match "est. total", response.body
+    assert_equal 0, @agg_calls, "a cold list render never calls the aggregator"
+  end
+
   test "caches the aggregation: same recipe set does not re-bill Claude" do
     original = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new

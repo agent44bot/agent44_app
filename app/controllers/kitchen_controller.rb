@@ -59,6 +59,12 @@ class KitchenController < ApplicationController
     @receipt_by_week_start = GroceryReceipt.recent_first.where.not(week_start: nil)
                                            .group_by(&:week_start).transform_values(&:first)
     load_events_data
+    # Estimated grocery $ total per week for the orange "Grocery list" card.
+    # Read from cache ONLY (never bills Opus on a list render): the number
+    # appears once that week's grocery list has been built at least once.
+    @grocery_total_by_week_start = @weeks.to_h do |w|
+      [ w[:start], cached_grocery_total_for(w[:events]) ]
+    end
     render "admin/kitchen/list", layout: "application"
   end
 
@@ -68,9 +74,17 @@ class KitchenController < ApplicationController
   # use case); ?days=N widens the window.
   def grocery
     @default_days = default_grocery_days
-    # A specific week (from the cart icon on Sam's list) takes priority; else a
-    # forward "next N days" window from today.
-    if (from = parse_date(params[:from])) && (to = parse_date(params[:to])) && from <= to
+    # A single class "pull sheet" (event_url from a class row on Sam's list)
+    # takes top priority: just that one class's shopping list, printable on
+    # demand. Then a specific week (the cart icon); else a forward N-day window.
+    if (url = params[:event_url].presence)
+      @single_class = true
+      @event_url    = url
+      @event_name   = params[:name].to_s
+      # No date window: load_grocery_data scopes to the one class by URL. A wide
+      # range keeps any range-based fallback happy.
+      @range = Date.current..(Date.current + 1.year)
+    elsif (from = parse_date(params[:from])) && (to = parse_date(params[:to])) && from <= to
       @range = from..to
       @week_mode = true
     else
@@ -889,23 +903,25 @@ class KitchenController < ApplicationController
   # short colored tag, and run (or fetch from cache) the aggregated list.
   def load_grocery_data
     snapshot = KitchenSnapshot.latest
-    handouts = KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
+    handouts = handouts_by_event_url
     # Include SOLD-OUT classes: those are the fullest ones, exactly what you
     # need to shop for (unlike the promo flyer, which hides sold-out classes).
-    events = snapshot ? snapshot.kitchen_events.upcoming
-                                .select { |e| @range.cover?(e.start_at.to_date) }
-                                .sort_by(&:start_at) : []
-
-    @with_recipe = []
-    @without_recipe = []
-    events.each do |e|
-      if (h = handouts[e.url])
-        @with_recipe << { event: e, handout: h, tag: grocery_tag(e),
-                          headcount: grocery_headcount(e), stations: grocery_stations(e) }
+    # A pull sheet (@single_class) scopes to one class by URL; otherwise the
+    # whole date window.
+    events = if snapshot
+      scope = snapshot.kitchen_events.upcoming
+      scope = if @single_class
+        scope.select { |e| e.url == @event_url }
       else
-        @without_recipe << e
+        scope.select { |e| @range.cover?(e.start_at.to_date) }
       end
+      scope.sort_by(&:start_at)
+    else
+      []
     end
+
+    @with_recipe    = build_with_recipe(events)
+    @without_recipe = events.reject { |e| handouts[e.url] }
 
     @total_headcount = @with_recipe.sum { |c| c[:headcount].to_i }
     # Index per tag -> the view maps it to a (Tailwind-scannable) chip color.
@@ -940,10 +956,40 @@ class KitchenController < ApplicationController
     result
   end
 
+  # All recipe handouts indexed by the event URL they're attached to. Loaded
+  # once per request (the list page reads it for every week's total).
+  def handouts_by_event_url
+    @handouts_by_event_url ||=
+      KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
+  end
+
+  # Turn a set of events into the grocery aggregator's per-class input: only the
+  # ones with a recipe, each tagged and scaled by booked stations.
+  def build_with_recipe(events)
+    handouts = handouts_by_event_url
+    events.filter_map do |e|
+      h = handouts[e.url] or next
+      { event: e, handout: h, tag: grocery_tag(e),
+        headcount: grocery_headcount(e), stations: grocery_stations(e) }
+    end
+  end
+
+  # Estimated grocery $ total for a set of events (one week), read from cache
+  # ONLY so a list render never bills Opus. Returns nil until that week's list
+  # has been built at least once (then the orange card shows the figure).
+  def cached_grocery_total_for(events)
+    with_recipe = build_with_recipe(events)
+    return nil if with_recipe.empty?
+    result = Rails.cache.read(grocery_cache_key(with_recipe, observed_prices_hint))
+    return nil unless result&.ok?
+    result.categories.sum { |cat| Array(cat["items"]).sum { |i| i["price"].to_f } }
+  end
+
   # Most recent observed unit price per ingredient (from uploaded receipts) as a
   # plain hash the aggregator folds into its prompt: { name => {price, unit} }.
+  # Memoized: the list page reads it once per week when totaling.
   def observed_prices_hint
-    IngredientPrice.recent_by_name.transform_values do |ip|
+    @observed_prices_hint ||= IngredientPrice.recent_by_name.transform_values do |ip|
       { "price" => ip.unit_price_dollars, "unit" => ip.unit }
     end
   end
