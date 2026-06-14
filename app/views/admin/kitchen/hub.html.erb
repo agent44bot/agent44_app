@@ -160,7 +160,7 @@
      data-controller="collapsible"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <div class="flex justify-between items-center mb-6 text-sm">
+  <div class="flex justify-between items-start mb-6 text-sm">
     <div class="flex items-center gap-2">
       <% if Current.user&.email_address == "botwhisperer@hey.com" %>
         <%= link_to admin_track_path(range: "today"),
@@ -168,43 +168,49 @@
           👁 Track users
         <% end %>
       <% end %>
-      <% if @can_see_pricing %>
-        <%= link_to nyk_billing_path,
-              class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-900/40 border border-emerald-800/60 text-emerald-300 hover:border-emerald-500 text-xs font-semibold" do %>
-          💵 Billing
-        <% end %>
+    </div>
+    <div class="flex flex-col items-end gap-2">
+      <%= link_to workspaces_path(force: 1), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
+        ← All workspaces
       <% end %>
     </div>
-    <%= link_to workspaces_path(force: 1), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
-      ← All workspaces
-    <% end %>
   </div>
 
-  <div class="mb-8">
-    <div class="ra-eyebrow mb-2">Agent 44 · Field Roster</div>
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      <h1 class="ra-h1 text-4xl text-white">NY Kitchen</h1>
-      <div class="flex items-center gap-2">
-        <% if @nyk_workspace %>
-          <button type="button"
-                  data-action="click->collapsible#toggle"
-                  aria-label="Workspace settings"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
-            </svg>
-          </button>
-        <% end %>
+  <div class="mb-8 flex items-start justify-between gap-3">
+    <div class="flex items-center gap-4 min-w-0">
+      <% if @nyk_workspace&.logo&.attached? %>
+        <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-16 w-auto shrink-0" %>
+      <% end %>
+      <div class="min-w-0">
+        <div class="ra-eyebrow mb-1">Agent 44 · Field Roster</div>
+        <h1 class="ra-h1 text-4xl text-white">NY Kitchen</h1>
+        <p class="ra-onduty mt-2 flex items-center gap-2">
+          <%= agent_dot.call(:running, "Fleet on duty") %>
+          <span><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %> on duty<% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
+        </p>
       </div>
     </div>
-    <p class="ra-onduty mt-3 flex items-center gap-2">
-      <%= agent_dot.call(:running, "Fleet on duty") %>
-      <span><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %> on duty<% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
-    </p>
+    <% if @nyk_workspace %>
+      <button type="button"
+              data-action="click->collapsible#toggle"
+              aria-label="Workspace settings"
+              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+        </svg>
+        Settings
+      </button>
+    <% end %>
   </div>
 
   <% if @nyk_workspace %>
     <div data-collapsible-target="body" class="mb-8">
+      <% if @can_see_pricing %>
+        <%= link_to nyk_billing_path,
+              class: "flex items-center justify-center gap-2 w-full px-4 py-3 mb-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition" do %>
+          💵 Billing
+        <% end %>
+      <% end %>
       <%= render "workspaces/team",
             workspace:       @nyk_workspace,
             memberships:     @nyk_memberships,

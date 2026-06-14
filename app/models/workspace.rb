@@ -12,11 +12,20 @@ class Workspace < ApplicationRecord
   has_many :workspace_agents,  dependent: :destroy
   has_many :usage_events,      dependent: :destroy # metered billable actions
 
+  # Brand logo for the workspace (white-label: shown on the workspace's pages
+  # in place of the generic mark). Stored on the persistent volume via
+  # ActiveStorage (STORAGE_ROOT=/data/storage in prod).
+  has_one_attached :logo
+
+  LOGO_TYPES = %w[image/png image/jpeg image/webp].freeze
+  LOGO_MAX_BYTES = 2.megabytes
+
   validates :name, presence: true, length: { maximum: 100 }
   validates :slug, presence: true, uniqueness: true,
                    format: { with: /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z/ },
                    length: { maximum: 60 }
   validates :timezone, presence: true
+  validate :acceptable_logo
 
   before_validation :generate_slug, on: :create
   after_create :ensure_owner_membership
@@ -81,6 +90,16 @@ class Workspace < ApplicationRecord
   end
 
   private
+
+  def acceptable_logo
+    return unless logo.attached?
+    unless logo.blob.content_type.in?(LOGO_TYPES)
+      errors.add(:logo, "must be a PNG, JPEG, or WebP image")
+    end
+    if logo.blob.byte_size > LOGO_MAX_BYTES
+      errors.add(:logo, "must be 2 MB or smaller")
+    end
+  end
 
   def generate_slug
     return if slug.present?

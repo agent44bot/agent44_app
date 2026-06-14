@@ -31,6 +31,23 @@
 
 <% if admin %>
   <section class="mb-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Brand logo</h2>
+    <%= form_with model: workspace, url: workspace_path(workspace.slug), method: :patch, local: true,
+                  html: { multipart: true }, class: "flex flex-wrap items-center gap-3" do |f| %>
+      <% if workspace.logo.attached? %>
+        <%= image_tag workspace.logo, alt: "current logo", class: "h-10 w-auto rounded bg-white/5 p-1" %>
+      <% end %>
+      <%= f.file_field :logo, accept: "image/png,image/jpeg,image/webp",
+            class: "text-sm text-gray-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-gray-700 file:text-white file:cursor-pointer" %>
+      <% if workspace.logo.attached? %>
+        <label class="text-xs text-gray-400 inline-flex items-center gap-1"><%= check_box_tag "workspace[remove_logo]", "1" %> remove</label>
+      <% end %>
+      <%= f.submit "Save logo", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+    <p class="text-xs text-gray-500 mt-2">PNG, JPEG, or WebP, up to 2 MB. Shown on your workspace pages.</p>
+  </section>
+
+  <section class="mb-10">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Invite a teammate</h2>
     <%= form_with url: workspace_invitations_path(workspace_slug: workspace.slug), local: true, class: "flex flex-wrap gap-2" do |f| %>
       <%= f.email_field :email, required: true, placeholder: "boss@magenta.com",
@@ -119,6 +136,7 @@
     </section>
   <% end %>
 
+  <% if my_role == "owner" %>
   <section class="mt-12 pt-6 border-t border-red-950">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-red-500 mb-3">Danger zone</h2>
     <div class="rounded-lg border border-red-900 bg-red-950/20 p-4 flex flex-wrap items-center justify-between gap-3">
@@ -138,4 +156,5 @@
           class: "inline-flex items-center px-4 py-2 rounded-md bg-red-900 hover:bg-red-800 text-white text-sm font-semibold cursor-pointer" %>
     </div>
   </section>
+  <% end %>
 <% end %>
