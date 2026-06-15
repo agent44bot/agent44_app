@@ -623,4 +623,70 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Strawberry Crostini / Strawberry Shortcake",
                  KitchenSnapshot.find_by(taken_on: @today).kitchen_events.first.menu
   end
+
+  # --- Wrongly-closed safeguard (fat-fingered sales-end date) ---
+
+  private def warning_alerts
+    Notification.where(source: "kitchen_tickets", level: "warning")
+  end
+  public
+
+  test "alerts when a far-out class is closed with seats still open" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/mystery", name: "Mystery Dinner",
+          start_at: 30.days.from_now.iso8601, spots_left: 10, capacity: 24,
+          availability: "Closed" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+
+    alert = warning_alerts.order(created_at: :desc).first
+    assert_not_nil alert, "Expected a wrongly-closed warning"
+    assert_includes alert.title, "closed too early"
+    assert_includes alert.title, "Mystery Dinner"
+  end
+
+  test "does not alert for normal near-term cutoffs, full classes, or sold-out classes" do
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/near", name: "Tomorrow",
+          start_at: 3.days.from_now.iso8601, spots_left: 10, capacity: 24, availability: "Closed" },
+        { url: "https://nykitchen.com/events/full", name: "Full",
+          start_at: 30.days.from_now.iso8601, spots_left: 0, capacity: 24, availability: "Closed" },
+        { url: "https://nykitchen.com/events/sold", name: "Gone",
+          start_at: 30.days.from_now.iso8601, spots_left: 0, capacity: 24, availability: "SoldOut" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+    assert_equal 0, warning_alerts.count
+  end
+
+  test "does not re-alert a wrongly-closed class on a later snapshot, but does on a fresh open-to-closed flip" do
+    yesterday = (Date.current - 1).to_s
+
+    # Yesterday: class A already wrongly closed (fires), class B still bookable.
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: yesterday, events: [
+        { url: "https://nykitchen.com/events/a", name: "Class A",
+          start_at: 30.days.from_now.iso8601, spots_left: 10, capacity: 24, availability: "Closed" },
+        { url: "https://nykitchen.com/events/b", name: "Class B",
+          start_at: 30.days.from_now.iso8601, spots_left: 10, capacity: 24, availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+    assert_equal 1, warning_alerts.count
+
+    # Today: A is STILL closed (must not re-alert); B newly flips to closed (fires).
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/events/a", name: "Class A",
+          start_at: 30.days.from_now.iso8601, spots_left: 10, capacity: 24, availability: "Closed" },
+        { url: "https://nykitchen.com/events/b", name: "Class B",
+          start_at: 30.days.from_now.iso8601, spots_left: 10, capacity: 24, availability: "Closed" }
+      ] }.to_json,
+      headers: @headers
+
+    assert_equal 2, warning_alerts.count, "A should not re-alert; only B's new flip should"
+    assert_includes warning_alerts.order(created_at: :desc).first.title, "Class B"
+  end
 end

@@ -370,6 +370,31 @@ class KitchenSnapshot < ApplicationRecord
     { added: d[:newly_added].size, removed: d[:removed].size, price_changes: d[:price_changes].size }
   end
 
+  # A class this many days out shouldn't have online sales closed yet: it's well
+  # beyond NYK's normal pre-class sales cutoff, so a "Closed" state this far ahead
+  # means a fat-fingered sales-end date, not a routine cutoff. Tunable; raise it
+  # if NYK closes sales further ahead than two weeks as a matter of course.
+  WRONGLY_CLOSED_MIN_DAYS = 14
+
+  # Future classes whose online sales read "Closed" ("Tickets no longer
+  # available") too far ahead to be a normal cutoff, with seats still unsold —
+  # the fat-fingered-date bug Lora's team keeps catching by hand (a class months
+  # out wrongly showing no tickets available). Two shapes both qualify:
+  #   * created already-closed, never sold a ticket → no capacity signal at all
+  #     (a Closed page hides capacity), so capacity_known? is false; and
+  #   * an established class wrongly flipped to Closed with seats still open →
+  #     capacity carried forward, so tickets_sold < tickets_total.
+  # A genuine sellout reads "SoldOut" (not "Closed") or has tickets_sold ==
+  # tickets_total, so neither trips this. Returns events sorted by date.
+  def self.wrongly_closed_upcoming(snapshot: latest)
+    return [] unless snapshot
+    cutoff = Date.current + WRONGLY_CLOSED_MIN_DAYS
+    snapshot.kitchen_events.upcoming.select { |e|
+      next false unless e.sales_ended? && e.start_at.to_date >= cutoff
+      e.capacity_known? ? e.tickets_sold.to_i < e.tickets_total.to_i : true
+    }.sort_by(&:start_at)
+  end
+
   # Upcoming classes sold out now that were tracked-and-open at the last snapshot
   # on/before `date` — i.e. genuinely flipped to sold out since then.
   def self.newly_sold_out_since(date)

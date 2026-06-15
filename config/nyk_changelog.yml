@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-15
+  note: We now watch for classes that show no tickets available too far out to be a normal cutoff while seats are still open, which usually means a wrong sales-end date was typed in. When one turns up you get an alert the same day so it can be fixed on Tock before it quietly loses bookings. A genuine sold-out class does not trigger it.
+
+- date: 2026-06-15
   note: The recipe button on each class row is now clearer. It says Add when a class has no recipe and Edit (pencil) when it does, and it always opens the recipe screen. You print the recipe from that screen with the Print recipe button, so the same spot no longer flips between Recipe and Print.
 
 - date: 2026-06-14

@@ -63,6 +63,10 @@ module Api
 
         # Capture current spots before overwriting so we can detect changes
         prev_spots = snapshot.persisted? ? snapshot.kitchen_events.pluck(:url, :spots_left).to_h : {}
+        # Same-day pre-write availability (Argus scrapes twice a day into one
+        # snapshot) — lets the wrongly-closed alert dedupe within the day, not
+        # just day-over-day.
+        prev_avail = snapshot.persisted? ? snapshot.kitchen_events.pluck(:url, :availability).to_h : {}
 
         snapshot.kitchen_events.destroy_all if snapshot.persisted?
         snapshot.save!
@@ -136,6 +140,7 @@ module Api
         end
 
         notify_ticket_changes(snapshot, prev_spots)
+        notify_wrongly_closed(snapshot, prev_events, prev_avail)
 
         render json: { snapshot_id: snapshot.id, taken_on: taken_on, events_created: created }, status: :created
       rescue => e
@@ -143,6 +148,36 @@ module Api
       end
 
       private
+
+      # Safeguard against a fat-fingered sales-end date: a future class whose
+      # online sales read "Closed" too far ahead to be a normal cutoff, with
+      # seats still unsold (Lora's team keeps catching these by hand). Alert only
+      # on classes NEWLY in that state since the prior snapshot — created
+      # already-closed, or flipped open → closed — so a stuck one doesn't
+      # re-alert every day until someone fixes the date on Tock. "Previous state"
+      # is the same-day pre-write availability if we re-scraped today, else
+      # yesterday's snapshot — so neither a twice-daily run nor a new day fires a
+      # duplicate.
+      def notify_wrongly_closed(snapshot, prev_events, prev_avail)
+        newly = KitchenSnapshot.wrongly_closed_upcoming(snapshot: snapshot).select do |e|
+          was = prev_avail[e.url] || prev_events[e.url]&.availability
+          was.nil? || !was.to_s.downcase.include?("closed")
+        end
+        return if newly.empty?
+
+        if newly.size == 1
+          e = newly.first
+          title = "Class closed too early: #{e.name}"
+          body  = "Sales are off for #{e.start_at.strftime('%a %b %-d')}, but seats remain. Looks like a wrong sales-end date. Check it on Tock."
+        else
+          title = "#{newly.size} classes closed too early"
+          lines = newly.first(5).map { |e| "#{e.name} (#{e.start_at.strftime('%b %-d')})" }
+          lines << "+ #{newly.size - 5} more" if newly.size > 5
+          body = "Sales are off but seats remain. Looks like wrong sales-end dates. Check them on Tock.\n\n" + lines.join("\n")
+        end
+
+        broadcast_kitchen_alert(title: title, body: body, apns_url: "/nykitchen", apns_subtitle: nil, level: "warning")
+      end
 
       def notify_ticket_changes(snapshot, prev_spots)
         return if prev_spots.empty?
@@ -231,9 +266,9 @@ module Api
       # recipient so each recipient's iOS app icon badge tracks their own
       # unread count. Recipients are admins + members of the ny-kitchen
       # workspace (today: Rich + Lora).
-      def broadcast_kitchen_alert(title:, body:, apns_url:, apns_subtitle:)
+      def broadcast_kitchen_alert(title:, body:, apns_url:, apns_subtitle:, level: "info")
         Notification.notify!(
-          level: "info",
+          level: level,
           source: "kitchen_tickets",
           title: title,
           body: body,
@@ -243,7 +278,7 @@ module Api
 
         kitchen_recipients.each do |user|
           Notification.notify!(
-            level: "info",
+            level: level,
             source: "kitchen_tickets",
             title: title,
             body: body,
