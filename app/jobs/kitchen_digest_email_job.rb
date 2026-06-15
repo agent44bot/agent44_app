@@ -37,11 +37,6 @@ class KitchenDigestEmailJob < ApplicationJob
     digest[:snapshot_date] = snapshot.taken_on
     digest[:stale_data]    = snapshot.taken_on != today
 
-    # Selling-fastest / needs-a-push leaderboards (the upcoming, actionable
-    # views — email can't toggle, so we skip the all-time variants).
-    digest[:selling_fastest] = KitchenSnapshot.selling_fastest(snapshot: snapshot)
-    digest[:needs_a_push]    = KitchenSnapshot.needs_a_push(snapshot: snapshot)
-
     KitchenMailer.daily_digest(digest, recipients: RECIPIENTS).deliver_now
 
     Rails.logger.info("KitchenDigestEmailJob: sent to #{RECIPIENTS} (snapshot #{snapshot.taken_on})")
