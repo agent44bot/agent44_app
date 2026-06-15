@@ -109,11 +109,11 @@
       <table class="w-full text-sm">
         <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
           <tr>
-            <th class="px-3 py-2 text-left">Date</th>
-            <th class="px-3 py-2 text-left">Vendor</th>
-            <th class="px-3 py-2 text-right">Amount</th>
-            <th class="px-3 py-2 text-left">Category</th>
-            <th class="px-3 py-2 text-center">Excluded</th>
+            <th class="px-3 py-2 text-left"><%= expense_sort_header "Date", "date", year: @year, current_sort: @sort, current_dir: @dir %></th>
+            <th class="px-3 py-2 text-left"><%= expense_sort_header "Vendor", "vendor", year: @year, current_sort: @sort, current_dir: @dir %></th>
+            <th class="px-3 py-2 text-right"><%= expense_sort_header "Amount", "amount", year: @year, current_sort: @sort, current_dir: @dir, align: "right" %></th>
+            <th class="px-3 py-2 text-left"><%= expense_sort_header "Category", "category", year: @year, current_sort: @sort, current_dir: @dir %></th>
+            <th class="px-3 py-2 text-center"><%= expense_sort_header "Excluded", "excluded", year: @year, current_sort: @sort, current_dir: @dir, align: "center" %></th>
             <th class="px-3 py-2"></th>
           </tr>
         </thead>

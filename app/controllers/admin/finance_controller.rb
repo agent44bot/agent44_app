@@ -4,11 +4,26 @@ module Admin
     # Not a precise calculation; see the note on the page.
     SET_ASIDE_RATE = 0.30
 
+    # Whitelist of sortable expense columns (UI key => DB column). Kept as a
+    # whitelist so the sort param can never inject arbitrary SQL.
+    EXPENSE_SORTS = {
+      "date"     => :incurred_on,
+      "vendor"   => :vendor,
+      "amount"   => :amount,
+      "category" => :category,
+      "excluded" => :excluded
+    }.freeze
+
     def index
       @year = (params[:year] || Time.zone.now.year).to_i
       @years = available_years
 
-      @expenses = Expense.for_year(@year).order(incurred_on: :desc)
+      @sort = EXPENSE_SORTS.key?(params[:sort]) ? params[:sort] : "date"
+      @dir  = params[:dir] == "asc" ? "asc" : "desc"
+      col   = EXPENSE_SORTS[@sort]
+      @expenses = Expense.for_year(@year).order(col => @dir.to_sym)
+      # Stable secondary order by date so equal categories/flags don't shuffle.
+      @expenses = @expenses.order(incurred_on: :desc) unless col == :incurred_on
       @category_totals = Expense.category_totals(@year).sort_by { |_, v| -v }
       @expense_total = Expense.year_total(@year)
       @flagged_count = Expense.for_year(@year).flagged.count

@@ -61,6 +61,27 @@ class Admin::FinanceControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "sorts expense line items by a whitelisted column and toggles direction" do
+    Expense.create!(incurred_on: Date.new(2026, 3, 1), vendor: "Cheap Co", amount: 5, category: "Hosting", fingerprint: SecureRandom.hex)
+    Expense.create!(incurred_on: Date.new(2026, 3, 2), vendor: "Pricey Co", amount: 500, category: "Hosting", fingerprint: SecureRandom.hex)
+    sign_in_as(@admin)
+
+    get admin_finance_path(year: 2026, sort: "amount", dir: "asc")
+    assert_response :success
+    assert_operator response.body.index("Cheap Co"), :<, response.body.index("Pricey Co")
+
+    get admin_finance_path(year: 2026, sort: "amount", dir: "desc")
+    assert_operator response.body.index("Pricey Co"), :<, response.body.index("Cheap Co")
+  end
+
+  test "ignores an unknown or malicious sort param and still renders" do
+    Expense.create!(incurred_on: Date.new(2026, 3, 1), vendor: "Fly.io", amount: 10, category: "Hosting", fingerprint: SecureRandom.hex)
+    sign_in_as(@admin)
+    get admin_finance_path(year: 2026, sort: "amount); DROP TABLE expenses;--", dir: "sideways")
+    assert_response :success
+    assert_match "Fly.io", response.body
+  end
+
   test "updating an expense can exclude it from totals" do
     e = Expense.create!(incurred_on: Date.new(2026, 1, 1), vendor: "NordVPN", amount: 92.28, category: "Software", fingerprint: SecureRandom.hex)
     sign_in_as(@admin)
