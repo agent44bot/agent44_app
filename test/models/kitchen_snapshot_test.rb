@@ -376,4 +376,43 @@ class KitchenSnapshotTest < ActiveSupport::TestCase
     assert_equal 7, res[:tickets]
     assert_in_delta 270.0, res[:revenue], 0.01
   end
+
+  # --- wrongly_closed_upcoming (fat-fingered sales-end-date safeguard) ---
+
+  test "wrongly_closed_upcoming flags far-out Closed classes with seats, not genuine sellouts or normal cutoffs" do
+    far  = 30.days.from_now      # well past WRONGLY_CLOSED_MIN_DAYS
+    near = 3.days.from_now       # inside the normal pre-class cutoff window
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+
+    # Flagged: created already-closed, no capacity signal at all (never sold).
+    snap.kitchen_events.create!(url: "u/new-closed", name: "New Closed",
+      start_at: far, spots_left: 0, capacity: nil, availability: "Closed")
+    # Flagged: established class wrongly closed with seats still open.
+    snap.kitchen_events.create!(url: "u/seats-left", name: "Seats Left",
+      start_at: far, spots_left: 10, capacity: 24, availability: "Closed")
+    # NOT flagged: Closed but actually full (a real sellout that then closed).
+    snap.kitchen_events.create!(url: "u/full", name: "Full",
+      start_at: far, spots_left: 0, capacity: 24, availability: "Closed")
+    # NOT flagged: Closed but only a few days out — a normal sales cutoff.
+    snap.kitchen_events.create!(url: "u/near", name: "Near",
+      start_at: near, spots_left: 10, capacity: 24, availability: "Closed")
+    # NOT flagged: a genuine sellout reads SoldOut, not Closed.
+    snap.kitchen_events.create!(url: "u/soldout", name: "Sold Out",
+      start_at: far, spots_left: 0, capacity: 24, availability: "SoldOut")
+    # NOT flagged: still bookable.
+    snap.kitchen_events.create!(url: "u/instock", name: "In Stock",
+      start_at: far, spots_left: 10, capacity: 24, availability: "InStock")
+
+    flagged = KitchenSnapshot.wrongly_closed_upcoming(snapshot: snap).map(&:name)
+    assert_equal [ "New Closed", "Seats Left" ], flagged.sort
+  end
+
+  test "wrongly_closed_upcoming ignores past classes and returns [] with no snapshot" do
+    assert_equal [], KitchenSnapshot.wrongly_closed_upcoming(snapshot: nil)
+
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+    snap.kitchen_events.create!(url: "u/past", name: "Past",
+      start_at: 30.days.ago, spots_left: 10, capacity: 24, availability: "Closed")
+    assert_equal [], KitchenSnapshot.wrongly_closed_upcoming(snapshot: snap)
+  end
 end
