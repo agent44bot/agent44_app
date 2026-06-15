@@ -129,8 +129,10 @@
                   </svg>
                 <% end %>
 
+                <%# flex so the button stretches to the full card height (matching
+                    the taller grocery card when its subtitle wraps). %>
                 <%= form_with url: nyk_grocery_receipts_path, method: :post, multipart: true,
-                      data: { controller: "receipt-upload" }, class: "flex-1" do %>
+                      data: { controller: "receipt-upload" }, class: "flex-1 flex" do %>
                   <%= hidden_field_tag :from, week[:start].iso8601 %>
                   <%= hidden_field_tag :to, week[:end].iso8601 %>
                   <%= file_field_tag :receipt, accept: "image/*,application/pdf", class: "hidden",
