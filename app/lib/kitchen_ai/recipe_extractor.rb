@@ -196,10 +196,24 @@ module KitchenAi
         return Result.new(ok?: false, error: "Too many redirects.") if redirects_left <= 0
         http_get(URI.join(uri, resp["location"]).to_s, redirects_left: redirects_left - 1)
       else
-        Result.new(ok?: false, error: "Could not load that page (#{resp.code}).")
+        Result.new(ok?: false, error: fetch_error_for(resp.code))
       end
     rescue URI::InvalidURIError
       Result.new(ok?: false, error: "That does not look like a web address.")
+    end
+
+    # Some big recipe sites (e.g. marthastewart.com / People Inc) hard-block
+    # server-side fetches with 402/403/429/451 no matter the headers, so a raw
+    # "(402)" reads like our bug. Point the user at the paste/PDF path, which
+    # always works, instead of an arms race we can't win from a server.
+    BLOCKED_FETCH_CODES = %w[401 402 403 429 451].freeze
+    def fetch_error_for(code)
+      if BLOCKED_FETCH_CODES.include?(code.to_s)
+        "That site blocks automatic recipe import. Open the recipe, copy the " \
+        "ingredients and steps, and paste them here, or upload it as a PDF."
+      else
+        "Could not load that page (#{code}). Try pasting the recipe text or a PDF instead."
+      end
     end
 
     def private_host?(host)

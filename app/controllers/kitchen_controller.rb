@@ -153,6 +153,23 @@ class KitchenController < ApplicationController
     redirect_to nyk_prices_path, notice: "Removed #{price.canonical_name}."
   end
 
+  # Override for how many people one ticket covers (1 or 2), keyed by the class
+  # url so it sticks across the nightly snapshot rebuild. Clearing it falls back
+  # to the auto-detected signal. Redirects back so the lazy grocery frame
+  # rebuilds the list with the new headcount. Same access level as the sibling
+  # pantry-price edits (any signed-in NYK user who reaches the page).
+  def update_portion
+    url = params[:url].to_s
+    key = "#{KitchenEvent::PORTION_OVERRIDE_PREFIX}#{url}"
+    n   = params[:people_per_ticket].to_i
+    if [ 1, 2 ].include?(n)
+      Setting.set(key, n)
+    else
+      Setting.delete_key(key) # blank/0 = clear the override, use auto-detect
+    end
+    redirect_back fallback_location: nyk_grocery_path, notice: "Updated ticket portion."
+  end
+
   def test
     load_smoke_data
     render "admin/kitchen/test", layout: "application"
@@ -886,10 +903,12 @@ class KitchenController < ApplicationController
     [ (7 - Date.current.cwday) % 7, 3 ].max
   end
 
-  # Bookings for a class. tickets_sold is the live count; fall back to 0 so the
-  # class still appears (the list flags it) rather than vanishing.
+  # People to cook for. tickets_sold is the live count; fall back to 0 so the
+  # class still appears (the list flags it) rather than vanishing. A ticket can
+  # cover two people (couples classes), so scale by people_per_ticket or the
+  # food is bought for half the room.
   def grocery_headcount(event)
-    event.tickets_sold.to_i
+    event.tickets_sold.to_i * event.people_per_ticket
   end
 
   # Hands-On Kitchen stations are ~2 people each, and recipe station_qty is
@@ -970,7 +989,8 @@ class KitchenController < ApplicationController
     events.filter_map do |e|
       h = handouts[e.url] or next
       { event: e, handout: h, tag: grocery_tag(e),
-        headcount: grocery_headcount(e), stations: grocery_stations(e) }
+        headcount: grocery_headcount(e), stations: grocery_stations(e),
+        per_ticket: e.people_per_ticket, per_ticket_overridden: e.portion_overridden? }
     end
   end
 

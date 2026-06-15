@@ -26,6 +26,25 @@ class RecipeExtractorUrlTest < ActiveSupport::TestCase
     assert_not fetch("not a url").ok?
   end
 
+  # Anti-bot codes (402 from marthastewart.com, 403/429/451 elsewhere) get a
+  # clear "paste or PDF" message instead of a raw "(402)" that reads like a bug.
+  def fetch_error(code)
+    KitchenAi::RecipeExtractor.new.send(:fetch_error_for, code)
+  end
+
+  test "blocked fetch codes point the user at paste/PDF" do
+    %w[401 402 403 429 451].each do |code|
+      assert_match(/paste|PDF/i, fetch_error(code), "code #{code}")
+      assert_no_match(/#{code}/, fetch_error(code), "blocked msg should not show the raw code")
+    end
+  end
+
+  test "other fetch codes keep the code and still suggest paste/PDF" do
+    msg = fetch_error("500")
+    assert_match(/500/, msg)
+    assert_match(/paste|PDF/i, msg)
+  end
+
   # JSON-LD parsing (no network): the recipe card text is built from the
   # embedded schema, so ingredients reach the model even when the card sits far
   # down a long page.
