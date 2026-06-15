@@ -14,10 +14,11 @@ module KitchenAi
     WARM_LOCK_TTL = 10.minutes
 
     class << self
-      # Bookings for a class; fall back to 0 so it still appears (flagged)
-      # rather than vanishing.
+      # People to cook for; fall back to 0 so the class still appears (flagged)
+      # rather than vanishing. A ticket can cover two people (couples classes),
+      # so scale by people_per_ticket or the food is bought for half the room.
       def headcount(event)
-        event.tickets_sold.to_i
+        event.tickets_sold.to_i * event.people_per_ticket
       end
 
       # Hands-On stations are ~2 people each, and recipe station_qty is per
@@ -78,13 +79,15 @@ module KitchenAi
     end
 
     # Turn events into the aggregator's per-class input: only the ones with a
-    # recipe, each tagged and scaled by booked stations.
+    # recipe, each tagged and scaled by booked stations. per_ticket /
+    # per_ticket_overridden drive the "Ticket portions" control on the list.
     def with_recipe(events)
       handouts = handouts_by_event_url
       events.filter_map do |e|
         h = handouts[e.url] or next
         { event: e, handout: h, tag: self.class.tag(e),
-          headcount: self.class.headcount(e), stations: self.class.stations(e) }
+          headcount: self.class.headcount(e), stations: self.class.stations(e),
+          per_ticket: e.people_per_ticket, per_ticket_overridden: e.portion_overridden? }
       end
     end
 

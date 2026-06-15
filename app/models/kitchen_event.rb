@@ -83,4 +83,45 @@ class KitchenEvent < ApplicationRecord
   def revenue_sold  = tickets_sold.to_i  * price_value
   def revenue_total = tickets_total.to_i * price_value
   def revenue_left  = revenue_total - revenue_sold
+
+  # --- People per ticket (for grocery math) ----------------------------------
+  # Most NYK classes sell 1 ticket = 1 person, but some (couples / "for two")
+  # seat two people per ticket, which doubles the food. Grocery ordering needs
+  # the real headcount = tickets_sold * people_per_ticket, so getting this wrong
+  # under- or over-buys by 2x.
+  #
+  # Resolution order: a manual per-class override wins, then the signal we read
+  # from the listing text, then 1. The override is keyed by `url` (the stable
+  # per-class identity) and stored in Setting, NOT on this row, so it survives
+  # the nightly snapshot rebuild that recreates every KitchenEvent.
+  PORTION_OVERRIDE_PREFIX = "nyk:people_per_ticket:".freeze
+
+  # Phrases NYK actually uses to say one ticket covers two people. Conservative
+  # on purpose: the default is 1 and we only bump to 2 on a clear two-per-ticket
+  # signal, with a human override to fix misses. "1 ticket is for 1 person" has
+  # no "two" near a ticket word, so it correctly stays 1.
+  TWO_PER_TICKET = Regexp.union(
+    /\bfor\s+two\s+(?:people|guests|persons)\b/i,
+    /\b(?:ticket|admission|registration|reservation|portion|seat)s?\b[^.]{0,40}\b(?:two|2)\b[^.]{0,20}\b(?:people|guests|persons)\b/i,
+    /\bone\s+ticket\b[^.]{0,40}\btwo\b/i,
+    /\bcouples?\b/i
+  ).freeze
+
+  def people_per_ticket
+    portion_override || detected_people_per_ticket || 1
+  end
+
+  # The manual override (2, or 1 to force single even when the text reads as a
+  # couples class), or nil when unset.
+  def portion_override
+    v = Setting.get("#{PORTION_OVERRIDE_PREFIX}#{url}").to_i
+    v.positive? ? v : nil
+  end
+
+  def portion_overridden? = portion_override.present?
+
+  # 2 when the listing text clearly says a ticket covers two people, else nil.
+  def detected_people_per_ticket
+    TWO_PER_TICKET.match?("#{name} #{description}") ? 2 : nil
+  end
 end

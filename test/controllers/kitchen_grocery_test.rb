@@ -76,6 +76,21 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 6, @captured.first[:stations]
   end
 
+  test "a 2-person-per-ticket override doubles the headcount, so stations double" do
+    url = add_class("Pasta Night", "groc-pasta", 1, booked: 12) # 12 tickets, neutral name
+    get nyk_grocery_path, headers: FRAME
+    assert_equal 6, @captured.first[:stations] # 12 people => 6 stations by default
+
+    patch nyk_grocery_portion_path, params: { url: url, people_per_ticket: 2 }
+    get nyk_grocery_path, headers: FRAME
+    assert_equal 12, @captured.first[:stations] # 12 tickets × 2 = 24 people => 12 stations
+
+    # Clearing falls back to auto-detect (here, no signal, so default 1).
+    patch nyk_grocery_portion_path, params: { url: url, people_per_ticket: "" }
+    get nyk_grocery_path, headers: FRAME
+    assert_equal 6, @captured.first[:stations]
+  end
+
   test "embeds per-class recipe data and interactive tag chips for the popover" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
     get nyk_grocery_path, headers: FRAME
