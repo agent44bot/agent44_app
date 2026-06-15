@@ -8,8 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-15
+  note: The recipe button on each class row is now clearer. It says Add when a class has no recipe and Edit (pencil) when it does, and it always opens the recipe screen. You print the recipe from that screen with the Print recipe button, so the same spot no longer flips between Recipe and Print.
+
 - date: 2026-06-14
-  note: Every class row now has a Pull Sheet button (the cart icon next to Print) that prints a shopping list for just that one class, handy when you are prepping a single class. The week's combined grocery card also shows the estimated total cost for the week at a glance.
+  note: Every class row now has a Pull Sheet button (the cart icon next to the recipe button) that prints a shopping list for just that one class, handy when you are prepping a single class. The week's combined grocery card also shows the estimated total cost for the week at a glance.
 
 - date: 2026-06-14
   note: The grocery list now knows when a class sells one ticket for two people (couples classes) and buys food for the full room instead of half. It guesses from the class description and you can correct it per class under Ticket portions on the grocery list. Recipes that serve a range like 6 to 8 are now bought for the higher number so you never run short. And if a recipe website blocks our import (some big sites do), you now get a clear message to paste the recipe or upload it as a PDF instead of a confusing error.

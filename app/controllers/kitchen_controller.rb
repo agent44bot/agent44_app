@@ -60,10 +60,21 @@ class KitchenController < ApplicationController
                                            .group_by(&:week_start).transform_values(&:first)
     load_events_data
     # Estimated grocery $ total per week for the orange "Grocery list" card.
-    # Read from cache ONLY (never bills Opus on a list render): the number
-    # appears once that week's grocery list has been built at least once.
-    @grocery_total_by_week_start = @weeks.to_h do |w|
-      [ w[:start], cached_grocery_total_for(w[:events]) ]
+    # Read from cache ONLY (never bills Opus on a list render). When a week has
+    # recipes but no cached list yet, kick off a background warm so the figure
+    # appears on the next load instead of only after someone opens the grocery
+    # page.
+    svc = grocery_list_service
+    @grocery_total_by_week_start = {}
+    @weeks.each do |w|
+      wr = svc.with_recipe(w[:events])
+      next if wr.empty?
+      result, cached = svc.fetch(wr, write: false)
+      if cached
+        @grocery_total_by_week_start[w[:start]] = KitchenAi::GroceryList.total_for(result)
+      else
+        svc.warm_async(w[:start], w[:end], wr)
+      end
     end
     render "admin/kitchen/list", layout: "application"
   end
@@ -903,26 +914,18 @@ class KitchenController < ApplicationController
     [ (7 - Date.current.cwday) % 7, 3 ].max
   end
 
-  # People to cook for. tickets_sold is the live count; fall back to 0 so the
-  # class still appears (the list flags it) rather than vanishing. A ticket can
-  # cover two people (couples classes), so scale by people_per_ticket or the
-  # food is bought for half the room.
-  def grocery_headcount(event)
-    event.tickets_sold.to_i * event.people_per_ticket
-  end
-
-  # Hands-On Kitchen stations are ~2 people each, and recipe station_qty is
-  # per station. Round up so a half-full station still gets bought for; at
-  # least 1 so a booked class always contributes.
-  def grocery_stations(event)
-    [ (grocery_headcount(event) / 2.0).ceil, 1 ].max
+  # The grocery list service for this request (memoizes the handouts map +
+  # observed prices so the list page can total every week cheaply). Shared with
+  # GroceryListWarmJob so they hit the same cache key.
+  def grocery_list_service
+    @grocery_list_service ||= KitchenAi::GroceryList.new(user: Current.user)
   end
 
   # Gather the in-range classes, split into with/without recipe, assign each a
   # short colored tag, and run (or fetch from cache) the aggregated list.
   def load_grocery_data
     snapshot = KitchenSnapshot.latest
-    handouts = handouts_by_event_url
+    svc = grocery_list_service
     # Include SOLD-OUT classes: those are the fullest ones, exactly what you
     # need to shop for (unlike the promo flyer, which hides sold-out classes).
     # A pull sheet (@single_class) scopes to one class by URL; otherwise the
@@ -939,8 +942,8 @@ class KitchenController < ApplicationController
       []
     end
 
-    @with_recipe    = build_with_recipe(events)
-    @without_recipe = events.reject { |e| handouts[e.url] }
+    @with_recipe    = svc.with_recipe(events)
+    @without_recipe = events.reject { |e| svc.handouts_by_event_url[e.url] }
 
     @total_headcount = @with_recipe.sum { |c| c[:headcount].to_i }
     # Index per tag -> the view maps it to a (Tailwind-scannable) chip color.
@@ -955,87 +958,7 @@ class KitchenController < ApplicationController
     end
     return if @with_recipe.empty?
 
-    @result = cached_grocery_list(@with_recipe)
-  end
-
-  # Cache the aggregation by the exact recipe set (urls + station counts +
-  # recipe contents), so a reload or range switch reuses it and only a real
-  # change (new recipe, edited recipe, changed headcount) re-bills Claude.
-  def cached_grocery_list(with_recipe)
-    observed = observed_prices_hint
-    key = grocery_cache_key(with_recipe, observed)
-    if (hit = Rails.cache.read(key))
-      @from_cache = true
-      return hit
-    end
-
-    items = with_recipe.map { |c| { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: c[:handout].recipes } }
-    result = KitchenAi::GroceryAggregator.new(user: Current.user).build(items, observed_prices: observed)
-    Rails.cache.write(key, result, expires_in: 14.days) if result&.ok?
-    result
-  end
-
-  # All recipe handouts indexed by the event URL they're attached to. Loaded
-  # once per request (the list page reads it for every week's total).
-  def handouts_by_event_url
-    @handouts_by_event_url ||=
-      KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
-  end
-
-  # Turn a set of events into the grocery aggregator's per-class input: only the
-  # ones with a recipe, each tagged and scaled by booked stations.
-  def build_with_recipe(events)
-    handouts = handouts_by_event_url
-    events.filter_map do |e|
-      h = handouts[e.url] or next
-      { event: e, handout: h, tag: grocery_tag(e),
-        headcount: grocery_headcount(e), stations: grocery_stations(e),
-        per_ticket: e.people_per_ticket, per_ticket_overridden: e.portion_overridden? }
-    end
-  end
-
-  # Estimated grocery $ total for a set of events (one week), read from cache
-  # ONLY so a list render never bills Opus. Returns nil until that week's list
-  # has been built at least once (then the orange card shows the figure).
-  def cached_grocery_total_for(events)
-    with_recipe = build_with_recipe(events)
-    return nil if with_recipe.empty?
-    result = Rails.cache.read(grocery_cache_key(with_recipe, observed_prices_hint))
-    return nil unless result&.ok?
-    result.categories.sum { |cat| Array(cat["items"]).sum { |i| i["price"].to_f } }
-  end
-
-  # Most recent observed unit price per ingredient (from uploaded receipts) as a
-  # plain hash the aggregator folds into its prompt: { name => {price, unit} }.
-  # Memoized: the list page reads it once per week when totaling.
-  def observed_prices_hint
-    @observed_prices_hint ||= IngredientPrice.recent_by_name.transform_values do |ip|
-      { "price" => ip.unit_price_dollars, "unit" => ip.unit }
-    end
-  end
-
-  # Cache key folds in BOTH the recipe set and the observed prices, so a newly
-  # uploaded receipt (new or changed prices) rebuilds the list instead of
-  # serving a stale estimate.
-  def grocery_cache_key(with_recipe, observed = {})
-    recipes = with_recipe.sort_by { |c| c[:event].url }
-                         .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }
-    payload = { recipes: recipes, observed: observed.sort.to_h }.to_json
-    "nyk_grocery_list:v3:#{Digest::SHA256.hexdigest(payload)}"
-  end
-
-  # Short, mostly-unique chip label for a class: drop the trailing date and the
-  # "Class" filler, collapse junk, then append M/D so two same-named classes in
-  # the window stay distinct.
-  def grocery_tag(event)
-    base = event.name.to_s
-                .gsub(%r{\b\d{1,2}/\d{1,2}/\d{2,4}\b}, "")
-                .gsub(/\b(cooking\s+)?class\b/i, "")
-                .gsub(/[^\p{Alpha}\s&':\-]/, " ").squeeze(" ").strip
-    base = event.name.to_s.strip if base.blank?
-    base = base.truncate(22, separator: " ", omission: "")
-    d = event.start_at&.strftime("%-m/%-d")
-    d ? "#{base} #{d}" : base
+    @result, @from_cache = svc.fetch(@with_recipe)
   end
 
   def set_common_view_state

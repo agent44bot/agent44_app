@@ -97,7 +97,9 @@
       rightmost spot regardless of which middle columns render:
         - Draft Post (blank, but reserved, when the class is sold out)
         - Pull Sheet (this class's grocery list; only when a recipe is attached)
-        - recipe, add (📝) when none attached or print (🖨) when it is
+        - recipe: Add (📝) when none attached, Edit (✏️) when it is. Always a
+          recipe action so the slot means the same thing in both states;
+          printing lives on the edit screen.
       Only on pages that load @handouts_by_url (Sam's list). The combined week
       grocery list lives in the expanded week header, not per class. %>
   <% if defined?(@handouts_by_url) && @handouts_by_url %>
@@ -126,21 +128,22 @@
           <% end %>
         <% end %>
       </div>
-      <%# Recipe column, always rightmost. %>
+      <%# Recipe column, always rightmost: Edit when attached (print lives on
+          the edit screen), Add when none. %>
       <div class="flex flex-col items-center justify-center w-16 px-1">
         <% if handout_id %>
-          <%= link_to print_nyk_handout_path(handout_id), target: "_blank", rel: "noopener",
-                title: "Print recipe",
+          <%= link_to edit_nyk_handout_path(handout_id),
+                title: "Edit recipe (and print it from there)",
                 class: "flex flex-col items-center gap-0.5 text-emerald-400 hover:text-emerald-300 transition" do %>
-            <span class="text-2xl leading-none">🖨</span>
-            <span class="text-[10px] font-medium">Print</span>
+            <span class="text-2xl leading-none">✏️</span>
+            <span class="text-[10px] font-medium">Edit</span>
           <% end %>
         <% else %>
           <%= link_to new_nyk_handout_path(event_url: event.url, event_name: event.name),
                 title: "Add a recipe",
                 class: "flex flex-col items-center gap-0.5 text-gray-500 hover:text-gray-300 transition" do %>
             <span class="text-2xl leading-none grayscale opacity-60">📝</span>
-            <span class="text-[10px] font-medium">Recipe</span>
+            <span class="text-[10px] font-medium">Add</span>
           <% end %>
         <% end %>
       </div>

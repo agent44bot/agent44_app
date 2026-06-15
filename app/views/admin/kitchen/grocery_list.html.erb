@@ -61,28 +61,31 @@
     <%# Per-ticket portion: most classes are 1 person/ticket, but couples classes
         seat two, which doubles the food. We auto-detect from the listing text;
         this lets a manager correct it. The choice is saved per class and sticks
-        across nightly rescrapes. Changing it rebuilds the list (new headcount). %>
-    <details class="mb-5 no-print text-sm">
-      <summary class="cursor-pointer text-gray-400 hover:text-orange-400">Ticket portions (people per ticket)</summary>
-      <div class="mt-2 space-y-1.5">
-        <% @with_recipe.each do |c| %>
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full border <%= chip.call(c[:tag]) %>"><%= c[:tag] %></span>
-            <%= form_with url: nyk_grocery_portion_path, method: :patch, data: { turbo: false }, class: "flex items-center gap-1" do %>
-              <%= hidden_field_tag :url, c[:event].url %>
-              <% [ 1, 2 ].each do |n| %>
-                <% on = c[:per_ticket] == n %>
-                <button type="submit" name="people_per_ticket" value="<%= n %>"
-                        class="px-2 py-0.5 rounded border text-xs cursor-pointer <%= on ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-300 hover:border-orange-500' %>">
-                  <%= n %> <%= "person".pluralize(n) %>/ticket
-                </button>
+        across nightly rescrapes. Changing it rebuilds the list (new headcount).
+        Skipped on a single-class pull sheet to keep it minimal. %>
+    <% unless single %>
+      <details class="mb-5 no-print text-sm">
+        <summary class="cursor-pointer text-gray-400 hover:text-orange-400">Ticket portions (people per ticket)</summary>
+        <div class="mt-2 space-y-1.5">
+          <% @with_recipe.each do |c| %>
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full border <%= chip.call(c[:tag]) %>"><%= c[:tag] %></span>
+              <%= form_with url: nyk_grocery_portion_path, method: :patch, data: { turbo: false }, class: "flex items-center gap-1" do %>
+                <%= hidden_field_tag :url, c[:event].url %>
+                <% [ 1, 2 ].each do |n| %>
+                  <% on = c[:per_ticket] == n %>
+                  <button type="submit" name="people_per_ticket" value="<%= n %>"
+                          class="px-2 py-0.5 rounded border text-xs cursor-pointer <%= on ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-300 hover:border-orange-500' %>">
+                    <%= n %> <%= "person".pluralize(n) %>/ticket
+                  </button>
+                <% end %>
               <% end %>
-            <% end %>
-            <span class="text-xs text-gray-500"><%= c[:per_ticket_overridden] ? "set by hand" : "auto" %></span>
-          </div>
-        <% end %>
-      </div>
-    </details>
+              <span class="text-xs text-gray-500"><%= c[:per_ticket_overridden] ? "set by hand" : "auto" %></span>
+            </div>
+          <% end %>
+        </div>
+      </details>
+    <% end %>
 
     <div class="bg-white text-gray-900 rounded-xl p-6 print-sheet">
       <div class="flex items-baseline justify-between border-b-2 border-gray-900 pb-2 mb-4">

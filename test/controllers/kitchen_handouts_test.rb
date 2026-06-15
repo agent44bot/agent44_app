@@ -148,7 +148,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "list page shows print link for linked classes and add link otherwise" do
+  test "list page shows edit link for linked classes and add link otherwise" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     handout.attach_to!(EVENT_URL)
     snapshot = KitchenSnapshot.create!(taken_on: Date.current)
@@ -159,10 +159,13 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
 
     get "/nykitchen/list"
     assert_response :success
-    assert_match print_nyk_handout_path(handout), response.body
-    # The print link opens in a new tab so Sam's schedule stays put.
-    assert_select "a[href=?][target=_blank]", print_nyk_handout_path(handout)
-    # & is HTML-escaped in the rendered href, so match on the escaped form.
+    # Linked class: the recipe slot is "Edit" (printing lives on the edit
+    # screen), not a direct Print link, so the slot means the same in both
+    # states.
+    assert_select "a[href=?]", edit_nyk_handout_path(handout)
+    assert_no_match print_nyk_handout_path(handout), response.body
+    # Unlinked class: an "Add" link to start a recipe. & is HTML-escaped in the
+    # rendered href, so match on the escaped form.
     assert_match ERB::Util.html_escape(new_nyk_handout_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
   end
 
