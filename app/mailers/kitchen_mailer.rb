@@ -13,12 +13,10 @@ class KitchenMailer < ApplicationMailer
     @total_sold_out = digest[:total_sold_out]
     @snapshot_date  = digest[:snapshot_date]
     @stale_data     = digest[:stale_data]
-    @selling_fastest = digest[:selling_fastest] || []
-    @needs_a_push    = digest[:needs_a_push] || []
 
     mail(
       to: recipients,
-      subject: "NY Kitchen — #{@week1_events.size} next week · #{@total_upcoming} upcoming"
+      subject: "NY Kitchen: #{@week1_events.size} next week · #{@total_upcoming} upcoming"
     )
   end
 

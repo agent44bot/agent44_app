@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-15
+  note: The daily 10am email is back to the simple class list it started as, the current week plus the next three weeks, with date, price, and tickets left for each class. The Selling fastest and Needs a push leaderboards have been removed from it. Those pace and revenue views still live in the Monday and Friday team report and on the live page.
+
+- date: 2026-06-15
   note: We now watch for classes that show no tickets available too far out to be a normal cutoff while seats are still open, which usually means a wrong sales-end date was typed in. When one turns up you get an alert the same day so it can be fixed on Tock before it quietly loses bookings. A genuine sold-out class does not trigger it.
 
 - date: 2026-06-15

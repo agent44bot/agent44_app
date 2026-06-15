@@ -18,8 +18,6 @@ class KitchenMailerPreview < ActionMailer::Preview
     digest = NyKitchenDigestBuilder.build(current: events, previous_snapshot: previous, today: today)
     digest[:snapshot_date]   = snapshot.taken_on
     digest[:stale_data]      = snapshot.taken_on != today
-    digest[:selling_fastest] = KitchenSnapshot.selling_fastest(snapshot: snapshot)
-    digest[:needs_a_push]    = KitchenSnapshot.needs_a_push(snapshot: snapshot)
 
     KitchenMailer.daily_digest(digest, recipients: [ "preview@example.com" ])
   end
