@@ -44,18 +44,21 @@ class WorkspaceDraftsController < ApplicationController
 
     body      = params[:body].to_s.strip
     platforms = Array(params[:target_platforms]).map(&:to_s) & SocialAccount::PLATFORMS
+    # Keep ?return_to through the validation bounces so the Back button still
+    # points where the user came from (e.g. Sam's list via Draft Post).
+    rt = params[:return_to].presence
 
     if body.blank?
-      return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id), alert: "Draft body can't be empty."
+      return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id, return_to: rt), alert: "Draft body can't be empty."
     end
     if platforms.empty?
-      return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id), alert: "Pick at least one platform."
+      return redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id, return_to: rt), alert: "Pick at least one platform."
     end
 
     if draft.update(body: body, target_platforms: platforms, image_url: params[:image_url].to_s.presence)
       redirect_to social_workspace_path(@workspace.slug), notice: "Draft updated."
     else
-      redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id),
+      redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id, return_to: rt),
                   alert: "Update failed: #{draft.errors.full_messages.to_sentence}"
     end
   end
@@ -71,7 +74,7 @@ class WorkspaceDraftsController < ApplicationController
                .new(@workspace, user: current_user)
                .suggest(topic: params[:topic], existing_draft: existing)
 
-    edit_path = edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id)
+    edit_path = edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id, return_to: params[:return_to].presence)
     if result.ok?
       flash[:draft_text]  = result.text
       flash[:draft_topic] = params[:topic].to_s.strip.presence

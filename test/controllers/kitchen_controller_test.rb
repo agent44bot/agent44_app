@@ -290,7 +290,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     body = JSON.parse(response.body)
     assert body["ok"]
     draft = WorkspaceDraft.last
-    assert_equal "/workspaces/#{ws.slug}/drafts/#{draft.id}/edit", body["workspace_url"]
+    # Carries return_to=Sam's list so the edit page's Back button comes back here.
+    assert_equal "/workspaces/#{ws.slug}/drafts/#{draft.id}/edit?return_to=%2Fnykitchen%2Flist", body["workspace_url"]
     assert_equal "NY Kitchen",              body["workspace_name"]
 
     draft = WorkspaceDraft.last
@@ -309,7 +310,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     post "/nykitchen/send_to_workspace",
          params: { text: "hi", event_url: "https://nykitchen.com/event/y", workspace_slug: "nykitchen" }
     draft = WorkspaceDraft.last
-    assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit",
+    assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit?return_to=%2Fnykitchen%2Flist",
                  JSON.parse(response.body)["workspace_url"]
   end
 

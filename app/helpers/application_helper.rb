@@ -1,4 +1,27 @@
 module ApplicationHelper
+  # The standard "← Back to X" control: an orange button with white text,
+  # right-aligned by its caller (wrap in `flex justify-end`). Matches the
+  # workspace header buttons so every back link looks the same. Pass the arrow
+  # in the label, e.g. back_button("← Back to Sam's list", nyk_list_path).
+  BACK_BUTTON_CLASSES =
+    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 " \
+    "hover:bg-orange-500 text-white text-sm font-semibold transition".freeze
+
+  def back_button(label, path)
+    link_to label, path, class: BACK_BUTTON_CLASSES
+  end
+
+  # Returns the path only if it's a safe SAME-ORIGIN path (a single leading
+  # "/", not "//" or "/\" which browsers treat as protocol-relative / a host).
+  # Used to honor a ?return_to= without opening a redirect to another site.
+  # nil otherwise, so callers fall back to a default destination.
+  def safe_internal_path(path)
+    p = path.to_s
+    return nil unless p.start_with?("/")
+    return nil if p.start_with?("//", "/\\")
+    p
+  end
+
   SOURCE_LABELS = {
     "remoteok" => "RemoteOK",
     "arbeitnow" => "Arbeitnow",
