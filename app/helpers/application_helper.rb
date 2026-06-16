@@ -11,6 +11,17 @@ module ApplicationHelper
     link_to label, path, class: BACK_BUTTON_CLASSES
   end
 
+  # Returns the path only if it's a safe SAME-ORIGIN path (a single leading
+  # "/", not "//" or "/\" which browsers treat as protocol-relative / a host).
+  # Used to honor a ?return_to= without opening a redirect to another site.
+  # nil otherwise, so callers fall back to a default destination.
+  def safe_internal_path(path)
+    p = path.to_s
+    return nil unless p.start_with?("/")
+    return nil if p.start_with?("//", "/\\")
+    p
+  end
+
   SOURCE_LABELS = {
     "remoteok" => "RemoteOK",
     "arbeitnow" => "Arbeitnow",

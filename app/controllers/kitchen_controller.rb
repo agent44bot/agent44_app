@@ -666,8 +666,10 @@ class KitchenController < ApplicationController
     # Drop Lora straight into the draft's edit page so she can tweak +
     # publish without an intermediate scroll. /workspaces/:slug/drafts/:id/edit
     # works for any workspace; the NYK alias isn't needed here because
-    # the URL itself is workspace-scoped already.
-    target_url = edit_workspace_draft_path(workspace_slug: ws.slug, id: draft.id)
+    # the URL itself is workspace-scoped already. return_to=Sam's list so the
+    # edit page's Back button returns to where she actually came from (the class
+    # list), not the social/Echo page she was never on.
+    target_url = edit_workspace_draft_path(workspace_slug: ws.slug, id: draft.id, return_to: nyk_list_path)
     render json: {
       ok:             true,
       draft_id:       draft.id,

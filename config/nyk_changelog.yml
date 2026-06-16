@@ -12,7 +12,7 @@
   note: The recipe review screen now works on a phone. The ingredient table used to run off the side of the screen, so you could not see the Ingredient or Sub-heading columns. Each ingredient now stacks neatly, the amount and the scaled amount on one line, then the ingredient name and an optional sub-heading below.
 
 - date: 2026-06-16
-  note: The Back buttons are now consistent. Anywhere you see a back arrow (Back to Sam's list, Back to workspace) it is the same orange button on the right, matching the rest of the app.
+  note: The Back buttons are now consistent. Anywhere you see a back arrow (Back to Sam's list, Back to workspace) it is the same orange button on the right, matching the rest of the app. They also take you back to where you came from, so if you start a post from a class on Sam's list, Back now returns you to the class list instead of the social agent page.
 
 - date: 2026-06-15
   note: The daily 10am email is back to the simple class list it started as, the current week plus the next three weeks, with date, price, and tickets left for each class. The Selling fastest and Needs a push leaderboards have been removed from it. Those pace and revenue views still live in the Monday and Friday team report and on the live page.
