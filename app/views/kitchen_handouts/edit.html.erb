@@ -4,8 +4,8 @@
     is an AI proposal and the main thing to double-check; spare blank ingredient
     rows are dropped on save. %>
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-  <%= link_to "← Back to Sam's list", nyk_list_path, class: "text-sm text-gray-500 hover:text-orange-400" %>
-  <h1 class="text-2xl font-bold text-white mt-3 mb-1">Review the handout</h1>
+  <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
+  <h1 class="text-2xl font-bold text-white mb-1">Review the handout</h1>
   <% if @handout.extract_cost_cents.present? %>
     <p class="text-xs text-gray-500 mb-6">
       Built with the Opus model<span class="text-gray-400 font-medium"><%= @handout.extract_cost_label %></span>.
@@ -16,7 +16,7 @@
 
   <%# The editable recipe form, full width. %>
   <%= form_with url: nyk_handout_path(@handout), method: :patch do |f| %>
-    <div class="grid grid-cols-2 gap-4 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
       <div>
         <label class="block text-sm font-semibold text-gray-300 mb-1">Packet title</label>
         <%= text_field_tag :title, @handout.title, class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
@@ -32,16 +32,21 @@
         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Recipe <%= ri + 1 %></label>
         <%= text_field_tag "recipes[#{ri}][title]", recipe["title"], class: "w-full rounded-lg bg-gray-950 border border-gray-800 text-white font-semibold text-base px-3 py-2 mb-4 focus:border-orange-500 focus:outline-none" %>
 
-        <div class="grid grid-cols-[1fr_1fr_2fr_1fr] gap-2 text-xs font-semibold text-gray-500 mb-1 px-1">
+        <%# Column header only makes sense beside the 4-up desktop grid; on mobile
+            each field is full-width with its own placeholder, so hide it there. %>
+        <div class="hidden sm:grid grid-cols-[1fr_1fr_2fr_1fr] gap-2 text-xs font-semibold text-gray-500 mb-1 px-1">
           <span>Full amount</span><span class="text-amber-400"><%= @handout.station_label %> *</span><span>Ingredient</span><span>Sub-heading</span>
         </div>
         <% rows = Array(recipe["ingredients"]) + Array.new(3) { {} } %>
         <% rows.each_with_index do |ing, ii| %>
-          <div class="grid grid-cols-[1fr_1fr_2fr_1fr] gap-2 mb-1.5">
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][qty]", ing["qty"], class: "rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", ing["station_qty"], class: "rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][item]", ing["item"], class: "rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][section]", ing["section"], class: "rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
+          <%# Mobile: amount + scaled amount share a row, ingredient and sub-heading
+              go full-width below. Desktop: the original 4-up grid. min-w-0 lets the
+              inputs shrink so nothing overflows off-screen. %>
+          <div class="grid grid-cols-2 sm:grid-cols-[1fr_1fr_2fr_1fr] gap-2 mb-1.5">
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][qty]", ing["qty"], placeholder: "Full amount", class: "min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", ing["station_qty"], placeholder: @handout.station_label, class: "min-w-0 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][item]", ing["item"], placeholder: "Ingredient", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][section]", ing["section"], placeholder: "Sub-heading", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
           </div>
         <% end %>
 
@@ -49,7 +54,7 @@
         <% groups = Array(recipe["directions"]).presence || [ {} ] %>
         <% groups.each_with_index do |group, di| %>
           <div class="mb-3">
-            <%= text_field_tag "recipes[#{ri}][directions][#{di}][section]", group["section"], placeholder: "Sub-heading (optional)", class: "w-1/2 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 mb-1 focus:border-orange-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][directions][#{di}][section]", group["section"], placeholder: "Sub-heading (optional)", class: "w-full sm:w-1/2 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 mb-1 focus:border-orange-500 focus:outline-none" %>
             <%= text_area_tag "recipes[#{ri}][directions][#{di}][steps]", Array(group["steps"]).join("\n"), rows: [ Array(group["steps"]).size + 1, 4 ].max, class: "w-full rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
           </div>
         <% end %>

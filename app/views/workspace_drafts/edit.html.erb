@@ -6,7 +6,7 @@
       <h1 class="text-2xl font-bold text-white">Edit draft</h1>
       <p class="text-xs text-gray-500 mt-1"><%= @workspace.name %> · saved <%= @draft.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %></p>
     </div>
-    <%= link_to "← Back to workspace", social_workspace_path(@workspace.slug), class: "text-sm text-gray-400 hover:text-gray-200" %>
+    <%= back_button "← Back to workspace", social_workspace_path(@workspace.slug) %>
   </div>
 
   <% draft_text  = flash[:draft_text].to_s %>

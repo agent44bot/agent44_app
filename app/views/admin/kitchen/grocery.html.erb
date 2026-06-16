@@ -1,16 +1,16 @@
 <div class="max-w-3xl mx-auto px-4 sm:px-6 py-10">
-  <div class="flex items-center justify-between mb-2 no-print">
-    <%= link_to "← Back to Sam's list", nyk_list_path, class: "text-sm text-gray-500 hover:text-orange-400" %>
+  <div class="flex items-center justify-between gap-3 mb-2 no-print">
     <%# A pull sheet is for one specific class, so the day-window pills (which
         re-scope the whole list) don't apply. %>
-    <% unless @single_class %>
-      <div class="flex items-center gap-3 text-sm">
+    <div class="flex items-center gap-3 text-sm">
+      <% unless @single_class %>
         <% [ [ "This weekend", @default_days ], [ "Next 7 days", 7 ], [ "Next 14 days", 14 ] ].each do |label, d| %>
           <%= link_to label, nyk_grocery_path(days: d),
                 class: "px-2.5 py-1 rounded-full border #{@days == d ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
         <% end %>
-      </div>
-    <% end %>
+      <% end %>
+    </div>
+    <%= back_button "← Back to Sam's list", nyk_list_path %>
   </div>
 
   <% if @single_class %>

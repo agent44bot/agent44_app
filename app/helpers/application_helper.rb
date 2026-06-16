@@ -1,4 +1,16 @@
 module ApplicationHelper
+  # The standard "← Back to X" control: an orange button with white text,
+  # right-aligned by its caller (wrap in `flex justify-end`). Matches the
+  # workspace header buttons so every back link looks the same. Pass the arrow
+  # in the label, e.g. back_button("← Back to Sam's list", nyk_list_path).
+  BACK_BUTTON_CLASSES =
+    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 " \
+    "hover:bg-orange-500 text-white text-sm font-semibold transition".freeze
+
+  def back_button(label, path)
+    link_to label, path, class: BACK_BUTTON_CLASSES
+  end
+
   SOURCE_LABELS = {
     "remoteok" => "RemoteOK",
     "arbeitnow" => "Arbeitnow",
