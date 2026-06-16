@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-16
+  note: Sam's schedule now remembers which weeks you have expanded. If you open a week (say Next Week), then click Draft Post, Pull Sheet, or a recipe and come back, that week is still open instead of everything snapping shut.
+
+- date: 2026-06-16
   note: The recipe review screen now works on a phone. The ingredient table used to run off the side of the screen, so you could not see the Ingredient or Sub-heading columns. Each ingredient now stacks neatly, the amount and the scaled amount on one line, then the ingredient name and an optional sub-heading below.
 
 - date: 2026-06-16
