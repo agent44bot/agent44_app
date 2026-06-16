@@ -17,7 +17,7 @@
      data-social-post-workspace-slug-value="<%= default_ws.slug %>"<% end %>
      data-social-post-posted-value="<%= post_log&.posted? ? 'true' : 'false' %>"
      data-social-post-enhanced-text-value="<%= post_log&.enhanced_text %>"
-     class="bg-gray-900 rounded-lg p-4 flex items-stretch gap-3">
+     class="bg-gray-900 rounded-lg p-4 flex flex-col sm:flex-row sm:items-stretch gap-3">
   <div class="flex-1 min-w-0">
   <div class="flex items-start justify-between gap-4">
     <div class="min-w-0">
@@ -30,7 +30,7 @@
           <% end %>
         </span>
         <a href="<%= event.url %>" target="_blank" rel="noopener"
-           class="text-sm font-medium text-orange-400 hover:text-orange-300 transition truncate">
+           class="text-sm font-medium text-orange-400 hover:text-orange-300 transition break-words">
           <%= event.name %>
         </a>
       </div>
@@ -104,7 +104,10 @@
       grocery list lives in the expanded week header, not per class. %>
   <% if defined?(@handouts_by_url) && @handouts_by_url %>
     <% handout_id = @handouts_by_url[event.url] %>
-    <div class="shrink-0 flex items-stretch divide-x divide-gray-800 border-l border-gray-800">
+    <%# Mobile: the rail drops below the class info (full row, right-aligned) so
+        the name/date get the card's full width instead of being squeezed by the
+        fixed icon columns. sm+ keeps the original right-edge vertical strip. %>
+    <div class="shrink-0 flex items-stretch justify-end divide-x divide-gray-800 border-t border-gray-800 pt-2 sm:border-t-0 sm:pt-0 sm:border-l">
       <%# Draft Post column (reserved even when empty to keep the recipe aligned). %>
       <div class="flex flex-col items-center justify-center gap-0.5 w-16 px-1">
         <% if !event.sold_out? && default_ws %>

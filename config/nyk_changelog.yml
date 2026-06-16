@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-16
+  note: On phones, the class list is easier to read. The Draft Post, Pull Sheet, and Edit buttons now sit in a row under each class instead of squeezing in beside it, and the full class name wraps onto a second line instead of being cut off with dots. On a computer the buttons stay where they were, on the right of each row.
+
 - date: 2026-06-15
   note: The daily 10am email is back to the simple class list it started as, the current week plus the next three weeks, with date, price, and tickets left for each class. The Selling fastest and Needs a push leaderboards have been removed from it. Those pace and revenue views still live in the Monday and Friday team report and on the live page.
 
