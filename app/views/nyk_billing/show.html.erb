@@ -44,9 +44,13 @@
             <tr>
               <td class="px-4 py-2 text-gray-200">
                 <%= case source
-                    when "nyk_enhance"     then "Enhance with AI button"
-                    when "nyk_x_autopost"  then "Daily X autopost draft"
-                    else                        source
+                    when "nyk_enhance"        then "Enhance with AI button"
+                    when "nyk_x_autopost"     then "Daily X autopost draft"
+                    when "nyk_team_report"    then "Weekly team report"
+                    when "nyk_grocery_list"   then "Grocery lists"
+                    when "nyk_recipe_extract" then "Recipe generation"
+                    when "nyk_receipt_extract" then "Receipt scanning"
+                    else                           source
                     end %>
               </td>
               <td class="px-4 py-2 text-right text-gray-300"><%= v[:calls] %></td>
@@ -55,6 +59,29 @@
           <% end %>
         </tbody>
       </table>
+    </div>
+  <% end %>
+
+  <% if @ai_trend.any? { |m| m[:cost_dollars] > 0 } %>
+    <h2 class="text-base font-semibold text-white mb-3">AI usage trend</h2>
+    <p class="text-xs text-gray-500 mb-3">Monthly AI cost over the last 6 months.</p>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-5 mb-8">
+      <div class="flex items-end gap-2 h-24">
+        <% @ai_trend.each do |m| %>
+          <% pct = @ai_trend_max > 0 ? [ (m[:cost_dollars] / @ai_trend_max * 100).round, 2 ].max : 0 %>
+          <% is_current = (m[:key] == @month_start.strftime("%Y-%m")) %>
+          <div class="flex-1 flex flex-col items-center justify-end h-full"
+               title="<%= m[:label] %>: $<%= sprintf('%.2f', m[:cost_dollars]) %> raw">
+            <span class="text-[10px] text-gray-400 mb-1">$<%= m[:cost_dollars] >= 1 ? m[:cost_dollars].round : sprintf('%.2f', m[:cost_dollars]) %></span>
+            <div class="w-full rounded-t <%= is_current ? "bg-orange-500" : "bg-gray-700" %>" style="height: <%= pct %>%"></div>
+          </div>
+        <% end %>
+      </div>
+      <div class="flex gap-2 mt-1.5">
+        <% @ai_trend.each do |m| %>
+          <div class="flex-1 text-center text-[10px] <%= m[:key] == @month_start.strftime("%Y-%m") ? "text-orange-300" : "text-gray-600" %>"><%= m[:label] %></div>
+        <% end %>
+      </div>
     </div>
   <% end %>
 
@@ -77,9 +104,13 @@
               <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap"><%= log.created_at.in_time_zone.strftime("%b %-d %-l:%M %p") %></td>
               <td class="px-4 py-2 text-gray-300 text-xs">
                 <%= case log.source
-                    when "nyk_enhance"     then "Enhance with AI"
-                    when "nyk_x_autopost"  then "X autopost draft"
-                    else                        log.source
+                    when "nyk_enhance"        then "Enhance with AI"
+                    when "nyk_x_autopost"     then "X autopost draft"
+                    when "nyk_team_report"    then "Weekly team report"
+                    when "nyk_grocery_list"   then "Grocery list"
+                    when "nyk_recipe_extract" then "Recipe generation"
+                    when "nyk_receipt_extract" then "Receipt scan"
+                    else                           log.source
                     end %>
               </td>
               <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.5f", log.cost_dollars) %></td>

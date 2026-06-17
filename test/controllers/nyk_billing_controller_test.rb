@@ -23,6 +23,16 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/nykitchen"
   end
 
+  test "grocery list AI usage is itemized on the bill" do
+    AiCallLog.create!(model: "claude-opus-4-8", source: "nyk_grocery_list",
+                      input_tokens: 2_000, output_tokens: 4_000) # $0.11 raw
+    sign_in_as(@admin)
+    get "/nykitchen/billing"
+    assert_response :success
+    assert_match(/Grocery lists/, response.body)
+    assert_match(/AI usage trend/, response.body)
+  end
+
   test "unauthenticated request bounces to sign-in" do
     get "/nykitchen/billing"
     assert_redirected_to %r{/sign_in}

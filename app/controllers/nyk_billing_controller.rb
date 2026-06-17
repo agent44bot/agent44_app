@@ -22,6 +22,10 @@ class NykBillingController < ApplicationController
     @ai_total   = AiCallLog.total_cost_dollars(nyk_logs_month)
     @ai_calls   = nyk_logs_month.count
     @recent     = nyk_logs_month.order(created_at: :desc).limit(20)
+    # 6-month AI-usage trend (raw cost per month, matching the per-source table
+    # basis) so the direction of spend is visible, not just this month.
+    @ai_trend     = AiCallLog.monthly_by_source(AiCallLog::NYK_SOURCES, months: 6, now: now)
+    @ai_trend_max = @ai_trend.map { |m| m[:cost_dollars] }.max.to_f
 
     smoke_runs_month = SmokeTestRun.nyk.where("started_at >= ?", @month_start)
     @smoke_count    = smoke_runs_month.count
