@@ -41,10 +41,11 @@
 /node_modules/
 /test-results/
 
-# Capacitor / iOS build artifacts
+# Capacitor / native build artifacts (native shells are generated, not committed)
 /build/
 /www/
 /ios/
+/android/
 capacitor.config.ts
 capacitor.config.ci.ts
 db/development.sqlite3
