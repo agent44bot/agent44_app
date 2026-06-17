@@ -9,7 +9,7 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-17
-  note: New AI spend page (owner only) shows what the grocery list and recipe generation cost to run each month, with a 6-month trend. Find it via the "AI spend" link on the grocery list.
+  note: Billing page now itemizes the grocery list and recipe generation AI usage and shows a 6-month spend trend, so the full monthly cost is in one place.
 
 - date: 2026-06-17
   note: Fixed the weekly grocery list and pull sheet getting stuck on "Building..." for busy weeks with several classes. They now finish and show the full shopping list again.

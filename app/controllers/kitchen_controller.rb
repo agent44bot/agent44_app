@@ -14,19 +14,15 @@ class KitchenController < ApplicationController
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
-  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices spend]
+  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices]
   # Super Agent (admin/customer-only): once App Review approved the app, we
   # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
   # credits via the chat. Admins, the App Store reviewer account, and members
   # of the nykitchen workspace (Lora's team) are allowed; everyone else 404s.
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
-  # NY Kitchen managers (owner/admin = Lora + site admins) only. The on-demand
-  # report actions, and the AI spend page (it exposes dollar amounts, so
-  # editors/viewers and non-members 404). One registration: Rails dedups
-  # before_action callbacks by method name, so a second `before_action
-  # :require_nyk_manager` would silently override this `only:` list.
-  before_action :require_nyk_manager, only: %i[spend generate_report send_smoke_report]
+  # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
+  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -183,24 +179,6 @@ class KitchenController < ApplicationController
       Setting.delete_key(key) # blank/0 = clear the override, use auto-detect
     end
     redirect_back fallback_location: nyk_grocery_path, notice: "Updated ticket portion."
-  end
-
-  # AI spend monitor (owner/admin only): how much Opus we burn building grocery
-  # lists and extracting recipes. Both are paid Opus calls already logged to
-  # AiCallLog by source, so this is a read-only rollup: this month + a 6-month
-  # trend per function. Gated by require_nyk_manager above.
-  SPEND_SOURCES = [
-    { key: "nyk_grocery_list",   label: "Grocery lists",     noun: "build"  },
-    { key: "nyk_recipe_extract", label: "Recipe generation", noun: "recipe" }
-  ].freeze
-
-  def spend
-    @spend_sources = SPEND_SOURCES
-    keys           = SPEND_SOURCES.map { |s| s[:key] }
-    @spend_months  = AiCallLog.monthly_by_source(keys, months: 6)
-    @spend_current = @spend_months.last                         # this calendar month
-    @spend_max     = @spend_months.map { |m| m[:cost_dollars] }.max.to_f   # bar scale
-    render "admin/kitchen/spend", layout: "application"
   end
 
   def test
@@ -893,13 +871,18 @@ class KitchenController < ApplicationController
     smoke = ->(scope) {
       { tokens: 0, cost: SmokeTestRun.public_send(scope).where("started_at >= ?", month).sum(:cost_dollars).to_f }
     }
+    # The List agent (Sam) runs the two Opus features: grocery list + recipe
+    # extraction. They're Opus, so price per-row via total_cost_dollars rather
+    # than usage_rollup's flat Haiku rate.
+    list_logs = AiCallLog.where(source: AiCallLog::LIST_AGENT_SOURCES).where("created_at >= ?", month)
     {
       "ask"     => ai.call(AiCallLog::SUPER_AGENT_SOURCES),
       "social"  => ai.call(%w[nyk_enhance nyk_x_autopost]),
       "analyst" => ai.call(%w[nyk_team_report]),
       "test"    => smoke.call(:nyk_nav),
       "data"    => smoke.call(:nyk_scrape),
-      "list"    => { tokens: 0, cost: 0.0 },
+      "list"    => { tokens: list_logs.sum(Arel.sql("input_tokens + output_tokens")),
+                     cost: AiCallLog.total_cost_dollars(list_logs) },
       "display" => { tokens: 0, cost: 0.0 }
     }
   end
@@ -994,8 +977,6 @@ class KitchenController < ApplicationController
     @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
     @workspace_agents = @nyk_workspace ? WorkspaceAgent::KINDS.index_with { |k| @nyk_workspace.agent_for(k) } : {}
     @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
-    # Owner/admin (Lora + site admins) only: gates the AI spend link/amounts.
-    @nyk_manager = @nyk_workspace&.manager?(Current.user) || false
   end
 
   # Hub cards self-organize: the agents you open most rise to the top.
