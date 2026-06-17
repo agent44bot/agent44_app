@@ -79,6 +79,7 @@ Rails.application.routes.draw do
   patch  "nykitchen/prices/:id", to: "kitchen#update_price", as: :nyk_price
   delete "nykitchen/prices/:id", to: "kitchen#destroy_price"
   get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
+  get "nykitchen/spend",  to: "kitchen#spend", as: :nyk_spend
   get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
   get   "nykitchen/analyst", to: "kitchen#analyst", as: :nyk_analyst
   patch "nykitchen/analyst/subscription", to: "kitchen#update_analyst_subscription", as: :nyk_analyst_subscription

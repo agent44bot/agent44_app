@@ -1,0 +1,68 @@
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+  <div class="flex items-center justify-between gap-3 mb-2">
+    <h1 class="text-2xl font-bold text-white">AI spend</h1>
+    <%= back_button "← Back to hub", nykitchen_path %>
+  </div>
+  <p class="text-sm text-gray-400 mb-8">
+    What the kitchen's AI features cost to run. Built on the Opus model and
+    billed per token, so the numbers are actual usage, not estimates of effort.
+  </p>
+
+  <%# Combined this-month headline. %>
+  <% current = @spend_current || { cost_dollars: 0.0, by_source: {} } %>
+  <div class="bg-gradient-to-br from-orange-500/15 to-orange-500/5 border border-orange-500/40 rounded-xl p-6 mb-8">
+    <div class="text-xs uppercase tracking-wide text-orange-300/70 mb-1">This month (<%= current[:label] || Date.current.strftime("%b") %>)</div>
+    <div class="text-4xl font-extrabold text-orange-200"><%= number_to_currency(current[:cost_dollars], precision: 2) %></div>
+    <div class="text-sm text-orange-300/70 mt-1">
+      across grocery lists and recipe generation
+    </div>
+  </div>
+
+  <%# Per-function breakdown. Each function gets its own 6-month trend scaled to
+      its own peak so a cheaper function's bars stay readable. %>
+  <div class="space-y-6">
+    <% @spend_sources.each do |src| %>
+      <% cur = current[:by_source][src[:key]] || AiCallLog::EMPTY_USAGE %>
+      <% src_max = @spend_months.map { |m| m[:by_source][src[:key]][:cost_dollars] }.max.to_f %>
+      <% avg = cur[:calls].to_i.positive? ? cur[:cost_dollars] / cur[:calls] : 0.0 %>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div class="flex items-baseline justify-between gap-3 mb-3">
+          <h2 class="text-base font-semibold text-white"><%= src[:label] %></h2>
+          <span class="text-lg font-extrabold text-white"><%= number_to_currency(cur[:cost_dollars], precision: 2) %></span>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-gray-500 mb-4">
+          <span><%= pluralize(cur[:calls].to_i, src[:noun]) %> this month</span>
+          <% if cur[:calls].to_i.positive? %>
+            <span class="text-gray-700">·</span>
+            <span><%= number_to_currency(avg, precision: 2) %> / <%= src[:noun] %> avg</span>
+          <% end %>
+        </div>
+
+        <%# 6-month trend: one bar per month, current month highlighted. %>
+        <div class="flex items-end gap-2 h-20">
+          <% @spend_months.each do |m| %>
+            <% c = m[:by_source][src[:key]][:cost_dollars] %>
+            <% pct = src_max > 0 ? [ (c / src_max * 100).round, 2 ].max : 0 %>
+            <% is_current = (m[:key] == current[:key]) %>
+            <div class="flex-1 flex flex-col items-center justify-end h-full">
+              <div class="w-full rounded-t <%= is_current ? "bg-orange-500" : "bg-gray-700" %>"
+                   style="height: <%= pct %>%"
+                   title="<%= m[:label] %>: <%= number_to_currency(c, precision: 2) %> · <%= m[:by_source][src[:key]][:calls] %> <%= src[:noun].pluralize %>"></div>
+            </div>
+          <% end %>
+        </div>
+        <div class="flex gap-2 mt-1.5">
+          <% @spend_months.each do |m| %>
+            <div class="flex-1 text-center text-[10px] <%= m[:key] == current[:key] ? "text-orange-300" : "text-gray-600" %>"><%= m[:label] %></div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <p class="text-xs text-gray-600 mt-8">
+    Opus rates: <%= number_to_currency(AiCallLog::RATES["claude-opus-4-8"][:input], precision: 0) %> per million input tokens,
+    <%= number_to_currency(AiCallLog::RATES["claude-opus-4-8"][:output], precision: 0) %> per million output tokens.
+    Grocery lists are cached for 14 days, so reopening a saved list costs nothing.
+  </p>
+</div>
