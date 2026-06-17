@@ -18,12 +18,20 @@ Rails.application.configure do
     policy.form_action :self
   end
 
-  # Generate a per-request nonce so inline scripts added by Rails helpers
-  # (importmap tags, csp_meta_tag, javascript_tag nonce: true) are allowed.
-  # Using SecureRandom instead of session.id — session.id can be nil before
-  # the session is loaded, which produced empty nonces and broke everything.
-  config.content_security_policy_nonce_generator = ->(request) { SecureRandom.base64(16) }
-  config.content_security_policy_nonce_directives = %w[script-src]
+  # No per-request nonce. 'unsafe-inline' above is what allows our inline
+  # scripts (importmap tag, csp_meta_tag, javascript_tag blocks). Adding a
+  # nonce to script-src is actively harmful here: a nonce makes the browser
+  # IGNORE 'unsafe-inline', and Turbo Drive re-executes inline <script>s on
+  # every navigation, stamping them with the *current* request's nonce. The
+  # browser still enforces the nonce the document was first loaded with, so
+  # those re-run scripts never match and get blocked — the console
+  # "Executing inline script violates CSP / unsafe-inline is ignored" spam.
+  # A stable nonce would need session.id, which is nil before the session
+  # loads (that produced empty nonces that blocked everything — see git
+  # history: the generator was added, broke, removed, re-added, broke again).
+  # 'unsafe-inline' is the correct, consistent choice until we commit to a
+  # strict nonce-only policy (drop 'unsafe-inline' + 'https:' and vendor the
+  # CDN scripts), which is a separate project.
 
   # Report violations without enforcing initially — switch to enforcing after testing.
   # config.content_security_policy_report_only = true
