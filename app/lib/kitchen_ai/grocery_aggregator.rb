@@ -10,7 +10,12 @@ module KitchenAi
   class GroceryAggregator
     MODEL      = "claude-opus-4-8"
     SOURCE     = "nyk_grocery_list"
-    MAX_TOKENS = 4000
+    # A consolidated list for a busy week (7+ classes) already runs ~3.9k output
+    # tokens; folding in observed receipt prices pushes it past 4k, so the JSON
+    # was truncated (stop_reason "max_tokens"), parse failed, and the user just
+    # saw an endless "Building..." spinner. Give generous headroom for the
+    # 14-day window (many more classes). Opus 4.8 supports far higher output.
+    MAX_TOKENS = 16_000
 
     Result = Struct.new(:ok?, :categories, :to_taste, :cost_cents, :error, keyword_init: true)
 
