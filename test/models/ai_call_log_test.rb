@@ -106,4 +106,34 @@ class AiCallLogTest < ActiveSupport::TestCase
     assert_equal 0,   roll[:total_tokens]
     assert_in_delta 0.0, roll[:cost_dollars], 1e-9
   end
+
+  test "monthly_by_source returns one bucket per month, oldest first, zero-filled" do
+    now = Time.zone.local(2026, 6, 17, 12)
+    # This month: a grocery build. Two months back: a recipe extraction.
+    AiCallLog.create!(model: "claude-opus-4-8", source: "nyk_grocery_list",
+                      input_tokens: 2_000, output_tokens: 4_000, created_at: now - 1.day)
+    AiCallLog.create!(model: "claude-opus-4-8", source: "nyk_recipe_extract",
+                      input_tokens: 1_000, output_tokens: 1_000, created_at: now - 2.months)
+
+    months = AiCallLog.monthly_by_source(%w[nyk_grocery_list nyk_recipe_extract], months: 6, now: now)
+
+    assert_equal 6, months.size
+    assert_equal %w[Jan Feb Mar Apr May Jun], months.map { |m| m[:label] }
+    # Current month (Jun): grocery only = 2k*$5/M + 4k*$25/M = $0.11
+    jun = months.last
+    assert_in_delta 0.11, jun[:by_source]["nyk_grocery_list"][:cost_dollars], 1e-9
+    assert_equal 0.0, jun[:by_source]["nyk_recipe_extract"][:cost_dollars]   # zero-filled
+    # Two months back (Apr): the recipe extraction landed there.
+    apr = months[3]
+    assert_equal 1, apr[:by_source]["nyk_recipe_extract"][:calls]
+  end
+
+  test "monthly_by_source ignores sources outside the requested list" do
+    now = Time.zone.local(2026, 6, 17, 12)
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_ask",
+                      input_tokens: 1_000_000, output_tokens: 1_000_000, created_at: now)
+
+    months = AiCallLog.monthly_by_source(%w[nyk_grocery_list nyk_recipe_extract], months: 6, now: now)
+    assert_equal 0.0, months.sum { |m| m[:cost_dollars] }
+  end
 end

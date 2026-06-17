@@ -66,4 +66,31 @@ class AiCallLog < ApplicationRecord
       }
     end
   end
+
+  EMPTY_USAGE = { calls: 0, input_tokens: 0, output_tokens: 0, cost_dollars: 0.0 }.freeze
+
+  # Per-calendar-month usage for the given sources over the last `months`
+  # months (workspace-local tz via Time.zone), for the AI spend page. Buckets
+  # are computed in Ruby per month so boundaries respect the app time zone (vs
+  # grouping on a UTC SQL date). Cost is per-row (RATES per model), so this is
+  # correct even if a source's model changes. Oldest month first; every source
+  # appears in every month (zero-filled) so the view can render flat bars.
+  #
+  #   [ { key: "2026-06", label: "Jun", start: <Date>,
+  #       by_source: { "nyk_grocery_list" => {calls:, cost_dollars:, ...}, ... },
+  #       cost_dollars: <month total across the sources> }, ... ]
+  def self.monthly_by_source(sources, months: 6, now: Time.zone.now)
+    (0...months).map do |i|
+      month_start = now.beginning_of_month - i.months
+      found       = summary_by_source(where(source: sources, created_at: month_start...(month_start + 1.month)))
+      by_source   = sources.index_with { |s| found[s] || EMPTY_USAGE }
+      {
+        key:          month_start.strftime("%Y-%m"),
+        label:        month_start.strftime("%b"),
+        start:        month_start.to_date,
+        by_source:    by_source,
+        cost_dollars: by_source.values.sum { |h| h[:cost_dollars] }
+      }
+    end.reverse
+  end
 end
