@@ -100,9 +100,13 @@ class Invoice < ApplicationRecord
   # page. Human labels mirror the billing view's source mapping.
   def self.build_line_items(by_source, smoke_count, smoke_cost)
     labels = {
-      "nyk_enhance"     => "Enhance with AI button",
-      "nyk_x_autopost"  => "Daily X autopost draft",
-      "nyk_team_report" => "Weekly team report"
+      "nyk_enhance"        => "Enhance with AI button",
+      "nyk_x_autopost"     => "Daily X autopost draft",
+      "nyk_team_report"    => "Weekly team report",
+      "nyk_grocery_list"   => "Grocery lists",
+      "nyk_recipe_extract" => "Recipe generation",
+      "nyk_receipt_extract" => "Receipt scanning",
+      "nyk_ask"            => "Super Agent chat"
     }
     items = by_source.sort_by { |_, v| -v[:cost_dollars] }.map do |source, v|
       { "label" => labels[source] || source, "calls" => v[:calls],
