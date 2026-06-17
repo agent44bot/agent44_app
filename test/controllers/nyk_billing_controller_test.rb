@@ -33,6 +33,19 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     assert_match(/AI usage trend/, response.body)
   end
 
+  test "customer Super Agent chat (nyk_ask) is billed, admin dogfood (nyk_agent) is not" do
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_ask",
+                      input_tokens: 5_000, output_tokens: 2_000)
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_agent",
+                      input_tokens: 9_999_999, output_tokens: 9_999_999) # huge dogfood, must be excluded
+    sign_in_as(@admin)
+    get "/nykitchen/billing"
+    assert_response :success
+    assert_match(/Super Agent chat/, response.body)
+    assert_includes AiCallLog::NYK_SOURCES, "nyk_ask"
+    refute_includes AiCallLog::NYK_SOURCES, "nyk_agent"
+  end
+
   test "unauthenticated request bounces to sign-in" do
     get "/nykitchen/billing"
     assert_redirected_to %r{/sign_in}
