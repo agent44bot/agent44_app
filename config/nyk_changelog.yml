@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-18
+  note: Recipe handouts now tidy up messy punctuation from imported recipes (stray commas and doubled parentheses around notes), so ingredient lines like "ginger (, finely grated)" read cleanly. Applies to existing handouts too.
+
+- date: 2026-06-18
   note: The grocery list and pull sheet now use the same measurement style as the recipe handouts, Tablespoon as T, teaspoon as tsp, and cup as c.
 
 - date: 2026-06-18
