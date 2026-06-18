@@ -93,6 +93,29 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal [ "Pour flour in a bowl.", "Knead." ], handout.recipes.first["directions"].first["steps"]
   end
 
+  test "update standardizes measurement units on save (Lora's house style)" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_handout_path(handout), params: {
+      title: "Packet", station_label: "Single station",
+      recipes: {
+        "0" => {
+          title: "Fresh Pasta",
+          ingredients: {
+            "0" => { qty: "2 Tablespoons", station_qty: "1 tablespoon", item: "Olive oil", section: "" },
+            "1" => { qty: "1/2 cup", station_qty: "1/4 cup", item: "Flour", section: "" }
+          },
+          directions: { "0" => { section: "", steps: "Mix." } }
+        }
+      }
+    }
+    handout.reload
+    ings = handout.recipes.first["ingredients"]
+    assert_equal "2 T", ings[0]["qty"]
+    assert_equal "1 T", ings[0]["station_qty"]
+    assert_equal "1/2 c", ings[1]["qty"]
+    assert_equal "1/4 c", ings[1]["station_qty"]
+  end
+
   test "print page embeds the recipe PDF" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     get print_nyk_handout_path(handout)
