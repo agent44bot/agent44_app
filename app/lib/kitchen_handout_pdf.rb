@@ -117,7 +117,7 @@ class KitchenHandoutPdf
       end
       last_section = section
       qty = scale_tag ? ing["station_qty"] : ing["qty"]
-      rows << [ tidy(KitchenUnits.standardize(qty)), tidy(ing["item"]) ]
+      rows << [ tidy(KitchenUnits.standardize(qty)), tidy(IngredientText.clean(ing["item"])) ]
     end
     return if rows.empty?
 
