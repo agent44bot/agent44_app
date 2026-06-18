@@ -201,7 +201,9 @@ export default class extends Controller {
   async sendToWorkspace() {
     if (!this.hasSendToWorkspaceBtnTarget || !this.sendToWorkspaceUrlValue) return
     const btn = this.sendToWorkspaceBtnTarget
-    const originalText = btn.textContent
+    // Capture innerHTML (not textContent): the event-card button holds an
+    // emoji + label structure that must be restored intact on failure.
+    const originalHTML = btn.innerHTML
     btn.textContent = "Sending…"
     btn.disabled = true
     btn.classList.add("opacity-50")
@@ -237,7 +239,7 @@ export default class extends Controller {
         btn.classList.remove("opacity-50", "bg-orange-600", "hover:bg-orange-500")
         btn.classList.add("bg-red-700")
         setTimeout(() => {
-          btn.textContent = originalText
+          btn.innerHTML = originalHTML
           btn.classList.remove("bg-red-700")
           btn.classList.add("bg-orange-600", "hover:bg-orange-500")
           btn.disabled = false

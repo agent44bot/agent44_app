@@ -108,14 +108,18 @@
         the name/date get the card's full width instead of being squeezed by the
         fixed icon columns. sm+ keeps the original right-edge vertical strip. %>
     <div class="shrink-0 flex items-stretch justify-end divide-x divide-gray-800 border-t border-gray-800 pt-2 sm:border-t-0 sm:pt-0 sm:border-l">
-      <%# Draft Post column (reserved even when empty to keep the recipe aligned). %>
-      <div class="flex flex-col items-center justify-center gap-0.5 w-16 px-1">
+      <%# Draft Post column (reserved even when empty to keep the recipe aligned).
+          Emoji + label live INSIDE one button so the whole target is clickable
+          with a pointer cursor, matching the Pull Sheet / Edit links. %>
+      <div class="flex flex-col items-center justify-center w-16 px-1">
         <% if !event.sold_out? && default_ws %>
           <button data-action="social-post#sendToWorkspace"
                   data-social-post-target="sendToWorkspaceBtn"
                   title="Draft a social post to Echo"
-                  class="text-2xl leading-none text-blue-400 hover:text-blue-300 transition cursor-pointer">📣</button>
-          <span class="text-[10px] font-medium text-blue-400">Draft Post</span>
+                  class="flex flex-col items-center gap-0.5 text-blue-400 hover:text-blue-300 transition cursor-pointer">
+            <span class="text-2xl leading-none">📣</span>
+            <span class="text-[10px] font-medium">Draft Post</span>
+          </button>
         <% end %>
       </div>
       <%# Pull Sheet column: just this class's grocery list, printable on demand.
