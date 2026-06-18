@@ -43,8 +43,8 @@
               go full-width below. Desktop: the original 4-up grid. min-w-0 lets the
               inputs shrink so nothing overflows off-screen. %>
           <div class="grid grid-cols-2 sm:grid-cols-[1fr_1fr_2fr_1fr] gap-2 mb-1.5">
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][qty]", ing["qty"], placeholder: "Full amount", class: "min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", ing["station_qty"], placeholder: @handout.station_label, class: "min-w-0 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][qty]", KitchenUnits.standardize(ing["qty"]), placeholder: "Full amount", class: "min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", KitchenUnits.standardize(ing["station_qty"]), placeholder: @handout.station_label, class: "min-w-0 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][item]", ing["item"], placeholder: "Ingredient", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][section]", ing["section"], placeholder: "Sub-heading", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
           </div>

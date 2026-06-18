@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-18
+  note: Recipe handouts now show measurements in one consistent style everywhere, Tablespoon as T, teaspoon as tsp, and cup as c. Applies to existing handouts too, not just new ones.
+
 - date: 2026-06-17
   note: Billing page now itemizes the grocery list and recipe generation AI usage and shows a 6-month spend trend, so the full monthly cost is in one place.
 

@@ -82,7 +82,7 @@ module KitchenAi
 
       Rules:
       - A document often contains several recipes (e.g. dough, filling, sauce); emit each as its own entry, in document order. If the document contains both a full version and an already-scaled "single station" version of the same recipes, emit each recipe ONCE using the full version's quantities.
-      - qty is the full-class quantity as display text ("2½ c", "1 T", "2-3"). Keep the document's units. If an ingredient has no quantity (e.g. "Salt, to taste"), use "" and put the whole line in item.
+      - qty is the full-class quantity as display text ("2½ c", "1 T", "2-3"). Standardize the volume units to this house style: tablespoon = T, teaspoon = tsp, cup = c (e.g. "2 tablespoons" -> "2 T", "1/2 cup" -> "1/2 c", "1 teaspoon" -> "1 tsp"). Leave other units (oz, lb, g, ml, cloves, etc.) as written. If an ingredient has no quantity (e.g. "Salt, to taste"), use "" and put the whole line in item.
       - station_qty is the same line scaled to HALF for a single student station, as friendly kitchen text: use unicode fractions (¼ ½ ¾ ⅓), convert to smaller units when natural (1 T -> 1½ tsp when halving 1 T is awkward), scale ranges to ranges ("2-3" -> "1-2"), and leave "to taste" lines as "".
       - section groups ingredient lines under a sub-heading when the document has one (e.g. "Ravioli filling"); otherwise null.
       - directions: keep the document's steps verbatim, in order, grouped under their sub-headings ("Filling", "Assembly") when present; otherwise one group with section null.
