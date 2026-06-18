@@ -116,6 +116,53 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "1/4 c", ings[1]["station_qty"]
   end
 
+  test "saving an edit busts the preview cache and serves a fresh PDF" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+
+    # The edit page's PDF preview iframe carries a cache-busting ?v= param.
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    before_src = css_select("iframe[title='Recipe PDF preview']").first["src"]
+    before_v   = Rack::Utils.parse_nested_query(URI(before_src).query)["v"]
+    assert before_v.present?, "preview iframe must carry a cache-busting v param"
+
+    # Baseline: 1 recipe -> full + station = 2 pages.
+    get before_src
+    before_pages = response.body.scan("/Type /Page\n").size + response.body.scan("/Type /Page ").size
+    assert_equal 2, before_pages
+
+    # "Save & refresh preview" with an added recipe (travel so updated_at advances).
+    travel 1.second do
+      patch nyk_handout_path(handout), params: {
+        title: "Packet", station_label: "Single station",
+        recipes: {
+          "0" => { title: "Fresh Pasta",
+                   ingredients: { "0" => { qty: "2½ c", station_qty: "1¼ c", item: "All-purpose flour", section: "" } },
+                   directions: { "0" => { section: "", steps: "Mix." } } },
+          "1" => { title: "Sauce",
+                   ingredients: { "0" => { qty: "2 T", station_qty: "1 T", item: "Butter", section: "" } },
+                   directions: { "0" => { section: "", steps: "Melt." } } }
+        }
+      }
+    end
+    assert_redirected_to edit_nyk_handout_path(handout)
+
+    # The refreshed edit page points the iframe at a NEW url (so the browser
+    # refetches instead of showing the cached PDF)...
+    get edit_nyk_handout_path(handout)
+    after_src = css_select("iframe[title='Recipe PDF preview']").first["src"]
+    after_v   = Rack::Utils.parse_nested_query(URI(after_src).query)["v"]
+    assert_not_equal before_v, after_v,
+                     "preview URL must change after a save so the browser refetches the PDF"
+
+    # ...and that PDF reflects the edit: 2 recipes -> full + station = 4 pages.
+    get after_src
+    assert_response :success
+    assert_equal "application/pdf", response.media_type
+    after_pages = response.body.scan("/Type /Page\n").size + response.body.scan("/Type /Page ").size
+    assert_equal 4, after_pages
+  end
+
   test "print page embeds the recipe PDF" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     get print_nyk_handout_path(handout)
