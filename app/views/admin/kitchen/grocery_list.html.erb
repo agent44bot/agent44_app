@@ -108,7 +108,7 @@
           <% cat["items"].each do |it| %>
             <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
               <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
-              <span class="font-semibold w-24 shrink-0"><%= it["quantity"] %></span>
+              <span class="font-semibold w-24 shrink-0"><%= KitchenUnits.standardize(it["quantity"]) %></span>
               <span class="flex-1 min-w-0">
                 <%= it["item"] %>
                 <% if it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>

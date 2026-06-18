@@ -61,6 +61,24 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_match "Ravioli", response.body      # class tag chip
   end
 
+  test "the grocery list standardizes measurement units (T / tsp / c)" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    KitchenAi::GroceryAggregator.stub = lambda do |items:|
+      agg = { "categories" => [ { "name" => "Pantry and dry goods", "items" => [
+        { "item" => "Olive oil", "quantity" => "2 Tablespoons", "price" => 1.0, "classes" => [ "Ravioli" ] },
+        { "item" => "Milk",      "quantity" => "1/2 cup",       "price" => 1.0, "classes" => [ "Ravioli" ] }
+      ] } ], "to_taste" => [] }
+      OpenStruct.new(content: [ OpenStruct.new(text: agg.to_json) ],
+                     usage: OpenStruct.new(input_tokens: 10, output_tokens: 10))
+    end
+    get nyk_grocery_path, headers: FRAME
+    assert_response :success
+    assert_match "2 T", response.body
+    assert_match "1/2 c", response.body
+    assert_no_match(/2 Tablespoons/, response.body)
+    assert_no_match(%r{1/2 cup}, response.body)
+  end
+
   test "shows per-item price and an estimated total" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
     get nyk_grocery_path, headers: FRAME
