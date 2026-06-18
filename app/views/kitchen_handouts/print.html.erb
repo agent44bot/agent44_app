@@ -22,10 +22,11 @@
     <span class="title"><%= @handout.title %></span>
     <a class="btn" href="<%= edit_nyk_handout_path(@handout) %>">Edit</a>
     <a class="btn" href="<%= nyk_list_path %>">Sam's list</a>
-    <a class="btn" href="<%= print_nyk_handout_path(@handout, format: :pdf, download: 1) %>">Download</a>
+    <a class="btn" href="<%= print_nyk_handout_path(@handout, format: :pdf, download: 1, v: @handout.updated_at.to_i) %>">Download</a>
     <button class="btn btn-primary" id="print-btn" type="button">🖨 Print</button>
   </div>
-  <iframe id="pdf" src="<%= print_nyk_handout_path(@handout, format: :pdf) %>" title="<%= @handout.title %>"></iframe>
+  <%# v=updated_at busts the browser PDF cache so a fresh save shows fresh pages. %>
+  <iframe id="pdf" src="<%= print_nyk_handout_path(@handout, format: :pdf, v: @handout.updated_at.to_i) %>" title="<%= @handout.title %>"></iframe>
 
   <%= javascript_tag nonce: true do %>
     document.getElementById("print-btn")?.addEventListener("click", function () {

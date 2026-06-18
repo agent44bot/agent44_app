@@ -85,12 +85,15 @@
       <span class="text-sm font-semibold text-gray-300">PDF preview</span>
       <div class="flex items-center gap-4">
         <%= link_to "Open print page", print_nyk_handout_path(@handout), class: "text-sm text-orange-400 hover:text-orange-300" %>
-        <%= link_to "Download PDF", print_nyk_handout_path(@handout, format: :pdf, download: 1), class: "text-sm text-gray-400 hover:text-gray-200" %>
+        <%= link_to "Download PDF", print_nyk_handout_path(@handout, format: :pdf, download: 1, v: @handout.updated_at.to_i), class: "text-sm text-gray-400 hover:text-gray-200" %>
         <span class="text-xs text-gray-500">Updates each time you save</span>
       </div>
     </div>
     <div class="rounded-xl overflow-hidden border border-gray-800 bg-gray-950">
-      <iframe src="<%= print_nyk_handout_path(@handout, format: :pdf) %>"
+      <%# v=updated_at busts the browser's PDF cache so "Save & refresh preview"
+          actually redraws: without it the iframe URL is identical across saves
+          and the stale cached PDF is shown. %>
+      <iframe src="<%= print_nyk_handout_path(@handout, format: :pdf, v: @handout.updated_at.to_i) %>"
               class="w-full" style="height: 92vh;" title="Recipe PDF preview"></iframe>
     </div>
   </div>
