@@ -86,9 +86,8 @@
       <div class="brand">
         <% if @display_workspace&.logo&.attached? %>
           <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
-          <span class="accent">Upcoming Classes</span>
         <% else %>
-          New York Kitchen <span class="accent">·</span> Upcoming Classes
+          New York Kitchen
         <% end %>
       </div>
       <div class="subhead">Scan a code to reserve your spot<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></div>
