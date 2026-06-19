@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Recipes now follow a class to its other dates. Attach a packet to one run of a class (say Korean BBQ) and it links automatically to the other upcoming runs of the same class, including new dates as they show up on the calendar. Auto-linked classes show a small "auto" tag so you can tell, and you can always swap or remove the recipe. Because every run shares the one packet, editing the recipe updates the printout for all of them at once (the edit screen now tells you how many classes share it).
+
+- date: 2026-06-19
   note: New Recipe Library page (the Recipes button on Sam's list) shows every recipe packet you've built in one place, with a search box that finds recipes by name or by an ingredient inside them. You can edit, print, or delete from there. When adding a recipe to a class, the reuse picker now has the same search so you can pull up any past packet, not just the most recent ones.
 
 - date: 2026-06-19

@@ -335,4 +335,43 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match "Sourdough Basics", response.body
     assert_no_match(/Reuse this packet/, response.body) # no similarity suggestion while searching
   end
+
+  SIBLING_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-9-3-26/".freeze
+
+  test "attaching a packet auto-links other future runs of the same class" do
+    handout = KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 8/6/26", data: { "recipes" => EXTRACTED })
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+    snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 8/6/26", url: EVENT_URL,
+                                start_at: 2.weeks.from_now, availability: "InStock")
+    snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 9/3/26", url: SIBLING_URL,
+                                start_at: 5.weeks.from_now, availability: "InStock")
+
+    post nyk_handouts_path, params: { existing_id: handout.id, event_url: EVENT_URL }
+    assert_redirected_to nyk_list_path
+
+    # The class we attached to is manual; the sibling future run is auto-linked.
+    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    assert_not KitchenHandoutLink.find_by(event_url: EVENT_URL).auto
+    sibling = KitchenHandoutLink.find_by(event_url: SIBLING_URL)
+    assert_equal handout, sibling.kitchen_handout
+    assert sibling.auto
+  end
+
+  test "edit page warns when a packet is shared by more than one class" do
+    handout = KitchenHandout.create!(title: "Korean BBQ", data: { "recipes" => EXTRACTED })
+    handout.attach_to!("https://nyk/a")
+    handout.links.create!(event_url: "https://nyk/b", auto: true)
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_match "shared by", response.body
+    assert_match "2 classes", response.body
+  end
+
+  test "edit page does not warn for a single-class packet" do
+    handout = KitchenHandout.create!(title: "Korean BBQ", data: { "recipes" => EXTRACTED })
+    handout.attach_to!("https://nyk/a")
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_no_match(/shared by/, response.body)
+  end
 end

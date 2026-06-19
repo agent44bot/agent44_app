@@ -60,9 +60,11 @@ class KitchenHandout < ApplicationRecord
 
   # Attach to a class; a class can only carry one handout, so an existing
   # link for that URL moves to this handout (re-linking a reused packet).
-  def attach_to!(event_url)
+  # auto: true marks a link the system made by matching the class name (so the
+  # UI can badge it); a manual attach (auto: false) clears that mark.
+  def attach_to!(event_url, auto: false)
     KitchenHandoutLink.where(event_url: event_url).destroy_all
-    links.create!(event_url: event_url)
+    links.create!(event_url: event_url, auto: auto)
   end
 
   private

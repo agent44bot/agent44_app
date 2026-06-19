@@ -689,4 +689,26 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, warning_alerts.count, "A should not re-alert; only B's new flip should"
     assert_includes warning_alerts.order(created_at: :desc).first.title, "Class B"
   end
+
+  test "ingest auto-attaches a packet to a new run of the same class" do
+    recipes = [ { "title" => "Korean BBQ",
+      "ingredients" => [ { "qty" => "1 lb", "station_qty" => "1/2 lb", "item" => "Short rib", "section" => nil } ],
+      "directions" => [ { "section" => nil, "steps" => [ "Grill." ] } ] } ]
+    handout = KitchenHandout.create!(title: "Korean Barbecue Class 6/19/26", data: { "recipes" => recipes })
+
+    post "/api/v1/kitchen_snapshots",
+      params: { taken_on: @today, events: [
+        { url: "https://nykitchen.com/event/korean-bbq-7-3/", name: "Korean Barbecue Class 7/3/26",
+          start_at: 3.weeks.from_now.iso8601, spots_left: 10, capacity: 24, availability: "InStock" },
+        { url: "https://nykitchen.com/event/knife-7-4/", name: "Knife Skills 7/4/26",
+          start_at: 3.weeks.from_now.iso8601, spots_left: 10, capacity: 24, availability: "InStock" }
+      ] }.to_json,
+      headers: @headers
+    assert_response :created
+
+    link = KitchenHandoutLink.find_by(event_url: "https://nykitchen.com/event/korean-bbq-7-3/")
+    assert_equal handout, link.kitchen_handout
+    assert link.auto, "ingest-attached link should be flagged auto"
+    assert_nil KitchenHandoutLink.find_by(event_url: "https://nykitchen.com/event/knife-7-4/")
+  end
 end

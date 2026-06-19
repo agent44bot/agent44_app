@@ -46,7 +46,10 @@ class KitchenHandoutsController < ApplicationController
     # Reuse path: attach an existing packet to this class, no AI involved.
     if params[:existing_id].present?
       handout = KitchenHandout.find(params[:existing_id])
-      handout.attach_to!(event_url) if event_url.present?
+      if event_url.present?
+        handout.attach_to!(event_url)
+        KitchenPacketAutoAttacher.attach_forward(handout)
+      end
       return redirect_to nyk_list_path, notice: "#{handout.title} attached. Print it from the class row."
     end
 
@@ -70,7 +73,10 @@ class KitchenHandoutsController < ApplicationController
       source_kind: source_kind_for(pdf: pdf, url: source_url),
       extract_cost_cents: result.cost_cents
     )
-    handout.attach_to!(event_url) if event_url.present?
+    if event_url.present?
+      handout.attach_to!(event_url)
+      KitchenPacketAutoAttacher.attach_forward(handout)
+    end
 
     redirect_to edit_nyk_handout_path(handout),
                 notice: "Recipes built with the Opus model#{handout.extract_cost_label}. Review them against the preview, then save."
