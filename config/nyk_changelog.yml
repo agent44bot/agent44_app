@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: The grocery list date buttons are now This weekend, Current week, Next week, and Next 2 weeks (full Monday to Sunday weeks), instead of Next 7 days and Next 14 days.
+
+- date: 2026-06-19
   note: A recipe's equipment now also shows on the weekly grocery list, grouped by class (each class lists the gear to set up at its stations), not just on the single-class pull sheet.
 
 - date: 2026-06-19
