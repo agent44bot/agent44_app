@@ -14,6 +14,28 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     }.merge(attrs))
   end
 
+  test "flyer is branded New York Kitchen with a calendar QR footer" do
+    add_event("Pinot Noir Decoded", 24, image_url: "https://img.test/a.jpg", end_at: 26.hours.from_now)
+    get nyk_display_print_path
+    assert_response :success
+    assert_match "New York Kitchen", response.body
+    assert_no_match(/\bNY Kitchen\b/, response.body)            # old short brand gone
+    assert_match "Check out other New York Kitchen classes", response.body
+    assert_match "nykitchen.com/calendar/", response.body
+    # Event time ranges read "6:00 PM to 8:00 PM", no en dash.
+    assert_no_match(/\d\s–\s\d/, response.body)
+  end
+
+  test "flyer shows the workspace logo when one is attached" do
+    owner = User.create!(email_address: "ws-owner-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = owner }
+    ws.logo.attach(io: StringIO.new("x" * 64), filename: "logo.png", content_type: "image/png")
+    add_event("Pinot Noir Decoded", 24)
+    get nyk_display_print_path
+    assert_response :success
+    assert_select "img.brand-logo", { minimum: 1 }, "brand logo image on the flyer"
+  end
+
   test "renders compact rows with a photo and QR per class" do
     add_event("Pinot Noir Decoded", 24, image_url: "https://img.test/a.jpg", price: "57", spots_left: 25)
     add_event("Chardonnay Faces",   48, image_url: "https://img.test/b.jpg", price: "58", spots_left: 9)

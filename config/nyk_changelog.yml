@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: The printable class flyer (and stall poster) now read New York Kitchen instead of NY Kitchen, show your uploaded workspace logo at the top, and end with a "Check out other New York Kitchen classes @ nykitchen.com/calendar/" footer with its own QR code to the calendar. To show the logo, upload it under Brand logo in the display settings.
+
+- date: 2026-06-19
   note: Owners and admins can now choose the AI model (Opus, Sonnet, or Haiku) for each feature right in the AI usage table on the billing page. A short legend explains each model's quality and cost. Use cheaper models where speed matters and pricier ones where quality matters.
 
 - date: 2026-06-19
