@@ -106,6 +106,20 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.bg-amber-500", count: 0, message: "Limited segments removed — bar is binary now"
   end
 
+  test "the current week's grocery button pulls the full Mon-Sun range" do
+    create_event("Pasta 101", 1.hour.from_now, "InStock")
+    KitchenHandout.create!(title: "Pasta 101", data: { "recipes" => [
+      { "title" => "Pasta",
+        "ingredients" => [ { "qty" => "1 c", "station_qty" => "1/2 c", "item" => "Flour", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ] })
+      .attach_to!("https://nykitchen.com/events/pasta-101")
+
+    get nyk_list_path
+    assert_response :success
+    monday = Date.current.beginning_of_week(:monday).iso8601
+    assert_match "from=#{monday}", response.body, "current-week grocery link should start on Monday"
+  end
+
   test "week with all available events shows only green bar" do
     next_monday = @today + ((7 - @today.cwday) % 7) + 1
     create_event("Event A", next_monday.to_time + 10.hours, "InStock")

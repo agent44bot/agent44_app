@@ -199,6 +199,23 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 0, @agg_calls
   end
 
+  test "the pull sheet hides per-item prices and the estimated total" do
+    url = add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path(event_url: url, name: "Ravioli"), headers: FRAME
+    assert_response :success
+    assert_match "Flour", response.body                 # items still show
+    assert_no_match(/~\$4\.50/, response.body)          # no per-item price
+    assert_no_match(/Estimated total/, response.body)   # no total
+  end
+
+  test "the week grocery list still shows prices (pricing only hidden on the pull sheet)" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME
+    assert_response :success
+    assert_match "~$4.50", response.body
+    assert_match "Estimated total", response.body
+  end
+
   # --- Week card estimated total (read from cache, never re-bills) -----------
 
   test "the week grocery card shows the estimated total once the list is built" do
