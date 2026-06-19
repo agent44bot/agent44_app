@@ -111,7 +111,8 @@
               <span class="font-semibold w-24 shrink-0"><%= KitchenUnits.standardize(it["quantity"]) %></span>
               <span class="flex-1 min-w-0">
                 <%= it["item"] %>
-                <% if it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
+                <%# Pull sheet (single class) is for the cook line: no prices. %>
+                <% if !single && it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
               </span>
               <%# Which classes need this item. Capped + wrapping so a long tag
                   list wraps inside the sheet instead of overflowing the edge.
@@ -135,7 +136,7 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1">To taste / on hand</h2>
         <p class="text-sm text-gray-600"><%= @result.to_taste.join(", ") %></p>
       <% end %>
-      <% if est_total > 0 %>
+      <% if !single && est_total > 0 %>
         <div class="mt-5 pt-3 border-t-2 border-gray-900 flex items-baseline justify-between">
           <span class="text-base font-extrabold">Estimated total</span>
           <span class="text-lg font-extrabold"><%= format("$%.2f", est_total) %></span>

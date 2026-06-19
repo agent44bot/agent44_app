@@ -9,6 +9,12 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Pull sheets (the single-class shopping list) no longer show prices or an estimated total, so they stay clean for the cook line. The full weekly grocery list still shows prices for budgeting.
+
+- date: 2026-06-19
+  note: The Current Week grocery button now covers the full Monday to Sunday week, matching the Next Week and later buttons, instead of starting from today.
+
+- date: 2026-06-19
   note: Recipes now follow a class to its other dates. Attach a packet to one run of a class (say Korean BBQ) and it links automatically to the other upcoming runs of the same class, including new dates as they show up on the calendar. Auto-linked classes show a small "auto" tag so you can tell, and you can always swap or remove the recipe. Because every run shares the one packet, editing the recipe updates the printout for all of them at once (the edit screen now tells you how many classes share it).
 
 - date: 2026-06-19

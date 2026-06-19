@@ -1061,11 +1061,13 @@ class KitchenController < ApplicationController
       days_until_sunday = (7 - today.cwday) % 7
       this_sunday = today + days_until_sunday
 
-      # Build dynamic weekly buckets covering all events
+      # Build dynamic weekly buckets covering all events. The current week starts
+      # on Monday (not today) so its grocery button pulls the full Mon-Sun range,
+      # matching every later week and Lora's request.
       @weeks = []
       labels = [ "Current Week", "Next Week" ]
       last_event_date = @events.last&.start_at&.to_date || today
-      week_start = today
+      week_start = today.beginning_of_week(:monday)
       week_end = this_sunday
 
       while week_start <= last_event_date
