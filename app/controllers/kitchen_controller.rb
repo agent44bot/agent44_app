@@ -959,7 +959,7 @@ class KitchenController < ApplicationController
     # Per-tag recipe lines for the hover/tap popover (full recipe amounts).
     @recipe_by_tag = @with_recipe.to_h do |c|
       lines = c[:handout].recipes.flat_map do |r|
-        Array(r["ingredients"]).map { |i| [ KitchenUnits.standardize(i["qty"]), IngredientText.clean(i["item"]) ].map(&:to_s).reject(&:blank?).join(" ") }
+        Array(r["ingredients"]).map { |i| [ KitchenUnits.standardize(i["qty"]), IngredientText.normalize(i["item"]) ].map(&:to_s).reject(&:blank?).join(" ") }
       end.reject(&:blank?)
       [ c[:tag], lines ]
     end
