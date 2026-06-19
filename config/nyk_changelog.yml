@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Recipe handout PDFs now keep the Directions on the first page next to the Ingredients. Long ingredient lists spill onto a continuation page instead of pushing the Directions down to a later page and leaving the first page half-empty.
+
+- date: 2026-06-19
   note: On Sam's schedule, the recipe column now uses the same notepad icon for both Add and Edit (a grayed-out notepad when no recipe is attached, a colored one when there is) instead of a separate pencil for Edit.
 
 - date: 2026-06-18
