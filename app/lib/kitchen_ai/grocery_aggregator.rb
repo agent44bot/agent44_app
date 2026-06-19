@@ -76,8 +76,10 @@ module KitchenAi
       - Then sum the same ingredient across every class and recipe into one line.
       - Combine units sensibly (e.g. 3 T + 1/4 c -> about 1/2 c; round up to friendly
         shopping amounts). Use ASCII fractions like 1/2, 1/4, 2 1/2.
-      - Use this house style for volume units in "quantity": tablespoon = T,
-        teaspoon = tsp, cup = c (e.g. "2 tablespoons" -> "2 T", "1/2 cup" -> "1/2 c").
+      - Use this house style for units in "quantity": tablespoon = T, teaspoon =
+        tsp, cup = c, gram = g, kilogram = kg, ounce = oz, pound = lb (e.g.
+        "2 tablespoons" -> "2 T", "1/2 cup" -> "1/2 c", "200 grams" -> "200 g",
+        "8 ounces" -> "8 oz"). Normalize spelling only; never convert volume to weight.
         Leave other units (oz, lb, g, ml, cloves, etc.) as written.
       - When an amount is a RANGE (e.g. "2-3", "1-2 cups", or a recipe that "serves
         6 to 8"), always buy for the HIGHER end so we never run short. Treat

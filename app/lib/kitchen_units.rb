@@ -1,7 +1,11 @@
 # House style for recipe-handout measurements (Lora's request): standardize the
-# common volume units so every printed packet reads the same way.
+# common volume and weight units so every printed packet reads the same way.
 #
 #   tablespoon -> T    teaspoon -> tsp    cup -> c
+#   gram -> g    kilogram -> kg    ounce -> oz    pound -> lb
+#
+# Weight units only normalize the spelling/abbreviation; the numbers are never
+# touched (no volume->weight conversion).
 #
 # Applied to the short qty / station_qty display strings only, never ingredient
 # names or directions, so it can't mangle a word like "cupcake" or a step that
@@ -16,6 +20,14 @@ module KitchenUnits
     s = s.gsub(/\b(?:tablespoons?|tbsps?|tbs|tbl)\b\.?/i, "T")
     s = s.gsub(/\b(?:teaspoons?|tsps?)\b\.?/i, "tsp")
     s = s.gsub(/\bcups?\b\.?/i, "c")
+
+    # Weight units: normalize spelled-out / variant abbreviations to short forms.
+    # "kilograms" before "grams" so the longer unit wins. Numbers are untouched
+    # (this is spelling normalization, not a volume->weight conversion).
+    s = s.gsub(/\b(?:kilograms?|kgs?)\b\.?/i, "kg")
+    s = s.gsub(/\b(?:grams?|gms?)\b\.?/i, "g")
+    s = s.gsub(/\b(?:ounces?|ozs?)\b\.?/i, "oz")
+    s = s.gsub(/\b(?:pounds?|lbs?)\b\.?/i, "lb")
 
     # Lone single-letter units. Recipe shorthand is case-sensitive: "T" is
     # already tablespoon (leave it), lowercase "t" is teaspoon, and "C" is cup.
