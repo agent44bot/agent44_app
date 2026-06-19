@@ -137,6 +137,16 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "Lemongrass paste (Note 2)", ings[1]["item"]
   end
 
+  test "the edit page renders the equipment tag picker with catalog and selected" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Wooden spoon" ] })
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_select "[data-controller='equipment-tags']"
+    assert_match "data-equipment-tags-selected-value", response.body
+    assert_match "Wooden spoon", response.body   # the recipe's current item
+    assert_match "Cutting board", response.body   # a starter palette tag
+  end
+
   test "update saves the per-station equipment list (blank lines dropped) and round-trips it" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_handout_path(handout), params: {
