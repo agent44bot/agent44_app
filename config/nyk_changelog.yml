@@ -9,6 +9,12 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Recipe handouts now print in a cleaner Calibri-style font (Carlito) at a larger size, matching the look you asked for. Fractions like a half or a third now print as proper symbols instead of being spelled out.
+
+- date: 2026-06-19
+  note: Recipe handouts now show the gram weight next to flour (for example "2 c All-purpose flour (~240 g)"), since weighing flour is more accurate than measuring it by cup.
+
+- date: 2026-06-19
   note: Pull sheets (the single-class shopping list) no longer show prices or an estimated total, so they stay clean for the cook line. The full weekly grocery list still shows prices for budgeting.
 
 - date: 2026-06-19

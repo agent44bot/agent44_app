@@ -12,23 +12,23 @@ class KitchenHandoutPdf
   PAGE   = [ 540, 720 ].freeze
   MARGIN = 36
 
-  # Prawn's built-in fonts only cover WinAnsi, which is missing the vulgar
-  # fraction block (⅓ ⅔ ⅛ ...) the extractor uses for station amounts. Render
-  # fractions as ASCII ("2½ c" -> "2 1/2 c") so they're legible and can't crash
-  # the page, rather than bundling a TTF just for a handful of glyphs.
-  VULGAR = {
-    "½" => "1/2", "⅓" => "1/3", "⅔" => "2/3", "¼" => "1/4", "¾" => "3/4",
-    "⅕" => "1/5", "⅖" => "2/5", "⅗" => "3/5", "⅘" => "4/5", "⅙" => "1/6",
-    "⅚" => "5/6", "⅛" => "1/8", "⅜" => "3/8", "⅝" => "5/8", "⅞" => "7/8",
-    "⅐" => "1/7", "⅑" => "1/9", "⅒" => "1/10"
-  }.freeze
+  # Carlito is the open-source, metrically Calibri-compatible body font Lora
+  # asked for ("size 13 / Calibri"). As a real embedded TTF it also covers the
+  # vulgar fraction block (½ ⅓ ⅛ ...) the extractor uses, so those render
+  # natively instead of being spelled out as "1/2".
+  FONT_DIR  = Rails.root.join("vendor/fonts/carlito").freeze
+  BODY_FONT = "Carlito".freeze
+  BODY_SIZE = 13
+
+  # Vulgar fractions, for spacing them off a leading number ("2½" -> "2 ½").
+  VULGAR = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞⅐⅑⅒".freeze
 
   def initialize(handout)
     @handout = handout
   end
 
   def render
-    doc = Prawn::Document.new(page_size: PAGE, margin: MARGIN)
+    doc = new_document
     recipes = @handout.recipes
     return empty(doc) if recipes.empty?
 
@@ -46,14 +46,24 @@ class KitchenHandoutPdf
 
   private
 
-  # Make a string safe for Prawn's AFM fonts: ASCII-ify fractions, insert a
-  # space between a number and a fraction (2½ -> 2 1/2), then drop anything
-  # still outside WinAnsi so an odd glyph can never raise mid-render.
+  # A Prawn doc with Carlito registered and set as the default font.
+  def new_document
+    doc = Prawn::Document.new(page_size: PAGE, margin: MARGIN)
+    doc.font_families.update(BODY_FONT => {
+      normal:      FONT_DIR.join("Carlito-Regular.ttf").to_s,
+      bold:        FONT_DIR.join("Carlito-Bold.ttf").to_s,
+      italic:      FONT_DIR.join("Carlito-Italic.ttf").to_s,
+      bold_italic: FONT_DIR.join("Carlito-BoldItalic.ttf").to_s
+    })
+    doc.font(BODY_FONT)
+    doc
+  end
+
+  # Carlito renders vulgar fractions natively; just put a space between a number
+  # and a glued fraction ("2½" -> "2 ½") so it reads cleanly. UTF-8 throughout;
+  # a TTF substitutes a blank for any glyph it lacks rather than raising.
   def tidy(str)
-    s = str.to_s
-    VULGAR.each { |uni, ascii| s = s.gsub(/(?<=\d)#{uni}/, " #{ascii}").gsub(uni, ascii) }
-    s.encode(Encoding::Windows_1252, invalid: :replace, undef: :replace, replace: "")
-     .encode(Encoding::UTF_8)
+    str.to_s.gsub(/(?<=\d)([#{VULGAR}])/, ' \1')
   end
 
   def empty(doc)
@@ -72,7 +82,7 @@ class KitchenHandoutPdf
 
     brand(doc)
     doc.move_down 24
-    doc.font("Times-Roman") { doc.text tidy(recipe["title"]), size: 26, style: :bold, align: :center }
+    doc.text tidy(recipe["title"]), size: 26, style: :bold, align: :center
     doc.move_down 28
 
     # Two columns: ingredients (narrow) | directions (wide), each in its own
@@ -108,13 +118,9 @@ class KitchenHandoutPdf
       doc.line_width 2
       doc.stroke_color "111111"
       doc.stroke_circle [ doc.bounds.left + r, doc.bounds.top - r ], r + 2
-      doc.font("Helvetica") do
-        doc.draw_text "NK", at: [ doc.bounds.left + r - 7, doc.bounds.top - r - 3.5 ], size: 9, style: :bold
-      end
+      doc.draw_text "NK", at: [ doc.bounds.left + r - 7, doc.bounds.top - r - 3.5 ], size: 9, style: :bold
     end
-    doc.font("Helvetica") do
-      doc.indent(30) { doc.text "NEW YORK KITCHEN", size: 11, style: :bold, character_spacing: 1.5 }
-    end
+    doc.indent(30) { doc.text "NEW YORK KITCHEN", size: 11, style: :bold, character_spacing: 1.5 }
     doc.fill_color "000000"
   end
 
@@ -129,12 +135,17 @@ class KitchenHandoutPdf
         rows << [ { content: "#{tidy(section)}:", colspan: 2, font_style: :bold } ]
       end
       last_section = section
-      qty = scale_tag ? ing["station_qty"] : ing["qty"]
-      rows << [ tidy(KitchenUnits.standardize(qty)), tidy(IngredientText.normalize(ing["item"])) ]
+      qty  = KitchenUnits.standardize(scale_tag ? ing["station_qty"] : ing["qty"])
+      item = IngredientText.normalize(ing["item"])
+      # Flour by volume is imprecise, so show its weight too (Lora's request).
+      if item.match?(/\bflour/i) && (g = KitchenUnits.flour_grams(qty))
+        item = "#{item} (~#{g} g)"
+      end
+      rows << [ tidy(qty), tidy(item) ]
     end
     return if rows.empty?
 
-    doc.font("Helvetica", size: 10) do
+    doc.font(BODY_FONT, size: BODY_SIZE) do
       doc.table(rows, cell_style: { borders: [], padding: [ 1.5, 6, 1.5, 0 ] },
                       column_widths: [ doc.bounds.width * 0.40, doc.bounds.width * 0.60 ])
     end
@@ -143,7 +154,7 @@ class KitchenHandoutPdf
   def directions(doc, recipe)
     underlined(doc, "Directions")
     doc.move_down 4
-    doc.font("Helvetica", size: 10) do
+    doc.font(BODY_FONT, size: BODY_SIZE) do
       Array(recipe["directions"]).each do |group|
         if group["section"].present?
           doc.move_down 4
@@ -159,16 +170,12 @@ class KitchenHandoutPdf
   end
 
   def underlined(doc, label)
-    doc.font("Helvetica") do
-      doc.formatted_text [ { text: "#{label}:", styles: [ :bold, :underline ], size: 12 } ]
-    end
+    doc.formatted_text [ { text: "#{label}:", styles: [ :bold, :underline ], size: 13 } ]
   end
 
   def footer(doc)
-    doc.font("Helvetica") do
-      doc.bounding_box([ 0, doc.bounds.bottom + 10 ], width: doc.bounds.width, height: 10) do
-        doc.text FOOTER, size: 8, color: "555555", align: :center
-      end
+    doc.bounding_box([ 0, doc.bounds.bottom + 10 ], width: doc.bounds.width, height: 10) do
+      doc.text FOOTER, size: 8, color: "555555", align: :center
     end
   end
 end
