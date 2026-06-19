@@ -61,6 +61,37 @@
         </tbody>
       </table>
     </div>
+
+    <%# Spend per Anthropic model (Opus vs Haiku) + total. Same this-month NYK
+        scope as the per-feature table above, just grouped by model. %>
+    <h2 class="text-base font-semibold text-white mb-3">Spend by model</h2>
+    <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden mb-8">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
+          <tr>
+            <th class="px-4 py-2 text-left">Model</th>
+            <th class="px-4 py-2 text-right">Calls</th>
+            <th class="px-4 py-2 text-right">Cost</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          <% @model_summary.sort_by { |_, v| -v[:cost_dollars] }.each do |model, v| %>
+            <tr>
+              <td class="px-4 py-2 text-gray-200"><%= model %></td>
+              <td class="px-4 py-2 text-right text-gray-300"><%= v[:calls] %></td>
+              <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot class="border-t-2 border-gray-700 bg-gray-800/30">
+          <tr>
+            <td class="px-4 py-2 font-semibold text-gray-200">Total</td>
+            <td class="px-4 py-2 text-right font-semibold text-gray-300"><%= @ai_calls %></td>
+            <td class="px-4 py-2 text-right font-bold text-white">$<%= sprintf("%.4f", @ai_total) %></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   <% end %>
 
   <% if @ai_trend.any? { |m| m[:cost_dollars] > 0 } %>

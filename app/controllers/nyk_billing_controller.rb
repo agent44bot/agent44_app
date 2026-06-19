@@ -19,6 +19,7 @@ class NykBillingController < ApplicationController
 
     nyk_logs_month = AiCallLog.where(source: AiCallLog::NYK_SOURCES).where("created_at >= ?", @month_start)
     @summary = AiCallLog.summary_by_source(nyk_logs_month)
+    @model_summary = AiCallLog.summary_by_model(nyk_logs_month)
     @ai_total   = AiCallLog.total_cost_dollars(nyk_logs_month)
     @ai_calls   = nyk_logs_month.count
     @recent     = nyk_logs_month.order(created_at: :desc).limit(20)

@@ -46,6 +46,19 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     refute_includes AiCallLog::NYK_SOURCES, "nyk_agent"
   end
 
+  test "spend-by-model table breaks out Opus and Haiku with a total" do
+    AiCallLog.create!(model: "claude-opus-4-8",           source: "nyk_grocery_list",
+                      input_tokens: 1_000_000, output_tokens: 1_000_000) # $30
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_ask",
+                      input_tokens: 1_000_000, output_tokens: 1_000_000) # $6
+    sign_in_as(@admin)
+    get "/nykitchen/billing"
+    assert_response :success
+    assert_match(/Spend by model/, response.body)
+    assert_match(/Opus/,  response.body)
+    assert_match(/Haiku/, response.body)
+  end
+
   test "unauthenticated request bounces to sign-in" do
     get "/nykitchen/billing"
     assert_redirected_to %r{/sign_in}

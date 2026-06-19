@@ -75,6 +75,29 @@ class AiCallLog < ApplicationRecord
     end
   end
 
+  # Short, human label for an Anthropic model id ("claude-opus-4-8" -> "Opus").
+  def self.model_label(model)
+    case model.to_s
+    when /opus/i   then "Opus"
+    when /haiku/i  then "Haiku"
+    when /sonnet/i then "Sonnet"
+    else model.to_s.presence || "Unknown"
+    end
+  end
+
+  # Per-model calls + cost for a scope, keyed by friendly label (Opus, Haiku),
+  # so billing can show spend per Anthropic model alongside the per-feature view.
+  def self.summary_by_model(scope = all)
+    scope.group_by { |l| model_label(l.model) }.transform_values do |logs|
+      {
+        calls:         logs.size,
+        input_tokens:  logs.sum(&:input_tokens),
+        output_tokens: logs.sum(&:output_tokens),
+        cost_dollars:  logs.sum(&:cost_dollars)
+      }
+    end
+  end
+
   EMPTY_USAGE = { calls: 0, input_tokens: 0, output_tokens: 0, cost_dollars: 0.0 }.freeze
 
   # Per-calendar-month usage for the given sources over the last `months`

@@ -136,4 +136,26 @@ class AiCallLogTest < ActiveSupport::TestCase
     months = AiCallLog.monthly_by_source(%w[nyk_grocery_list nyk_recipe_extract], months: 6, now: now)
     assert_equal 0.0, months.sum { |m| m[:cost_dollars] }
   end
+
+  test "model_label maps Anthropic ids to short names" do
+    assert_equal "Opus",    AiCallLog.model_label("claude-opus-4-8")
+    assert_equal "Haiku",   AiCallLog.model_label("claude-haiku-4-5-20251001")
+    assert_equal "Sonnet",  AiCallLog.model_label("claude-sonnet-4-6")
+    assert_equal "mystery", AiCallLog.model_label("mystery")
+  end
+
+  test "summary_by_model groups spend by model with calls and cost" do
+    AiCallLog.create!(model: "claude-opus-4-8",           source: "nyk_grocery_list",
+                      input_tokens: 1_000_000, output_tokens: 1_000_000) # $5 + $25 = $30
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_ask",
+                      input_tokens: 1_000_000, output_tokens: 1_000_000) # $1 + $5 = $6
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_enhance",
+                      input_tokens: 0, output_tokens: 0) # $0, but a second Haiku call
+
+    by_model = AiCallLog.summary_by_model
+    assert_in_delta 30.0, by_model["Opus"][:cost_dollars], 1e-9
+    assert_equal 1, by_model["Opus"][:calls]
+    assert_in_delta 6.0, by_model["Haiku"][:cost_dollars], 1e-9
+    assert_equal 2, by_model["Haiku"][:calls]
+  end
 end
