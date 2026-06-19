@@ -158,12 +158,26 @@ class KitchenHandoutsController < ApplicationController
           "item" => IngredientText.normalize(i[:item]), "section" => i[:section].presence }
       end
       directions = (r[:directions]&.values || []).filter_map do |d|
-        steps = d[:steps].to_s.split(/\n+/).map(&:strip).reject(&:blank?)
+        steps = normalize_steps(d[:steps])
         next if steps.empty?
         { "section" => d[:section].presence, "steps" => steps }
       end
       { "title" => r[:title].to_s.strip, "ingredients" => ingredients, "directions" => directions }
     end.reject { |r| r["title"].blank? }
+  end
+
+  # One step per line, but KEEP blank lines (stored as "") so the spacing Lora
+  # adds between steps in the editor carries through to the PDF. Leading and
+  # trailing blanks are trimmed and runs of blank lines collapse to a single
+  # gap, so the spacing stays tidy and predictable.
+  def normalize_steps(raw)
+    lines = raw.to_s.split("\n").map(&:strip)
+    lines.shift while lines.first == ""
+    lines.pop   while lines.last == ""
+    lines.each_with_object([]) do |line, out|
+      next if line == "" && out.last == ""
+      out << line
+    end
   end
 
   # Cheap token-overlap similarity for the reuse suggestion; good enough to
