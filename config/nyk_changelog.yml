@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Sam's class list has a search box at the top. Type a class name, a dish, or a chef and the list filters as you type, automatically opening the weeks that have a match. Clear the box to see everything again.
+
+- date: 2026-06-19
   note: Blank lines you add between steps in the recipe editor now carry through to the printed handout, so you can group steps with a little space between them. Click Save and refresh preview to see it.
 
 - date: 2026-06-19

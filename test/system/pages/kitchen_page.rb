@@ -21,6 +21,11 @@ class KitchenPage < BasePage
     page.query_selector("[data-filter-status='#{status}']")
   end
 
+  def search(text)
+    page.fill("[data-kitchen-filter-target='query']", text)
+    sleep 0.3
+  end
+
   def preview_button
     page.query_selector("[data-action='social-post#toggle']")
   end

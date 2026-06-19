@@ -106,6 +106,14 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.bg-amber-500", count: 0, message: "Limited segments removed — bar is binary now"
   end
 
+  test "the class list renders a search box and per-card search text" do
+    create_event("Korean BBQ Class", 1.hour.from_now, "InStock")
+    get nyk_list_path
+    assert_response :success
+    assert_select "input[data-kitchen-filter-target='query']"
+    assert_select "[data-search-text*='korean bbq']"
+  end
+
   test "the current week's grocery button pulls the full Mon-Sun range" do
     create_event("Pasta 101", 1.hour.from_now, "InStock")
     KitchenHandout.create!(title: "Pasta 101", data: { "recipes" => [

@@ -1,5 +1,6 @@
 <% post_log = defined?(@post_logs) ? @post_logs[event.url] : nil %>
 <div data-kitchen-filter-target="card" data-status="<%= event.availability_status %>"
+     data-search-text="<%= [ event.name, strip_tags(event.menu.to_s), event.instructor ].compact.join(" ").downcase %>"
      data-controller="social-post"
      data-social-post-name-value="<%= event.name %>"
      data-social-post-date-value="<%= event.start_at.strftime("%A, %B %-d") %>"
