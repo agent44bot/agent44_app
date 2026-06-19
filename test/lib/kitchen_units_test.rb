@@ -38,9 +38,32 @@ class KitchenUnitsTest < ActiveSupport::TestCase
     assert_std "Salt, to taste", "Salt, to taste"
   end
 
+  test "Lora's weight house style: grams/kg/oz/lb fold to short forms" do
+    assert_std "200 g",  "200 grams"
+    assert_std "1 g",    "1 gram"
+    assert_std "50 g",   "50 gm"
+    assert_std "50 g",   "50 gms"
+    assert_std "1.5 kg", "1.5 Kilograms"
+    assert_std "2 kg",   "2 KG"
+    assert_std "8 oz",   "8 ounces"
+    assert_std "1 oz",   "1 Ounce"
+    assert_std "2 lb",   "2 pounds"
+    assert_std "1 lb",   "1 Pound"
+    assert_std "3 lb",   "3 lbs"
+  end
+
+  test "weight units already in short form stay put" do
+    assert_std "8 oz",  "8 oz"
+    assert_std "1 lb",  "1 lb"
+    assert_std "200 g", "200 g"
+    assert_std "2 kg",  "2 kg"
+  end
+
   test "does not mangle words that merely contain a unit" do
     assert_std "cupcake liners", "cupcake liners"
     assert_std "buttercup",      "buttercup"
+    assert_std "program notes",  "program notes"  # 'gram' inside 'program'
+    assert_std "cozy",           "cozy"           # 'oz' inside 'cozy'
   end
 
   test "blank in, blank out" do

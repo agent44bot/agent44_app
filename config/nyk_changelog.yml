@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Recipe handouts and grocery lists now write weights in short form too (grams as g, kilograms as kg, ounces as oz, pounds as lb), matching the T/tsp/c style we already use for volumes. Numbers are never changed, just the unit spelling.
+
+- date: 2026-06-19
   note: Recipe handout PDFs now keep the Directions on the first page next to the Ingredients. Long ingredient lists spill onto a continuation page instead of pushing the Directions down to a later page and leaving the first page half-empty.
 
 - date: 2026-06-19
