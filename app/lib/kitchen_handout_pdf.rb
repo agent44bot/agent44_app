@@ -162,8 +162,12 @@ class KitchenHandoutPdf
           doc.move_down 2
         end
         Array(group["steps"]).each do |step|
-          doc.text tidy(step), indent_paragraphs: 0, leading: 1
-          doc.move_down 4
+          if step.to_s.strip.empty?
+            doc.move_down 7 # a blank line between steps prints as a paragraph gap
+          else
+            doc.text tidy(step), indent_paragraphs: 0, leading: 1
+            doc.move_down 4
+          end
         end
       end
     end

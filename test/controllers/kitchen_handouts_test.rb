@@ -137,6 +137,33 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "Lemongrass paste (Note 2)", ings[1]["item"]
   end
 
+  test "update keeps blank lines between steps so spacing carries into the PDF" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_handout_path(handout), params: {
+      title: "Packet", station_label: "Single station",
+      recipes: { "0" => {
+        title: "Sauce",
+        ingredients: { "0" => { qty: "2 T", station_qty: "1 T", item: "Butter", section: "" } },
+        # Leading + trailing blanks, an interior blank, and a doubled blank.
+        directions: { "0" => { section: "", steps: "\nMelt butter.\nStir in flour.\n\n\nSeason to taste.\n" } }
+      } }
+    }
+    handout.reload
+    steps = handout.recipes.first["directions"].first["steps"]
+    # Interior blank preserved (as ""), runs collapsed to one, edges trimmed.
+    assert_equal [ "Melt butter.", "Stir in flour.", "", "Season to taste." ], steps
+  end
+
+  test "the edit textarea round-trips the blank line back into the box" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => [
+      { "title" => "Sauce",
+        "ingredients" => [ { "qty" => "2 T", "station_qty" => "1 T", "item" => "Butter", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Melt butter.", "", "Season to taste." ] } ] } ] })
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_match "Melt butter.\n\nSeason to taste.", response.body
+  end
+
   test "saving an edit busts the preview cache and serves a fresh PDF" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
 
