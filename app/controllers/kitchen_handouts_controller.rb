@@ -15,14 +15,29 @@ class KitchenHandoutsController < ApplicationController
   end
   after_action :allow_same_origin_framing, only: %i[edit print]
 
+  # Searchable recipe library: browse/search every packet, then Edit/Print/Delete.
+  def index
+    @q = params[:q].to_s.strip
+    @handouts = KitchenHandout.search(@q).order(:title)
+    @attach_counts = KitchenHandoutLink.group(:kitchen_handout_id).count
+  end
+
   def new
     @event_url  = params[:event_url].to_s
     @event_name = params[:event_name].to_s
-    # Reuse picker: recurring classes share a packet (the Aug run reuses
-    # May's upload). Name-similarity match floats the best candidate first.
-    @existing = KitchenHandout.order(updated_at: :desc).limit(25).to_a
-    @suggested = @existing.max_by { |h| name_similarity(h.title, @event_name) } if @event_name.present?
-    @suggested = nil if @suggested && name_similarity(@suggested.title, @event_name) < 0.3
+    @q = params[:q].to_s.strip
+    if @q.present?
+      # Searching the full library: title or recipe-content match, no similarity
+      # suggestion (the search box is the explicit pick).
+      @existing = KitchenHandout.search(@q).order(:title).limit(50).to_a
+      @suggested = nil
+    else
+      # Reuse picker: recurring classes share a packet (the Aug run reuses
+      # May's upload). Name-similarity match floats the best candidate first.
+      @existing = KitchenHandout.order(updated_at: :desc).limit(25).to_a
+      @suggested = @existing.max_by { |h| name_similarity(h.title, @event_name) } if @event_name.present?
+      @suggested = nil if @suggested && name_similarity(@suggested.title, @event_name) < 0.3
+    end
   end
 
   def create
@@ -83,7 +98,11 @@ class KitchenHandoutsController < ApplicationController
   # Open to any signed-in user for now; can be gated to owner/admin later.
   def destroy
     KitchenHandout.find(params[:id]).destroy!
-    redirect_to nyk_list_path, notice: "Recipe deleted."
+    # Return to the library when deleted from there, else Sam's list. Only
+    # allow our own in-app paths (no open redirect).
+    back = params[:return_to].to_s
+    dest = back.start_with?("/nykitchen/") ? back : nyk_list_path
+    redirect_to dest, notice: "Recipe deleted."
   end
 
   # The print page (HTML) embeds the PDF; the .pdf format streams it, used by
