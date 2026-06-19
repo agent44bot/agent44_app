@@ -1,9 +1,11 @@
 class WeeklySalesEmailJob < ApplicationJob
   queue_as :default
 
-  # Twice-weekly sales recap from the Analyst Agent (Monday and Friday 10am).
-  # Goes to everyone who belongs to the NY Kitchen workspace (any membership
-  # role), resolved to emails at send time. Members without an email are skipped.
+  # Weekly sales recap from the Analyst Agent. No longer scheduled on its own:
+  # Monday's KitchenDigestEmailJob prepends this report into the daily digest.
+  # Kept for the admin on-demand send (Analyst dashboard) + preview. When run,
+  # goes to everyone in the NY Kitchen workspace (any role), resolved to emails
+  # at send time. Members without an email are skipped.
   def perform
     workspace = Workspace.find_by(slug: "nykitchen")
     unless workspace

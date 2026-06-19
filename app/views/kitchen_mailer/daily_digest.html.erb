@@ -1,7 +1,10 @@
 <%
-  def fmt(t); t.strftime("%-I:%M %p"); end
+  # Local lambdas, not top-level `def`s: a `def` inside an ERB template leaks
+  # onto the shared view context, and `def label` clobbered Rails' form `label`
+  # helper for other templates rendered in the same process. Lambdas stay local.
+  fmt = ->(t) { t.strftime("%-I:%M %p") }
 
-  def label(av)
+  label = ->(av) do
     pill = "display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap"
     case av.to_s.downcase
     when /closed/   then %Q(<span style="#{pill};background:#fde8e8;color:#b00020">TICKETS NO LONGER AVAILABLE</span>)
@@ -12,7 +15,7 @@
     end
   end
 
-  def spots(e)
+  spots = ->(e) do
     cap   = e[:capacity]
     left  = e[:spots_left]
     lkcap = e[:last_known_capacity]
@@ -42,66 +45,22 @@
     %Q(<span style="font-size:11px;color:#{color};font-weight:600">#{text}</span>)
   end
 
-  def social_post_draft(e)
-    av = e[:availability].to_s.downcase
-    return nil if av.include?("soldout") || av.include?("closed")
-
-    spots_left = e[:spots_left]
-    cap = e[:capacity]
-    if spots_left && cap && cap > 0 && spots_left > 0
-      pct = ((cap - spots_left).to_f / cap) * 100
-      if pct >= 80
-        emoji = "\xF0\x9F\x94\xA5"
-        urgency = "Only #{spots_left} spots left! This class is almost full."
-      elsif pct >= 50
-        emoji = "\xE2\x8F\xB3"
-        urgency = "Spots are filling up \u2014 #{spots_left} of #{cap} seats remaining."
-      else
-        emoji = "\xE2\x9C\xA8"
-        urgency = "Seats are available \u2014 grab yours before they\u2019re gone!"
-      end
-    else
-      emoji = "\xE2\x9C\xA8"
-      urgency = "Seats are still available \u2014 don\u2019t miss out!"
-    end
-
-    desc = e[:description].to_s.gsub(/\n/, " ").strip.truncate(200, separator: ". ", omission: ".")
-
-    lines = []
-    lines << "#{emoji} #{e[:name]}"
-    lines << ""
-    lines << "\xF0\x9F\x93\x85 #{e[:start_at].strftime("%A, %B %-d")}"
-    lines << "\xE2\x8F\xB0 #{e[:start_at].strftime("%-I:%M %p")}#{e[:end_at] ? " - #{e[:end_at].strftime("%-I:%M %p")}" : ""}"
-    lines << "\xF0\x9F\x92\xB2 $#{e[:price]} per person" if e[:price].present?
-    lines << "\xF0\x9F\x93\x8D New York Kitchen, Canandaigua"
-    lines << ""
-    lines << desc if desc.present?
-    lines << "" if desc.present?
-    lines << urgency
-    lines << ""
-    lines << "\xF0\x9F\x94\x97 Link in bio to reserve your spot!"
-    lines << e[:url].to_s
-    lines << ""
-    lines << "#NewYorkKitchen #FingerLakes #CookingClass #HandsOnCooking #NYKitchen #Canandaigua #FLXFood #DateNight #TeamBuilding #CulinaryExperience"
-    lines.join("\n")
-  end
-
-  def event_row(e)
+  event_row = ->(e) do
     left_meta = []
     left_meta << e[:instructor] if e[:instructor]
     left_meta << "$#{e[:price]}" if e[:price]
     left_meta_html = left_meta.empty? ? "" : %Q(<div style="font-size:12px;color:#666;margin-top:2px">#{left_meta.join(' &middot; ')}</div>)
-    spots_html = spots(e).empty? ? "" : %Q(<div style="margin-top:4px">#{spots(e)}</div>)
+    spots_html = spots.(e).empty? ? "" : %Q(<div style="margin-top:4px">#{spots.(e)}</div>)
     %Q(<li style="padding:10px 0;border-bottom:1px solid #eee;list-style:none">
          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
            <div>
-             <strong style="color:#111">#{fmt(e[:start_at])}</strong>
+             <strong style="color:#111">#{fmt.(e[:start_at])}</strong>
              &nbsp;
              <a href="#{e[:url]}" style="color:#0a58ca;text-decoration:none">#{e[:name]}</a>
              #{left_meta_html}
            </div>
            <div style="text-align:right;flex-shrink:0">
-             #{label(e[:availability])}
+             #{label.(e[:availability])}
              #{spots_html}
            </div>
          </div>
@@ -109,6 +68,12 @@
   end
 %>
 <html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:auto;color:#222;background:#fafafa;padding:20px">
+<%# Mondays only: the Carson weekly team report, prepended above the class
+    list so it's one email. Other days @weekly_report is nil. %>
+<% if @weekly_report %>
+<%= render "weekly_report", s: @weekly_report %>
+<div style="height:1px;background:#e5e5e5;margin:24px 0"></div>
+<% end %>
 <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
 
 <h2 style="margin:0 0 4px 0;font-size:22px;color:#111">NY Kitchen</h2>
@@ -151,8 +116,8 @@
             <% end %>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <%= label(e[:availability]).html_safe %>
-            <% s = spots(e) %>
+            <%= label.(e[:availability]).html_safe %>
+            <% s = spots.(e) %>
             <% if s.present? %>
               <div style="margin-top:4px"><%= s.html_safe %></div>
             <% end %>
@@ -175,7 +140,7 @@
 
 <% if @newly_sold_out.any? %>
 <h3 style="font-size:15px;color:#b00020;border-bottom:2px solid #b00020;padding-bottom:6px;margin-top:28px">Tickets no longer available</h3>
-<ul style="padding:0;margin:0"><% @newly_sold_out.each do |e| %><%= event_row(e).html_safe %><% end %></ul>
+<ul style="padding:0;margin:0"><% @newly_sold_out.each do |e| %><%= event_row.(e).html_safe %><% end %></ul>
 <% end %>
 
 <p style="color:#aaa;font-size:11px;margin-top:28px;text-align:center">Sent by Agent44 Labs &middot; scraped from nykitchen.com/calendar</p>

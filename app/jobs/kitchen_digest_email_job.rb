@@ -37,9 +37,19 @@ class KitchenDigestEmailJob < ApplicationJob
     digest[:snapshot_date] = snapshot.taken_on
     digest[:stale_data]    = snapshot.taken_on != today
 
-    KitchenMailer.daily_digest(digest, recipients: RECIPIENTS).deliver_now
+    # Mondays: prepend the Carson weekly team report (one combined email). The
+    # builder makes the single paid Carson call; the other six days skip it.
+    weekly = if today.monday?
+      WeeklySalesEmailJob.build_summary(snapshot)
+    end
 
-    Rails.logger.info("KitchenDigestEmailJob: sent to #{RECIPIENTS} (snapshot #{snapshot.taken_on})")
+    KitchenMailer.daily_digest(digest, recipients: RECIPIENTS, weekly_report: weekly).deliver_now
+
+    # Stamp the weekly report's send time so the Analyst dashboard's recipient
+    # engagement panel keeps measuring dashboard visits after Monday's report.
+    Setting.touch_time("nyk_weekly_report:last_sent_at") if weekly
+
+    Rails.logger.info("KitchenDigestEmailJob: sent to #{RECIPIENTS} (snapshot #{snapshot.taken_on}, weekly_report: #{!weekly.nil?})")
   rescue => e
     Notification.notify!(
       level: "error",

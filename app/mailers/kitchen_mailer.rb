@@ -1,5 +1,10 @@
 class KitchenMailer < ApplicationMailer
-  def daily_digest(digest, recipients:)
+  # `weekly_report` is the WeeklySalesEmailJob.build_summary payload. On Mondays
+  # the digest job passes it so the Carson team report is prepended above the
+  # class list (same email); the other six days it's nil and only the classes
+  # show. @weekly_report drives the _weekly_report partial in the template.
+  def daily_digest(digest, recipients:, weekly_report: nil)
+    @weekly_report = weekly_report
     @today = digest[:today]
     @current_week_events = digest[:current_week_events]
     @week1_events = digest[:week1_events]
@@ -20,7 +25,9 @@ class KitchenMailer < ApplicationMailer
     )
   end
 
-  # Twice-weekly team report (Monday and Friday), hosted by Carson. `summary` is built by
+  # Weekly team report, hosted by Carson. Now sent as part of Monday's daily
+  # digest (prepended); this action stays for the admin preview / on-demand
+  # send from the Analyst dashboard. `summary` is built by
   # WeeklySalesEmailJob (each agent's week + Carson's intro). Method/template
   # keep the weekly_sales name for wiring; the content is the team report.
   def weekly_sales(summary, recipients:)
