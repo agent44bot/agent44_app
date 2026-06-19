@@ -4,9 +4,27 @@
         re-scope the whole list) don't apply. %>
     <div class="flex items-center gap-3 text-sm">
       <% unless @single_class %>
-        <% [ [ "This weekend", @default_days ], [ "Next 7 days", 7 ], [ "Next 14 days", 14 ] ].each do |label, d| %>
-          <%= link_to label, nyk_grocery_path(days: d),
-                class: "px-2.5 py-1 rounded-full border #{@days == d ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
+        <%# "This weekend" is a rolling day window (today -> Sunday); the rest are
+            calendar Mon-Sun weeks so they line up with Sam's list and Lora's
+            week-based shopping. "Next 2 weeks" = this week + next week. %>
+        <% mon = Date.current.beginning_of_week(:monday) %>
+        <% sun = Date.current.end_of_week(:monday) %>
+        <% pills = [
+             { label: "This weekend", days: @default_days },
+             { label: "Current week", from: mon,     to: sun },
+             { label: "Next week",    from: mon + 7, to: sun + 7 },
+             { label: "Next 2 weeks", from: mon,     to: sun + 7 }
+           ] %>
+        <% pills.each do |p| %>
+          <% if p[:days] %>
+            <% active = !@week_mode && @days == p[:days] %>
+            <%= link_to p[:label], nyk_grocery_path(days: p[:days]),
+                  class: "px-2.5 py-1 rounded-full border #{active ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
+          <% else %>
+            <% active = @week_mode && @range && @range.first == p[:from] && @range.last == p[:to] %>
+            <%= link_to p[:label], nyk_grocery_path(from: p[:from].iso8601, to: p[:to].iso8601),
+                  class: "px-2.5 py-1 rounded-full border #{active ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-orange-500'}" %>
+          <% end %>
         <% end %>
       <% end %>
     </div>

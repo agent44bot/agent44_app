@@ -51,6 +51,26 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 0, @agg_calls, "shell must not call the aggregator"
   end
 
+  test "the grocery shell shows week-aligned date pills" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path # shell, no Turbo-Frame header
+    assert_response :success
+    mon = Date.current.beginning_of_week(:monday)
+    sun = Date.current.end_of_week(:monday)
+
+    assert_match "This weekend", response.body
+    assert_match "Current week", response.body
+    assert_match "Next week", response.body
+    assert_match "Next 2 weeks", response.body
+    assert_no_match(/Next 7 days/, response.body)
+    assert_no_match(/Next 14 days/, response.body)
+
+    # Week pills link to Mon-Sun ranges; "Next 2 weeks" = this week + next.
+    assert_match ERB::Util.html_escape(nyk_grocery_path(from: mon.iso8601, to: sun.iso8601)), response.body
+    assert_match ERB::Util.html_escape(nyk_grocery_path(from: (mon + 7).iso8601, to: (sun + 7).iso8601)), response.body
+    assert_match ERB::Util.html_escape(nyk_grocery_path(from: mon.iso8601, to: (sun + 7).iso8601)), response.body
+  end
+
   test "the frame renders the aggregated list with item class tags" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
     get nyk_grocery_path, headers: FRAME
