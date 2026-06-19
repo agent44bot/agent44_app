@@ -230,10 +230,11 @@ class WeeklySalesEmailJob < ApplicationJob
       - Behind pace: #{at_risk_count} #{'class'.pluralize(at_risk_count)}#{at_risk.present? ? " (e.g. #{at_risk})" : ''}.
     TXT
 
+    chosen_model = AiModelChoice.resolve("nyk_team_report", default: "claude-haiku-4-5")
     client = Anthropic::Client.new(api_key: api_key)
-    resp = client.messages.create(model: "claude-haiku-4-5", max_tokens: 160,
+    resp = client.messages.create(model: chosen_model, max_tokens: 160,
       messages: [ { role: "user", content: prompt } ])
-    AiCallLogger.log!(resp, model: "claude-haiku-4-5", source: "nyk_team_report")
+    AiCallLogger.log!(resp, model: chosen_model, source: "nyk_team_report")
     resp.content.filter_map { |b| b.respond_to?(:text) ? b.text : b["text"] }.join.strip.presence
   rescue => e
     Rails.logger.warn("WeeklySalesEmailJob.carson_intro failed: #{e.class}: #{e.message}")

@@ -20,6 +20,8 @@ class NykBillingController < ApplicationController
     nyk_logs_month = AiCallLog.where(source: AiCallLog::NYK_SOURCES).where("created_at >= ?", @month_start)
     @summary = AiCallLog.summary_by_source(nyk_logs_month)
     @model_summary = AiCallLog.summary_by_model(nyk_logs_month)
+    # The selected model key per feature, for the radios in the AI usage table.
+    @feature_model_keys = @summary.keys.index_with { |source| AiModelChoice.selected_key(source) }
     @ai_total   = AiCallLog.total_cost_dollars(nyk_logs_month)
     @ai_calls   = nyk_logs_month.count
     @recent     = nyk_logs_month.order(created_at: :desc).limit(20)
@@ -58,6 +60,18 @@ class NykBillingController < ApplicationController
     invoice = Invoice.find(params[:id])
     invoice.mark_paid! unless invoice.paid?
     redirect_to nyk_billing_path, notice: "Invoice for #{invoice.period_label} marked paid."
+  end
+
+  # Manager (owner/admin) picks the Anthropic model for a feature from the AI
+  # usage table. Gated by require_visible like the rest of the page.
+  def update_model
+    source = params[:source].to_s
+    key    = params[:model].to_s
+    unless AiModelChoice.controllable?(source) && AiModelChoice::KEYS.include?(key)
+      return redirect_to nyk_billing_path, alert: "Could not update that model."
+    end
+    AiModelChoice.set(source, key)
+    redirect_to nyk_billing_path, notice: "Model updated to #{AiModelChoice::OPTIONS[key][:label]}."
   end
 
   # Site-admin only: set this workspace's $/min test-run rate, then re-price all

@@ -31,6 +31,7 @@ module KitchenAi
       return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
 
       system_prompt = build_system_prompt
+      chosen_model  = AiModelChoice.resolve(SOURCE, default: MODEL)
 
       response =
         if self.class.stub
@@ -38,14 +39,14 @@ module KitchenAi
         else
           client = Anthropic::Client.new(api_key: api_key)
           client.messages.create(
-            model:      MODEL,
+            model:      chosen_model,
             max_tokens: MAX_TOKENS,
             system:     system_prompt,
             messages:   messages
           )
         end
 
-      AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      AiCallLogger.log!(response, model: chosen_model, source: SOURCE, user: @user)
 
       text = extract_text(response)
       return Result.new(ok?: false, error: "Empty AI response") if text.blank?

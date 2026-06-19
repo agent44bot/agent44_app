@@ -615,16 +615,17 @@ class KitchenController < ApplicationController
 
     client = Anthropic::Client.new(api_key: api_key)
     prompt = build_enhance_prompt(params[:draft], params[:event_name], params[:event_description], params[:event_date], params[:event_price], params[:idea])
+    chosen_model = AiModelChoice.resolve("nyk_enhance", default: "claude-haiku-4-5-20251001")
 
     response = client.messages.create(
-      model: "claude-haiku-4-5-20251001",
+      model: chosen_model,
       max_tokens: 600,
       messages: [ { role: "user", content: prompt } ]
     )
 
     enhanced = response.content.first.text
 
-    AiCallLogger.log!(response, model: "claude-haiku-4-5-20251001", source: "nyk_enhance", user: Current.user)
+    AiCallLogger.log!(response, model: chosen_model, source: "nyk_enhance", user: Current.user)
 
     log = SocialPostLog.find_or_initialize_by(event_url: params[:event_url])
     log.enhanced_text = enhanced

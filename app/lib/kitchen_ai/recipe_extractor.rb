@@ -35,6 +35,7 @@ module KitchenAi
         return Result.new(ok?: false, error: "Paste a recipe, add a recipe URL, or attach a PDF.")
       end
 
+      chosen_model = AiModelChoice.resolve(SOURCE, default: MODEL)
       response =
         if self.class.stub
           # Tests set the stub; never fetch a URL or call the API there.
@@ -50,14 +51,14 @@ module KitchenAi
           return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
           client = Anthropic::Client.new(api_key: api_key)
           client.messages.create(
-            model:      MODEL,
+            model:      chosen_model,
             max_tokens: MAX_TOKENS,
             system:     SYSTEM_PROMPT,
             messages:   [ { role: "user", content: build_content(text: text, pdf: pdf) } ]
           )
         end
 
-      log = AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      log = AiCallLogger.log!(response, model: chosen_model, source: SOURCE, user: @user)
       cost_cents = log&.cost_cents&.round
 
       recipes = parse(response)

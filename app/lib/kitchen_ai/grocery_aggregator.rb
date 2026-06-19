@@ -35,6 +35,7 @@ module KitchenAi
       items = Array(items).reject { |i| Array(i[:recipes]).empty? }
       return Result.new(ok?: false, error: "No classes with recipes in range.") if items.empty?
 
+      chosen_model = AiModelChoice.resolve(SOURCE, default: MODEL)
       response =
         if self.class.stub
           self.class.stub.call(items: items)
@@ -42,14 +43,14 @@ module KitchenAi
           api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
           return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
           Anthropic::Client.new(api_key: api_key).messages.create(
-            model:      MODEL,
+            model:      chosen_model,
             max_tokens: MAX_TOKENS,
             system:     SYSTEM_PROMPT,
             messages:   [ { role: "user", content: build_prompt(items, observed_prices) } ]
           )
         end
 
-      log = AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      log = AiCallLogger.log!(response, model: chosen_model, source: SOURCE, user: @user)
       parsed = parse(response)
       return Result.new(ok?: false, error: "Could not build the list. Try again.") if parsed.nil?
 
