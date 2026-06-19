@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>NY Kitchen · Upcoming Classes (stall poster)</title>
+  <title>New York Kitchen · Upcoming Classes (stall poster)</title>
   <style>
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -22,6 +22,7 @@
     }
     .brand { font-size: 29pt; font-weight: 800; letter-spacing: 0.01em; }
     .brand .accent { color: #c2410c; }
+    .brand-logo { height: 56px; width: auto; vertical-align: middle; margin-right: 14px; }
     .subhead { font-size: 12pt; color: #444; margin-top: 3px; font-weight: 600; }
 
     /* Fixed-height cards so all six land on a single side. */
@@ -77,7 +78,14 @@
 
   <div class="page">
     <div class="header">
-      <div class="brand">NY Kitchen <span class="accent">·</span> Upcoming Classes</div>
+      <div class="brand">
+        <% if @display_workspace&.logo&.attached? %>
+          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
+          <span class="accent">Upcoming Classes</span>
+        <% else %>
+          New York Kitchen <span class="accent">·</span> Upcoming Classes
+        <% end %>
+      </div>
       <div class="subhead">Scan a code to reserve your spot<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></div>
     </div>
 
@@ -102,7 +110,7 @@
             <img class="thumb" src="<%= event.image_url %>" alt="" loading="eager">
           <% end %>
           <div class="body">
-            <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
+            <div class="name"><%= event.name.presence || "Class at New York Kitchen" %></div>
             <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
           </div>
           <% if event.url.present? %>
@@ -118,11 +126,7 @@
     <% end %>
 
     <div class="footer">
-      <% if @more_count.to_i > 0 %>
-        + <%= pluralize(@more_count, "more class") %> at <strong>nykitchen.com/calendar/</strong>
-      <% else %>
-        See the full schedule at <strong>nykitchen.com/calendar/</strong>
-      <% end %>
+      Check out other New York Kitchen classes @ <strong>nykitchen.com/calendar/</strong><% if @more_count.to_i > 0 %> (+ <%= pluralize(@more_count, "more class") %>)<% end %>
     </div>
   </div>
 

@@ -487,6 +487,7 @@ class KitchenController < ApplicationController
   # the TV's slide_count, which only limits the rotating on-screen carousel.
   def display_print
     @agent = nyk_display_agent
+    @display_workspace = Workspace.find_by(slug: "nykitchen")
     snapshot = KitchenSnapshot.latest
     @variant = params[:variant] == "stall" ? "stall" : "flyer"
     @per_page = 9 # flyer: forces a clean 9-front / 9-back page break

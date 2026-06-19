@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>NY Kitchen · Upcoming Classes (flyer)</title>
+  <title>New York Kitchen · Upcoming Classes (flyer)</title>
   <style>
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -21,6 +21,7 @@
     }
     .brand { font-size: 16pt; font-weight: 800; letter-spacing: 0.01em; }
     .brand .accent { color: #c2410c; }
+    .brand-logo { height: 34px; width: auto; vertical-align: middle; margin-right: 10px; }
     .meta-head { font-size: 8.5pt; color: #555; }
 
     /* Compact row: photo · text · QR. Fixed height so exactly nine fit on a
@@ -53,6 +54,11 @@
       margin-top: 16px; padding-top: 8px; border-top: 1px solid #ddd;
       font-size: 8.5pt; color: #777; text-align: center;
     }
+    .footer-cta { display: inline-flex; align-items: center; gap: 12px; text-align: left; }
+    .footer-qr svg { width: 0.62in; height: 0.62in; display: block; }
+    .footer-cta .lead { font-size: 11pt; font-weight: 700; color: #333; line-height: 1.35; }
+    .footer-cta .url { color: #c2410c; }
+    .footer-cta .more { font-size: 8.5pt; font-weight: 400; color: #777; }
     .empty { text-align: center; padding: 60px 0; color: #777; font-size: 12pt; }
     .actions { max-width: 7.5in; margin: 0.4in auto 0; padding: 0 0.25in; display: flex; gap: 10px; justify-content: flex-end; }
     .btn {
@@ -86,7 +92,14 @@
     <% pages.each_with_index do |page_events, page_idx| %>
       <div class="page">
         <div class="header">
-          <div class="brand">NY Kitchen <span class="accent">· Upcoming Classes</span></div>
+          <div class="brand">
+            <% if @display_workspace&.logo&.attached? %>
+              <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
+              <span class="accent">Upcoming Classes</span>
+            <% else %>
+              New York Kitchen <span class="accent">· Upcoming Classes</span>
+            <% end %>
+          </div>
           <div class="meta-head">
             <% if page_idx > 0 %>continued · <% end %><%= pluralize(@events.size, "class") %><% if @more_count > 0 %> of <%= @events.size + @more_count %><% end %><% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d, %Y") %><% end %>
           </div>
@@ -96,7 +109,7 @@
           <%
             start = event.start_at
             time_str = start.strftime("%-l:%M %p")
-            time_str += " – #{event.end_at.strftime('%-l:%M %p')}" if event.end_at.present?
+            time_str += " to #{event.end_at.strftime('%-l:%M %p')}" if event.end_at.present?
             venue = event.venue.presence || "New York Kitchen, Canandaigua"
 
             parts = [ start.strftime("%a, %b %-d"), time_str ]
@@ -118,7 +131,7 @@
                 description. The menu is still scraped and stored on the event
                 for other surfaces, just not printed here. %>
             <div class="body">
-              <div class="name"><%= event.name.presence || "Class at NY Kitchen" %></div>
+              <div class="name"><%= event.name.presence || "Class at New York Kitchen" %></div>
               <div class="info"><%= safe_join(parts, content_tag(:span, "·", class: "sep")) %></div>
             </div>
             <% if event.url.present? %>
@@ -132,11 +145,14 @@
 
         <% if page_idx == pages.size - 1 %>
           <div class="footer">
-            <% if @more_count.to_i > 0 %>
-              + <%= pluralize(@more_count, "more class") %> — see the full schedule at <strong>nykitchen.com/calendar/</strong>
-            <% else %>
-              Scan a code to reserve, or visit <strong>nykitchen.com/calendar/</strong>
-            <% end %>
+            <div class="footer-cta">
+              <span class="footer-qr"><%= qr_svg("https://nykitchen.com/calendar/") %></span>
+              <span class="lead">
+                Check out other New York Kitchen classes<br>
+                @ <span class="url">nykitchen.com/calendar/</span>
+                <% if @more_count.to_i > 0 %><br><span class="more">+ <%= pluralize(@more_count, "more class") %></span><% end %>
+              </span>
+            </div>
           </div>
         <% end %>
       </div>

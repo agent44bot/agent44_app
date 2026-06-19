@@ -6,7 +6,7 @@
   <%# Pull fresh data every 10 minutes. The slideshow keeps cycling
       between refreshes from the JS below. %>
   <meta http-equiv="refresh" content="<%= @agent.setting(:refresh_minutes).to_i * 60 %>">
-  <title>NY Kitchen · What's Coming Up</title>
+  <title>New York Kitchen · What's Coming Up</title>
   <%# NY Kitchen uses Proxima Nova (Adobe, domain-locked); Montserrat is the
       standard free stand-in and matches the site's clean geometric sans. %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -192,7 +192,7 @@
         <% if @display_workspace&.logo&.attached? %>
           <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="">
         <% end %>
-        <div class="brand">NY Kitchen · What's Coming Up</div>
+        <div class="brand">New York Kitchen · What's Coming Up</div>
       </div>
       <div class="meta">
         <span class="pulse"></span>
@@ -205,13 +205,13 @@
         <% @events.each_with_index do |event, i| %>
           <% start = event.start_at %>
           <% when_str = "#{start.strftime('%A, %B %-d').upcase} @ #{start.strftime('%-l:%M %p')}" %>
-          <% when_str += " – #{event.end_at.strftime('%-l:%M %p')}" if @agent.setting(:show_end_time) && event.end_at.present? %>
+          <% when_str += " to #{event.end_at.strftime('%-l:%M %p')}" if @agent.setting(:show_end_time) && event.end_at.present? %>
           <% venue = event.venue.presence || "New York Kitchen, Canandaigua" %>
           <% show_image = @agent.setting(:show_image) && event.image_url.present? %>
           <% blurb = event.description.present? ? truncate(strip_tags(event.description).squish, length: 180, separator: " ") : nil %>
           <article class="slide<%= ' with-image' if show_image %><%= ' active' if i == 0 %>">
             <div>
-              <h1 class="name"><%= event.name.presence || "Class at NY Kitchen" %></h1>
+              <h1 class="name"><%= event.name.presence || "Class at New York Kitchen" %></h1>
               <div class="meta-block">
                 <p class="when"><%= when_str %></p>
                 <% if @agent.setting(:show_price) && event.price.present? %>
