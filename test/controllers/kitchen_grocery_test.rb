@@ -17,6 +17,9 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
   FRAME = { "Turbo-Frame" => "grocery_list" }.freeze
 
   setup do
+    # Freeze to a mid-week day so "+1 day" classes always fall inside the
+    # current Mon-Sun week, regardless of which weekday the suite runs on.
+    travel_to Time.zone.local(2026, 6, 17, 12, 0)
     @user = User.create!(email_address: "groc-#{SecureRandom.hex(4)}@example.com", role: "admin")
     sign_in_as(@user)
     @snap = KitchenSnapshot.create!(taken_on: Date.current)
@@ -58,7 +61,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     mon = Date.current.beginning_of_week(:monday)
     sun = Date.current.end_of_week(:monday)
 
-    assert_match "This weekend", response.body
+    assert_no_match(/This weekend/, response.body)
     assert_match "Current week", response.body
     assert_match "Next week", response.body
     assert_match "Next 2 weeks", response.body
