@@ -59,6 +59,30 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Haiku/, response.body)
   end
 
+  test "a manager can set a feature's model from billing" do
+    sign_in_as(@admin)
+    patch nyk_billing_model_path, params: { source: "nyk_grocery_list", model: "haiku" }
+    assert_redirected_to nyk_billing_path
+    assert_equal "claude-haiku-4-5-20251001",
+                 AiModelChoice.resolve("nyk_grocery_list", default: "claude-opus-4-8")
+  end
+
+  test "update_model rejects an uncontrollable source or unknown model" do
+    sign_in_as(@admin)
+    patch nyk_billing_model_path, params: { source: "nyk_x_autopost", model: "haiku" }
+    assert_nil Setting.get("ai_model:nyk_x_autopost")
+
+    patch nyk_billing_model_path, params: { source: "nyk_grocery_list", model: "gpt" }
+    assert_nil Setting.get("ai_model:nyk_grocery_list")
+  end
+
+  test "a non-manager cannot reach update_model" do
+    sign_in_as(@user)
+    patch nyk_billing_model_path, params: { source: "nyk_grocery_list", model: "haiku" }
+    assert_redirected_to "/nykitchen"
+    assert_nil Setting.get("ai_model:nyk_grocery_list")
+  end
+
   test "unauthenticated request bounces to sign-in" do
     get "/nykitchen/billing"
     assert_redirected_to %r{/sign_in}

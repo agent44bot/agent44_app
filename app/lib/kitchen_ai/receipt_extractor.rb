@@ -28,6 +28,7 @@ module KitchenAi
     def extract(image_bytes:, media_type:, known_names: [])
       return Result.new(ok?: false, error: "No receipt file.") if image_bytes.blank?
 
+      chosen_model = AiModelChoice.resolve(SOURCE, default: MODEL)
       response =
         if self.class.stub
           self.class.stub.call(image_bytes: image_bytes, media_type: media_type, known_names: known_names)
@@ -35,14 +36,14 @@ module KitchenAi
           api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
           return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
           Anthropic::Client.new(api_key: api_key).messages.create(
-            model:      MODEL,
+            model:      chosen_model,
             max_tokens: MAX_TOKENS,
             system:     SYSTEM_PROMPT,
             messages:   [ { role: "user", content: build_content(image_bytes: image_bytes, media_type: media_type, known_names: known_names) } ]
           )
         end
 
-      log = AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      log = AiCallLogger.log!(response, model: chosen_model, source: SOURCE, user: @user)
       parsed = parse(response)
       return Result.new(ok?: false, error: "Could not read that receipt. Try a clearer photo.") if parsed.nil?
 

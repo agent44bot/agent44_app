@@ -6,7 +6,8 @@ class AiCallLog < ApplicationRecord
   # which is fine for our trial billing. If we ever need rate-as-of, snapshot
   # the rate onto the row at create time instead.
   RATES = {
-    "claude-haiku-4-5-20251001" => { input: 1.00, output: 5.00 },
+    "claude-haiku-4-5-20251001" => { input: 1.00, output:  5.00 },
+    "claude-sonnet-4-6"         => { input: 3.00, output: 15.00 },
     "claude-opus-4-8"           => { input: 5.00, output: 25.00 }
   }.freeze
   DEFAULT_RATE = { input: 1.00, output: 5.00 }.freeze

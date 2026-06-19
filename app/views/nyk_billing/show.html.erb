@@ -37,6 +37,7 @@
             <th class="px-4 py-2 text-left">Feature</th>
             <th class="px-4 py-2 text-right">Calls</th>
             <th class="px-4 py-2 text-right">Cost</th>
+            <th class="px-4 py-2 text-right">Model</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-800">
@@ -56,11 +57,32 @@
               </td>
               <td class="px-4 py-2 text-right text-gray-300"><%= v[:calls] %></td>
               <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+              <td class="px-4 py-2">
+                <% if AiModelChoice.controllable?(source) %>
+                  <div class="flex justify-end gap-1">
+                    <% AiModelChoice::OPTIONS.each do |key, opt| %>
+                      <% on = @feature_model_keys[source] == key %>
+                      <%= button_to opt[:label], nyk_billing_model_path, method: :patch,
+                            params: { source: source, model: key },
+                            form: { data: { turbo: false } },
+                            class: "px-2 py-0.5 rounded border text-xs cursor-pointer #{on ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-orange-500'}" %>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <p class="text-right text-xs text-gray-500"><%= AiModelChoice::OPTIONS[@feature_model_keys[source]][:label] %> (auto)</p>
+                <% end %>
+              </td>
             </tr>
           <% end %>
         </tbody>
       </table>
     </div>
+    <p class="text-xs text-gray-500 -mt-6 mb-8">
+      <span class="font-semibold text-gray-400">Opus</span> highest quality ($5/$25 per M tokens) &middot;
+      <span class="font-semibold text-gray-400">Sonnet</span> balanced ($3/$15) &middot;
+      <span class="font-semibold text-gray-400">Haiku</span> fastest and cheapest ($1/$5).
+      Owners and admins can set the model per feature.
+    </p>
 
     <%# Spend per Anthropic model (Opus vs Haiku) + total. Same this-month NYK
         scope as the per-feature table above, just grouped by model. %>

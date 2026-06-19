@@ -54,6 +54,15 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 0, @agg_calls, "shell must not call the aggregator"
   end
 
+  test "grocery list honors the per-feature model override" do
+    AiModelChoice.set("nyk_grocery_list", "haiku") # default is Opus
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path, headers: FRAME
+    assert_response :success
+    log = AiCallLog.where(source: "nyk_grocery_list").last
+    assert_equal "claude-haiku-4-5-20251001", log.model
+  end
+
   test "the grocery shell shows week-aligned date pills" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
     get nyk_grocery_path # shell, no Turbo-Frame header
