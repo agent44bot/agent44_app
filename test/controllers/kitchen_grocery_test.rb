@@ -211,14 +211,16 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_match "Wooden spoon", response.body
   end
 
-  test "the week grocery list does not show equipment (pull sheet only)" do
+  test "the week grocery list also shows equipment, grouped by class" do
     url = add_class("Ravioli", "groc-rav", 1, booked: 12)
     h = KitchenHandout.for_event_url(url)
     h.equipment = [ "Large stockpot" ]
     h.save!
     get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME
     assert_response :success
-    assert_no_match(/Equipment per station/, response.body)
+    assert_match "Equipment per station", response.body
+    assert_match "Large stockpot", response.body
+    assert_match "Ravioli", response.body # class label on the grouped week view
   end
 
   test "the pull sheet hides per-item prices and the estimated total" do
