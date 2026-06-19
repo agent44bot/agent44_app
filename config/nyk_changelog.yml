@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: The billing page now has a Spend by model table showing this month's AI cost split by Anthropic model (Opus and Haiku), with calls and a total, alongside the existing per-feature breakdown.
+
+- date: 2026-06-19
   note: The grocery list date buttons are now This weekend, Current week, Next week, and Next 2 weeks (full Monday to Sunday weeks), instead of Next 7 days and Next 14 days.
 
 - date: 2026-06-19
