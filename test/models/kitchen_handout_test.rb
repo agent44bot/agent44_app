@@ -49,4 +49,15 @@ class KitchenHandoutTest < ActiveSupport::TestCase
     assert_equal [ "Large stockpot", "Wooden spoon" ], h.reload.equipment
     assert_equal 1, h.recipes.size
   end
+
+  test "equipment_catalog merges the starter palette with used items, de-duped and sorted" do
+    h = make("Pasta")
+    h.equipment = [ "Pasta machine", "whisk" ] # 'whisk' duplicates starter 'Whisk'
+    h.save!
+    cat = KitchenHandout.equipment_catalog
+    assert_includes cat, "Pasta machine"  # a used item appears
+    assert_includes cat, "Cutting board"  # a starter item appears
+    assert_equal 1, cat.count { |e| e.downcase == "whisk" }, "case-insensitive de-dupe"
+    assert_equal cat.sort_by(&:downcase), cat, "sorted case-insensitively"
+  end
 end

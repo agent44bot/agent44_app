@@ -84,6 +84,7 @@ class KitchenHandoutsController < ApplicationController
 
   def edit
     @handout = KitchenHandout.find(params[:id])
+    @equipment_catalog = KitchenHandout.equipment_catalog
   end
 
   def update

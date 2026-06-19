@@ -64,6 +64,24 @@ class KitchenHandout < ApplicationRecord
     self.data = data.merge("equipment" => list)
   end
 
+  # A starter palette of common station equipment so the tag picker isn't empty
+  # on day one. Lora/Caitlin grow the real vocabulary just by adding items.
+  STARTER_EQUIPMENT = [
+    "Cutting board", "Chef's knife", "Paring knife", "Mixing bowls",
+    "Measuring cups", "Measuring spoons", "Whisk", "Wooden spoon", "Spatula",
+    "Tongs", "Large stockpot", "Saucepan", "Sauté pan", "Sheet pan",
+    "Colander", "Strainer", "Ladle", "Peeler", "Box grater", "Kitchen towel"
+  ].freeze
+
+  # The full set of equipment tags to offer in the picker: the starter palette
+  # plus everything ever used on a packet, de-duped (case-insensitive) and
+  # sorted. Grows organically as new items are added.
+  def self.equipment_catalog
+    used = all.flat_map(&:equipment)
+    (STARTER_EQUIPMENT + used).map { |e| e.to_s.strip }.reject(&:blank?)
+      .uniq { |e| e.downcase }.sort_by(&:downcase)
+  end
+
   # The handout attached to a class, by its stable identity (event URL).
   def self.for_event_url(url)
     joins(:links).find_by(kitchen_handout_links: { event_url: url })
