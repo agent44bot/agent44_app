@@ -109,6 +109,12 @@
   end
 %>
 <html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:auto;color:#222;background:#fafafa;padding:20px">
+<%# Mondays only: the Carson weekly team report, prepended above the class
+    list so it's one email. Other days @weekly_report is nil. %>
+<% if @weekly_report %>
+<%= render "weekly_report", s: @weekly_report %>
+<div style="height:1px;background:#e5e5e5;margin:24px 0"></div>
+<% end %>
 <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
 
 <h2 style="margin:0 0 4px 0;font-size:22px;color:#111">NY Kitchen</h2>
