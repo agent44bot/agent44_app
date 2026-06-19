@@ -50,6 +50,25 @@ class NykitchenSystemTest < SystemTestCase
     end
   end
 
+  test "class search filters the list to matching classes" do
+    sign_in_admin
+    @kitchen.visit
+
+    first = @kitchen.cards.first
+    skip "no seeded classes to search" unless first
+    # Pick a distinctive word from a real class to search for.
+    term = first.get_attribute("data-search-text").to_s.split(/\s+/).find { |w| w.length >= 4 }
+    skip "no searchable term" unless term
+
+    @kitchen.search(term)
+    visible = @kitchen.visible_cards
+    assert visible.size > 0, "Expected at least one class to match #{term.inspect}"
+    visible.each do |card|
+      assert_includes card.get_attribute("data-search-text").to_s, term,
+        "Every visible card should contain the search term"
+    end
+  end
+
   test "admin kitchen redirects to nykitchen" do
     @page.goto("#{BASE_URL}/admin/kitchen")
     assert_equal "#{BASE_URL}/nykitchen", @page.url
