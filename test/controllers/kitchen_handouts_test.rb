@@ -202,6 +202,13 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal 2, response.body.scan("/Type /Page\n").size + response.body.scan("/Type /Page ").size
   end
 
+  test "the handout PDF embeds the Carlito body font" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get print_nyk_handout_path(handout, format: :pdf)
+    assert_response :success
+    assert_match(/Carlito/, response.body, "expected the Carlito font to be embedded")
+  end
+
   test "create from a recipe URL builds and links a handout" do
     stub_extractor_success
     post nyk_handouts_path, params: {

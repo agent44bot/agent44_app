@@ -36,4 +36,54 @@ module KitchenUnits
 
     s.gsub(/\s{2,}/, " ").strip
   end
+
+  # Approximate grams of all-purpose flour per standardized volume unit. Flour
+  # by volume is imprecise, so the kitchen weighs it (Lora's "add grams when
+  # ingredient is flour"). King Arthur's reference: 1 cup ~ 120 g.
+  FLOUR_GRAMS_PER_UNIT = { "c" => 120.0, "T" => 7.5, "tsp" => 2.5 }.freeze
+
+  # Unicode vulgar fractions -> decimal, for parsing a leading quantity.
+  VULGAR_FRACTIONS = {
+    "½" => 0.5, "⅓" => 1.0 / 3, "⅔" => 2.0 / 3, "¼" => 0.25, "¾" => 0.75,
+    "⅕" => 0.2, "⅖" => 0.4, "⅗" => 0.6, "⅘" => 0.8, "⅙" => 1.0 / 6,
+    "⅚" => 5.0 / 6, "⅛" => 0.125, "⅜" => 0.375, "⅝" => 0.625, "⅞" => 0.875
+  }.freeze
+
+  # Grams of all-purpose flour for a standardized qty string ("2½ c", "1/2 c",
+  # "3 T"), rounded to the nearest 5 g, or nil when it isn't a convertible
+  # volume. Ranges ("2-3 c") use the first number. Numbers without a c/T/tsp
+  # unit (already a weight, "to taste", etc.) return nil.
+  def self.flour_grams(qty_text)
+    s = qty_text.to_s.strip
+    return nil if s.empty?
+
+    unit = s[/\b(c|T|tsp)\b/, 1]
+    grams_per = unit && FLOUR_GRAMS_PER_UNIT[unit]
+    return nil unless grams_per
+
+    amount = leading_amount(s)
+    return nil unless amount
+
+    (amount * grams_per / 5.0).round * 5
+  end
+
+  # Parse the leading numeric amount of a qty string: whole, decimal,
+  # "a b/c" mixed, "b/c" fraction, or "N½" / "½" unicode. Returns a Float or nil.
+  def self.leading_amount(text)
+    s = text.to_s.strip
+    # Split a number butted against a unicode fraction: "2½" -> "2 ½".
+    s = s.gsub(/(\d)([#{VULGAR_FRACTIONS.keys.join}])/, '\1 \2')
+
+    if (m = s.match(/\A(\d+)\s+(\d+)\/(\d+)/))            # "2 1/2"
+      m[1].to_f + m[2].to_f / m[3].to_f
+    elsif (m = s.match(/\A(\d+)\/(\d+)/))                 # "1/2"
+      m[1].to_f / m[2].to_f
+    elsif (m = s.match(/\A(\d+)\s+([#{VULGAR_FRACTIONS.keys.join}])/)) # "2 ½"
+      m[1].to_f + VULGAR_FRACTIONS[m[2]]
+    elsif (m = s.match(/\A([#{VULGAR_FRACTIONS.keys.join}])/))         # "½"
+      VULGAR_FRACTIONS[m[1]]
+    elsif (m = s.match(/\A(\d+(?:\.\d+)?)/))             # "2" or "2.5"
+      m[1].to_f
+    end
+  end
 end

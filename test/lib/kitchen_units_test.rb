@@ -70,4 +70,31 @@ class KitchenUnitsTest < ActiveSupport::TestCase
     assert_std "",  ""
     assert_std "",  nil
   end
+
+  def assert_flour(grams, qty)
+    assert_equal grams, KitchenUnits.flour_grams(qty), "for #{qty.inspect}"
+  end
+
+  test "flour_grams converts volume to grams (1 c ~ 120 g, rounded to 5)" do
+    assert_flour 120, "1 c"
+    assert_flour 240, "2 c"
+    assert_flour 60,  "1/2 c"
+    assert_flour 30,  "1/4 c"
+    assert_flour 300, "2½ c"        # unicode fraction
+    assert_flour 180, "1 1/2 c"     # mixed number
+    assert_flour 15,  "2 T"         # 2 * 7.5
+    assert_flour 5,   "2 tsp"       # 2 * 2.5
+  end
+
+  test "flour_grams uses the first number of a range" do
+    assert_flour 240, "2-3 c"
+  end
+
+  test "flour_grams returns nil when it isn't a convertible volume" do
+    assert_nil KitchenUnits.flour_grams("8 oz")     # already a weight
+    assert_nil KitchenUnits.flour_grams("1 lb")
+    assert_nil KitchenUnits.flour_grams("to taste")
+    assert_nil KitchenUnits.flour_grams("")
+    assert_nil KitchenUnits.flour_grams(nil)
+  end
 end
