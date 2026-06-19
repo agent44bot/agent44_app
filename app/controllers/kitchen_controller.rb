@@ -101,9 +101,13 @@ class KitchenController < ApplicationController
     elsif (from = parse_date(params[:from])) && (to = parse_date(params[:to])) && from <= to
       @range = from..to
       @week_mode = true
-    else
-      @days  = params[:days].presence&.to_i&.clamp(1, 30) || @default_days
+    elsif params[:days].present?
+      @days  = params[:days].to_i.clamp(1, 30)
       @range = Date.current..(Date.current + @days.days)
+    else
+      # Default view: the current Mon-Sun week (the first pill).
+      @week_mode = true
+      @range = Date.current.beginning_of_week(:monday)..Date.current.end_of_week(:monday)
     end
 
     # The aggregation is a slow + paid Opus call, so the heavy work runs in a
