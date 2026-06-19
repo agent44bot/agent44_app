@@ -95,9 +95,8 @@
           <div class="brand">
             <% if @display_workspace&.logo&.attached? %>
               <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
-              <span class="accent">Upcoming Classes</span>
             <% else %>
-              New York Kitchen <span class="accent">· Upcoming Classes</span>
+              New York Kitchen
             <% end %>
           </div>
           <div class="meta-head">
