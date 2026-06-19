@@ -40,4 +40,13 @@ class KitchenHandoutTest < ActiveSupport::TestCase
     make("Fresh Pasta")
     assert_equal 0, KitchenHandout.search("%").count
   end
+
+  test "equipment reads and writes the data list, preserving recipes" do
+    h = make("Pasta")
+    assert_equal [], h.equipment
+    h.equipment = [ "Large stockpot", "Wooden spoon" ]
+    h.save!
+    assert_equal [ "Large stockpot", "Wooden spoon" ], h.reload.equipment
+    assert_equal 1, h.recipes.size
+  end
 end

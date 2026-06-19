@@ -53,6 +53,17 @@ class KitchenHandout < ApplicationRecord
     self.data = data.merge("recipes" => list)
   end
 
+  # Equipment to set up at each station before class (pots, pans, wooden
+  # spoons...). Lives on the packet so it follows the class to every run; the
+  # pull sheet prints it as a per-station setup checklist.
+  def equipment
+    Array(data["equipment"])
+  end
+
+  def equipment=(list)
+    self.data = data.merge("equipment" => list)
+  end
+
   # The handout attached to a class, by its stable identity (event URL).
   def self.for_event_url(url)
     joins(:links).find_by(kitchen_handout_links: { event_url: url })

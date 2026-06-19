@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Recipes now have an Equipment list (pots, pans, wooden spoons, and so on) you fill in on the recipe edit screen. It prints on that class's pull sheet as a per-station setup checklist, and because it lives with the recipe it shows up automatically for every run of that class.
+
+- date: 2026-06-19
   note: Sam's class list has a search box at the top. Type a class name, a dish, or a chef and the list filters as you type, automatically opening the weeks that have a match. Clear the box to see everything again.
 
 - date: 2026-06-19

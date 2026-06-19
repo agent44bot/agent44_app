@@ -91,7 +91,7 @@ class KitchenHandoutsController < ApplicationController
     @handout.update!(
       title: params[:title].presence || @handout.title,
       station_label: params[:station_label].presence || @handout.station_label,
-      data: { "recipes" => parse_recipes_params }
+      data: { "recipes" => parse_recipes_params, "equipment" => parse_equipment }
     )
     # Stay on edit so the refreshed PDF preview shows the change; "Done" on the
     # edit page is what returns to the class list once the packet looks right.
@@ -164,6 +164,11 @@ class KitchenHandoutsController < ApplicationController
       end
       { "title" => r[:title].to_s.strip, "ingredients" => ingredients, "directions" => directions }
     end.reject { |r| r["title"].blank? }
+  end
+
+  # Equipment list from the textarea: one item per line, blanks dropped.
+  def parse_equipment
+    params[:equipment].to_s.split("\n").map(&:strip).reject(&:blank?)
   end
 
   # One step per line, but KEEP blank lines (stored as "") so the spacing Lora
