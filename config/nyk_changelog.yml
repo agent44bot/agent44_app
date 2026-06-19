@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: The stall poster header (logo and subhead) is now left-aligned with the class rows below it, instead of centered.
+
+- date: 2026-06-19
   note: The flyer and stall poster headers now show just the New York Kitchen logo (the redundant "Upcoming Classes" wording next to it was removed).
 
 - date: 2026-06-19
