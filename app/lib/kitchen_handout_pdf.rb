@@ -75,16 +75,29 @@ class KitchenHandoutPdf
     doc.font("Times-Roman") { doc.text tidy(recipe["title"]), size: 26, style: :bold, align: :center }
     doc.move_down 28
 
-    # Two columns: ingredients (narrow) | directions (wide). column_box keeps
-    # them independent so a long directions list doesn't push ingredients.
+    # Two columns: ingredients (narrow) | directions (wide), each in its own
+    # bounding box so neither pushes the other down.
     top = doc.cursor
     col_gap = 24
     ing_w = (doc.bounds.width - col_gap) * 0.42
     dir_x = ing_w + col_gap
+    start_page = doc.page_number
 
-    doc.bounding_box([ 0, top ], width: ing_w) { ingredients(doc, recipe, scale_tag) }
+    # Draw directions FIRST so they always land on this page beside the
+    # ingredients. Rendering ingredients first paginated the doc forward when
+    # the list was long, dropping directions onto a later page and leaving this
+    # page's right column blank. We then jump back and lay the ingredients down
+    # the left, so a long list spills onto its own continuation page instead.
     doc.bounding_box([ dir_x, top ], width: doc.bounds.width - dir_x) { directions(doc, recipe) }
+    dir_end_page = doc.page_number
 
+    doc.go_to_page(start_page)
+    doc.bounding_box([ 0, top ], width: ing_w) { ingredients(doc, recipe, scale_tag) }
+    ing_end_page = doc.page_number
+
+    # Continue after whichever column ran longest so the footer (and the next
+    # recipe's page) never overwrites a column that spilled past page one.
+    doc.go_to_page([ dir_end_page, ing_end_page ].max)
     footer(doc)
   end
 
