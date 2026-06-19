@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-19
+  note: Ingredient names on recipe handouts now use consistent sentence case (only the first word capitalized, with brand and proper names like Dijon or Parmesan kept capitalized). Imported names that came in shouting in ALL CAPS are toned down automatically.
+
+- date: 2026-06-19
   note: Recipe handouts and grocery lists now write weights in short form too (grams as g, kilograms as kg, ounces as oz, pounds as lb), matching the T/tsp/c style we already use for volumes. Numbers are never changed, just the unit spelling.
 
 - date: 2026-06-19

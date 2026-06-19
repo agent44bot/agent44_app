@@ -116,7 +116,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "1/4 c", ings[1]["station_qty"]
   end
 
-  test "update cleans ingredient-name punctuation artifacts on save" do
+  test "update cleans ingredient-name punctuation artifacts and sentence-cases on save" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_handout_path(handout), params: {
       title: "Packet", station_label: "Single station",
@@ -133,8 +133,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     }
     handout.reload
     ings = handout.recipes.first["ingredients"]
-    assert_equal "fresh ginger (finely grated)", ings[0]["item"]
-    assert_equal "lemongrass paste (Note 2)", ings[1]["item"]
+    assert_equal "Fresh ginger (finely grated)", ings[0]["item"]
+    assert_equal "Lemongrass paste (Note 2)", ings[1]["item"]
   end
 
   test "saving an edit busts the preview cache and serves a fresh PDF" do

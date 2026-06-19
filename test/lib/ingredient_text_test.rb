@@ -39,4 +39,40 @@ class IngredientTextTest < ActiveSupport::TestCase
     assert_clean "", ""
     assert_clean "", nil
   end
+
+  def assert_cased(expected, input)
+    assert_equal expected, IngredientText.sentence_case(input), "for #{input.inspect}"
+  end
+
+  test "sentence case: capitalizes the first letter of the line" do
+    assert_cased "Olive oil",                  "olive oil"
+    assert_cased "All-purpose flour, sifted",  "all-purpose flour, sifted"
+  end
+
+  test "sentence case: tones down ALL-CAPS words" do
+    assert_cased "Kosher salt",        "KOSHER SALT"
+    assert_cased "Smoked paprika",     "smoked PAPRIKA"
+  end
+
+  test "sentence case: keeps mixed-case proper nouns and brands" do
+    assert_cased "Dijon mustard",      "Dijon mustard"
+    assert_cased "Parmesan, grated",   "Parmesan, grated"
+    assert_cased "McCormick vanilla",  "McCormick vanilla"
+  end
+
+  test "sentence case: capitalizes first letter past a leading paren or symbol" do
+    assert_cased "(Optional) garnish", "(optional) garnish"
+    assert_cased "*Fish sauce",        "*fish sauce"
+  end
+
+  test "sentence case: blank in, blank out" do
+    assert_cased "", ""
+    assert_cased "", nil
+  end
+
+  test "normalize runs cleanup then sentence case" do
+    assert_equal "Fresh ginger (finely grated)",
+                 IngredientText.normalize("fresh ginger (, finely grated)")
+    assert_equal "Kosher salt", IngredientText.normalize("KOSHER SALT")
+  end
 end

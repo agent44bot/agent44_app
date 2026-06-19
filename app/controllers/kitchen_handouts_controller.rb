@@ -130,7 +130,7 @@ class KitchenHandoutsController < ApplicationController
       ingredients = (r[:ingredients]&.values || []).filter_map do |i|
         next if i[:item].blank?
         { "qty" => KitchenUnits.standardize(i[:qty]), "station_qty" => KitchenUnits.standardize(i[:station_qty]),
-          "item" => IngredientText.clean(i[:item]), "section" => i[:section].presence }
+          "item" => IngredientText.normalize(i[:item]), "section" => i[:section].presence }
       end
       directions = (r[:directions]&.values || []).filter_map do |d|
         steps = d[:steps].to_s.split(/\n+/).map(&:strip).reject(&:blank?)
