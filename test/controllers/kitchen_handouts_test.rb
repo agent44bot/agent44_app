@@ -280,4 +280,59 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_not KitchenHandout.exists?(handout.id)
     assert_nil KitchenHandout.for_event_url(EVENT_URL)
   end
+
+  test "destroy from the library returns to the library" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    delete nyk_handout_path(handout), params: { return_to: nyk_recipes_path }
+    assert_redirected_to nyk_recipes_path
+  end
+
+  test "destroy ignores an off-site return_to (no open redirect)" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    delete nyk_handout_path(handout), params: { return_to: "https://evil.example.com" }
+    assert_redirected_to nyk_list_path
+  end
+
+  test "library lists every packet" do
+    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
+    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
+    get nyk_recipes_path
+    assert_response :success
+    assert_match "Fresh Pasta", response.body
+    assert_match "Sourdough Basics", response.body
+  end
+
+  SOURDOUGH = [ { "title" => "Sourdough",
+    "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rye", "section" => nil } ],
+    "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ].freeze
+
+  test "library search filters by title" do
+    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
+    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => SOURDOUGH })
+    get nyk_recipes_path(q: "pasta")
+    assert_response :success
+    assert_match "Fresh Pasta", response.body
+    assert_no_match(/Sourdough Basics/, response.body)
+  end
+
+  test "library search matches an ingredient inside the recipe" do
+    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED }) # has "All-purpose flour"
+    KitchenHandout.create!(title: "Sourdough Basics",
+      data: { "recipes" => [ { "title" => "Sourdough",
+        "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rye", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ] })
+    get nyk_recipes_path(q: "all-purpose flour")
+    assert_response :success
+    assert_match "Fresh Pasta", response.body
+    assert_no_match(/Sourdough Basics/, response.body)
+  end
+
+  test "attach picker searches the full library when given a query" do
+    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
+    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
+    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Whatever", q: "sourdough")
+    assert_response :success
+    assert_match "Sourdough Basics", response.body
+    assert_no_match(/Reuse this packet/, response.body) # no similarity suggestion while searching
+  end
 end

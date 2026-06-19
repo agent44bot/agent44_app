@@ -106,6 +106,7 @@ Rails.application.routes.draw do
   get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
   # Recipe handouts: printable class recipe packets, attached from Sam's
   # list page (upload or paste -> AI extraction -> review -> branded print).
+  get    "nykitchen/recipes",            to: "kitchen_handouts#index",  as: :nyk_recipes
   get    "nykitchen/handouts/new",       to: "kitchen_handouts#new",    as: :new_nyk_handout
   post   "nykitchen/handouts",           to: "kitchen_handouts#create", as: :nyk_handouts
   get    "nykitchen/handouts/:id/edit",  to: "kitchen_handouts#edit",   as: :edit_nyk_handout

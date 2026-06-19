@@ -1,0 +1,63 @@
+<% content_for(:title, "NY Kitchen · Recipe Library") %>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+  <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
+  <h1 class="text-2xl font-bold text-white mb-1">Recipe library</h1>
+  <p class="text-sm text-gray-400 mb-6">Every recipe packet you've built, in one place. Search by name or by an ingredient inside the recipe.</p>
+
+  <%= form_with url: nyk_recipes_path, method: :get, data: { turbo_frame: "_top" } do %>
+    <div class="flex gap-2">
+      <%= search_field_tag :q, @q, placeholder: "Search recipes (e.g. pasta, ginger)…",
+            autocomplete: "off",
+            class: "flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none" %>
+      <%= submit_tag "Search", class: "shrink-0 px-4 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    </div>
+  <% end %>
+
+  <div class="flex items-center justify-between mt-4 mb-3">
+    <p class="text-xs text-gray-500">
+      <%= pluralize(@handouts.size, "recipe") %>
+      <% if @q.present? %>matching "<span class="text-gray-300"><%= @q %></span>"<% end %>
+    </p>
+    <% if @q.present? %>
+      <%= link_to "Clear", nyk_recipes_path, class: "text-xs text-orange-400 hover:text-orange-300" %>
+    <% end %>
+  </div>
+
+  <% if @handouts.empty? %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+      <p class="text-gray-400 text-sm">
+        <% if @q.present? %>
+          No recipes match that search.
+        <% else %>
+          No recipe packets yet. Add one from a class on Sam's list.
+        <% end %>
+      </p>
+    </div>
+  <% else %>
+    <div class="space-y-2">
+      <% @handouts.each do |h| %>
+        <div class="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
+          <div class="min-w-0 flex-1">
+            <%= link_to h.title, edit_nyk_handout_path(h), class: "block truncate text-sm font-medium text-gray-200 hover:text-orange-400" %>
+            <p class="text-xs text-gray-500 mt-0.5">
+              <%= pluralize(h.recipes.size, "recipe") %>
+              <% count = @attach_counts[h.id].to_i %>
+              <% if count.positive? %>&middot; on <%= pluralize(count, "class") %><% end %>
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <%= link_to "Edit", edit_nyk_handout_path(h),
+                  class: "text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300" %>
+            <%= link_to "Print", print_nyk_handout_path(h),
+                  class: "text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300" %>
+            <%= button_to "Delete", nyk_handout_path(h), method: :delete,
+                  params: { return_to: nyk_recipes_path },
+                  form: { data: { turbo_confirm: "Delete \"#{h.title}\"? This also unlinks it from any class." } },
+                  class: "text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-red-900/60 text-gray-400 hover:text-red-300 cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

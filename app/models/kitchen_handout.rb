@@ -28,6 +28,16 @@ class KitchenHandout < ApplicationRecord
   validates :title, presence: true
   validate :recipes_must_be_well_formed
 
+  # Library search: match the packet title and the recipe contents. SQLite
+  # stores `data` as JSON text, so a LIKE over it also matches ingredient and
+  # direction wording (e.g. searching "ginger" finds packets that use it).
+  scope :search, ->(q) {
+    if q.present?
+      term = "%#{sanitize_sql_like(q.to_s.strip)}%"
+      where("title LIKE ? OR data LIKE ?", term, term)
+    end
+  }
+
   def recipes
     Array(data["recipes"])
   end
