@@ -95,6 +95,15 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_select ".page:first-of-type .event", 9
   end
 
+  test "stall poster footer has a calendar QR and New York Kitchen wording" do
+    add_event("Pinot Noir Decoded", 24)
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+    assert_select ".footer-qr svg", { minimum: 1 }, "footer QR on the stall poster"
+    assert_match "Check out other New York Kitchen classes", response.body
+    assert_match "nykitchen.com/calendar/", response.body
+  end
+
   test "stall variant shows six large-font classes with a photo and QR each" do
     8.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24, image_url: "https://img.test/#{i}.jpg") }
     get nyk_display_print_path(variant: "stall")
