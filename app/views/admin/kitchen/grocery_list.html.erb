@@ -136,6 +136,25 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1">To taste / on hand</h2>
         <p class="text-sm text-gray-600"><%= @result.to_taste.join(", ") %></p>
       <% end %>
+      <%# Pull sheet only: the gear to set up at each station before class. Read
+          straight off the recipe packet (no AI), so it follows every run. %>
+      <% if single %>
+        <% pull = @with_recipe.first %>
+        <% equipment = Array(pull && pull[:handout]&.equipment) %>
+        <% if equipment.any? %>
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-5 mb-1">
+            Equipment per station<%= pull && pull[:stations] ? " (set up at each of #{pluralize(pull[:stations], "station")})" : "" %>
+          </h2>
+          <ul class="mb-2">
+            <% equipment.each do |eq| %>
+              <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
+                <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
+                <span class="flex-1 min-w-0"><%= eq %></span>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+      <% end %>
       <% if !single && est_total > 0 %>
         <div class="mt-5 pt-3 border-t-2 border-gray-900 flex items-baseline justify-between">
           <span class="text-base font-extrabold">Estimated total</span>

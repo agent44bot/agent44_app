@@ -137,6 +137,26 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "Lemongrass paste (Note 2)", ings[1]["item"]
   end
 
+  test "update saves the per-station equipment list (blank lines dropped) and round-trips it" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_handout_path(handout), params: {
+      title: "Packet", station_label: "Single station",
+      equipment: "Large stockpot\n  Wooden spoon  \n\nWhisk\n",
+      recipes: { "0" => {
+        title: "Fresh Pasta",
+        ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } },
+        directions: { "0" => { section: "", steps: "Mix." } }
+      } }
+    }
+    handout.reload
+    assert_equal [ "Large stockpot", "Wooden spoon", "Whisk" ], handout.equipment
+    assert_equal 1, handout.recipes.size
+
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_match "Large stockpot", response.body
+  end
+
   test "update keeps blank lines between steps so spacing carries into the PDF" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_handout_path(handout), params: {

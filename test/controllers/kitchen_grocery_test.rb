@@ -199,6 +199,28 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 0, @agg_calls
   end
 
+  test "the pull sheet lists the recipe's per-station equipment" do
+    url = add_class("Ravioli", "groc-rav", 1, booked: 12)
+    h = KitchenHandout.for_event_url(url)
+    h.equipment = [ "Large stockpot", "Wooden spoon" ]
+    h.save!
+    get nyk_grocery_path(event_url: url, name: "Ravioli"), headers: FRAME
+    assert_response :success
+    assert_match "Equipment per station", response.body
+    assert_match "Large stockpot", response.body
+    assert_match "Wooden spoon", response.body
+  end
+
+  test "the week grocery list does not show equipment (pull sheet only)" do
+    url = add_class("Ravioli", "groc-rav", 1, booked: 12)
+    h = KitchenHandout.for_event_url(url)
+    h.equipment = [ "Large stockpot" ]
+    h.save!
+    get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME
+    assert_response :success
+    assert_no_match(/Equipment per station/, response.body)
+  end
+
   test "the pull sheet hides per-item prices and the estimated total" do
     url = add_class("Ravioli", "groc-rav", 1, booked: 12)
     get nyk_grocery_path(event_url: url, name: "Ravioli"), headers: FRAME
