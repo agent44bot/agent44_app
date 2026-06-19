@@ -54,6 +54,9 @@ class KitchenController < ApplicationController
     @sendable_workspaces = sendable_workspaces_for(Current.user)
     # Recipe handout per class (keyed by event URL) for the card row action.
     @handouts_by_url = KitchenHandoutLink.pluck(:event_url, :kitchen_handout_id).to_h
+    # URLs whose packet was auto-attached (by class-name match) so the card can
+    # badge them and Lora knows the system, not she, linked it.
+    @auto_handout_urls = KitchenHandoutLink.where(auto: true).pluck(:event_url).to_set
     # Latest uploaded grocery receipt per week (keyed by week_start) so each
     # expanded week can show whether a receipt is in / being read.
     @receipt_by_week_start = GroceryReceipt.recent_first.where.not(week_start: nil)
