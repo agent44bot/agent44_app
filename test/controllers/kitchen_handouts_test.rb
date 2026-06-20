@@ -137,6 +137,14 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal "Lemongrass paste (Note 2)", ings[1]["item"]
   end
 
+  test "hide_equipment removes a tag from the palette for all recipes" do
+    KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Pasta machine" ] })
+    assert_includes KitchenHandout.equipment_catalog, "Pasta machine"
+    post nyk_hide_equipment_tag_path, params: { name: "Pasta machine" }
+    assert_response :success
+    refute_includes KitchenHandout.equipment_catalog, "Pasta machine"
+  end
+
   test "the edit page renders the equipment tag picker with catalog and selected" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Wooden spoon" ] })
     get edit_nyk_handout_path(handout)

@@ -73,13 +73,34 @@ class KitchenHandout < ApplicationRecord
     "Colander", "Strainer", "Ladle", "Peeler", "Box grater", "Kitchen towel"
   ].freeze
 
+  # Setting key holding the equipment tags a manager deleted from the palette
+  # for good (JSON array of names).
+  HIDDEN_EQUIPMENT_KEY = "equipment_hidden_tags".freeze
+
+  # Tags removed from the palette forever.
+  def self.hidden_equipment
+    JSON.parse(Setting.get(HIDDEN_EQUIPMENT_KEY).presence || "[]")
+  rescue JSON::ParserError
+    []
+  end
+
+  # Permanently drop a tag from the palette so it stops being suggested.
+  def self.hide_equipment(name)
+    clean = name.to_s.strip
+    return if clean.blank?
+    list = hidden_equipment
+    return if list.any? { |h| h.casecmp?(clean) }
+    Setting.set(HIDDEN_EQUIPMENT_KEY, (list + [ clean ]).to_json)
+  end
+
   # The full set of equipment tags to offer in the picker: the starter palette
-  # plus everything ever used on a packet, de-duped (case-insensitive) and
-  # sorted. Grows organically as new items are added.
+  # plus everything ever used on a packet, de-duped (case-insensitive), minus
+  # any deleted tags, sorted. Grows organically as new items are added.
   def self.equipment_catalog
+    hidden = hidden_equipment.map(&:downcase).to_set
     used = all.flat_map(&:equipment)
     (STARTER_EQUIPMENT + used).map { |e| e.to_s.strip }.reject(&:blank?)
-      .uniq { |e| e.downcase }.sort_by(&:downcase)
+      .uniq { |e| e.downcase }.reject { |e| hidden.include?(e.downcase) }.sort_by(&:downcase)
   end
 
   # The handout attached to a class, by its stable identity (event URL).

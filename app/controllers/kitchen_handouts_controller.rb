@@ -87,6 +87,13 @@ class KitchenHandoutsController < ApplicationController
     @equipment_catalog = KitchenHandout.equipment_catalog
   end
 
+  # Delete an equipment tag from the shared palette for good (the tag picker's
+  # "-" button posts here). Persisted in Setting so it stays gone across recipes.
+  def hide_equipment
+    KitchenHandout.hide_equipment(params[:name])
+    head :ok
+  end
+
   def update
     @handout = KitchenHandout.find(params[:id])
     @handout.update!(
