@@ -89,26 +89,36 @@
       }).catch(function() {}).finally(function() { clearBadge(); });
     }
 
-    PN.requestPermissions().then(function(perm) {
-      if (perm.receive !== 'granted') return;
+    // iOS only for now. On Android, PN.register() goes through FCM, and the
+    // Play build ships without google-services.json (push deferred for v1), so
+    // Firebase's default app isn't initialized and register() throws a native
+    // crash (IllegalStateException: Default FirebaseApp is not initialized) that
+    // boots the user out right after they accept the notification prompt. The
+    // device-token POST below already hardcodes platform 'ios'. Re-enable
+    // Android here once the Agent44 Firebase project + google-services.json are
+    // in place. (Badge routing and Universal Links below still run on Android.)
+    if (window.Capacitor.getPlatform() === 'ios') {
+      PN.requestPermissions().then(function(perm) {
+        if (perm.receive !== 'granted') return;
 
-      PN.addListener('registration', function(token) {
-        fetch('/api/v1/device_tokens', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token.value, platform: 'ios' })
+        PN.addListener('registration', function(token) {
+          fetch('/api/v1/device_tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token.value, platform: 'ios' })
+          });
         });
-      });
 
-      // Navigate to the URL when the user taps a notification
-      PN.addListener('pushNotificationActionPerformed', function(action) {
-        var url = action.notification.data && action.notification.data.url;
-        if (url) window.location.href = url;
-        clearBadge();
-      });
+        // Navigate to the URL when the user taps a notification
+        PN.addListener('pushNotificationActionPerformed', function(action) {
+          var url = action.notification.data && action.notification.data.url;
+          if (url) window.location.href = url;
+          clearBadge();
+        });
 
-      PN.register();
-    });
+        PN.register();
+      });
+    }
 
     // On first load and every foreground, peek at the user's unread state and
     // route to the right place (single → that notification's url, many →
