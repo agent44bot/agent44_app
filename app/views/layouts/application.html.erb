@@ -162,6 +162,10 @@
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
             <% if Current.user.admin? %>
+              <%= link_to admin_track_path(range: "today"),
+                    class: "inline-flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:text-amber-300 transition" do %>
+                👁 Track users
+              <% end %>
               <!-- Admin dropdown -->
               <div class="relative" data-controller="nav">
                 <button type="button" data-action="click->nav#toggle" aria-label="Admin menu"
@@ -234,6 +238,7 @@
           <%= link_to "Workspaces", workspaces_path(force: 1), class: "block px-3 py-2 rounded-md text-base font-medium text-orange-500 hover:bg-gray-800" %>
         <% end %>
         <% if authenticated? && Current.user.admin? %>
+          <%= link_to "👁 Track users", admin_track_path(range: "today"), class: "block px-3 py-2 rounded-md text-base font-medium text-amber-400 hover:bg-gray-800" %>
           <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "Crypto", crypto_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "NY Kitchen", nykitchen_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>

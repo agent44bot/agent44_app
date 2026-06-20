@@ -160,15 +160,8 @@
      data-controller="collapsible"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <div class="flex justify-between items-start mb-6 text-sm">
-    <div class="flex items-center gap-2">
-      <% if Current.user&.email_address == "botwhisperer@hey.com" %>
-        <%= link_to admin_track_path(range: "today"),
-              class: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-900/40 border border-amber-800/60 text-amber-300 hover:border-amber-500 text-xs font-semibold" do %>
-          👁 Track users
-        <% end %>
-      <% end %>
-    </div>
+  <%# "Track users" moved to the top nav (admin-only, all pages). %>
+  <div class="flex justify-end items-start mb-6 text-sm">
     <div class="flex flex-col items-end gap-2">
       <%= link_to workspaces_path(force: 1), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
         ← All workspaces
