@@ -418,6 +418,15 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match "Scheduler", response.body # the List/Sam card still renders
   end
 
+  test "Track users shows in the nav for admins, hidden for anonymous" do
+    get nykitchen_path # setup is signed in as an admin
+    assert_response :success
+    assert_match "Track users", response.body
+    sign_out
+    get nykitchen_path
+    assert_no_match(/Track users/, response.body)
+  end
+
   test "anonymous click on List bounces to sign-in" do
     sign_out
     get nyk_list_path
