@@ -9,6 +9,13 @@ export default class extends Controller {
   connect() {
     if (!window.Capacitor?.isNativePlatform()) return
 
+    // iOS only for now. On Android, register() goes through FCM, and the build
+    // ships without google-services.json (push deferred), so Firebase's default
+    // app isn't initialized and register() crashes the native shell, a native
+    // crash the try/catch below can't catch. Re-enable Android here once the
+    // Agent44 Firebase project + google-services.json are in place.
+    if (window.Capacitor.getPlatform() !== "ios") return
+
     this.registerPush()
   }
 
