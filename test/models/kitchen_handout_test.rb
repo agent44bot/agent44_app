@@ -50,6 +50,27 @@ class KitchenHandoutTest < ActiveSupport::TestCase
     assert_equal 1, h.recipes.size
   end
 
+  test "hide_equipment drops a tag from the catalog for good, even if a recipe uses it" do
+    h = make("Pasta")
+    h.equipment = [ "Pasta machine" ]
+    h.save!
+    assert_includes KitchenHandout.equipment_catalog, "Pasta machine"
+    assert_includes KitchenHandout.equipment_catalog, "Whisk" # a starter tag
+
+    KitchenHandout.hide_equipment("Pasta machine")
+    KitchenHandout.hide_equipment("whisk") # case-insensitive vs starter "Whisk"
+
+    refute_includes KitchenHandout.equipment_catalog, "Pasta machine"
+    refute_includes KitchenHandout.equipment_catalog.map(&:downcase), "whisk"
+  end
+
+  test "hide_equipment ignores blanks and de-dupes" do
+    KitchenHandout.hide_equipment("Tongs")
+    KitchenHandout.hide_equipment("tongs")
+    KitchenHandout.hide_equipment("  ")
+    assert_equal [ "Tongs" ], KitchenHandout.hidden_equipment
+  end
+
   test "equipment_catalog merges the starter palette with used items, de-duped and sorted" do
     h = make("Pasta")
     h.equipment = [ "Pasta machine", "whisk" ] # 'whisk' duplicates starter 'Whisk'

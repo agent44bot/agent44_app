@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-20
+  note: In the recipe equipment picker you can now delete a tag from the list for good (tap the minus on a tag), and as you type in the Add box the matching tags highlight so they're easy to spot.
+
+- date: 2026-06-20
   note: Fixed a phone display glitch on the agents hub where the New York Kitchen logo overlapped the workspace name and pushed it off the screen. The logo now sits above the name on narrow screens.
 
 - date: 2026-06-19
