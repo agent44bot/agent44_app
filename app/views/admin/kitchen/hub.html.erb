@@ -177,9 +177,9 @@
   </div>
 
   <div class="mb-8 flex items-start justify-between gap-3">
-    <div class="flex items-center gap-4 min-w-0">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
       <% if @nyk_workspace&.logo&.attached? %>
-        <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-16 w-auto shrink-0" %>
+        <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-12 sm:h-16 w-auto max-w-[70%] sm:max-w-none object-contain shrink-0" %>
       <% end %>
       <div class="min-w-0">
         <div class="ra-eyebrow mb-1">Agent 44 · Field Roster</div>
