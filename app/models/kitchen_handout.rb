@@ -117,6 +117,23 @@ class KitchenHandout < ApplicationRecord
     links.create!(event_url: event_url, auto: auto)
   end
 
+  # Reuse means COPY, not share: build an independent packet from this one and
+  # attach it to the given class. Each class then owns its recipe, so editing
+  # or deleting one class's copy never touches the class it was copied from.
+  # extract_cost_cents is left blank because copying skips the AI (no cost to
+  # attribute); the new link is manual (auto: false), so it stays put.
+  def copy_to!(event_url)
+    copy = self.class.create!(
+      title: title,
+      station_label: station_label,
+      data: data.deep_dup,
+      source_url: source_url,
+      source_kind: source_kind
+    )
+    copy.attach_to!(event_url)
+    copy
+  end
+
   private
 
   def recipes_must_be_well_formed

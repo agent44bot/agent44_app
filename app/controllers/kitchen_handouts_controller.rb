@@ -43,14 +43,18 @@ class KitchenHandoutsController < ApplicationController
   def create
     event_url = params[:event_url].to_s
 
-    # Reuse path: attach an existing packet to this class, no AI involved.
+    # Reuse path: COPY an existing packet onto this class, no AI involved. A copy
+    # (not a shared link) so editing or deleting this class's recipe never
+    # touches the packet it came from. Land on edit so the copy can be reviewed
+    # and tweaked for this class right away.
     if params[:existing_id].present?
-      handout = KitchenHandout.find(params[:existing_id])
-      if event_url.present?
-        handout.attach_to!(event_url)
-        KitchenPacketAutoAttacher.attach_forward(handout)
-      end
-      return redirect_to nyk_list_path, notice: "#{handout.title} attached. Print it from the class row."
+      source = KitchenHandout.find(params[:existing_id])
+      return redirect_to nyk_list_path, notice: "#{source.title} ready." if event_url.blank?
+
+      handout = source.copy_to!(event_url)
+      KitchenPacketAutoAttacher.attach_forward(handout)
+      return redirect_to edit_nyk_handout_path(handout),
+                         notice: "Copied #{handout.title} to this class. Edits here stay on this class; the original packet is untouched."
     end
 
     pdf = params[:pdf].presence

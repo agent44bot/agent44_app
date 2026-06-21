@@ -11,9 +11,10 @@
         This looks like a class we already have a packet for:
         <span class="font-semibold"><%= @suggested.title %></span>
       </p>
-      <%= button_to "Reuse this packet", nyk_handouts_path,
+      <%= button_to "Copy this packet to the class", nyk_handouts_path,
             params: { existing_id: @suggested.id, event_url: @event_url },
             class: "px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold cursor-pointer" %>
+      <p class="text-xs text-emerald-400/80 mt-2">Makes an editable copy for this class. The original packet stays as it is.</p>
     </div>
   <% end %>
 
@@ -51,7 +52,7 @@
   <% end %>
 
   <div class="mt-10">
-    <h2 class="text-sm font-semibold text-gray-400 mb-3">Or attach an existing packet</h2>
+    <h2 class="text-sm font-semibold text-gray-400 mb-3">Or copy an existing packet</h2>
 
     <%= form_with url: new_nyk_handout_path, method: :get, class: "mb-3" do %>
       <%= hidden_field_tag :event_url, @event_url %>
@@ -77,7 +78,7 @@
         <% (@q.present? ? others : others.first(10)).each do |h| %>
           <div class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5">
             <span class="text-sm text-gray-300 min-w-0 truncate"><%= h.title %></span>
-            <%= button_to "Attach", nyk_handouts_path,
+            <%= button_to "Copy", nyk_handouts_path,
                   params: { existing_id: h.id, event_url: @event_url },
                   class: "shrink-0 text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 cursor-pointer" %>
           </div>
