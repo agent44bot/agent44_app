@@ -18,6 +18,9 @@ module KitchenAi
     # shows as its own line (and gets its own model toggle) on /billing.
     GENERATE_SOURCE = "nyk_recipe_generate"
     MAX_TOKENS = 4000
+    # Generated recipes (multi-component dishes) run longer than extractions, so
+    # give them more headroom to avoid a truncated, unparseable response.
+    GENERATE_MAX_TOKENS = 8000
     BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36".freeze
 
@@ -82,7 +85,10 @@ module KitchenAi
       chosen_model = AiModelChoice.resolve(GENERATE_SOURCE, default: MODEL)
       prompt = "Class name: #{class_name}\n\nClass description:\n#{description.to_s.strip.presence || '(none provided)'}"
 
-      response =
+      # Retry once on a transient API blip (model briefly overloaded / timeout)
+      # before surfacing an error. Generation is verbose, so it gets a larger
+      # token budget than extraction.
+      response = with_api_retry do
         if self.class.stub
           self.class.stub.call(messages: [ { role: "user", content: [] } ])
         else
@@ -90,11 +96,12 @@ module KitchenAi
           return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
           Anthropic::Client.new(api_key: api_key).messages.create(
             model:      chosen_model,
-            max_tokens: MAX_TOKENS,
+            max_tokens: GENERATE_MAX_TOKENS,
             system:     GENERATE_PROMPT,
             messages:   [ { role: "user", content: prompt } ]
           )
         end
+      end
 
       log = AiCallLogger.log!(response, model: chosen_model, source: GENERATE_SOURCE, user: @user)
       cost_cents = log&.cost_cents&.round
@@ -104,12 +111,26 @@ module KitchenAi
 
       Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
     rescue Anthropic::Errors::APIError => e
-      Result.new(ok?: false, error: "Anthropic: #{e.message}")
+      Rails.logger.warn("[recipe_generate] #{e.class}: #{e.message}")
+      Result.new(ok?: false, error: "The recipe generator was busy for a moment. Please try Generate again.")
     rescue => e
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
     private
+
+    # Run the API call, retrying once on a transient Anthropic error (overload /
+    # rate limit / 5xx / timeout) before letting it bubble to the rescue.
+    def with_api_retry
+      attempts = 0
+      begin
+        attempts += 1
+        yield
+      rescue Anthropic::Errors::APIError
+        retry if attempts < 2
+        raise
+      end
+    end
 
     SYSTEM_PROMPT = <<~PROMPT.freeze
       You convert cooking-class recipe documents into JSON for a print layout.

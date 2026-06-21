@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-21
+  note: Generate recipe with AI is more reliable. It retries once if the AI is briefly busy, allows longer recipes so they don't get cut off, and shows a friendly "try again" message instead of a technical error if it still can't reach the model.
+
+- date: 2026-06-21
   note: Equipment changes on a recipe now save automatically the moment you add or remove a tag, so you don't have to click Save and refresh preview just for equipment.
 
 - date: 2026-06-21
