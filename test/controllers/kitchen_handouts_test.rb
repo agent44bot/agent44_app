@@ -76,6 +76,28 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match "Generate recipe with AI", response.body
   end
 
+  test "generate retries once on a transient API error then succeeds" do
+    calls = 0
+    ok = OpenStruct.new(text: { "recipes" => EXTRACTED }.to_json)
+    KitchenAi::RecipeExtractor.stub = lambda do |messages:|
+      calls += 1
+      raise Anthropic::Errors::APIError.new(url: "https://api", message: "overloaded") if calls == 1
+      OpenStruct.new(content: [ ok ], usage: OpenStruct.new(input_tokens: 10, output_tokens: 10))
+    end
+    result = KitchenAi::RecipeExtractor.new.generate(class_name: "Sushi Rolling")
+    assert result.ok?, "should succeed after one retry"
+    assert_equal 2, calls
+  end
+
+  test "generate shows a friendly message when the API keeps failing" do
+    KitchenAi::RecipeExtractor.stub = lambda do |messages:|
+      raise Anthropic::Errors::APIError.new(url: "https://api", message: "overloaded")
+    end
+    result = KitchenAi::RecipeExtractor.new.generate(class_name: "Sushi Rolling")
+    assert_not result.ok?
+    assert_match(/busy for a moment/, result.error)
+  end
+
   test "reusing an existing packet copies it to the class without calling the AI" do
     source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
     assert_difference "KitchenHandout.count", 1 do
