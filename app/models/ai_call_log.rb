@@ -112,9 +112,15 @@ class AiCallLog < ApplicationRecord
   #       by_source: { "nyk_grocery_list" => {calls:, cost_dollars:, ...}, ... },
   #       cost_dollars: <month total across the sources> }, ... ]
   def self.monthly_by_source(sources, months: 6, now: Time.zone.now)
+    # One query for the whole window, then bucket by month in Ruby (cost is
+    # per-row, RATES per model, so it can't be a pure SQL aggregate anyway).
+    window_start = now.beginning_of_month - (months - 1).months
+    logs = where(source: sources, created_at: window_start..).to_a
+    by_month = logs.group_by { |l| l.created_at.in_time_zone(now.time_zone).strftime("%Y-%m") }
+
     (0...months).map do |i|
       month_start = now.beginning_of_month - i.months
-      found       = summary_by_source(where(source: sources, created_at: month_start...(month_start + 1.month)))
+      found       = summary_by_source(by_month[month_start.strftime("%Y-%m")] || [])
       by_source   = sources.index_with { |s| found[s] || EMPTY_USAGE }
       {
         key:          month_start.strftime("%Y-%m"),
