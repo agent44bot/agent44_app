@@ -18,6 +18,17 @@
     </div>
   <% end %>
 
+  <% if @event_name.present? %>
+    <div class="bg-purple-900/20 border border-purple-800/50 rounded-xl p-4 mb-6">
+      <p class="text-sm text-purple-200 mb-3">No recipe to upload yet? Generate a draft from the class description with AI, then review and edit it.</p>
+      <%= button_to "✨ Generate recipe with AI", nyk_handouts_path,
+            params: { generate: 1, event_url: @event_url, event_name: @event_name },
+            class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
+      <p class="text-xs text-purple-300/70 mt-2">Uses the Opus model by default (set per feature on the billing page). It's a starting draft, so double-check amounts and steps.</p>
+    </div>
+    <div class="my-4 text-center text-xs text-gray-600">or upload the real recipe</div>
+  <% end %>
+
   <%= form_with url: nyk_handouts_path, method: :post, multipart: true do |f| %>
     <%= hidden_field_tag :event_url, @event_url %>
     <%= hidden_field_tag :event_name, @event_name %>

@@ -104,7 +104,8 @@ class Invoice < ApplicationRecord
       "nyk_x_autopost"     => "Daily X autopost draft",
       "nyk_team_report"    => "Weekly team report",
       "nyk_grocery_list"   => "Grocery lists",
-      "nyk_recipe_extract" => "Recipe generation",
+      "nyk_recipe_extract" => "Recipe import",
+      "nyk_recipe_generate" => "Recipe generation (AI)",
       "nyk_receipt_extract" => "Receipt scanning",
       "nyk_ask"            => "Super Agent chat"
     }

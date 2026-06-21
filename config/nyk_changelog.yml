@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-21
+  note: New "Generate recipe with AI" button on the Add a recipe page (when you open it from a class). It writes a draft recipe from the class name and description for you to review and edit, for when there's no recipe to upload yet. Its cost shows on the billing page as its own "Recipe generation (AI)" line.
+
+- date: 2026-06-21
   note: Reusing a recipe packet on another class now makes its own editable copy instead of sharing one. So tweaking or removing a recipe on one class never changes or deletes it on the class you copied from. The remove button is clearer too (Remove recipe from this class).
 
 - date: 2026-06-20
