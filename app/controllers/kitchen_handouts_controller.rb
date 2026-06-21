@@ -107,6 +107,7 @@ class KitchenHandoutsController < ApplicationController
   def edit
     @handout = KitchenHandout.find(params[:id])
     @equipment_catalog = KitchenHandout.equipment_catalog
+    @pull_classes = pull_classes_for(@handout)
   end
 
   # Auto-save just the equipment list (the tag picker posts here on every
@@ -181,6 +182,18 @@ class KitchenHandoutsController < ApplicationController
   def event_for(url)
     return nil if url.blank?
     KitchenSnapshot.latest&.kitchen_events&.find_by(url: url)
+  end
+
+  # Classes this recipe is attached to, resolved to current events, ordered for
+  # the Pull sheet tab's date dropdown: soonest upcoming run first, then any
+  # past runs (most recent first) as a fallback when nothing is upcoming.
+  def pull_classes_for(handout)
+    snap = KitchenSnapshot.latest
+    return [] unless snap
+    events = handout.links.map(&:event_url).uniq.filter_map { |u| snap.kitchen_events.find_by(url: u) }
+    now = Time.current
+    upcoming, past = events.partition { |e| e.start_at >= now }
+    upcoming.sort_by(&:start_at) + past.sort_by(&:start_at).reverse
   end
 
   def source_kind_for(pdf:, url:)

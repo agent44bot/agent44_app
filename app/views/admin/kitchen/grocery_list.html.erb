@@ -174,8 +174,13 @@
       </div>
     </div>
 
+    <%# Embedded in the handout's Pull sheet tab: the print handler/CSS live in
+        the standalone grocery shell, not here, so hide the dead Print button.
+        That tab links out to the full page for printing. %>
     <div class="mt-4 flex items-center gap-4 no-print">
-      <button type="button" class="px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" id="grocery-print-btn">🖨 Print</button>
+      <% unless params[:embedded] %>
+        <button type="button" class="px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" id="grocery-print-btn">🖨 Print</button>
+      <% end %>
       <% if @from_cache %>
         <span class="text-xs text-gray-500">Saved list (no new AI cost)</span>
       <% elsif @result.cost_cents %>

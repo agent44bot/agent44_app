@@ -523,4 +523,50 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match(/shared by/, response.body)
   end
+
+  test "edit page has Recipe and Pull sheet tabs with a lazy pull-sheet frame" do
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+    url = "https://nykitchen.com/event/sushi/"
+    snap.kitchen_events.create!(name: "Sushi Rolling", url: url, start_at: 3.days.from_now.change(hour: 18),
+                                availability: "InStock", capacity: 24, spots_left: 4)
+    handout = KitchenHandout.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED })
+    handout.attach_to!(url)
+
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_select "[data-controller='tabs']"
+    assert_select "button[data-tab-name='pull']"
+    # Lazy so no AI call until the tab is opened, scoped to the class as embedded.
+    assert_match 'loading="lazy"', response.body
+    assert_match "embedded=1", response.body
+    assert_match "Open to print", response.body
+  end
+
+  test "Pull sheet tab defaults to the soonest upcoming run and offers a date dropdown when shared" do
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+    past = "https://nykitchen.com/event/sushi-past/"
+    soon = "https://nykitchen.com/event/sushi-soon/"
+    later = "https://nykitchen.com/event/sushi-later/"
+    snap.kitchen_events.create!(name: "Sushi PAST", url: past, start_at: 5.days.ago, availability: "InStock", capacity: 24, spots_left: 1)
+    snap.kitchen_events.create!(name: "Sushi SOON", url: soon, start_at: 2.days.from_now, availability: "InStock", capacity: 24, spots_left: 1)
+    snap.kitchen_events.create!(name: "Sushi LATER", url: later, start_at: 9.days.from_now, availability: "InStock", capacity: 24, spots_left: 1)
+    handout = KitchenHandout.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED })
+    [ past, soon, later ].each { |u| handout.links.create!(event_url: u) }
+
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    # Shared by 3 -> a dropdown; the default frame src points at the soonest upcoming run.
+    assert_select "select option", 3
+    frame = response.body.split('id="grocery_list"').last
+    assert_match "sushi-soon", frame, "frame defaults to the soonest upcoming run"
+    refute_match(/sushi-later|sushi-past/, frame, "frame does not default to a later/past run")
+    assert_select "select option:first-of-type", /Sushi SOON/
+  end
+
+  test "Pull sheet tab shows an empty state when the recipe is attached to no class" do
+    handout = KitchenHandout.create!(title: "Orphan", data: { "recipes" => EXTRACTED })
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_match "isn't attached to a class yet", response.body
+  end
 end
