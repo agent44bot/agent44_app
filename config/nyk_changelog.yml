@@ -9,6 +9,12 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-21
+  note: Equipment changes on a recipe now save automatically the moment you add or remove a tag, so you don't have to click Save and refresh preview just for equipment.
+
+- date: 2026-06-21
+  note: Generating or building a recipe now shows a full-screen spinner while the AI works, instead of only the thin progress bar at the top.
+
+- date: 2026-06-21
   note: New "Generate recipe with AI" button on the Add a recipe page (when you open it from a class). It writes a draft recipe from the class name and description for you to review and edit, for when there's no recipe to upload yet. Its cost shows on the billing page as its own "Recipe generation (AI)" line.
 
 - date: 2026-06-21

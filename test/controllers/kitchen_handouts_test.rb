@@ -191,6 +191,22 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match "data-equipment-tags-selected-value", response.body
     assert_match "Wooden spoon", response.body   # the recipe's current item
     assert_match "Cutting board", response.body   # a starter palette tag
+    assert_match "data-equipment-tags-save-url-value", response.body # equipment auto-save wired
+  end
+
+  test "update_equipment auto-saves the equipment list without touching recipes" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ] })
+    patch nyk_handout_equipment_path(handout), params: { equipment: "Whisk\nCast iron skillet" }
+    assert_response :success
+    handout.reload
+    assert_equal [ "Whisk", "Cast iron skillet" ], handout.equipment
+    assert_equal 1, handout.recipes.size # recipes untouched
+  end
+
+  test "the Add-recipe page wires the loading spinner on generate and build" do
+    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Macarons")
+    assert_response :success
+    assert_match "form-spinner", response.body
   end
 
   test "update saves the per-station equipment list (blank lines dropped) and round-trips it" do

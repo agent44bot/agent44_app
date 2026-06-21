@@ -115,6 +115,15 @@ class KitchenHandoutsController < ApplicationController
     @equipment_catalog = KitchenHandout.equipment_catalog
   end
 
+  # Auto-save just the equipment list (the tag picker posts here on every
+  # add/remove). Only touches data["equipment"] so unsaved recipe edits in the
+  # form aren't affected.
+  def update_equipment
+    handout = KitchenHandout.find(params[:id])
+    handout.update!(data: handout.data.merge("equipment" => parse_equipment))
+    head :ok
+  end
+
   # Delete an equipment tag from the shared palette for good (the tag picker's
   # "-" button posts here). Persisted in Setting so it stays gone across recipes.
   def hide_equipment

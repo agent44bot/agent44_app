@@ -11,7 +11,7 @@ import { Controller } from "@hotwired/stimulus"
 // newline-joined text, so the existing server-side parse_equipment is unchanged.
 export default class extends Controller {
   static targets = ["selected", "catalog", "input", "field", "paletteLabel"]
-  static values = { catalog: Array, selected: Array, hideUrl: String }
+  static values = { catalog: Array, selected: Array, hideUrl: String, saveUrl: String }
 
   connect() {
     this.selected = [...this.selectedValue]
@@ -20,12 +20,13 @@ export default class extends Controller {
     this.render()
   }
 
-  add(event) { this.#addName(event.params.name) }
+  add(event) { this.#addName(event.params.name); this.#persist() }
 
   remove(event) {
     const name = event.params.name
     this.selected = this.selected.filter(n => n.toLowerCase() !== name.toLowerCase())
     this.render()
+    this.#persist()
   }
 
   addNew(event) {
@@ -37,6 +38,7 @@ export default class extends Controller {
     this.query = ""
     this.inputTarget.focus()
     this.render()
+    this.#persist()
   }
 
   // Highlight palette tags that match what's being typed in the Add box.
@@ -58,9 +60,23 @@ export default class extends Controller {
     }).then(r => {
       if (!r.ok) return
       const lc = name.toLowerCase()
+      const wasSelected = this.selected.some(n => n.toLowerCase() === lc)
       this.catalog = this.catalog.filter(n => n.toLowerCase() !== lc)
       this.selected = this.selected.filter(n => n.toLowerCase() !== lc)
       this.render()
+      if (wasSelected) this.#persist()
+    }).catch(() => {})
+  }
+
+  // Auto-save the recipe's equipment list (called on every add/remove) so the
+  // user doesn't have to click "Save & refresh preview" for equipment changes.
+  #persist() {
+    if (!this.hasSaveUrlValue || !this.saveUrlValue) return
+    fetch(this.saveUrlValue, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": this.#csrf() },
+      body: JSON.stringify({ equipment: this.selected.join("\n") })
     }).catch(() => {})
   }
 
