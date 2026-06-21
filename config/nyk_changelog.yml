@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-21
+  note: Reusing a recipe packet on another class now makes its own editable copy instead of sharing one. So tweaking or removing a recipe on one class never changes or deletes it on the class you copied from. The remove button is clearer too (Remove recipe from this class).
+
 - date: 2026-06-20
   note: In the recipe equipment picker you can now delete a tag from the list for good (tap the minus on a tag), and as you type in the Add box the matching tags highlight so they're easy to spot.
 

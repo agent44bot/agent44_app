@@ -111,10 +111,15 @@
     </div>
   <% end %>
 
-  <%# Delete is a separate form (button_to) so it isn't nested in the edit form. %>
-  <%= button_to "Delete this recipe", nyk_handout_path(@handout), method: :delete,
+  <%# Remove is a separate form (button_to) so it isn't nested in the edit form.
+      Reused packets are per-class copies, so this normally affects one class.
+      A packet shared across runs of the same class (linked_count > 1, see the
+      banner above) is the exception, so warn with the count when it's shared. %>
+  <%= button_to "Remove recipe from this class", nyk_handout_path(@handout), method: :delete,
         form: { class: "mt-4" },
-        data: { turbo_confirm: "Delete this recipe handout? This removes it from the class and cannot be undone." },
+        data: { turbo_confirm: linked_count > 1 ?
+          "Heads up: this packet is shared by #{pluralize(linked_count, 'class')}. Deleting it removes the recipe from all of them. Continue?" :
+          "Remove this recipe from the class? This deletes the packet and cannot be undone." },
         class: "text-sm text-red-400 hover:text-red-300 cursor-pointer" %>
 
   <%# Full-width PDF preview below the form: this is the exact file that prints. %>

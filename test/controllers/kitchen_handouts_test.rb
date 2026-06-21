@@ -57,11 +57,30 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal 0, KitchenHandout.count
   end
 
-  test "reusing an existing packet links it without calling the AI" do
-    handout = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
-    post nyk_handouts_path, params: { existing_id: handout.id, event_url: EVENT_URL }
-    assert_redirected_to nyk_list_path
-    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+  test "reusing an existing packet copies it to the class without calling the AI" do
+    source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
+    assert_difference "KitchenHandout.count", 1 do
+      post nyk_handouts_path, params: { existing_id: source.id, event_url: EVENT_URL }
+    end
+    copy = KitchenHandout.for_event_url(EVENT_URL)
+    assert_redirected_to edit_nyk_handout_path(copy)
+    # A copy, not a shared link: the class gets its own new record.
+    assert_not_equal source, copy
+    assert_equal source.title, copy.title
+    assert_equal source.recipes, copy.recipes
+    # The source is untouched (still attached to nothing here).
+    assert_nil source.links.find_by(event_url: EVENT_URL)
+  end
+
+  test "reused copy is independent: editing or deleting it leaves the source alone" do
+    source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
+    copy = source.copy_to!(EVENT_URL)
+
+    copy.update!(data: { "recipes" => [ EXTRACTED.first.merge("title" => "Changed") ] })
+    assert_equal "Fresh Pasta", source.reload.recipes.first["title"]
+
+    copy.destroy!
+    assert KitchenHandout.exists?(source.id)
   end
 
   test "attaching moves the link when the class already had a packet" do
@@ -300,7 +319,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
     get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26")
     assert_response :success
-    assert_match "Reuse this packet", response.body
+    assert_match "Copy this packet to the class", response.body
     assert_match "Fresh Pasta: Ravioli Workshop 5/14", response.body
   end
 
@@ -405,27 +424,29 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Whatever", q: "sourdough")
     assert_response :success
     assert_match "Sourdough Basics", response.body
-    assert_no_match(/Reuse this packet/, response.body) # no similarity suggestion while searching
+    assert_no_match(/Copy this packet to the class/, response.body) # no similarity suggestion while searching
   end
 
   SIBLING_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-9-3-26/".freeze
 
-  test "attaching a packet auto-links other future runs of the same class" do
-    handout = KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 8/6/26", data: { "recipes" => EXTRACTED })
+  test "reusing a packet copies it and auto-links other future runs to the copy" do
+    source = KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 8/6/26", data: { "recipes" => EXTRACTED })
     snap = KitchenSnapshot.create!(taken_on: Date.current)
     snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 8/6/26", url: EVENT_URL,
                                 start_at: 2.weeks.from_now, availability: "InStock")
     snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 9/3/26", url: SIBLING_URL,
                                 start_at: 5.weeks.from_now, availability: "InStock")
 
-    post nyk_handouts_path, params: { existing_id: handout.id, event_url: EVENT_URL }
-    assert_redirected_to nyk_list_path
+    post nyk_handouts_path, params: { existing_id: source.id, event_url: EVENT_URL }
 
-    # The class we attached to is manual; the sibling future run is auto-linked.
-    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    # Reuse made a copy and landed on its review page; the sibling future run is
+    # auto-linked to that copy, not to the source we reused from.
+    copy = KitchenHandout.for_event_url(EVENT_URL)
+    assert_not_equal source, copy
+    assert_redirected_to edit_nyk_handout_path(copy)
     assert_not KitchenHandoutLink.find_by(event_url: EVENT_URL).auto
     sibling = KitchenHandoutLink.find_by(event_url: SIBLING_URL)
-    assert_equal handout, sibling.kitchen_handout
+    assert_equal copy, sibling.kitchen_handout
     assert sibling.auto
   end
 
