@@ -524,7 +524,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_no_match(/shared by/, response.body)
   end
 
-  test "edit page has Recipe and Pull sheet tabs with a lazy pull-sheet frame" do
+  test "edit page has Recipe and Pull sheet tabs with a deferred, reload-on-open pull-sheet frame" do
     snap = KitchenSnapshot.create!(taken_on: Date.current)
     url = "https://nykitchen.com/event/sushi/"
     snap.kitchen_events.create!(name: "Sushi Rolling", url: url, start_at: 3.days.from_now.change(hour: 18),
@@ -534,10 +534,13 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
 
     get edit_nyk_handout_path(handout)
     assert_response :success
-    assert_select "[data-controller='tabs']"
+    assert_select "[data-controller='tabs frame-src']"
     assert_select "button[data-tab-name='pull']"
-    # Lazy so no AI call until the tab is opened, scoped to the class as embedded.
-    assert_match 'loading="lazy"', response.body
+    # Frame ships with no src (deferred, no AI call until opened); the tab button
+    # reloads it on open so equipment/recipe edits show. Scoped to the class.
+    assert_match "frame-src#reload", response.body
+    assert_match "data-default-src", response.body
+    refute_match(/<turbo-frame id="grocery_list"[^>]*\ssrc=/, response.body, "frame should not auto-load with a src")
     assert_match "embedded=1", response.body
     assert_match "Open to print", response.body
   end
@@ -557,9 +560,10 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_response :success
     # Shared by 3 -> a dropdown; the default frame src points at the soonest upcoming run.
     assert_select "select option", 3
-    frame = response.body.split('id="grocery_list"').last
-    assert_match "sushi-soon", frame, "frame defaults to the soonest upcoming run"
-    refute_match(/sushi-later|sushi-past/, frame, "frame does not default to a later/past run")
+    default_src = response.body[/data-default-src="([^"]*)"/, 1]
+    assert_includes default_src, "sushi-soon", "frame defaults to the soonest upcoming run"
+    refute_includes default_src, "sushi-later"
+    refute_includes default_src, "sushi-past"
     assert_select "select option:first-of-type", /Sushi SOON/
   end
 
