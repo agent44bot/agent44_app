@@ -24,6 +24,17 @@
     <div class="mb-6"></div>
   <% end %>
 
+  <div data-controller="tabs"
+       data-tabs-active-classes-value="text-orange-400 border-orange-500"
+       data-tabs-inactive-classes-value="text-gray-500 border-transparent hover:text-gray-300">
+    <nav class="flex gap-1 border-b border-gray-800 mb-6">
+      <button type="button" data-tabs-target="tab" data-action="click->tabs#select" data-tab-index="0" data-tab-name="recipe"
+              class="px-4 py-2 -mb-px border-b-2 font-semibold text-sm cursor-pointer">Recipe</button>
+      <button type="button" data-tabs-target="tab" data-action="click->tabs#select" data-tab-index="1" data-tab-name="pull"
+              class="px-4 py-2 -mb-px border-b-2 font-semibold text-sm cursor-pointer">Pull sheet</button>
+    </nav>
+
+    <div data-tabs-target="panel">
   <%# The editable recipe form, full width. %>
   <%= form_with url: nyk_handout_path(@handout), method: :patch do |f| %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
@@ -141,4 +152,54 @@
               class="w-full" style="height: 92vh;" title="Recipe PDF preview"></iframe>
     </div>
   </div>
+    </div><%# end Recipe tab panel %>
+
+    <div data-tabs-target="panel" class="hidden">
+      <%# ===== Pull sheet tab: this recipe's per-class shopping/prep list ===== %>
+      <% if @pull_classes.any? %>
+        <% first = @pull_classes.first %>
+        <% default_src = nyk_grocery_path(event_url: first.url, name: first.name, embedded: 1) %>
+        <% print_url   = nyk_grocery_path(event_url: first.url, name: first.name) %>
+        <div data-controller="frame-src" class="max-w-3xl mx-auto">
+          <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <% if @pull_classes.size > 1 %>
+              <%# Shared recipe: pick which run's pull sheet to show. Defaults to
+                  the soonest upcoming run (first in @pull_classes). %>
+              <select data-action="change->frame-src#update"
+                      class="rounded-lg bg-gray-900 border border-gray-700 text-gray-200 text-sm px-3 py-2 max-w-full">
+                <% @pull_classes.each do |e| %>
+                  <option value="<%= nyk_grocery_path(event_url: e.url, name: e.name, embedded: 1) %>"><%= e.start_at.strftime("%a %b %-d") %> · <%= e.name %></option>
+                <% end %>
+              </select>
+            <% else %>
+              <p class="text-sm text-gray-400"><%= first.start_at.strftime("%a %b %-d") %> · <%= first.name %></p>
+            <% end %>
+            <%= link_to "Open to print →", print_url, target: "_blank", rel: "noopener",
+                  data: { frame_src_target: "link" },
+                  class: "text-sm text-orange-400 hover:text-orange-300 whitespace-nowrap" %>
+          </div>
+
+          <%# Lazy frame: nothing loads (no AI cost) until this tab is opened and
+              the frame scrolls into view. Reuses the #grocery_list frame so it
+              renders the exact pull sheet the standalone page shows. %>
+          <div class="rounded-xl overflow-hidden border border-gray-800 bg-gray-950">
+            <%= turbo_frame_tag "grocery_list", src: default_src, loading: "lazy",
+                  data: { frame_src_target: "frame" } do %>
+              <div class="flex flex-col items-center justify-center py-24 text-gray-500">
+                <svg class="animate-spin w-8 h-8 text-orange-500 mb-3" viewBox="0 0 24 24" fill="none">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                <p class="text-sm">Building the pull sheet...</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div class="max-w-3xl mx-auto rounded-xl border border-gray-800 bg-gray-900/40 p-6 text-center">
+          <p class="text-sm text-gray-400">This recipe isn't attached to a class yet, so there's no pull sheet to show. Attach it from <%= link_to "Sam's list", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>.</p>
+        </div>
+      <% end %>
+    </div>
+  </div><%# end tabs %>
 </div>
