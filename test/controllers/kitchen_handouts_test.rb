@@ -57,6 +57,25 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal 0, KitchenHandout.count
   end
 
+  test "generate builds an AI draft recipe for the class, billed as nyk_recipe_generate" do
+    stub_extractor_success
+    post nyk_handouts_path, params: { generate: "1", event_url: EVENT_URL, event_name: "Korean BBQ Class" }
+    handout = KitchenHandout.last
+    assert_redirected_to edit_nyk_handout_path(handout)
+    assert_equal "Korean BBQ Class", handout.title
+    assert_equal "generated", handout.source_kind
+    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    # Logged under its own billing source so it shows as its own /billing line.
+    assert_equal "nyk_recipe_generate", AiCallLog.last.source
+    assert_includes AiCallLog::NYK_SOURCES, "nyk_recipe_generate"
+  end
+
+  test "new page offers Generate recipe with AI when opened from a class" do
+    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Korean BBQ")
+    assert_response :success
+    assert_match "Generate recipe with AI", response.body
+  end
+
   test "reusing an existing packet copies it to the class without calling the AI" do
     source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
     assert_difference "KitchenHandout.count", 1 do

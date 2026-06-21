@@ -57,6 +57,30 @@ class KitchenHandoutsController < ApplicationController
                          notice: "Copied #{handout.title} to this class. Edits here stay on this class; the original packet is untouched."
     end
 
+    # Generate path: AI writes a draft recipe from the class name + description
+    # (no document). Lands on edit for review, like the extract path.
+    if params[:generate].present?
+      event = event_for(event_url)
+      name  = params[:event_name].presence || event&.name
+      result = KitchenAi::RecipeExtractor.new(user: Current.user).generate(
+        class_name: name, description: event&.description
+      )
+      return back_to_new(event_url, result.error) unless result.ok?
+
+      handout = KitchenHandout.create!(
+        title: name.presence || result.recipes.first["title"],
+        data: { "recipes" => result.recipes },
+        source_kind: "generated",
+        extract_cost_cents: result.cost_cents
+      )
+      if event_url.present?
+        handout.attach_to!(event_url)
+        KitchenPacketAutoAttacher.attach_forward(handout)
+      end
+      return redirect_to edit_nyk_handout_path(handout),
+                         notice: "Draft recipe generated with AI#{handout.extract_cost_label}. Review and edit it, then save."
+    end
+
     pdf = params[:pdf].presence
     if pdf && pdf.size > MAX_PDF_BYTES
       return back_to_new(event_url, "PDF is too large (10 MB max).")
@@ -148,6 +172,12 @@ class KitchenHandoutsController < ApplicationController
 
   def back_to_new(event_url, alert)
     redirect_to new_nyk_handout_path(event_url: event_url, event_name: params[:event_name]), alert: alert
+  end
+
+  # The current class for an event URL (latest snapshot), for its description.
+  def event_for(url)
+    return nil if url.blank?
+    KitchenSnapshot.latest&.kitchen_events&.find_by(url: url)
   end
 
   def source_kind_for(pdf:, url:)

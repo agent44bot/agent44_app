@@ -14,6 +14,9 @@ module KitchenAi
     # times a month, so the cost difference vs the app's usual Haiku is noise.
     MODEL      = "claude-opus-4-8"
     SOURCE     = "nyk_recipe_extract"
+    # AI generate-from-scratch is billed separately from import/extract so it
+    # shows as its own line (and gets its own model toggle) on /billing.
+    GENERATE_SOURCE = "nyk_recipe_generate"
     MAX_TOKENS = 4000
     BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36".freeze
@@ -71,6 +74,41 @@ module KitchenAi
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
+    # Generate a DRAFT recipe from a class name + description (no source
+    # document). Same output schema/parse as extract; a human reviews/edits it.
+    def generate(class_name:, description: nil)
+      return Result.new(ok?: false, error: "Need a class to generate a recipe.") if class_name.blank?
+
+      chosen_model = AiModelChoice.resolve(GENERATE_SOURCE, default: MODEL)
+      prompt = "Class name: #{class_name}\n\nClass description:\n#{description.to_s.strip.presence || '(none provided)'}"
+
+      response =
+        if self.class.stub
+          self.class.stub.call(messages: [ { role: "user", content: [] } ])
+        else
+          api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
+          return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
+          Anthropic::Client.new(api_key: api_key).messages.create(
+            model:      chosen_model,
+            max_tokens: MAX_TOKENS,
+            system:     GENERATE_PROMPT,
+            messages:   [ { role: "user", content: prompt } ]
+          )
+        end
+
+      log = AiCallLogger.log!(response, model: chosen_model, source: GENERATE_SOURCE, user: @user)
+      cost_cents = log&.cost_cents&.round
+
+      recipes = parse(response)
+      return Result.new(ok?: false, error: "Could not generate a recipe. Try again.") if recipes.blank?
+
+      Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
+    rescue Anthropic::Errors::APIError => e
+      Result.new(ok?: false, error: "Anthropic: #{e.message}")
+    rescue => e
+      Result.new(ok?: false, error: "#{e.class}: #{e.message}")
+    end
+
     private
 
     SYSTEM_PROMPT = <<~PROMPT.freeze
@@ -89,6 +127,30 @@ module KitchenAi
       - section groups ingredient lines under a sub-heading when the document has one (e.g. "Ravioli filling"); otherwise null.
       - directions: keep the document's steps verbatim, in order, grouped under their sub-headings ("Filling", "Assembly") when present; otherwise one group with section null.
       - Do not invent ingredients, steps, or quantities that are not in the document.
+    PROMPT
+
+    # For generating a draft recipe from just a class name + description. Same
+    # JSON schema as SYSTEM_PROMPT, but here the model SHOULD invent a realistic
+    # recipe (the opposite of the extractor's "do not invent" rule).
+    GENERATE_PROMPT = <<~PROMPT.freeze
+      You are a culinary instructor writing the recipe for a hands-on cooking
+      class. From the class name and description, CREATE a complete, realistic
+      recipe the class would teach. Emit a few related recipes (e.g. main + a
+      sauce) only when the dish clearly calls for it.
+
+      Reply with ONLY a JSON object, no prose, no code fences:
+      {"recipes": [{"title": "...",
+                    "ingredients": [{"qty": "2½ c", "station_qty": "1¼ c", "item": "All-purpose flour", "section": null}],
+                    "directions": [{"section": null, "steps": ["..."]}]}]}
+
+      Rules:
+      - Invent sensible quantities and clear steps that fit the dish. qty is a full-class batch as display text.
+      - Unit house style: tablespoon = T, teaspoon = tsp, cup = c, gram = g, kilogram = kg, ounce = oz, pound = lb. If a line has no quantity ("Salt, to taste"), use "" and put the whole line in item.
+      - station_qty is the same line scaled to HALF for a single student station, friendly kitchen text (unicode fractions ¼ ½ ¾ ⅓); leave "to taste" lines as "".
+      - item is the ingredient name in sentence case (capitalize only the first word; keep proper nouns and brands capitalized). No Title Case or ALL CAPS.
+      - section groups ingredient lines under a sub-heading (e.g. "Sauce") or null.
+      - directions: clear steps grouped by section when natural, else one group with section null.
+      - This is a draft for an instructor to review and edit, so keep it realistic and concise.
     PROMPT
 
     # Fetch a recipe page and return its readable text, or a Result on error.
