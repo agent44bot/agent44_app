@@ -112,6 +112,7 @@ Rails.application.routes.draw do
   post   "nykitchen/handouts",           to: "kitchen_handouts#create", as: :nyk_handouts
   get    "nykitchen/handouts/:id/edit",  to: "kitchen_handouts#edit",   as: :edit_nyk_handout
   patch  "nykitchen/handouts/:id",       to: "kitchen_handouts#update", as: :nyk_handout
+  patch  "nykitchen/handouts/:id/equipment", to: "kitchen_handouts#update_equipment", as: :nyk_handout_equipment
   delete "nykitchen/handouts/:id",       to: "kitchen_handouts#destroy"
   get    "nykitchen/handouts/:id/print", to: "kitchen_handouts#print",  as: :print_nyk_handout
   # /nykitchen/social renders the NYK workspace's social composer in-place

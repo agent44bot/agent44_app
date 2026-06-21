@@ -40,9 +40,10 @@
     <div class="mb-8" data-controller="equipment-tags"
          data-equipment-tags-catalog-value="<%= @equipment_catalog.to_json %>"
          data-equipment-tags-selected-value="<%= @handout.equipment.to_json %>"
-         data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>">
+         data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>"
+         data-equipment-tags-save-url-value="<%= nyk_handout_equipment_path(@handout) %>">
       <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment to set up at each station</label>
-      <p class="text-xs text-gray-500 mb-3">Tap a tag to add it to this recipe; tap an added one to remove it. Type to highlight matching tags. New items become reusable tags; tap a tag's minus to delete it from the list for good. Prints on the class pull sheet as a per-station setup checklist.</p>
+      <p class="text-xs text-gray-500 mb-3">Tap a tag to add it to this recipe; tap an added one to remove it. Equipment changes save automatically. Type to highlight matching tags. New items become reusable tags; tap a tag's minus to delete it from the list for good. Prints on the class pull sheet as a per-station setup checklist.</p>
 
       <%# Items attached to this recipe. %>
       <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
