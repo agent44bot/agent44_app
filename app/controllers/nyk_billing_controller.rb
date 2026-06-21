@@ -17,23 +17,29 @@ class NykBillingController < ApplicationController
     @workspace = Workspace.find_by(slug: "nykitchen")
     @test_rate = @workspace&.effective_test_rate || SmokeTestRun::COST_PER_MINUTE
 
-    nyk_logs_month = AiCallLog.where(source: AiCallLog::NYK_SOURCES).where("created_at >= ?", @month_start)
+    # Load this month's NYK logs once (newest first) and derive everything from
+    # that array, so the page makes one query here instead of load+count+recent.
+    nyk_logs_month = AiCallLog.where(source: AiCallLog::NYK_SOURCES)
+                              .where("created_at >= ?", @month_start)
+                              .order(created_at: :desc).to_a
     @summary = AiCallLog.summary_by_source(nyk_logs_month)
     @model_summary = AiCallLog.summary_by_model(nyk_logs_month)
     # The selected model key per feature, for the radios in the AI usage table.
     @feature_model_keys = @summary.keys.index_with { |source| AiModelChoice.selected_key(source) }
     @ai_total   = AiCallLog.total_cost_dollars(nyk_logs_month)
-    @ai_calls   = nyk_logs_month.count
-    @recent     = nyk_logs_month.order(created_at: :desc).limit(20)
+    @ai_calls   = nyk_logs_month.size
+    @recent     = nyk_logs_month.first(20)
     # 6-month AI-usage trend (raw cost per month, matching the per-source table
     # basis) so the direction of spend is visible, not just this month.
     @ai_trend     = AiCallLog.monthly_by_source(AiCallLog::NYK_SOURCES, months: 6, now: now)
     @ai_trend_max = @ai_trend.map { |m| m[:cost_dollars] }.max.to_f
 
-    smoke_runs_month = SmokeTestRun.nyk.where("started_at >= ?", @month_start)
-    @smoke_count    = smoke_runs_month.count
-    @smoke_minutes  = (smoke_runs_month.sum(:duration_ms) / 60_000.0).round
-    @smoke_cost     = smoke_runs_month.sum(:cost_dollars).to_f
+    # One aggregate query for the month's smoke runs (count + minutes + cost).
+    smoke = SmokeTestRun.nyk.where("started_at >= ?", @month_start)
+                        .pick(Arel.sql("COUNT(*), COALESCE(SUM(duration_ms), 0), COALESCE(SUM(cost_dollars), 0)"))
+    @smoke_count   = smoke[0].to_i
+    @smoke_minutes = (smoke[1].to_f / 60_000.0).round
+    @smoke_cost    = smoke[2].to_f
 
     @raw_total       = @ai_total + @smoke_cost
     # Customer view is the only view now — the old "Raw" tab exposed our cost
