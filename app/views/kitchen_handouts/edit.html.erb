@@ -24,13 +24,16 @@
     <div class="mb-6"></div>
   <% end %>
 
-  <div data-controller="tabs"
+  <div data-controller="tabs frame-src"
        data-tabs-active-classes-value="text-orange-400 border-orange-500"
        data-tabs-inactive-classes-value="text-gray-500 border-transparent hover:text-gray-300">
     <nav class="flex gap-1 border-b border-gray-800 mb-6">
       <button type="button" data-tabs-target="tab" data-action="click->tabs#select" data-tab-index="0" data-tab-name="recipe"
               class="px-4 py-2 -mb-px border-b-2 font-semibold text-sm cursor-pointer">Recipe</button>
-      <button type="button" data-tabs-target="tab" data-action="click->tabs#select" data-tab-index="1" data-tab-name="pull"
+      <%# Reload the embedded pull sheet on every open so equipment edits (which
+          auto-save without a page reload) and saved recipe changes show. A
+          reload is cache-cheap unless the recipe's ingredients changed. %>
+      <button type="button" data-tabs-target="tab" data-action="click->tabs#select click->frame-src#reload" data-tab-index="1" data-tab-name="pull"
               class="px-4 py-2 -mb-px border-b-2 font-semibold text-sm cursor-pointer">Pull sheet</button>
     </nav>
 
@@ -160,7 +163,7 @@
         <% first = @pull_classes.first %>
         <% default_src = nyk_grocery_path(event_url: first.url, name: first.name, embedded: 1) %>
         <% print_url   = nyk_grocery_path(event_url: first.url, name: first.name) %>
-        <div data-controller="frame-src" class="max-w-3xl mx-auto">
+        <div class="max-w-3xl mx-auto">
           <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <% if @pull_classes.size > 1 %>
               <%# Shared recipe: pick which run's pull sheet to show. Defaults to
@@ -179,12 +182,13 @@
                   class: "text-sm text-orange-400 hover:text-orange-300 whitespace-nowrap" %>
           </div>
 
-          <%# Lazy frame: nothing loads (no AI cost) until this tab is opened and
-              the frame scrolls into view. Reuses the #grocery_list frame so it
-              renders the exact pull sheet the standalone page shows. %>
+          <%# The frame starts with NO src, so nothing loads (no AI cost) until the
+              Pull sheet tab is opened: the tab button's frame-src#reload sets the
+              src (first open) or reloads it (later opens) so it always reflects
+              the latest equipment + saved recipe. %>
           <div class="rounded-xl overflow-hidden border border-gray-800 bg-gray-950">
-            <%= turbo_frame_tag "grocery_list", src: default_src, loading: "lazy",
-                  data: { frame_src_target: "frame" } do %>
+            <%= turbo_frame_tag "grocery_list",
+                  data: { frame_src_target: "frame", default_src: default_src } do %>
               <div class="flex flex-col items-center justify-center py-24 text-gray-500">
                 <svg class="animate-spin w-8 h-8 text-orange-500 mb-3" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

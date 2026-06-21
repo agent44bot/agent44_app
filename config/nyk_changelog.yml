@@ -12,6 +12,9 @@
   note: A recipe's edit page now has two tabs, Recipe and Pull sheet, so you can see the class shopping and prep list right next to the recipe without leaving the page. For a recipe shared by several classes it defaults to the soonest upcoming run, with a date dropdown to switch.
 
 - date: 2026-06-21
+  note: The Pull sheet tab now refreshes every time you open it, so equipment you just added or removed (and any saved recipe change) shows up right away instead of a stale list.
+
+- date: 2026-06-21
   note: Generate recipe with AI is more reliable. It retries once if the AI is briefly busy, allows longer recipes so they don't get cut off, and shows a friendly "try again" message instead of a technical error if it still can't reach the model.
 
 - date: 2026-06-21

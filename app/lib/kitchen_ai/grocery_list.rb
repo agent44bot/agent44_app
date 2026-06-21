@@ -46,8 +46,12 @@ module KitchenAi
       # newly uploaded receipt (new or changed prices) rebuilds the list instead
       # of serving a stale estimate.
       def cache_key(with_recipe, observed = {})
+        # Exclude equipment from the key: it's the per-station setup gear, which
+        # the pull sheet renders live from the handout and which has no bearing
+        # on the ingredient/price aggregation. Keeping it here would re-bill Opus
+        # every time someone tweaks an equipment tag.
         recipes = with_recipe.sort_by { |c| c[:event].url }
-                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data ] }
+                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data.except("equipment") ] }
         payload = { recipes: recipes, observed: observed.sort.to_h }.to_json
         "nyk_grocery_list:v3:#{Digest::SHA256.hexdigest(payload)}"
       end
