@@ -371,13 +371,12 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match "drag it here", response.body
   end
 
-  test "new page suggests a similarly named existing packet" do
+  test "new page has no green reuse-suggestion box (removed per Lora) but lists packets to attach" do
     KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 5/14", data: { "recipes" => EXTRACTED })
-    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
     get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26")
     assert_response :success
-    assert_match "Copy this packet to the class", response.body
-    assert_match "Fresh Pasta: Ravioli Workshop 5/14", response.body
+    assert_no_match(/Copy this packet to the class/, response.body) # green suggestion gone
+    assert_match "Fresh Pasta: Ravioli Workshop 5/14", response.body # still in the attach list
   end
 
   test "signed-out users cannot reach handout pages" do

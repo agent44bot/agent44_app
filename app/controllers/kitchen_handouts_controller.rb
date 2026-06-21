@@ -26,17 +26,11 @@ class KitchenHandoutsController < ApplicationController
     @event_url  = params[:event_url].to_s
     @event_name = params[:event_name].to_s
     @q = params[:q].to_s.strip
-    if @q.present?
-      # Searching the full library: title or recipe-content match, no similarity
-      # suggestion (the search box is the explicit pick).
-      @existing = KitchenHandout.search(@q).order(:title).limit(50).to_a
-      @suggested = nil
+    # The "Or attach an existing packet" list: search results, else most recent.
+    @existing = if @q.present?
+      KitchenHandout.search(@q).order(:title).limit(50).to_a
     else
-      # Reuse picker: recurring classes share a packet (the Aug run reuses
-      # May's upload). Name-similarity match floats the best candidate first.
-      @existing = KitchenHandout.order(updated_at: :desc).limit(25).to_a
-      @suggested = @existing.max_by { |h| name_similarity(h.title, @event_name) } if @event_name.present?
-      @suggested = nil if @suggested && name_similarity(@suggested.title, @event_name) < 0.3
+      KitchenHandout.order(updated_at: :desc).limit(25).to_a
     end
   end
 
@@ -234,14 +228,5 @@ class KitchenHandoutsController < ApplicationController
       next if line == "" && out.last == ""
       out << line
     end
-  end
-
-  # Cheap token-overlap similarity for the reuse suggestion; good enough to
-  # match "Fresh Pasta: Ravioli Workshop 8/6/26" to "Fresh Pasta Ravioli".
-  def name_similarity(a, b)
-    ta = a.to_s.downcase.scan(/[a-z]+/).to_set
-    tb = b.to_s.downcase.scan(/[a-z]+/).to_set
-    return 0.0 if ta.empty? || tb.empty?
-    (ta & tb).size.to_f / [ ta.size, tb.size ].min
   end
 end
