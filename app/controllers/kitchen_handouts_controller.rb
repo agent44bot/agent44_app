@@ -48,7 +48,7 @@ class KitchenHandoutsController < ApplicationController
       handout = source.copy_to!(event_url)
       KitchenPacketAutoAttacher.attach_forward(handout)
       return redirect_to edit_nyk_handout_path(handout),
-                         notice: "Copied #{handout.title} to this class. Edits here stay on this class; the original packet is untouched."
+                         notice: "Copied #{handout.title} to this class. Edits here stay on this class; the original recipe is untouched."
     end
 
     # Generate path: AI writes a draft recipe from the class name + description

@@ -3,7 +3,7 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 py-10">
   <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
   <h1 class="text-2xl font-bold text-white mb-1">Recipe library</h1>
-  <p class="text-sm text-gray-400 mb-6">Every recipe packet you've built, in one place. Search by name or by an ingredient inside the recipe.</p>
+  <p class="text-sm text-gray-400 mb-6">Every recipe you've built, in one place. Search by name or by an ingredient inside the recipe.</p>
 
   <%= form_with url: nyk_recipes_path, method: :get, data: { turbo_frame: "_top" } do %>
     <div class="flex gap-2">
@@ -30,7 +30,7 @@
         <% if @q.present? %>
           No recipes match that search.
         <% else %>
-          No recipe packets yet. Add one from a class on Sam's list.
+          No recipes yet. Add one from a class on Sam's list.
         <% end %>
       </p>
     </div>
