@@ -2,6 +2,8 @@ require "apnotic"
 
 class ApnsPusher
   def self.send_alert(notification, url: nil, subtitle: nil, user: nil)
+    return unless enabled_for?(user)
+
     scope = DeviceToken.active.ios
     scope = scope.for_user(user) if user
     tokens = scope.pluck(:token)
@@ -49,6 +51,11 @@ class ApnsPusher
     end
   ensure
     connection&.close
+  end
+
+  # A user with iOS push turned off (or no user = broadcast) gates here.
+  def self.enabled_for?(user)
+    user.nil? || user.ios_push_enabled
   end
 
   def self.build_connection

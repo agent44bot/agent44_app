@@ -26,6 +26,24 @@ class Api::V1::DeviceTokensControllerTest < ActionDispatch::IntegrationTest
     assert_equal "ios", DeviceToken.last.platform
   end
 
+  test "POST create registers an android token" do
+    post "/api/v1/device_tokens",
+      params: { token: "fcm-android-token", platform: "android" }.to_json,
+      headers: { "Content-Type" => "application/json" }
+
+    assert_response :created
+    assert_equal "android", DeviceToken.last.platform
+  end
+
+  test "POST create falls back to ios for an unknown platform" do
+    post "/api/v1/device_tokens",
+      params: { token: "weird-platform-token", platform: "blackberry" }.to_json,
+      headers: { "Content-Type" => "application/json" }
+
+    assert_response :created
+    assert_equal "ios", DeviceToken.last.platform
+  end
+
   test "POST create with existing token reactivates it" do
     dt = DeviceToken.create!(token: "existing-token", platform: "ios", active: false)
 

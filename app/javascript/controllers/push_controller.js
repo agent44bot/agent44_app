@@ -1,20 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Registers for iOS push notifications when running inside the Capacitor shell.
+// Registers for push notifications when running inside the Capacitor shell.
 // Attach to the <body> tag: data-controller="push"
 //
 // The Capacitor bridge exposes window.Capacitor when the app runs in the native
-// shell. On the web this controller is a no-op.
+// shell. On the web this controller is a no-op. iOS goes through APNs, Android
+// through FCM (which requires google-services.json baked into the Android build,
+// or register() crashes the native shell).
 export default class extends Controller {
   connect() {
     if (!window.Capacitor?.isNativePlatform()) return
 
-    // iOS only for now. On Android, register() goes through FCM, and the build
-    // ships without google-services.json (push deferred), so Firebase's default
-    // app isn't initialized and register() crashes the native shell, a native
-    // crash the try/catch below can't catch. Re-enable Android here once the
-    // Agent44 Firebase project + google-services.json are in place.
-    if (window.Capacitor.getPlatform() !== "ios") return
+    const platform = window.Capacitor.getPlatform()
+    if (platform !== "ios" && platform !== "android") return
 
     this.registerPush()
   }
@@ -52,10 +50,11 @@ export default class extends Controller {
 
   async sendTokenToServer(token) {
     try {
+      const platform = window.Capacitor.getPlatform() // "ios" | "android"
       await fetch("/api/v1/device_tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: token, platform: "ios" })
+        body: JSON.stringify({ token: token, platform: platform })
       })
       console.log("Device token registered with server")
     } catch (e) {

@@ -26,6 +26,35 @@
     <% end %>
   </div>
 
+  <!-- Push notifications (per platform). The actual delivery still depends on
+       the device having the app installed with push permission granted; these
+       switches are the per-user on/off gate the server checks before sending. -->
+  <div class="mb-6 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-800">
+      <h2 class="text-white font-semibold text-base">Push notifications</h2>
+      <p class="text-xs text-gray-500 mt-0.5">
+        Lock-screen alerts (class nudges and reminders) on the Agent44 Labs mobile app.
+      </p>
+    </div>
+    <%= form_with url: update_notifications_settings_path, method: :patch, local: true,
+          class: "px-5 py-4 space-y-3" do |f| %>
+      <label class="flex items-center justify-between gap-3 cursor-pointer">
+        <span class="text-sm text-gray-300">iPhone (iOS)</span>
+        <%= f.check_box :ios_push_enabled, checked: Current.user&.ios_push_enabled,
+              class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
+      </label>
+      <label class="flex items-center justify-between gap-3 cursor-pointer">
+        <span class="text-sm text-gray-300">Android phone</span>
+        <%= f.check_box :android_push_enabled, checked: Current.user&.android_push_enabled,
+              class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
+      </label>
+      <div class="pt-1">
+        <%= f.submit "Save",
+              class: "px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+
   <!-- Email address -->
   <div data-controller="email-change"
        data-email-change-url-value="<%= update_email_settings_path %>"

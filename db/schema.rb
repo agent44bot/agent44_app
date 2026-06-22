@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_19_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_22_140000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -630,12 +630,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_19_140000) do
 
   create_table "users", force: :cascade do |t|
     t.integer "ai_enhances_used", default: 0, null: false
+    t.boolean "android_push_enabled", default: true, null: false
     t.string "anthropic_api_key"
     t.datetime "created_at", null: false
     t.string "display_name"
     t.string "email_address"
     t.string "email_verification_token"
     t.datetime "email_verified_at"
+    t.boolean "ios_push_enabled", default: true, null: false
     t.string "npub"
     t.string "password_digest"
     t.string "pubkey_hex"

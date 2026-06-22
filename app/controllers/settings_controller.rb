@@ -23,6 +23,19 @@ class SettingsController < ApplicationController
     end
   end
 
+  # Per-platform push toggles. The form sends an explicit "1"/"0" for each via
+  # check_box's hidden fallback, so a missing/unchecked box reads as off.
+  def update_notifications
+    user = Current.user
+    return redirect_to(root_path) unless user
+
+    user.update(
+      ios_push_enabled: ActiveModel::Type::Boolean.new.cast(params[:ios_push_enabled]),
+      android_push_enabled: ActiveModel::Type::Boolean.new.cast(params[:android_push_enabled])
+    )
+    redirect_to settings_path, notice: "Notification settings saved."
+  end
+
   def update_email
     return if forbid_impersonation!
     user = Current.user
