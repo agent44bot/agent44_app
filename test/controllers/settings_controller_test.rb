@@ -39,6 +39,29 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_in_path
   end
 
+  test "PATCH update_notifications saves per-platform push toggles" do
+    sign_in_as @user
+    patch update_notifications_settings_path, params: { ios_push_enabled: "0", android_push_enabled: "1" }
+    assert_redirected_to settings_path
+    assert_equal "Notification settings saved.", flash[:notice]
+    @user.reload
+    assert_not @user.ios_push_enabled
+    assert @user.android_push_enabled
+  end
+
+  test "PATCH update_notifications redirects when unauthenticated" do
+    patch update_notifications_settings_path, params: { ios_push_enabled: "1" }
+    assert_redirected_to sign_in_path
+  end
+
+  test "settings page shows the push notification toggles" do
+    sign_in_as @user
+    get settings_path
+    assert_select "h2", text: "Push notifications"
+    assert_select "input[name=ios_push_enabled]"
+    assert_select "input[name=android_push_enabled]"
+  end
+
   test "POST verify_password returns 204 for matching password" do
     sign_in_as @user
     post verify_password_settings_path,

@@ -8,9 +8,11 @@ module Api
       # Body: { token: "apns-hex-token", platform: "ios" }
       # Accepts requests from the Capacitor native shell (no auth needed —
       # only the native app can obtain an APNs device token).
+      PLATFORMS = %w[ios android].freeze
+
       def create
         device_token = DeviceToken.find_or_initialize_by(token: params[:token])
-        device_token.platform = params[:platform] || "ios"
+        device_token.platform = PLATFORMS.include?(params[:platform]) ? params[:platform] : "ios"
         device_token.active = true
         if params.key?(:user_id)
           device_token.user_id = resolve_user_id(params[:user_id])

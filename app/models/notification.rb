@@ -17,14 +17,19 @@ class Notification < ApplicationRecord
     update!(read_at: Time.current) unless read?
   end
 
-  # Convenience: create + optionally push to Telegram / APNs
-  # Pass apns_user to target a specific user's iOS devices; nil = all devices.
+  # Convenience: create + optionally push to Telegram / mobile (iOS + Android).
+  # Pass apns_user to target a specific user's devices; nil = all devices.
   # The notification record is tied to apns_user so that user's unread count
-  # drives the iOS app icon badge.
+  # drives the iOS app icon badge. The `apns:` flag means "send a mobile push";
+  # it fans out to both APNs (iOS) and FCM (Android), each gated by the user's
+  # per-platform preference.
   def self.notify!(level:, source:, title:, body: nil, telegram: false, apns: false, apns_url: nil, apns_subtitle: nil, apns_user: nil)
     notification = create!(level: level, source: source, title: title, body: body, user: apns_user, url: apns_url)
     TelegramNotifier.send_alert(notification) if telegram
-    ApnsPusher.send_alert(notification, url: apns_url, subtitle: apns_subtitle, user: apns_user) if apns
+    if apns
+      ApnsPusher.send_alert(notification, url: apns_url, subtitle: apns_subtitle, user: apns_user)
+      FcmPusher.send_alert(notification, url: apns_url, subtitle: apns_subtitle, user: apns_user)
+    end
     notification
   rescue => e
     Rails.logger.error("Notification.notify! failed: #{e.message}")

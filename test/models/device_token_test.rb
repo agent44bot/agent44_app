@@ -30,6 +30,14 @@ class DeviceTokenTest < ActiveSupport::TestCase
     assert dt.active?
   end
 
+  test "ios and android scopes filter by platform" do
+    ios = DeviceToken.create!(token: "ios-1", platform: "ios")
+    android = DeviceToken.create!(token: "android-1", platform: "android")
+
+    assert_equal [ ios ], DeviceToken.ios.to_a
+    assert_equal [ android ], DeviceToken.android.to_a
+  end
+
   test "for_user scope filters by user" do
     user = users(:one)
     other = users(:two)
