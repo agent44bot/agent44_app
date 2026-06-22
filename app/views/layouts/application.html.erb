@@ -89,15 +89,14 @@
       }).catch(function() {}).finally(function() { clearBadge(); });
     }
 
-    // iOS only for now. On Android, PN.register() goes through FCM, and the
-    // Play build ships without google-services.json (push deferred for v1), so
-    // Firebase's default app isn't initialized and register() throws a native
-    // crash (IllegalStateException: Default FirebaseApp is not initialized) that
-    // boots the user out right after they accept the notification prompt. The
-    // device-token POST below already hardcodes platform 'ios'. Re-enable
-    // Android here once the Agent44 Firebase project + google-services.json are
-    // in place. (Badge routing and Universal Links below still run on Android.)
-    if (window.Capacitor.getPlatform() === 'ios') {
+    // Register for push on both platforms. iOS goes through APNs, Android
+    // through FCM. Android requires google-services.json baked into the build,
+    // or PN.register() throws a native crash (IllegalStateException: Default
+    // FirebaseApp is not initialized); that file is now in place. The
+    // device-token POST sends the real platform so the server routes to the
+    // right pusher (ApnsPusher / FcmPusher).
+    var pushPlatform = window.Capacitor.getPlatform();
+    if (pushPlatform === 'ios' || pushPlatform === 'android') {
       PN.requestPermissions().then(function(perm) {
         if (perm.receive !== 'granted') return;
 
@@ -105,7 +104,7 @@
           fetch('/api/v1/device_tokens', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token.value, platform: 'ios' })
+            body: JSON.stringify({ token: token.value, platform: pushPlatform })
           });
         });
 
