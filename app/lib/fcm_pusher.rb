@@ -95,7 +95,13 @@ class FcmPusher
         token: device_token,
         notification: { title: notification.title, body: notification.body.to_s },
         data: url ? { url: url.to_s } : {},
-        android: { priority: "HIGH", notification: { sound: "default" } }
+        # channel_id must match the channel the app creates (see the inline
+        # push script in the layout). Android 8+ silently drops a notification
+        # message whose channel is missing or low-importance (even on the lock
+        # screen), which is exactly why Android pushes were accepted (HTTP 200)
+        # but never appeared. The app's "fcm_default" channel is HIGH
+        # importance with public visibility.
+        android: { priority: "HIGH", notification: { sound: "default", channel_id: "fcm_default" } }
       }
     }
     body[:message][:notification][:subtitle] = subtitle if subtitle
