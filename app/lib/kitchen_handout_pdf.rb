@@ -83,6 +83,10 @@ class KitchenHandoutPdf
     brand(doc)
     doc.move_down 24
     doc.text tidy(recipe["title"]), size: 26, style: :bold, align: :center
+    if (hc = recipe["headcount"].to_i) > 0
+      doc.move_down 6
+      doc.text "Headcount: #{hc}", size: 12, color: "555555", align: :center
+    end
     doc.move_down 28
 
     # Two columns: ingredients (narrow) | directions (wide), each in its own

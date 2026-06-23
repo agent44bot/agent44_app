@@ -220,8 +220,16 @@ class KitchenHandoutsController < ApplicationController
         next if steps.empty?
         { "section" => d[:section].presence, "steps" => steps }
       end
-      { "title" => r[:title].to_s.strip, "ingredients" => ingredients, "directions" => directions }
+      { "title" => r[:title].to_s.strip, "headcount" => parse_headcount(r[:headcount]),
+        "ingredients" => ingredients, "directions" => directions }
     end.reject { |r| r["title"].blank? }
+  end
+
+  # Per-recipe headcount: a positive integer, or nil when left blank.
+  def parse_headcount(raw)
+    n = raw.to_s.strip
+    return nil if n.blank?
+    [ n.to_i, 0 ].max.then { |v| v.positive? ? v : nil }
   end
 
   # Equipment list from the textarea: one item per line, blanks dropped.
