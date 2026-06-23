@@ -98,6 +98,43 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match(/busy for a moment/, result.error)
   end
 
+  test "regenerate rewrites the handout recipes from an instruction, leaving equipment alone" do
+    handout = KitchenHandout.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED, "equipment" => [ "Bamboo mat" ] })
+    revised = [
+      { "title" => "Sushi Rice", "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ], "directions" => [] },
+      { "title" => "Tuna rolls", "ingredients" => [ { "qty" => "8 oz", "station_qty" => "4 oz", "item" => "Sushi-grade tuna", "section" => nil } ], "directions" => [] },
+      { "title" => "Salmon rolls", "ingredients" => [ { "qty" => "8 oz", "station_qty" => "4 oz", "item" => "Sushi-grade salmon", "section" => nil } ], "directions" => [] }
+    ]
+    text = OpenStruct.new(text: { "recipes" => revised }.to_json)
+    KitchenAi::RecipeExtractor.stub = ->(messages:) {
+      OpenStruct.new(content: [ text ], usage: OpenStruct.new(input_tokens: 50, output_tokens: 100))
+    }
+
+    post regenerate_nyk_handout_path(handout), params: { instruction: "Split the rolls into Tuna and Salmon, plus a shared rice" }
+    assert_redirected_to edit_nyk_handout_path(handout)
+    handout.reload
+    assert_equal [ "Sushi Rice", "Tuna rolls", "Salmon rolls" ], handout.recipes.map { |r| r["title"] }
+    assert_equal [ "Bamboo mat" ], handout.equipment, "equipment is untouched by a recipe rewrite"
+    # Billed under the same line as Generate.
+    assert_equal "nyk_recipe_generate", AiCallLog.last.source
+  end
+
+  test "regenerate with a blank instruction bounces back without changing recipes" do
+    handout = KitchenHandout.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
+    post regenerate_nyk_handout_path(handout), params: { instruction: "   " }
+    assert_redirected_to edit_nyk_handout_path(handout)
+    assert_match(/what to change/i, flash[:alert])
+    assert_equal EXTRACTED.map { |r| r["title"] }, handout.reload.recipes.map { |r| r["title"] }
+  end
+
+  test "the edit page offers Ask AI to revise the recipes" do
+    handout = KitchenHandout.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_match "Revise with AI", response.body
+    assert_select "form[action=?]", regenerate_nyk_handout_path(handout)
+  end
+
   test "reusing an existing packet copies it to the class without calling the AI" do
     source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
     assert_difference "KitchenHandout.count", 1 do

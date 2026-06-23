@@ -38,6 +38,24 @@
     </nav>
 
     <div data-tabs-target="panel">
+  <%# Ask the AI to rewrite the recipes from a plain-language request. Separate
+      form from the editable recipe form below (no nested forms), posts to
+      #regenerate and lands back here for review. %>
+  <div data-controller="form-spinner" data-form-spinner-message-value="Revising the recipes with AI…" class="mb-8 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
+    <h2 class="text-sm font-semibold text-purple-200 mb-1">✨ Ask AI to revise these recipes</h2>
+    <p class="text-xs text-purple-200/70 mb-3">Describe the change in plain English (for example: "Split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared sushi rice"). The AI rewrites the recipes below for you to review and save.</p>
+    <%= form_with url: regenerate_nyk_handout_path(@handout), method: :post, data: { action: "form-spinner#show" } do %>
+      <%= text_area_tag :instruction, nil, rows: 2, placeholder: "What should change?",
+            class: "w-full rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-3 py-2 mb-2 focus:border-purple-500 focus:outline-none" %>
+      <div class="flex items-center gap-3 flex-wrap">
+        <%= submit_tag "✨ Revise with AI", class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
+        <% if @handout.links.count > 1 %>
+          <span class="text-xs text-amber-300/80">This recipe is shared by <%= pluralize(@handout.links.count, "class") %>, so the rewrite updates all of them.</span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
   <%# The editable recipe form, full width. %>
   <%= form_with url: nyk_handout_path(@handout), method: :patch do |f| %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
