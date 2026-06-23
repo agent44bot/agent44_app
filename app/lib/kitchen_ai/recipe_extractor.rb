@@ -117,6 +117,57 @@ module KitchenAi
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
+    # Revise an existing handout's recipes per a plain-language instruction from
+    # the user (e.g. "split the rolls into Tuna, Salmon, and Vegetarian, plus a
+    # shared rice"). Returns the COMPLETE updated recipe set. Billed under the
+    # same source as generate.
+    def regenerate(class_name:, current_recipes:, instruction:, description: nil)
+      return Result.new(ok?: false, error: "Tell the AI what to change.") if instruction.to_s.strip.blank?
+      return Result.new(ok?: false, error: "No recipes to revise yet.") if Array(current_recipes).blank?
+
+      chosen_model = AiModelChoice.resolve(GENERATE_SOURCE, default: MODEL)
+      prompt = <<~MSG
+        Class name: #{class_name}
+
+        Class description:
+        #{description.to_s.strip.presence || '(none provided)'}
+
+        Current recipes (JSON):
+        #{JSON.generate({ "recipes" => current_recipes })}
+
+        Instruction:
+        #{instruction.to_s.strip}
+      MSG
+
+      response = with_api_retry do
+        if self.class.stub
+          self.class.stub.call(messages: [ { role: "user", content: [] } ])
+        else
+          api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
+          return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
+          Anthropic::Client.new(api_key: api_key).messages.create(
+            model:      chosen_model,
+            max_tokens: GENERATE_MAX_TOKENS,
+            system:     REVISE_PROMPT,
+            messages:   [ { role: "user", content: prompt } ]
+          )
+        end
+      end
+
+      log = AiCallLogger.log!(response, model: chosen_model, source: GENERATE_SOURCE, user: @user)
+      cost_cents = log&.cost_cents&.round
+
+      recipes = parse(response)
+      return Result.new(ok?: false, error: "Could not revise the recipes. Try rewording your request.") if recipes.blank?
+
+      Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
+    rescue Anthropic::Errors::APIError => e
+      Rails.logger.warn("[recipe_revise] #{e.class}: #{e.message}")
+      Result.new(ok?: false, error: "The recipe assistant was busy for a moment. Please try again.")
+    rescue => e
+      Result.new(ok?: false, error: "#{e.class}: #{e.message}")
+    end
+
     private
 
     # Run the API call, retrying once on a transient Anthropic error (overload /
@@ -172,6 +223,31 @@ module KitchenAi
       - section groups ingredient lines under a sub-heading (e.g. "Sauce") or null.
       - directions: clear steps grouped by section when natural, else one group with section null.
       - This is a draft for an instructor to review and edit, so keep it realistic and concise.
+    PROMPT
+
+    # For revising an existing recipe set per a plain-language instruction. Same
+    # JSON schema; returns the COMPLETE updated set, applying the change and
+    # inventing any new content the instruction calls for.
+    REVISE_PROMPT = <<~PROMPT.freeze
+      You are a culinary instructor revising the recipes for a hands-on cooking
+      class. You are given the class info, the CURRENT recipes as JSON, and an
+      instruction describing the change. Apply the instruction and return the
+      COMPLETE updated set of recipes.
+
+      Reply with ONLY a JSON object, no prose, no code fences:
+      {"recipes": [{"title": "...",
+                    "ingredients": [{"qty": "2½ c", "station_qty": "1¼ c", "item": "All-purpose flour", "section": null}],
+                    "directions": [{"section": null, "steps": ["..."]}]}]}
+
+      Rules:
+      - Apply the instruction. You MAY add, remove, split, or merge recipes as it requires (e.g. split one rolls recipe into separate Tuna, Salmon, and Vegetarian recipes plus a shared rice). Keep unrelated recipes and lines unchanged.
+      - Return EVERY recipe that should remain, not just the changed ones.
+      - Invent sensible quantities and steps for any new recipes/lines the instruction introduces.
+      - Unit house style: tablespoon = T, teaspoon = tsp, cup = c, gram = g, kilogram = kg, ounce = oz, pound = lb. If a line has no quantity ("Salt, to taste"), use "" and put the whole line in item.
+      - station_qty is the same line scaled to HALF for a single student station, friendly kitchen text (unicode fractions ¼ ½ ¾ ⅓); leave "to taste" lines as "".
+      - item is the ingredient name in sentence case (capitalize only the first word; keep proper nouns and brands capitalized). No Title Case or ALL CAPS.
+      - section groups ingredient lines under a sub-heading or null.
+      - directions: clear steps grouped by section when natural, else one group with section null.
     PROMPT
 
     # Fetch a recipe page and return its readable text, or a Result on error.

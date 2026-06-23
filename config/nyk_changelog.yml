@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-23
+  note: On a recipe's edit page you can now ask the AI to revise the recipes in plain English (for example, "split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared rice"). It rewrites the recipes for you to review and save.
+
+- date: 2026-06-23
   note: Each recipe in a handout can now have its own headcount. Set a number next to each recipe's title (for example 1, 2, 3) and it prints on the recipe.
 
 - date: 2026-06-21

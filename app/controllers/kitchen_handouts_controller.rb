@@ -110,6 +110,33 @@ class KitchenHandoutsController < ApplicationController
     @pull_classes = pull_classes_for(@handout)
   end
 
+  # Ask the AI to rewrite this handout's recipes from a plain-language request
+  # (e.g. "split the rolls into Tuna, Salmon, and Vegetarian plus a shared
+  # rice"). Replaces data["recipes"] with the revised set; equipment is left
+  # alone. Billed under the same AI line as Generate.
+  def regenerate
+    @handout = KitchenHandout.find(params[:id])
+    event = event_for(@handout.links.first&.event_url)
+    result = KitchenAi::RecipeExtractor.new(user: Current.user).regenerate(
+      class_name:      event&.name.presence || @handout.title,
+      description:     event&.description,
+      current_recipes: @handout.recipes,
+      instruction:     params[:instruction]
+    )
+    unless result.ok?
+      return redirect_to edit_nyk_handout_path(@handout), alert: result.error
+    end
+
+    @handout.update!(
+      data: @handout.data.merge("recipes" => result.recipes),
+      extract_cost_cents: result.cost_cents
+    )
+    redirect_to edit_nyk_handout_path(@handout),
+                notice: "Recipes revised with AI#{@handout.extract_cost_label}. Review the changes, then save."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to edit_nyk_handout_path(@handout), alert: e.message
+  end
+
   # Auto-save just the equipment list (the tag picker posts here on every
   # add/remove). Only touches data["equipment"] so unsaved recipe edits in the
   # form aren't affected.
