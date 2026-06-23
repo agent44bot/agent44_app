@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-23
+  note: The printed recipe now labels every page. The full-batch pages are marked Dual station and the scaled pages Single station (the single-station amount is half the full batch, so the full batch is two stations worth).
+
+- date: 2026-06-23
   note: On a recipe's edit page you can now ask the AI to revise the recipes in plain English (for example, "split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared rice"). It rewrites the recipes for you to review and save.
 
 - date: 2026-06-23

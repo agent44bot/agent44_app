@@ -35,4 +35,20 @@ class KitchenHandoutPdfTest < ActiveSupport::TestCase
   test "empty handout still renders a valid PDF" do
     assert KitchenHandoutPdf.new(handout([])).render.start_with?("%PDF")
   end
+
+  # Every page is labeled: the full-quantity pass is "Dual station" (station
+  # amount is half), the scaled pass is the handout's station_label. (PDF text
+  # is subset-TTF glyphs, so we can't grep the bytes; this pins the label and
+  # the page count proves both passes still render.)
+  test "full pages are labeled Dual station and both passes render" do
+    assert_equal "Dual station", KitchenHandoutPdf::DUAL_STATION_LABEL
+    h = handout([
+      { "title" => "Rice",
+        "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Cook." ] } ] }
+    ])
+    bytes = KitchenHandoutPdf.new(h).render
+    # 1 recipe x (dual + single) = 2 pages.
+    assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size
+  end
 end

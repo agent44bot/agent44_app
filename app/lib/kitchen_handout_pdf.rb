@@ -20,6 +20,10 @@ class KitchenHandoutPdf
   BODY_FONT = "Carlito".freeze
   BODY_SIZE = 13
 
+  # Label for the full-quantity pages. The station amount (station_qty) is half
+  # the full amount, so the full batch is two stations' worth.
+  DUAL_STATION_LABEL = "Dual station".freeze
+
   # Vulgar fractions, for spacing them off a leading number ("2½" -> "2 ½").
   VULGAR = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞⅐⅑⅒".freeze
 
@@ -33,12 +37,14 @@ class KitchenHandoutPdf
     return empty(doc) if recipes.empty?
 
     first = true
-    # Full-quantity pages first, then the single-station set.
-    [ nil, @handout.station_label ].each do |scale_tag|
+    # Two passes, every page labeled: the full-quantity batch (labeled "Dual
+    # station", since the station amount is exactly half) first, then the
+    # single-station set. [label, scaled?] — scaled? picks the qty column.
+    [ [ DUAL_STATION_LABEL, false ], [ @handout.station_label, true ] ].each do |label, scaled|
       recipes.each do |recipe|
         doc.start_new_page unless first
         first = false
-        recipe_page(doc, recipe, scale_tag)
+        recipe_page(doc, recipe, label, scaled)
       end
     end
     doc.render
@@ -71,11 +77,11 @@ class KitchenHandoutPdf
     doc.render
   end
 
-  def recipe_page(doc, recipe, scale_tag)
-    if scale_tag.present?
+  def recipe_page(doc, recipe, scale_label, scaled)
+    if scale_label.present?
       doc.float do
         doc.bounding_box([ doc.bounds.right - 130, doc.bounds.top ], width: 130) do
-          doc.text tidy(scale_tag), size: 9, color: "444444", align: :right
+          doc.text tidy(scale_label), size: 9, color: "444444", align: :right
         end
       end
     end
@@ -106,7 +112,7 @@ class KitchenHandoutPdf
     dir_end_page = doc.page_number
 
     doc.go_to_page(start_page)
-    doc.bounding_box([ 0, top ], width: ing_w) { ingredients(doc, recipe, scale_tag) }
+    doc.bounding_box([ 0, top ], width: ing_w) { ingredients(doc, recipe, scaled) }
     ing_end_page = doc.page_number
 
     # Continue after whichever column ran longest so the footer (and the next
@@ -128,7 +134,7 @@ class KitchenHandoutPdf
     doc.fill_color "000000"
   end
 
-  def ingredients(doc, recipe, scale_tag)
+  def ingredients(doc, recipe, scaled)
     underlined(doc, "Ingredients")
     doc.move_down 4
     rows = []
@@ -139,7 +145,7 @@ class KitchenHandoutPdf
         rows << [ { content: "#{tidy(section)}:", colspan: 2, font_style: :bold } ]
       end
       last_section = section
-      qty  = KitchenUnits.standardize(scale_tag ? ing["station_qty"] : ing["qty"])
+      qty  = KitchenUnits.standardize(scaled ? ing["station_qty"] : ing["qty"])
       item = IngredientText.normalize(ing["item"])
       # Flour by volume is imprecise, so show its weight too (Lora's request).
       if item.match?(/\bflour/i) && (g = KitchenUnits.flour_grams(qty))
