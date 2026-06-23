@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_22_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_23_120000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -719,6 +719,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_22_140000) do
   create_table "workspace_memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_active_at"
+    t.boolean "push_enabled", default: true, null: false
     t.string "role", default: "editor", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false

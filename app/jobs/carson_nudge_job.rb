@@ -26,11 +26,12 @@ class CarsonNudgeJob < ApplicationJob
     nudge = first_triggered_nudge
     return unless nudge
 
+    workspace = Workspace.find_by(slug: "nykitchen")
     users.each do |user|
       Notification.notify!(
         level: :info, source: "carson",
         title: nudge[:title], body: nudge[:body],
-        apns: true, apns_user: user,
+        apns: true, apns_user: user, workspace: workspace,
         apns_url: nudge[:url], apns_subtitle: "Carson · Concierge"
       )
     end

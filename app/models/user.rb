@@ -48,6 +48,18 @@ class User < ApplicationRecord
     role == "reviewer"
   end
 
+  # Per-workspace push opt-out. The platform toggles (ios/android_push_enabled)
+  # are the master device switches; this is a finer gate so a user in several
+  # workspaces can mute one (e.g. NY Kitchen) without silencing the others.
+  # A push tagged with no workspace, or to a user who isn't a member of it
+  # (e.g. a site admin on a NYK alert), has no per-workspace pref to consult and
+  # is allowed through.
+  def push_enabled_for_workspace?(workspace)
+    return true if workspace.nil?
+    membership = workspace_memberships.find_by(workspace_id: workspace.id)
+    membership.nil? || membership.push_enabled?
+  end
+
   def email_verified?
     email_verified_at.present?
   end

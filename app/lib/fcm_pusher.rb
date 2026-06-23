@@ -17,8 +17,8 @@ class FcmPusher
   TOKEN_URI = "https://oauth2.googleapis.com/token".freeze
   ACCESS_TOKEN_CACHE_KEY = "fcm:access_token".freeze
 
-  def self.send_alert(notification, url: nil, subtitle: nil, user: nil)
-    return unless enabled_for?(user)
+  def self.send_alert(notification, url: nil, subtitle: nil, user: nil, workspace: nil)
+    return unless enabled_for?(user, workspace)
 
     scope = DeviceToken.active.android
     scope = scope.for_user(user) if user
@@ -37,9 +37,10 @@ class FcmPusher
     nil
   end
 
-  # A user with Android push turned off (or no user = broadcast) gates here.
-  def self.enabled_for?(user)
-    user.nil? || user.android_push_enabled
+  # A user with Android push turned off (or no user = broadcast) gates here, as
+  # does a user who muted push for this notification's workspace.
+  def self.enabled_for?(user, workspace = nil)
+    user.nil? || (user.android_push_enabled && user.push_enabled_for_workspace?(workspace))
   end
 
   def self.credentials
