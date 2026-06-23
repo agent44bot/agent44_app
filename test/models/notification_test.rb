@@ -22,4 +22,17 @@ class NotificationTest < ActiveSupport::TestCase
     end
     assert_empty called
   end
+
+  test "notify! forwards workspace to both pushers for per-workspace gating" do
+    user = users(:one)
+    ws = Workspace.create!(name: "WS", slug: "ntf-#{SecureRandom.hex(4)}", owner_id: user.id)
+    seen = []
+    ApnsPusher.stub(:send_alert, ->(*_a, **k) { seen << k[:workspace] }) do
+      FcmPusher.stub(:send_alert, ->(*_a, **k) { seen << k[:workspace] }) do
+        Notification.notify!(level: "info", source: "test", title: "T",
+                             apns: true, apns_user: user, workspace: ws)
+      end
+    end
+    assert_equal [ ws, ws ], seen
+  end
 end

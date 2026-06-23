@@ -54,12 +54,52 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_in_path
   end
 
+  test "PATCH update_notifications flips the per-workspace push toggle" do
+    ws = Workspace.create!(name: "WS", slug: "set-#{SecureRandom.hex(4)}", owner_id: @user.id)
+    membership = ws.memberships.find_by(user_id: @user.id)
+    sign_in_as @user
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", android_push_enabled: "1",
+      workspace_push: { ws.id.to_s => "0" }
+    }
+    assert_redirected_to settings_path
+    assert_not membership.reload.push_enabled, "muted workspace persisted"
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", android_push_enabled: "1",
+      workspace_push: { ws.id.to_s => "1" }
+    }
+    assert membership.reload.push_enabled, "re-enabled workspace persisted"
+  end
+
+  test "PATCH update_notifications can't flip a workspace the user isn't in" do
+    other = User.create!(email_address: "other-#{SecureRandom.hex(4)}@example.com")
+    ws = Workspace.create!(name: "Theirs", slug: "set-#{SecureRandom.hex(4)}", owner_id: other.id)
+    membership = ws.memberships.find_by(user_id: other.id)
+    sign_in_as @user
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", android_push_enabled: "1",
+      workspace_push: { ws.id.to_s => "0" }
+    }
+    assert membership.reload.push_enabled, "another member's pref is untouched"
+  end
+
   test "settings page shows the push notification toggles" do
     sign_in_as @user
     get settings_path
     assert_select "h2", text: "Push notifications"
     assert_select "input[name=ios_push_enabled]"
     assert_select "input[name=android_push_enabled]"
+  end
+
+  test "settings page renders a per-workspace push toggle for each membership" do
+    ws = Workspace.create!(name: "NY Kitchen", slug: "set-#{SecureRandom.hex(4)}", owner_id: @user.id)
+    sign_in_as @user
+    get settings_path
+    assert_select "input[type=checkbox][name=?]", "workspace_push[#{ws.id}]"
+    assert_select "span", text: "NY Kitchen"
   end
 
   test "POST verify_password returns 204 for matching password" do

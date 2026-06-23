@@ -23,8 +23,9 @@ class SettingsController < ApplicationController
     end
   end
 
-  # Per-platform push toggles. The form sends an explicit "1"/"0" for each via
-  # check_box's hidden fallback, so a missing/unchecked box reads as off.
+  # Per-platform push toggles plus per-workspace push opt-outs. The form sends
+  # an explicit "1"/"0" for each via check_box's hidden fallback, so a
+  # missing/unchecked box reads as off.
   def update_notifications
     user = Current.user
     return redirect_to(root_path) unless user
@@ -33,6 +34,7 @@ class SettingsController < ApplicationController
       ios_push_enabled: ActiveModel::Type::Boolean.new.cast(params[:ios_push_enabled]),
       android_push_enabled: ActiveModel::Type::Boolean.new.cast(params[:android_push_enabled])
     )
+    update_workspace_push_prefs(user)
     redirect_to settings_path, notice: "Notification settings saved."
   end
 
@@ -78,5 +80,19 @@ class SettingsController < ApplicationController
     cookies.delete(:session_id)
     Current.session = nil
     redirect_to root_path, notice: "Your account has been deleted."
+  end
+
+  private
+
+  # Apply the per-workspace push toggles. Scoped to the user's own memberships
+  # so a forged workspace_id can't flip another member's preference.
+  def update_workspace_push_prefs(user)
+    prefs = params[:workspace_push]
+    return unless prefs.respond_to?(:each_pair)
+
+    bool = ActiveModel::Type::Boolean.new
+    user.workspace_memberships.where(workspace_id: prefs.keys).find_each do |membership|
+      membership.update(push_enabled: bool.cast(prefs[membership.workspace_id.to_s]))
+    end
   end
 end

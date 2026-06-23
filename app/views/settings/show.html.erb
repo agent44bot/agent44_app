@@ -48,6 +48,24 @@
         <%= f.check_box :android_push_enabled, checked: Current.user&.android_push_enabled,
               class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
       </label>
+
+      <% memberships = Current.user&.workspace_memberships&.includes(:workspace)&.sort_by { |m| m.workspace.name.downcase } %>
+      <% if memberships.present? %>
+        <div class="pt-3 mt-1 border-t border-gray-800 space-y-3">
+          <p class="text-xs text-gray-500">
+            Per workspace. Turn one off to stop its alerts without muting the others.
+          </p>
+          <% memberships.each do |m| %>
+            <label class="flex items-center justify-between gap-3 cursor-pointer">
+              <span class="text-sm text-gray-300"><%= m.workspace.name %></span>
+              <%= hidden_field_tag "workspace_push[#{m.workspace_id}]", "0" %>
+              <%= check_box_tag "workspace_push[#{m.workspace_id}]", "1", m.push_enabled,
+                    class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="pt-1">
         <%= f.submit "Save",
               class: "px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>

@@ -29,6 +29,23 @@ class FcmPusherTest < ActiveSupport::TestCase
     assert_nil FcmPusher.send_alert(note, user: user)
   end
 
+  test "enabled_for? is false when the user muted this workspace" do
+    user = users(:one)
+    ws = Workspace.create!(name: "WS", slug: "fcm-#{SecureRandom.hex(4)}", owner_id: user.id)
+    assert FcmPusher.enabled_for?(user, ws), "workspace push on by default"
+
+    ws.memberships.find_by(user_id: user.id).update!(push_enabled: false)
+    assert_not FcmPusher.enabled_for?(user.reload, ws), "muted workspace gates the push"
+  end
+
+  test "send_alert is a no-op when the user muted this workspace" do
+    user = users(:one)
+    ws = Workspace.create!(name: "WS", slug: "fcm-#{SecureRandom.hex(4)}", owner_id: user.id)
+    ws.memberships.find_by(user_id: user.id).update!(push_enabled: false)
+    DeviceToken.create!(token: "and-ws", platform: "android", user: user)
+    assert_nil FcmPusher.send_alert(note, user: user.reload, workspace: ws)
+  end
+
   test "send_alert is a no-op with no android tokens" do
     user = users(:one)
     DeviceToken.create!(token: "ios-only", platform: "ios", user: user)
