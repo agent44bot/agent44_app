@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 # FcmPusher must never hit the network in tests (no creds configured), and must
 # honor the per-user android_push_enabled gate. We assert the safe-skip paths;
@@ -57,5 +58,26 @@ class FcmPusherTest < ActiveSupport::TestCase
     DeviceToken.create!(token: "and-2", platform: "android", user: user)
     # No FCM_SERVICE_ACCOUNT_JSON in the test env -> returns before any HTTP.
     assert_nil FcmPusher.send_alert(note, user: user)
+  end
+
+  test "delivered payload targets the high-importance fcm_default channel" do
+    user = users(:one)
+    user.update!(android_push_enabled: true)
+    DeviceToken.create!(token: "and-ch", platform: "android", user: user)
+
+    captured = nil
+    ok = Net::HTTPOK.new("1.1", "200", "OK")
+    # Stub the network + auth layer so nothing leaves the process; capture the
+    # body FcmPusher would POST and assert it names the channel.
+    FcmPusher.stub(:credentials, { "project_id" => "p" }) do
+      FcmPusher.stub(:access_token, "tok") do
+        FcmPusher.stub(:post_json, ->(_uri, body, _at) { captured = body; ok }) do
+          FcmPusher.send_alert(note, user: user)
+        end
+      end
+    end
+
+    assert_equal "fcm_default", captured.dig(:message, :android, :notification, :channel_id)
+    assert_equal "HIGH", captured.dig(:message, :android, :priority)
   end
 end

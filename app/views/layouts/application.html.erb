@@ -95,10 +95,53 @@
     // FirebaseApp is not initialized); that file is now in place. The
     // device-token POST sends the real platform so the server routes to the
     // right pusher (ApnsPusher / FcmPusher).
+    // Foreground delivery: Android hands a push to the app instead of the
+    // system tray while the app is open, so no banner appears. Show a small
+    // tappable in-app toast so a foreground push isn't silently lost.
+    function showPushToast(title, body, url) {
+      var bar = document.createElement('div');
+      bar.className = 'fixed top-3 inset-x-3 z-[100] mx-auto max-w-sm rounded-xl ' +
+        'bg-gray-900 border border-gray-700 shadow-xl px-4 py-3 text-left';
+      bar.setAttribute('role', 'status');
+      var t = document.createElement('div');
+      t.className = 'text-sm font-semibold text-white';
+      t.textContent = title || 'Notification';
+      var b = document.createElement('div');
+      b.className = 'text-xs text-gray-400 mt-0.5';
+      b.textContent = body || '';
+      bar.appendChild(t);
+      bar.appendChild(b);
+      if (url) {
+        bar.style.cursor = 'pointer';
+        bar.addEventListener('click', function() { window.location.href = url; });
+      }
+      document.body.appendChild(bar);
+      setTimeout(function() { bar.remove(); }, 6000);
+    }
+
     var pushPlatform = window.Capacitor.getPlatform();
     if (pushPlatform === 'ios' || pushPlatform === 'android') {
       PN.requestPermissions().then(function(perm) {
         if (perm.receive !== 'granted') return;
+
+        // Android 8+ silently drops a notification sent to a missing or
+        // low-importance channel (even on the lock screen). Create an explicit
+        // HIGH-importance (importance 5), lock-screen-visible (visibility 1)
+        // channel; the server (FcmPusher) targets it via channel_id. This runs
+        // in the already-installed plugin from this remote-loaded script, so no
+        // app rebuild is needed, but the channel must exist before a push
+        // names it, so opening the app once after this ships is required.
+        if (pushPlatform === 'android' && PN.createChannel) {
+          PN.createChannel({
+            id: 'fcm_default',
+            name: 'Notifications',
+            description: 'Class nudges and reminders',
+            importance: 5,
+            visibility: 1,
+            sound: 'default',
+            vibration: true
+          }).catch(function() {});
+        }
 
         PN.addListener('registration', function(token) {
           fetch('/api/v1/device_tokens', {
@@ -113,6 +156,20 @@
           var url = action.notification.data && action.notification.data.url;
           if (url) window.location.href = url;
           clearBadge();
+        });
+
+        // Push arriving while the app is foregrounded: show the in-app toast
+        // and refresh unread state (no auto-navigation, since the user is
+        // already looking at the app).
+        PN.addListener('pushNotificationReceived', function(notif) {
+          var n = notif || {};
+          var data = n.data || {};
+          showPushToast(n.title, n.body, data.url);
+          fetch('/api/v1/badge/peek', {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+          }).catch(function() {});
         });
 
         PN.register();
