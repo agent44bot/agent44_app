@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-23
+  note: Each recipe in a handout can now have its own headcount. Set a number next to each recipe's title (for example 1, 2, 3) and it prints on the recipe.
+
 - date: 2026-06-21
   note: A recipe's edit page now has two tabs, Recipe and Pull sheet, so you can see the class shopping and prep list right next to the recipe without leaving the page. For a recipe shared by several classes it defaults to the soonest upcoming run, with a date dropdown to switch.
 

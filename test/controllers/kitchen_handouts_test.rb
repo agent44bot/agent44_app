@@ -251,6 +251,55 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match "Large stockpot", response.body
   end
 
+  test "update saves a per-recipe headcount and round-trips it into the edit form" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_handout_path(handout), params: {
+      title: "Packet", station_label: "Single station",
+      recipes: {
+        "0" => { title: "Recipe A", headcount: "1",
+                 ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
+        "1" => { title: "Recipe B", headcount: "2",
+                 ingredients: { "0" => { qty: "4 c", station_qty: "2 c", item: "Water", section: "" } } },
+        "2" => { title: "Recipe C", headcount: "3",
+                 ingredients: { "0" => { qty: "1 t", station_qty: "1 t", item: "Salt", section: "" } } }
+      }
+    }
+    handout.reload
+    assert_equal [ 1, 2, 3 ], handout.recipes.map { |r| r["headcount"] }
+
+    get edit_nyk_handout_path(handout)
+    assert_response :success
+    assert_select "input[name='recipes[0][headcount]'][value='1']"
+    assert_select "input[name='recipes[2][headcount]'][value='3']"
+  end
+
+  test "blank or non-positive recipe headcount is stored as nil" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_handout_path(handout), params: {
+      title: "Packet", station_label: "Single station",
+      recipes: {
+        "0" => { title: "Blank", headcount: "",
+                 ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
+        "1" => { title: "Zero", headcount: "0",
+                 ingredients: { "0" => { qty: "1 c", station_qty: "1 c", item: "Sugar", section: "" } } }
+      }
+    }
+    handout.reload
+    assert_nil handout.recipes[0]["headcount"]
+    assert_nil handout.recipes[1]["headcount"]
+  end
+
+  test "the handout PDF renders a recipe headcount without error" do
+    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => [
+      { "title" => "Sushi Rice", "headcount" => 2,
+        "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rice", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Rinse." ] } ] }
+    ] })
+    get print_nyk_handout_path(handout, format: :pdf)
+    assert_response :success
+    assert_equal "application/pdf", response.media_type
+  end
+
   test "update keeps blank lines between steps so spacing carries into the PDF" do
     handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_handout_path(handout), params: {
