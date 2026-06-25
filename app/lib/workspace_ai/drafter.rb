@@ -59,7 +59,7 @@ module WorkspaceAi
         #{task_instruction(topic: topic, existing_draft: existing_draft)}
 
         Constraints:
-        - Plain language. No em-dashes. No greetings.
+        - Use everyday wording. No em-dashes. No greetings.
         - Maximum #{MAX_CHARS} characters total (X allows 280 — leave room for hashtags).
         - One concrete idea per post.
         - Do not wrap the post in quotes or add a preface.

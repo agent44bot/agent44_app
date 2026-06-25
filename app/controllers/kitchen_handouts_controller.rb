@@ -111,7 +111,7 @@ class KitchenHandoutsController < ApplicationController
     @pull_classes = pull_classes_for(@handout)
   end
 
-  # Ask the AI to rewrite this handout's recipes from a plain-language request
+  # Ask the AI to rewrite this handout's recipes from a free-text request
   # (e.g. "split the rolls into Tuna, Salmon, and Vegetarian plus a shared
   # rice"). Replaces data["recipes"] with the revised set; equipment is left
   # alone. Billed under the same AI line as Generate.

@@ -1,6 +1,6 @@
 # Owner-facing "what's new" notes for the NY Kitchen weekly team report.
 #
-# Add a dated, plain-language one-liner whenever you ship a user-facing NYK
+# Add a dated, clear one-liner whenever you ship a user-facing NYK
 # change (skip internal refactors/bugfixes the owner wouldn't notice). Carson
 # surfaces entries from the last 7 days in the Sunday report, newest first.
 # Keep each note short, concrete, and written for Lora — not for engineers.
@@ -27,7 +27,7 @@
   note: The printed recipe now labels every page. The full-batch pages are marked Dual station and the scaled pages Single station (the single-station amount is half the full batch, so the full batch is two stations worth).
 
 - date: 2026-06-23
-  note: On a recipe's edit page you can now ask the AI to revise the recipes in plain English (for example, "split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared rice"). It rewrites the recipes for you to review and save.
+  note: On a recipe's edit page you can now ask the AI to revise the recipes in your own words (for example, "split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared rice"). It rewrites the recipes for you to review and save.
 
 - date: 2026-06-23
   note: Each recipe in a handout can now have its own headcount. Set a number next to each recipe's title (for example 1, 2, 3) and it prints on the recipe.
