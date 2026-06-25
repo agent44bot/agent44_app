@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Promote / upload the Agent44 Labs Android app on Google Play via fastlane supply.
+#
+# Usage:
+#   bin/play-push --verify              # check the service account JSON reaches the Play API
+#   bin/play-push --upload              # upload android AAB to the internal testing track
+#   bin/play-push                       # promote the internal build -> Production at 100%
+#   bin/play-push --rollout 0.2         # promote internal build -> Production at 20% staged
+#   bin/play-push --finish              # finish a staged Production rollout (bump to 100%)
+#   bin/play-push --finish --rollout 0.5  # set the live Production rollout to 50%
+#
+# Service account JSON: ~/.play-keys/agent44-play.json (override with SUPPLY_JSON_KEY).
+# One-time setup: see docs/android_play_release.md.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# Source key env (SUPPLY_JSON_KEY, PLAY_AAB_PATH) if present.
+if [[ -f "$HOME/.play-keys/env.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.play-keys/env.sh"
+fi
+
+LANE="promote_to_production"
+ROLLOUT=""
+FINISH=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verify)  LANE="verify_key"; shift ;;
+    --upload)  LANE="upload_internal"; shift ;;
+    --rollout) ROLLOUT="${2:?--rollout needs a value, e.g. 0.2}"; shift 2 ;;
+    --finish)  FINISH=1; shift ;;
+    *) echo "Unknown flag: $1" >&2; exit 2 ;;
+  esac
+done
+
+# --finish acts on the live Production track instead of promoting.
+[[ "$FINISH" == "1" ]] && LANE="production_rollout"
+
+ARGS=()
+[[ -n "$ROLLOUT" ]] && ARGS+=("rollout:$ROLLOUT")
+
+exec fastlane android "$LANE" "${ARGS[@]}"

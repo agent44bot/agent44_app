@@ -1,2 +1,7 @@
 app_identifier "com.agent44labs.app"
 team_id "MKN95GAN66"
+
+# Android (fastlane supply / Google Play).
+for_platform :android do
+  package_name "com.agent44labs.app"
+end
