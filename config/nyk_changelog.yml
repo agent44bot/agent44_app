@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-25
+  note: The recipe Pull sheet tab now has a Print button that opens the print-ready sheet and brings up the print dialog automatically (on the iPad and iPhone app it opens in Safari, where printing works).
+
+- date: 2026-06-25
   note: On the Add a recipe page, the "Or copy an existing recipe" search now filters as you type (like the class list and Recipe Library), with no Search button and no page reload.
 
 - date: 2026-06-25

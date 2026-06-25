@@ -187,7 +187,7 @@
       <% if @pull_classes.any? %>
         <% first = @pull_classes.first %>
         <% default_src = nyk_grocery_path(event_url: first.url, name: first.name, embedded: 1) %>
-        <% print_url   = nyk_grocery_path(event_url: first.url, name: first.name) %>
+        <% print_url   = nyk_grocery_path(event_url: first.url, name: first.name, print: 1) %>
         <div class="max-w-3xl mx-auto">
           <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <% if @pull_classes.size > 1 %>
@@ -202,9 +202,14 @@
             <% else %>
               <p class="text-sm text-gray-400"><%= first.start_at.strftime("%a %b %-d") %> · <%= first.name %></p>
             <% end %>
-            <%= link_to "Open to print →", print_url, target: "_blank", rel: "noopener",
+            <%# target=_blank so the iOS/Android app hands this to Safari, the only
+                place WKWebView can print; ?print=1 auto-opens the dialog once the
+                sheet loads (see grocery.html.erb). %>
+            <%= link_to print_url, target: "_blank", rel: "noopener",
                   data: { frame_src_target: "link" },
-                  class: "text-sm text-orange-400 hover:text-orange-300 whitespace-nowrap" %>
+                  class: "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-emerald-600 text-emerald-300 hover:bg-emerald-600/10 text-sm font-semibold whitespace-nowrap" do %>
+              🖨 Print
+            <% end %>
           </div>
 
           <%# The frame starts with NO src, so nothing loads (no AI cost) until the
