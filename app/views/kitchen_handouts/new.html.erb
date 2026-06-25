@@ -54,32 +54,25 @@
     <p class="text-xs text-gray-500 mt-2">The agent reads the recipe, splits out each part, and proposes single-station amounts. You review it against a live PDF preview before printing.</p>
   <% end %>
 
-  <div class="mt-10">
+  <div class="mt-10" data-controller="recipe-filter">
     <h2 class="text-sm font-semibold text-gray-400 mb-3">Or copy an existing recipe</h2>
 
-    <%= form_with url: new_nyk_handout_path, method: :get, class: "mb-3" do %>
-      <%= hidden_field_tag :event_url, @event_url %>
-      <%= hidden_field_tag :event_name, @event_name %>
-      <div class="flex gap-2">
-        <%= search_field_tag :q, @q, placeholder: "Search all recipes (name or ingredient)…",
-              autocomplete: "off",
-              class: "flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none" %>
-        <%= submit_tag "Search", class: "shrink-0 px-4 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold cursor-pointer" %>
-      </div>
-    <% end %>
-
-    <% others = @existing %>
-    <% if @q.present? %>
-      <p class="text-xs text-gray-500 mb-2">
-        <%= pluralize(others.size, "match") %> for "<span class="text-gray-300"><%= @q %></span>"
-        &middot; <%= link_to "clear", new_nyk_handout_path(event_url: @event_url, event_name: @event_name), class: "text-orange-400 hover:text-orange-300" %>
-      </p>
-    <% end %>
-
-    <% if others.any? %>
+    <% if @existing.any? %>
+      <%# Live, client-side filter (recipe-filter), same as the Recipe Library:
+          all recipes are on the page and typing narrows them instantly, no
+          Search button and no page reload. %>
+      <input type="search"
+             data-recipe-filter-target="query"
+             data-action="input->recipe-filter#search"
+             placeholder="Search all recipes (name or ingredient)…"
+             autocomplete="off" aria-label="Search recipes to copy"
+             class="w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none">
+      <p class="text-xs text-gray-500 mt-3 mb-2" data-recipe-filter-target="count"><%= pluralize(@existing.size, "recipe") %></p>
+      <p data-recipe-filter-target="empty" class="hidden text-sm text-gray-500 mb-2">No recipes match that search.</p>
       <div class="space-y-2">
-        <% (@q.present? ? others : others.first(10)).each do |h| %>
-          <div class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5">
+        <% @existing.each do |h| %>
+          <div data-recipe-filter-target="card" data-search-text="<%= h.search_text %>"
+               class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5">
             <span class="text-sm text-gray-300 min-w-0 truncate"><%= h.title %></span>
             <%= button_to "Copy", nyk_handouts_path,
                   params: { existing_id: h.id, event_url: @event_url },
@@ -87,8 +80,8 @@
           </div>
         <% end %>
       </div>
-    <% elsif @q.present? %>
-      <p class="text-sm text-gray-500">No recipes match that search.</p>
+    <% else %>
+      <p class="text-sm text-gray-500">No recipes to copy yet.</p>
     <% end %>
   </div>
 </div>

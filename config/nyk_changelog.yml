@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-25
+  note: On the Add a recipe page, the "Or copy an existing recipe" search now filters as you type (like the class list and Recipe Library), with no Search button and no page reload.
+
+- date: 2026-06-25
   note: You can open the NY Kitchen how-to guide any time from the How-to guide link at the top of your workspace, so everyone always has the latest version.
 
 - date: 2026-06-25

@@ -26,13 +26,9 @@ class KitchenHandoutsController < ApplicationController
   def new
     @event_url  = params[:event_url].to_s
     @event_name = params[:event_name].to_s
-    @q = params[:q].to_s.strip
-    # The "Or attach an existing packet" list: search results, else most recent.
-    @existing = if @q.present?
-      KitchenHandout.search(@q).order(:title).limit(50).to_a
-    else
-      KitchenHandout.order(updated_at: :desc).limit(25).to_a
-    end
+    # All handouts, rendered for the client-side "copy an existing recipe" live
+    # filter (recipe-filter controller), matching the Recipe Library + class list.
+    @existing = KitchenHandout.order(updated_at: :desc).to_a
   end
 
   def create
