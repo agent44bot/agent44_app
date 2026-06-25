@@ -117,7 +117,7 @@ module KitchenAi
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
-    # Revise an existing handout's recipes per a plain-language instruction from
+    # Revise an existing handout's recipes per a free-text instruction from
     # the user (e.g. "split the rolls into Tuna, Salmon, and Vegetarian, plus a
     # shared rice"). Returns the COMPLETE updated recipe set. Billed under the
     # same source as generate.
@@ -225,7 +225,7 @@ module KitchenAi
       - This is a draft for an instructor to review and edit, so keep it realistic and concise.
     PROMPT
 
-    # For revising an existing recipe set per a plain-language instruction. Same
+    # For revising an existing recipe set per a free-text instruction. Same
     # JSON schema; returns the COMPLETE updated set, applying the change and
     # inventing any new content the instruction calls for.
     REVISE_PROMPT = <<~PROMPT.freeze
