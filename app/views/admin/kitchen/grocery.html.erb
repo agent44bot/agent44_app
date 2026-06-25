@@ -56,6 +56,14 @@
   document.addEventListener("click", function (e) {
     if (e.target.closest("#grocery-print-btn")) window.print();
   });
+  // Opened from the handout Pull sheet "Print" button (?print=1): once the
+  // sheet finishes loading in its eager frame, auto-open the print dialog. On
+  // the iOS/Android app this page is handed to Safari, where printing works.
+  if (new URLSearchParams(location.search).get("print") === "1") {
+    document.addEventListener("turbo:frame-load", function (e) {
+      if (e.target.id === "grocery_list") setTimeout(function () { window.print(); }, 200);
+    }, { once: true });
+  }
 <% end %>
 
 <style>

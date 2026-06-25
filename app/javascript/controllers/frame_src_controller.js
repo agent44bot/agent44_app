@@ -25,8 +25,10 @@ export default class extends Controller {
     if (!this.hasFrameTarget) return
     this.frameTarget.src = event.target.value
     if (this.hasLinkTarget) {
-      // Standalone print page is the same URL without the embedded flag.
-      this.linkTarget.href = event.target.value.replace(/[?&]embedded=1/, "")
+      // Standalone print page: same URL without the embedded flag, plus print=1
+      // so the page auto-opens the print dialog once the sheet loads.
+      const base = event.target.value.replace(/[?&]embedded=1/, "")
+      this.linkTarget.href = base + (base.includes("?") ? "&" : "?") + "print=1"
     }
   }
 

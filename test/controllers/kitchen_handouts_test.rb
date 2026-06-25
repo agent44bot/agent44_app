@@ -624,7 +624,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match "data-default-src", response.body
     refute_match(/<turbo-frame id="grocery_list"[^>]*\ssrc=/, response.body, "frame should not auto-load with a src")
     assert_match "embedded=1", response.body
-    assert_match "Open to print", response.body
+    assert_match "print=1", response.body, "Pull sheet tab should offer the print link"
   end
 
   test "Pull sheet tab defaults to the soonest upcoming run and offers a date dropdown when shared" do
