@@ -164,7 +164,13 @@
         PN.addListener('pushNotificationReceived', function(notif) {
           var n = notif || {};
           var data = n.data || {};
-          showPushToast(n.title, n.body, data.url);
+          // Silent pushes (e.g. the content-available badge-clear we send on
+          // every foreground) arrive here with no title or body. Don't render
+          // a toast for them, otherwise an empty "Notification" banner flashes
+          // on login and can't be dismissed. Only toast real, user-facing alerts.
+          var title = (n.title || '').trim();
+          var body = (n.body || '').trim();
+          if (title || body) showPushToast(title, body, data.url);
           fetch('/api/v1/badge/peek', {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
