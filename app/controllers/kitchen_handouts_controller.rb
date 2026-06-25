@@ -16,9 +16,10 @@ class KitchenHandoutsController < ApplicationController
   after_action :allow_same_origin_framing, only: %i[edit print]
 
   # Searchable recipe library: browse/search every packet, then Edit/Print/Delete.
+  # Search is a live client-side filter (recipe_filter_controller), so the action
+  # just loads every packet; no `q` param round-trip.
   def index
-    @q = params[:q].to_s.strip
-    @handouts = KitchenHandout.search(@q).order(:title)
+    @handouts = KitchenHandout.order(:title)
     @attach_counts = KitchenHandoutLink.group(:kitchen_handout_id).count
   end
 

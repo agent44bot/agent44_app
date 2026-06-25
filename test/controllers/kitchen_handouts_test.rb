@@ -539,25 +539,21 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rye", "section" => nil } ],
     "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ].freeze
 
-  test "library search filters by title" do
+  # Search is now a live client-side filter: the index renders every packet with
+  # a data-search-text attribute, and recipe_filter_controller substring-matches
+  # against it. These assert the searchable text is on the page for the JS to use.
+  test "library exposes title in each packet's search text" do
     KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
-    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => SOURDOUGH })
-    get nyk_recipes_path(q: "pasta")
+    get nyk_recipes_path
     assert_response :success
-    assert_match "Fresh Pasta", response.body
-    assert_no_match(/Sourdough Basics/, response.body)
+    assert_match(/data-search-text="[^"]*fresh pasta/, response.body)
   end
 
-  test "library search matches an ingredient inside the recipe" do
+  test "library exposes recipe ingredients in the search text" do
     KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED }) # has "All-purpose flour"
-    KitchenHandout.create!(title: "Sourdough Basics",
-      data: { "recipes" => [ { "title" => "Sourdough",
-        "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rye", "section" => nil } ],
-        "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ] })
-    get nyk_recipes_path(q: "all-purpose flour")
+    get nyk_recipes_path
     assert_response :success
-    assert_match "Fresh Pasta", response.body
-    assert_no_match(/Sourdough Basics/, response.body)
+    assert_match(/data-search-text="[^"]*all-purpose flour/, response.body)
   end
 
   test "attach picker searches the full library when given a query" do
