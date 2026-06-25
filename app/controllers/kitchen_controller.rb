@@ -24,6 +24,16 @@ class KitchenController < ApplicationController
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
   before_action :require_nyk_manager, only: %i[generate_report send_smoke_report]
 
+  # NY Kitchen how-to guide (PDF), opened from the hub's "How-to guide" link.
+  # Served to signed-in users (default require_authentication; not in the
+  # allow_unauthenticated_access list). The file is regenerated and committed
+  # at guides/ny-kitchen-how-to-guide.pdf.
+  def guide
+    send_file Rails.root.join("guides", "ny-kitchen-how-to-guide.pdf"),
+              type: "application/pdf", disposition: "inline",
+              filename: "NY-Kitchen-How-To-Guide.pdf"
+  end
+
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
     case params[:tab]

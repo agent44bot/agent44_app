@@ -34,6 +34,15 @@
            class="text-sm font-medium text-orange-400 hover:text-orange-300 transition break-words">
           <%= event.name %>
         </a>
+        <%# Small inline "promote" affordance next to the name (a marketing action,
+            kept separate from the recipe column in the rail). Non-sold-out only. %>
+        <% if !event.sold_out? && default_ws %>
+          <button data-action="social-post#sendToWorkspace"
+                  data-social-post-target="sendToWorkspaceBtn"
+                  title="Draft a social post to Echo"
+                  aria-label="Draft a social post to Echo"
+                  class="shrink-0 text-base leading-none text-blue-400 hover:text-blue-300 transition cursor-pointer">📣</button>
+        <% end %>
       </div>
       <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
         <% if event.instructor %><span><%= event.instructor %></span><span>&middot;</span><% end %>
@@ -110,40 +119,14 @@
         the name/date get the card's full width instead of being squeezed by the
         fixed icon columns. sm+ keeps the original right-edge vertical strip. %>
     <div class="shrink-0 flex items-stretch justify-end divide-x divide-gray-800 border-t border-gray-800 pt-2 sm:border-t-0 sm:pt-0 sm:border-l">
-      <%# Draft Post column (reserved even when empty to keep the recipe aligned).
-          Emoji + label live INSIDE one button so the whole target is clickable
-          with a pointer cursor, matching the Pull Sheet / Edit links. %>
-      <div class="flex flex-col items-center justify-center w-16 px-1">
-        <% if !event.sold_out? && default_ws %>
-          <button data-action="social-post#sendToWorkspace"
-                  data-social-post-target="sendToWorkspaceBtn"
-                  title="Draft a social post to Echo"
-                  class="flex flex-col items-center gap-0.5 text-blue-400 hover:text-blue-300 transition cursor-pointer">
-            <span class="text-2xl leading-none">📣</span>
-            <span class="text-[10px] font-medium">Draft Post</span>
-          </button>
-        <% end %>
-      </div>
-      <%# Pull Sheet column: just this class's grocery list, printable on demand.
-          Reserved (kept empty) with no recipe so the recipe column stays
-          aligned. Sits immediately left of the recipe/print column. %>
-      <div class="flex flex-col items-center justify-center w-16 px-1">
-        <% if handout_id %>
-          <%= link_to nyk_grocery_path(event_url: event.url, name: event.name), target: "_blank", rel: "noopener",
-                title: "Pull sheet: shopping list for just this class",
-                class: "flex flex-col items-center gap-0.5 text-orange-400 hover:text-orange-300 transition" do %>
-            <span class="text-2xl leading-none">🛒</span>
-            <span class="text-[10px] font-medium">Pull Sheet</span>
-          <% end %>
-        <% end %>
-      </div>
-      <%# Recipe column, always rightmost: Edit when attached (print lives on
-          the edit screen), Add when none. %>
+      <%# Recipe column, always rightmost: Edit when attached (print + the
+          per-class pull sheet live on the edit screen's Pull sheet tab), Add
+          when none. %>
       <div class="flex flex-col items-center justify-center w-16 px-1">
         <% if handout_id %>
           <% auto_linked = defined?(@auto_handout_urls) && @auto_handout_urls&.include?(event.url) %>
           <%= link_to edit_nyk_handout_path(handout_id),
-                title: auto_linked ? "Auto-added from a matching class. Edit or change it here." : "Edit recipe (and print it from there)",
+                title: auto_linked ? "Auto-added from a matching class. Edit or change it here." : "Edit handout (and print it from there)",
                 class: "flex flex-col items-center gap-0.5 text-emerald-400 hover:text-emerald-300 transition" do %>
             <span class="text-2xl leading-none">📝</span>
             <span class="text-[10px] font-medium">Edit</span>
@@ -153,7 +136,7 @@
           <% end %>
         <% else %>
           <%= link_to new_nyk_handout_path(event_url: event.url, event_name: event.name),
-                title: "Add a recipe",
+                title: "Add a recipe handout",
                 class: "flex flex-col items-center gap-0.5 text-gray-500 hover:text-gray-300 transition" do %>
             <span class="text-2xl leading-none grayscale opacity-60">📝</span>
             <span class="text-[10px] font-medium">Add</span>
