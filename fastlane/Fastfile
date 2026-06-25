@@ -25,6 +25,40 @@ def asc_key
   )
 end
 
+# Google Play service account JSON (androidpublisher API). Mirrors the iOS key
+# convention: the secret lives outside the repo. Override path via SUPPLY_JSON_KEY.
+PLAY_PACKAGE  = "com.agent44labs.app"
+PLAY_JSON_KEY = ENV.fetch("SUPPLY_JSON_KEY") { File.expand_path("~/.play-keys/agent44-play.json") }
+# Default AAB produced by `cd android && ./gradlew bundleRelease`.
+PLAY_AAB      = ENV.fetch("PLAY_AAB_PATH") {
+  File.expand_path("../android/app/build/outputs/bundle/release/app-release.aab", __dir__)
+}
+
+def play_json_key
+  unless File.exist?(PLAY_JSON_KEY)
+    UI.user_error!("Play service account JSON not found at #{PLAY_JSON_KEY}. " \
+      "Create it (Play Console > Setup > API access > service account, " \
+      "AndroidPublisher role) and save it there, or set SUPPLY_JSON_KEY. " \
+      "See docs/android_play_release.md.")
+  end
+  PLAY_JSON_KEY
+end
+
+# Params common to every promotion/rollout call: act on the release only, never
+# touch the binary, listing, or images (those are managed in the Play Console).
+def supply_release_only
+  {
+    package_name:            PLAY_PACKAGE,
+    json_key:                play_json_key,
+    skip_upload_apk:         true,
+    skip_upload_aab:         true,
+    skip_upload_metadata:    true,
+    skip_upload_changelogs:  true,
+    skip_upload_images:      true,
+    skip_upload_screenshots: true
+  }
+end
+
 platform :ios do
   desc "Push metadata only (description, copyright, review notes, etc.)"
   lane :push_metadata do
@@ -65,5 +99,60 @@ platform :ios do
   desc "One-time: pull current ASC metadata into fastlane/metadata/"
   lane :pull_metadata do
     sh "fastlane deliver download_metadata --api_key_path #{ASC_KEY_PATH} --force"
+  end
+end
+
+platform :android do
+  desc "Check the Play service account JSON can reach the Play API"
+  lane :verify_key do
+    validate_play_store_json_key(json_key: play_json_key)
+    UI.success("Play service account JSON is valid for #{PLAY_PACKAGE}.")
+  end
+
+  desc "Upload a release AAB to the internal testing track (PLAY_AAB_PATH to override)"
+  lane :upload_internal do
+    unless File.exist?(PLAY_AAB)
+      UI.user_error!("AAB not found at #{PLAY_AAB}. Build it: cd android && ./gradlew bundleRelease")
+    end
+    supply(supply_release_only.merge(
+      aab:            PLAY_AAB,
+      skip_upload_aab: false,           # this lane DOES upload the binary
+      track:          "internal",
+      release_status: "completed"
+    ))
+    UI.success("Uploaded #{File.basename(PLAY_AAB)} to the internal track.")
+  end
+
+  desc "Promote the internal build to Production. rollout:0.2 stages at 20%; default 1.0 = full. from:<track> to promote a different source."
+  lane :promote_to_production do |options|
+    rollout = (options[:rollout] || "1.0").to_s
+    params  = supply_release_only.merge(
+      track:            options[:from] || "internal",
+      track_promote_to: "production"
+    )
+    if rollout.to_f >= 1.0
+      params[:track_promote_release_status] = "completed"
+    else
+      params[:track_promote_release_status] = "inProgress"
+      params[:rollout]                      = rollout
+    end
+    supply(params)
+    UI.success(rollout.to_f >= 1.0 ?
+      "Promoted #{params[:track]} build to Production at 100%." :
+      "Promoted to Production at #{(rollout.to_f * 100).round}% staged rollout.")
+  end
+
+  desc "Change the live Production rollout. rollout:1.0 finishes a staged rollout (default)."
+  lane :production_rollout do |options|
+    rollout = (options[:rollout] || "1.0").to_s
+    params  = supply_release_only.merge(track: "production")
+    if rollout.to_f >= 1.0
+      params[:release_status] = "completed"
+    else
+      params[:release_status] = "inProgress"
+      params[:rollout]        = rollout
+    end
+    supply(params)
+    UI.success("Production rollout set to #{(rollout.to_f * 100).round}%.")
   end
 end
