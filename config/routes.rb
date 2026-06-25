@@ -72,6 +72,7 @@ Rails.application.routes.draw do
   end
   resources :saved_jobs, only: [ :index ]
   get "nykitchen",        to: "kitchen#hub"
+  get "nykitchen/guide",  to: "kitchen#guide", as: :nyk_guide
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/grocery", to: "kitchen#grocery", as: :nyk_grocery
   post "nykitchen/grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts

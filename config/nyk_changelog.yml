@@ -9,7 +9,13 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-25
-  note: Clearer wording on the recipe pages. The page you build and edit is now called a recipe (the header reads "Review the recipe"), and "handout" now means just the printed packet you give the class. Nothing changed about how it works.
+  note: You can open the NY Kitchen how-to guide any time from the How-to guide link at the top of your workspace, so everyone always has the latest version.
+
+- date: 2026-06-25
+  note: Tidier class list. The Draft Post button is now a small megaphone next to each class name, and the per-class Pull Sheet button moved into the handout (open a class's handout and use its Pull sheet tab to view or print the pull sheet).
+
+- date: 2026-06-25
+  note: Consistent wording on the recipe pages. A handout is the printable packet for a class (it can hold more than one recipe), so the editor header reads "Review the handout" and its first tab is "Recipes". Nothing changed about how it works.
 
 - date: 2026-06-25
   note: The estimated grocery total on a week's orange Grocery list card now appears once you have opened that week's grocery list (it is no longer figured automatically in the background). Open the grocery list for a week and the total shows on the card from then on.
