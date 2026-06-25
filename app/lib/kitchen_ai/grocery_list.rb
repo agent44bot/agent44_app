@@ -1,7 +1,7 @@
 # Builds (or fetches from cache) the consolidated grocery list for a set of
 # KitchenEvents, and the per-week estimated total. Shared by the grocery page,
-# the per-class pull sheet, the week-card total, and the background warm job
-# (GroceryListWarmJob) so they all hit the SAME cache key.
+# the per-class pull sheet, and the week-card total, so they all hit the SAME
+# cache key.
 #
 # Stateless math (tag/headcount/stations/cache_key) lives in class methods; an
 # instance memoizes the handouts map + observed prices for one request/job, so
@@ -9,9 +9,6 @@
 module KitchenAi
   class GroceryList
     CACHE_TTL  = 14.days
-    # How long an enqueued warm "holds the slot" so concurrent list loads don't
-    # pile up duplicate jobs (and double-bill Opus) before the first finishes.
-    WARM_LOCK_TTL = 10.minutes
 
     class << self
       # People to cook for; fall back to 0 so the class still appears (flagged)
@@ -119,17 +116,6 @@ module KitchenAi
       return nil if wr.empty?
       result, = fetch(wr, write: false)
       self.class.total_for(result)
-    end
-
-    # Enqueue a background warm for this recipe set unless one is already queued
-    # (a short-lived lock keyed by the cache key dedups concurrent list loads).
-    # No-op for an empty set. Returns true if a job was enqueued.
-    def warm_async(from, to, with_recipe)
-      return false if with_recipe.empty?
-      lock = "#{self.class.cache_key(with_recipe, observed_prices)}:warming"
-      return false unless Rails.cache.write(lock, true, expires_in: WARM_LOCK_TTL, unless_exist: true)
-      GroceryListWarmJob.perform_later(from.to_s, to.to_s)
-      true
     end
   end
 end
