@@ -12,6 +12,9 @@
   note: The Recipe Library now filters as you type, like the class list. Start typing a recipe name or an ingredient (such as ginger) and the list narrows instantly, with no Search button and no page reload.
 
 - date: 2026-06-25
+  note: Clearer wording on the recipe pages. The page you build and edit is now called a recipe (the header reads "Review the recipe"), and "handout" now means just the printed packet you give the class. Nothing changed about how it works.
+
+- date: 2026-06-25
   note: The estimated grocery total on a week's orange Grocery list card now appears once you have opened that week's grocery list (it is no longer figured automatically in the background). Open the grocery list for a week and the total shows on the card from then on.
 
 - date: 2026-06-23
