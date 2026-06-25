@@ -63,21 +63,17 @@ class KitchenController < ApplicationController
                                            .group_by(&:week_start).transform_values(&:first)
     load_events_data
     # Estimated grocery $ total per week for the orange "Grocery list" card.
-    # Read from cache ONLY (never bills Opus on a list render). When a week has
-    # recipes but no cached list yet, kick off a background warm so the figure
-    # appears on the next load instead of only after someone opens the grocery
-    # page.
+    # Read from cache ONLY (never bills Opus on a list render). The figure
+    # appears once someone has opened that week's grocery page (which builds +
+    # caches the list); we never warm it in the background, so Opus is billed
+    # only on an explicit grocery-page visit.
     svc = grocery_list_service
     @grocery_total_by_week_start = {}
     @weeks.each do |w|
       wr = svc.with_recipe(w[:events])
       next if wr.empty?
       result, cached = svc.fetch(wr, write: false)
-      if cached
-        @grocery_total_by_week_start[w[:start]] = KitchenAi::GroceryList.total_for(result)
-      else
-        svc.warm_async(w[:start], w[:end], wr)
-      end
+      @grocery_total_by_week_start[w[:start]] = KitchenAi::GroceryList.total_for(result) if cached
     end
     render "admin/kitchen/list", layout: "application"
   end
@@ -931,8 +927,7 @@ class KitchenController < ApplicationController
   end
 
   # The grocery list service for this request (memoizes the handouts map +
-  # observed prices so the list page can total every week cheaply). Shared with
-  # GroceryListWarmJob so they hit the same cache key.
+  # observed prices so the list page can total every week cheaply).
   def grocery_list_service
     @grocery_list_service ||= KitchenAi::GroceryList.new(user: Current.user)
   end
