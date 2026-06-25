@@ -42,6 +42,20 @@ class KitchenHandout < ApplicationRecord
     Array(data["recipes"])
   end
 
+  # Flattened, lowercased text for the library's live (client-side) filter:
+  # packet title plus every recipe title, ingredient, and direction step. Mirrors
+  # the SQL `search` scope above (title + JSON data) so typing "ginger" filters
+  # to packets that use it, with no server round-trip.
+  def search_text
+    parts = [ title ]
+    recipes.each do |r|
+      parts << r["title"]
+      Array(r["ingredients"]).each { |i| parts << i["item"] }
+      Array(r["directions"]).each { |d| parts.concat(Array(d["steps"])) }
+    end
+    parts.compact.join(" ").downcase
+  end
+
   # What the Opus extraction cost, as a short dollar string ("$0.04"), or nil
   # when unknown (older handouts / reused packets that skipped extraction).
   def extract_cost_label

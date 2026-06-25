@@ -41,6 +41,20 @@ class KitchenHandoutTest < ActiveSupport::TestCase
     assert_equal 0, KitchenHandout.search("%").count
   end
 
+  test "search_text flattens title, ingredients, and steps, lowercased" do
+    handout = KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => [
+      { "title" => "Cherry Sauce",
+        "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Cherry tomatoes", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Simmer the tomatoes." ] } ] }
+    ] })
+    text = handout.search_text
+    assert_includes text, "fresh pasta"
+    assert_includes text, "cherry sauce"
+    assert_includes text, "cherry tomatoes"
+    assert_includes text, "simmer the tomatoes."
+    assert_equal text, text.downcase
+  end
+
   test "equipment reads and writes the data list, preserving recipes" do
     h = make("Pasta")
     assert_equal [], h.equipment
