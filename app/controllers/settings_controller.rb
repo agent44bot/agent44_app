@@ -23,6 +23,31 @@ class SettingsController < ApplicationController
     end
   end
 
+  # Upload or remove the user's profile photo. Multipart form; remove_avatar=1
+  # purges. On an invalid file we purge the just-attached blob so we never
+  # persist a bad image (attach saves immediately on a persisted record).
+  def update_avatar
+    user = Current.user
+    return redirect_to(root_path) unless user
+
+    if params[:remove_avatar] == "1"
+      user.avatar.purge
+      return redirect_to settings_path, notice: "Profile photo removed."
+    end
+
+    if params[:avatar].blank?
+      return redirect_to settings_path, alert: "Choose an image to upload."
+    end
+
+    user.avatar.attach(params[:avatar])
+    if user.valid?
+      redirect_to settings_path, notice: "Profile photo updated."
+    else
+      user.avatar.purge
+      redirect_to settings_path, alert: user.errors.full_messages.first || "Couldn't update photo."
+    end
+  end
+
   # Per-platform push toggles plus per-workspace push opt-outs. The form sends
   # an explicit "1"/"0" for each via check_box's hidden fallback, so a
   # missing/unchecked box reads as off.

@@ -24,6 +24,14 @@ class User < ApplicationRecord
   has_many :authored_workspace_posts, class_name: "WorkspacePost", foreign_key: :author_id, dependent: :destroy
   has_many :authored_workspace_drafts, class_name: "WorkspaceDraft", foreign_key: :author_id, dependent: :destroy
 
+  # Profile photo. Mirrors Workspace#logo (served as the original blob, sized
+  # with CSS) so there's no image-processing variant dependency. has_one_attached
+  # auto-purges on destroy, so the Apple delete-account flow stays intact.
+  has_one_attached :avatar
+
+  AVATAR_TYPES = %w[image/png image/jpeg image/webp].freeze
+  AVATAR_MAX_BYTES = 5.megabytes
+
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validates :email_address, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_nil: true
@@ -32,6 +40,7 @@ class User < ApplicationRecord
   validates :pubkey_hex, uniqueness: true, format: { with: /\A[0-9a-f]{64}\z/ }, allow_nil: true
   validates :npub, uniqueness: true, allow_nil: true
   validate :has_auth_method
+  validate :acceptable_avatar
 
   before_validation :derive_npub_from_pubkey, if: -> { pubkey_hex.present? && npub.blank? }
   before_create :generate_email_verification_token, if: -> { email_address.present? }
@@ -106,7 +115,43 @@ class User < ApplicationRecord
     "#{npub[0..8]}...#{npub[-4..]}"
   end
 
+  # One or two uppercase letters for the initials fallback shown when no avatar
+  # is uploaded. Two letters when there's a multi-word display name, else one.
+  def avatar_initials
+    src = display_name.presence || email_address.presence || "?"
+    parts = src.split(/\s+/)
+    letters = parts.size >= 2 ? "#{parts[0][0]}#{parts[1][0]}" : src[0, 1]
+    letters.to_s.upcase
+  end
+
+  # Deterministic color for the initials fallback. Literal Tailwind classes so
+  # the scanner picks them up (same approach as Agent's avatar palette).
+  AVATAR_PALETTE = [
+    "bg-orange-600 text-white",
+    "bg-emerald-600 text-white",
+    "bg-sky-600 text-white",
+    "bg-violet-600 text-white",
+    "bg-rose-600 text-white",
+    "bg-amber-600 text-white",
+    "bg-teal-600 text-white",
+    "bg-blue-600 text-white"
+  ].freeze
+
+  def avatar_color_classes
+    AVATAR_PALETTE[id.to_i % AVATAR_PALETTE.size]
+  end
+
   private
+
+  def acceptable_avatar
+    return unless avatar.attached?
+    unless avatar.blob.content_type.in?(AVATAR_TYPES)
+      errors.add(:avatar, "must be a PNG, JPEG, or WebP image")
+    end
+    if avatar.blob.byte_size > AVATAR_MAX_BYTES
+      errors.add(:avatar, "must be 5 MB or smaller")
+    end
+  end
 
   def derive_npub_from_pubkey
     entity = Bech32::Nostr::BareEntity.new("npub", pubkey_hex)

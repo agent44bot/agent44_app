@@ -14,6 +14,15 @@ class WorkspacesController < ApplicationController
     if @workspaces.size == 1 && !current_user.admin? && params[:force].blank?
       redirect_to workspace_path(@workspaces.first.slug) and return
     end
+
+    # Real member avatars for the header stack: the current user first, then a
+    # few distinct teammates from their workspaces. Preload avatar attachments
+    # to avoid an N+1. Falls back to initials per user (see user_avatar_tag).
+    teammates = User.where(id: WorkspaceMembership.where(workspace_id: @workspaces.map(&:id))
+                                                  .where.not(user_id: current_user.id)
+                                                  .select(:user_id))
+                    .with_attached_avatar.order(:id)
+    @team_avatars = ([ current_user ] + teammates.to_a).uniq.first(3)
   end
 
   def new

@@ -51,6 +51,7 @@ Rails.application.routes.draw do
     post  :verify_password
     patch :update_email
     patch :update_name
+    patch :update_avatar
     patch :update_notifications
   end
   get "email_verification", to: "email_verifications#show", as: :email_verification

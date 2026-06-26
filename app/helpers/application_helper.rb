@@ -11,6 +11,23 @@ module ApplicationHelper
     link_to label, path, class: BACK_BUTTON_CLASSES
   end
 
+  # Renders a user's round avatar: the uploaded photo if present, otherwise a
+  # colored initials circle. `size` is the Tailwind h/w pair (e.g. "h-9 w-9")
+  # and `ring` the separator ring (defaults to the gray-950 page bg used in
+  # overlapping stacks). Pass ring: "" to drop it.
+  def user_avatar_tag(user, size: "h-9 w-9", ring: "ring-2 ring-gray-950", extra: "")
+    base = "#{size} rounded-full shrink-0 #{ring} #{extra}".strip
+    if user.avatar.attached?
+      image_tag user.avatar, alt: user.display_identifier, loading: "lazy",
+                class: "#{base} object-cover bg-gray-800"
+    else
+      content_tag :span, user.avatar_initials,
+        class: "#{base} #{user.avatar_color_classes} inline-flex items-center justify-center " \
+               "text-xs font-semibold uppercase select-none leading-none",
+        title: user.display_identifier
+    end
+  end
+
   # Returns the path only if it's a safe SAME-ORIGIN path (a single leading
   # "/", not "//" or "/\" which browsers treat as protocol-relative / a host).
   # Used to honor a ?return_to= without opening a redirect to another site.

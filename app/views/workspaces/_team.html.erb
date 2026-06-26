@@ -16,14 +16,17 @@
   <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Members</h2>
   <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
     <% memberships.each do |m| %>
-      <div class="flex items-center justify-between px-4 py-3">
-        <div class="min-w-0">
-          <p class="text-sm text-white truncate"><%= m.user.display_identifier %></p>
-          <% if m.user.email_address.present? %>
-            <p class="text-xs text-gray-500 truncate"><%= m.user.email_address %></p>
-          <% end %>
+      <div class="flex items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <%= user_avatar_tag m.user, size: "h-8 w-8", ring: "" %>
+          <div class="min-w-0">
+            <p class="text-sm text-white truncate"><%= m.user.display_identifier %></p>
+            <% if m.user.email_address.present? %>
+              <p class="text-xs text-gray-500 truncate"><%= m.user.email_address %></p>
+            <% end %>
+          </div>
         </div>
-        <span class="text-xs uppercase tracking-wide text-gray-400"><%= m.role %></span>
+        <span class="text-xs uppercase tracking-wide text-gray-400 shrink-0"><%= m.role %></span>
       </div>
     <% end %>
   </div>

@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-26
+  note: You can now add a profile photo on your Settings page. Your photo (or your initials if you skip it) shows next to your name in the workspace member list and in the team row at the top of the Workspaces page.
+
+- date: 2026-06-26
   note: Grocery price estimates are now hidden by default until real prices are uploaded. A new toggle (Show grocery price estimates) right on the grocery list page lets a manager turn the rough dollar figures back on whenever you want them.
 
 - date: 2026-06-26
