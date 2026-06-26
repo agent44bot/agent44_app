@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+# bin/preview — boot THIS worktree's branch on :3001 so you can A/B a PR branch
+# (localhost:3001) against main (localhost:3000) before merging.
+#
+# The gotcha this solves: every git worktree has its own, empty
+# storage/development.sqlite3, so a naively-booted branch server shows your new
+# code against a blank DB. By default this symlinks the branch's dev DB to the
+# MAIN tree's real data, so :3001 looks like :3000 but with the branch's code.
+#
+# Usage (from inside a branch worktree):
+#   bin/preview                 # :3001, sharing main's dev data
+#   PORT=3002 bin/preview       # different port
+#   OWN_DB=1 bin/preview        # isolated DB seeded from db/seeds (for schema-change branches)
+set -e
+
+PORT="${PORT:-3001}"
+
+# The main worktree is the first entry in `git worktree list`; its storage/ holds
+# the real dev DB you see on :3000.
+MAIN_TREE="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+HERE="$(git rev-parse --show-toplevel)"
+MAIN_DB="$MAIN_TREE/storage/development.sqlite3"
+BRANCH="$(git branch --show-current)"
+
+if [ "$HERE" = "$MAIN_TREE" ]; then
+  echo "preview: you're in the main tree, so there's no branch to preview." >&2
+  echo "         Run plain 'bin/dev' here; use 'bin/preview' from a branch worktree." >&2
+  exit 1
+fi
+
+if [ "${OWN_DB:-0}" = "1" ]; then
+  echo "preview: preparing this worktree's OWN dev DB (isolated from main)..."
+  bin/rails db:prepare >/dev/null
+else
+  echo "preview: sharing main's dev data ($MAIN_DB)"
+  ln -sf "$MAIN_DB" "$HERE/storage/development.sqlite3"
+  # A branch with unmigrated migrations is the one case sharing breaks: running
+  # them would mutate the main :3000 DB. Warn instead of migrating.
+  if ! bin/rails db:abort_if_pending_migrations >/dev/null 2>&1; then
+    echo "preview: WARNING this branch has pending migrations." >&2
+    echo "         Migrating now would alter your main :3000 data." >&2
+    echo "         Re-run with: OWN_DB=1 bin/preview  (isolated, seeded DB)." >&2
+  fi
+fi
+
+echo "preview: booting '$BRANCH' on http://localhost:$PORT  (main stays on :3000)"
+exec env PORT="$PORT" bin/dev

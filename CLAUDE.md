@@ -16,6 +16,19 @@
 - Do not merge a PR yourself unless the owner explicitly says to; open it,
   wait for checks, and report.
 
+## Local branch previews — test a PR before merge
+
+- **`bin/preview` boots the current worktree's branch on `:3001`** (main stays
+  on `:3000`), so the owner can A/B the branch against main before merging.
+- By default it symlinks the worktree's `storage/development.sqlite3` to the
+  **main tree's** real dev data, so `:3001` looks like `:3000` but with the
+  branch's code. This sidesteps the gotcha that every worktree gets its own
+  empty dev DB.
+- **Schema-change branches**: don't share the DB (migrating it mutates the
+  main `:3000` data). Use `OWN_DB=1 bin/preview` for an isolated seeded DB.
+- When you open a PR worth eyeballing, boot it in the background and hand the
+  owner the `http://localhost:3001` link.
+
 ## House rules (for any agent touching this code, incl. PR review)
 
 - **`Current.user`, never `Current.session.user`.** The session user is the
