@@ -12,6 +12,9 @@
   note: Grocery price estimates are now hidden by default until real prices are uploaded. A new toggle (Show grocery price estimates) right on the grocery list page lets a manager turn the rough dollar figures back on whenever you want them.
 
 - date: 2026-06-26
+  note: The daily NY Kitchen email now has an Android (Google Play) button next to the iOS one, so the team can open the app on Android too (early access for now).
+
+- date: 2026-06-26
   note: Recipe handouts are now called Class packets. A packet holds everything for one class (its recipes, the equipment to set up at each station, and the pull sheet). The editor now has three tabs (Recipes, Equipment Items, Pull sheet), and Recipes and Pull sheet each print. You still create one from a class on Sam's list (tap Add). Old recipe links still work.
 
 - date: 2026-06-25
