@@ -182,6 +182,7 @@ Rails.application.routes.draw do
       get  :social
       post :refresh_metrics
       post :toggle_pricing
+      post :toggle_grocery_prices
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]

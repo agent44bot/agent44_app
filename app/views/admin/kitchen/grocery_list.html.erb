@@ -112,7 +112,7 @@
               <span class="flex-1 min-w-0">
                 <%= it["item"] %>
                 <%# Pull sheet (single class) is for the cook line: no prices. %>
-                <% if !single && it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
+                <% if @show_grocery_prices && !single && it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
               </span>
               <%# Which classes need this item. Capped + wrapping so a long tag
                   list wraps inside the sheet instead of overflowing the edge.
@@ -162,7 +162,7 @@
           </ul>
         <% end %>
       <% end %>
-      <% if !single && est_total > 0 %>
+      <% if @show_grocery_prices && !single && est_total > 0 %>
         <div class="mt-5 pt-3 border-t-2 border-gray-900 flex items-baseline justify-between">
           <span class="text-base font-extrabold">Estimated total</span>
           <span class="text-lg font-extrabold"><%= format("$%.2f", est_total) %></span>

@@ -22,6 +22,11 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     travel_to Time.zone.local(2026, 6, 17, 12, 0)
     @user = User.create!(email_address: "groc-#{SecureRandom.hex(4)}@example.com", role: "admin")
     sign_in_as(@user)
+    # Grocery price estimates are hidden by default until real prices are
+    # uploaded; flip the workspace toggle on so the existing price-display
+    # assertions below exercise the visible path. A dedicated test covers off.
+    @nyk = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @user }
+    @nyk.update!(show_grocery_prices: true)
     @snap = KitchenSnapshot.create!(taken_on: Date.current)
     @agg_calls = 0
     KitchenAi::GroceryAggregator.stub = lambda do |items:|
@@ -272,6 +277,16 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_match "Estimated total", response.body
   end
 
+  test "hides per-item prices and the estimated total when the toggle is off" do
+    @nyk.update!(show_grocery_prices: false)
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME
+    assert_response :success
+    assert_match "Flour", response.body                # items still show
+    assert_no_match(/~\$4\.50/, response.body)         # no per-item price
+    assert_no_match(/Estimated total/, response.body)  # no total
+  end
+
   # --- Week card estimated total (read from cache, never re-bills) -----------
 
   test "the week grocery card shows the estimated total once the list is built" do
@@ -297,6 +312,22 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match "est. total", response.body
     assert_equal 0, @agg_calls, "a cold list render never calls the aggregator"
+  end
+
+  test "the week grocery card omits the total when the toggle is off, even if cached" do
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    @nyk.update!(show_grocery_prices: false)
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    # Warm the cache so a total exists; the card must still hide it.
+    get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME
+    assert_equal 1, @agg_calls
+
+    get nyk_list_path
+    assert_response :success
+    assert_no_match "est. total", response.body
+  ensure
+    Rails.cache = original
   end
 
   # --- Click-only billing: the card total appears only after a grocery visit ---

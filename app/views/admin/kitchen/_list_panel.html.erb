@@ -119,13 +119,14 @@
                   </span>
                   <%# Estimated grocery $ total across the week's classes. Only
                       shows once the list has been built (read from cache). %>
-                  <% if grocery_total && grocery_total > 0 %>
+                  <% show_est = @show_grocery_prices && grocery_total && grocery_total > 0 %>
+                  <% if show_est %>
                     <span class="ml-auto shrink-0 text-right leading-tight">
                       <span class="block text-base font-extrabold text-orange-200">~<%= number_to_currency(grocery_total, precision: 0) %></span>
                       <span class="block text-[10px] uppercase tracking-wide text-orange-300/60">est. total</span>
                     </span>
                   <% end %>
-                  <svg class="w-5 h-5 text-orange-400/60 <%= grocery_total && grocery_total > 0 ? "ml-2" : "ml-auto" %> shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 text-orange-400/60 <%= show_est ? "ml-2" : "ml-auto" %> shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                   </svg>
                 <% end %>
