@@ -94,6 +94,33 @@
     <% end %>
   </section>
 
+  <% if workspace.slug == "nykitchen" && %w[owner admin].include?(my_role) %>
+    <% grocery_prices_on = workspace.show_grocery_prices? %>
+    <section class="mb-10">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Workspace settings</h2>
+      <div class="space-y-2">
+        <div class="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div class="min-w-0">
+            <p class="text-sm text-white">Show grocery price estimates</p>
+            <p class="text-xs text-gray-500 mt-0.5">When on, the grocery list shows rough dollar estimates. Keep off until real prices are uploaded.</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs font-semibold uppercase <%= grocery_prices_on ? 'text-gray-500' : 'text-gray-300' %>">Off</span>
+            <%= button_to toggle_grocery_prices_workspace_path(workspace.slug),
+                  method: :post,
+                  form_class: "inline-flex",
+                  data: { test: "grocery-prices-toggle" },
+                  aria: { label: "Show grocery price estimates", checked: grocery_prices_on.to_s },
+                  class: "relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer #{grocery_prices_on ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}" do %>
+              <span class="absolute inline-block h-5 w-5 rounded-full bg-white shadow transition transform <%= grocery_prices_on ? 'translate-x-5' : 'translate-x-0.5' %>"></span>
+            <% end %>
+            <span class="text-xs font-semibold uppercase <%= grocery_prices_on ? 'text-green-400' : 'text-gray-500' %>">On</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
   <% if Current.user&.admin? %>
     <% billing_on = workspace.pricing_visible_to_members? %>
     <section class="mb-10">

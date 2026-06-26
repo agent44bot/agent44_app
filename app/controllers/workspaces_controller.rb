@@ -1,7 +1,7 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing ]
+  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices ]
   before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
-  before_action :require_admin,     only: [ :update ]
+  before_action :require_admin,     only: [ :update, :toggle_grocery_prices ]
   before_action :require_owner,     only: [ :destroy ]
   before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
   def index
@@ -54,6 +54,16 @@ class WorkspacesController < ApplicationController
     state = @workspace.pricing_visible_to_members? ? "shown to members" : "hidden from members"
     redirect_back fallback_location: workspace_path(@workspace.slug),
                   notice: "Pricing #{state}."
+  end
+
+  # Workspace-manager toggle: flips whether grocery price estimates show on
+  # the NY Kitchen grocery list and Sam's list card. Default off until real
+  # price data is uploaded; the rough US-average estimates aren't customer-ready.
+  def toggle_grocery_prices
+    @workspace.update!(show_grocery_prices: !@workspace.show_grocery_prices)
+    state = @workspace.show_grocery_prices? ? "shown" : "hidden"
+    redirect_back fallback_location: workspace_path(@workspace.slug),
+                  notice: "Grocery price estimates #{state}."
   end
 
   # Manual one-click refresh for the metrics row under Recent posts.
