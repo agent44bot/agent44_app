@@ -43,5 +43,12 @@ else
   fi
 fi
 
+# Build CSS once (picks up any new Tailwind classes on the branch) and boot
+# Puma directly. We skip foreman/bin/dev on purpose: its Tailwind WATCH process
+# exits immediately here, and foreman kills the web server when any process
+# exits. A preview is for eyeballing, not active editing, so a one-shot CSS
+# build is enough; re-run bin/preview after further edits.
+echo "preview: building CSS for '$BRANCH'..."
+bin/rails tailwindcss:build >/dev/null 2>&1 || echo "preview: (CSS build skipped/failed; styles may be stale)" >&2
 echo "preview: booting '$BRANCH' on http://localhost:$PORT  (main stays on :3000)"
-exec env PORT="$PORT" bin/dev
+exec bin/rails server -p "$PORT"
