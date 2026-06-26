@@ -1,15 +1,28 @@
 <% content_for :title, "Workspaces" %>
 
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex items-center justify-between gap-4 mb-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Workspaces</h1>
       <p class="text-sm text-gray-400 mt-1">Each workspace brings a team together with agent helpers to get the work done.</p>
     </div>
-    <% if Current.user.admin? %>
-      <%= link_to "New workspace", new_workspace_path,
-          class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
-    <% end %>
+    <div class="flex items-center gap-4 shrink-0">
+      <%# Decorative: a teammate + an agent helper, illustrating the subtitle. %>
+      <div class="flex -space-x-2">
+        <%= image_tag "avatars/human.png", alt: "Teammate", loading: "lazy",
+              class: "h-9 w-9 rounded-full object-cover ring-2 ring-gray-950" %>
+        <%= image_tag "avatars/human2.png", alt: "Teammate", loading: "lazy",
+              class: "h-9 w-9 rounded-full object-cover ring-2 ring-gray-950" %>
+        <%= image_tag "avatars/human3.png", alt: "Teammate", loading: "lazy",
+              class: "h-9 w-9 rounded-full object-cover ring-2 ring-gray-950" %>
+        <%= image_tag "avatars/bot.png", alt: "Agent helper", loading: "lazy",
+              class: "h-9 w-9 rounded-full object-cover bg-gray-900 ring-2 ring-orange-500/80" %>
+      </div>
+      <% if Current.user.admin? %>
+        <%= link_to "New workspace", new_workspace_path,
+            class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold" %>
+      <% end %>
+    </div>
   </div>
 
   <% if @workspaces.empty? %>
