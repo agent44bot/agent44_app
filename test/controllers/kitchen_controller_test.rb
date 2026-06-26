@@ -116,7 +116,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
   test "the current week's grocery button pulls the full Mon-Sun range" do
     create_event("Pasta 101", 1.hour.from_now, "InStock")
-    KitchenHandout.create!(title: "Pasta 101", data: { "recipes" => [
+    KitchenPacket.create!(title: "Pasta 101", data: { "recipes" => [
       { "title" => "Pasta",
         "ingredients" => [ { "qty" => "1 c", "station_qty" => "1/2 c", "item" => "Flour", "section" => nil } ],
         "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ] })

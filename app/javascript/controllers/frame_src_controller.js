@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Drives the handout Pull sheet tab's embedded #grocery_list frame.
+// Drives the packet Pull sheet tab's embedded #grocery_list frame.
 //
 // The frame ships with no src so nothing loads (no paid aggregation) until the
 // tab is opened. Opening the tab calls reload(): the first open sets the src;

@@ -5,13 +5,13 @@
     rows are dropped on save. %>
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
   <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
-  <h1 class="text-2xl font-bold text-white mb-1">Review the handout</h1>
-  <% if @handout.extract_cost_cents.present? %>
+  <h1 class="text-2xl font-bold text-white mb-1">Review the packet</h1>
+  <% if @packet.extract_cost_cents.present? %>
     <p class="text-xs text-gray-500 mb-2">
-      Built with the Opus model<span class="text-gray-400 font-medium"><%= @handout.extract_cost_label %></span>.
+      Built with the Opus model<span class="text-gray-400 font-medium"><%= @packet.extract_cost_label %></span>.
     </p>
   <% end %>
-  <% linked_count = @handout.links.count %>
+  <% linked_count = @packet.links.count %>
   <% if linked_count > 1 %>
     <div class="mb-6 flex items-start gap-2 rounded-lg bg-amber-900/20 border border-amber-800/60 px-3 py-2">
       <span class="text-sm leading-none mt-0.5">🔗</span>
@@ -27,16 +27,19 @@
   <div data-controller="tabs frame-src"
        data-tabs-active-classes-value="bg-orange-600 text-white shadow"
        data-tabs-inactive-classes-value="text-gray-400 hover:text-white">
-    <%# Segmented control so the two tabs read clearly as a toggle, with the
-        active tab filled. %>
+    <%# Segmented control with three tabs. Recipes and Pull sheet each produce a
+        printout (🖨); Equipment Items has no icon since it prints on the pull
+        sheet, not on its own. %>
     <nav class="inline-flex gap-1 p-1 mb-6 rounded-lg bg-gray-900 border border-gray-700">
       <button type="button" data-tabs-target="tab" data-action="click->tabs#select" data-tab-index="0" data-tab-name="recipe"
-              class="px-5 py-2 rounded-md font-semibold text-sm cursor-pointer transition">Recipes</button>
+              class="px-5 py-2 rounded-md font-semibold text-sm cursor-pointer transition">🖨 Recipes</button>
+      <button type="button" data-tabs-target="tab" data-action="click->tabs#select" data-tab-index="1" data-tab-name="equipment"
+              class="px-5 py-2 rounded-md font-semibold text-sm cursor-pointer transition">Equipment Items</button>
       <%# Reload the embedded pull sheet on every open so equipment edits (which
           auto-save without a page reload) and saved recipe changes show. A
           reload is cache-cheap unless the recipe's ingredients changed. %>
-      <button type="button" data-tabs-target="tab" data-action="click->tabs#select click->frame-src#reload" data-tab-index="1" data-tab-name="pull"
-              class="px-5 py-2 rounded-md font-semibold text-sm cursor-pointer transition">Pull sheet</button>
+      <button type="button" data-tabs-target="tab" data-action="click->tabs#select click->frame-src#reload" data-tab-index="2" data-tab-name="pull"
+              class="px-5 py-2 rounded-md font-semibold text-sm cursor-pointer transition">🖨 Pull sheet</button>
     </nav>
 
     <div data-tabs-target="panel">
@@ -46,74 +49,45 @@
   <div data-controller="form-spinner" data-form-spinner-message-value="Revising the recipes with AI…" class="mb-8 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
     <h2 class="text-sm font-semibold text-purple-200 mb-1">✨ Ask AI to revise these recipes</h2>
     <p class="text-xs text-purple-200/70 mb-3">Describe the change in your own words (for example: "Split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared sushi rice"). The AI rewrites the recipes below for you to review and save.</p>
-    <%= form_with url: regenerate_nyk_handout_path(@handout), method: :post, data: { action: "form-spinner#show" } do %>
+    <%= form_with url: regenerate_nyk_packet_path(@packet), method: :post, data: { action: "form-spinner#show" } do %>
       <%= text_area_tag :instruction, nil, rows: 2, placeholder: "What should change?",
             class: "w-full rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-3 py-2 mb-2 focus:border-purple-500 focus:outline-none" %>
       <div class="flex items-center gap-3 flex-wrap">
         <%= submit_tag "✨ Revise with AI", class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
-        <% if @handout.links.count > 1 %>
-          <span class="text-xs text-amber-300/80">This recipe is shared by <%= pluralize(@handout.links.count, "class") %>, so the rewrite updates all of them.</span>
+        <% if @packet.links.count > 1 %>
+          <span class="text-xs text-amber-300/80">This recipe is shared by <%= pluralize(@packet.links.count, "class") %>, so the rewrite updates all of them.</span>
         <% end %>
       </div>
     <% end %>
   </div>
 
   <%# The editable recipe form, full width. %>
-  <%= form_with url: nyk_handout_path(@handout), method: :patch do |f| %>
+  <%= form_with url: nyk_packet_path(@packet), method: :patch do |f| %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
       <div>
         <label class="block text-sm font-semibold text-gray-300 mb-1">Recipe title</label>
-        <%= text_field_tag :title, @handout.title, class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+        <%= text_field_tag :title, @packet.title, class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
       </div>
       <div>
         <label class="block text-sm font-semibold text-gray-300 mb-1">Scaled column label</label>
-        <%= text_field_tag :station_label, @handout.station_label, class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+        <%= text_field_tag :station_label, @packet.station_label, class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
       </div>
     </div>
 
-    <div class="mb-8" data-controller="equipment-tags"
-         data-equipment-tags-catalog-value="<%= @equipment_catalog.to_json %>"
-         data-equipment-tags-selected-value="<%= @handout.equipment.to_json %>"
-         data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>"
-         data-equipment-tags-save-url-value="<%= nyk_handout_equipment_path(@handout) %>">
-      <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment to set up at each station</label>
-      <p class="text-xs text-gray-500 mb-3">Tap a tag to add it to this recipe; tap an added one to remove it. Equipment changes save automatically. Type to highlight matching tags. New items become reusable tags; tap a tag's minus to delete it from the list for good. Prints on the class pull sheet as a per-station setup checklist.</p>
-
-      <%# Items attached to this recipe. %>
-      <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
-
-      <%# Add a brand-new item (also becomes a reusable tag). %>
-      <div class="flex gap-2 mb-4">
-        <input type="text" data-equipment-tags-target="input"
-               data-action="keydown.enter->equipment-tags#addNew input->equipment-tags#filter"
-               placeholder="Add equipment (e.g. cast iron skillet)"
-               class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none">
-        <%= button_tag "Add", type: "button", data: { action: "equipment-tags#addNew" },
-              class: "shrink-0 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold cursor-pointer" %>
-      </div>
-
-      <%# The reusable palette: tap to add. %>
-      <p class="text-xs text-gray-500 mb-1" data-equipment-tags-target="paletteLabel">Tap to add:</p>
-      <div data-equipment-tags-target="catalog" class="flex flex-wrap gap-2"></div>
-
-      <%# Source of truth for the form post; kept in sync by the controller. %>
-      <textarea name="equipment" data-equipment-tags-target="field" class="hidden"></textarea>
-    </div>
-
-    <% @handout.recipes.each_with_index do |recipe, ri| %>
+    <% @packet.recipes.each_with_index do |recipe, ri| %>
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Recipe <%= ri + 1 %></label>
         <div class="flex gap-3 mb-4">
           <%= text_field_tag "recipes[#{ri}][title]", recipe["title"], class: "flex-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-white font-semibold text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
           <%# Per-recipe headcount: how many this recipe is portioned for. Each
-              recipe can carry its own (e.g. 1, 2, 3). Prints on the handout. %>
+              recipe can carry its own (e.g. 1, 2, 3). Prints on the recipe. %>
           <%= number_field_tag "recipes[#{ri}][headcount]", recipe["headcount"], min: 0, placeholder: "Headcount", "aria-label": "Headcount", class: "w-28 sm:w-32 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
         </div>
 
         <%# Column header only makes sense beside the 4-up desktop grid; on mobile
             each field is full-width with its own placeholder, so hide it there. %>
         <div class="hidden sm:grid grid-cols-[1fr_1fr_2fr_1fr] gap-2 text-xs font-semibold text-gray-500 mb-1 px-1">
-          <span>Full amount</span><span class="text-amber-400"><%= @handout.station_label %> *</span><span>Ingredient</span><span>Sub-heading</span>
+          <span>Full amount</span><span class="text-amber-400"><%= @packet.station_label %> *</span><span>Ingredient</span><span>Sub-heading</span>
         </div>
         <% rows = Array(recipe["ingredients"]) + Array.new(3) { {} } %>
         <% rows.each_with_index do |ing, ii| %>
@@ -122,7 +96,7 @@
               inputs shrink so nothing overflows off-screen. %>
           <div class="grid grid-cols-2 sm:grid-cols-[1fr_1fr_2fr_1fr] gap-2 mb-1.5">
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][qty]", KitchenUnits.standardize(ing["qty"]), placeholder: "Full amount", class: "min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
-            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", KitchenUnits.standardize(ing["station_qty"]), placeholder: @handout.station_label, class: "min-w-0 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
+            <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", KitchenUnits.standardize(ing["station_qty"]), placeholder: @packet.station_label, class: "min-w-0 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][item]", IngredientText.normalize(ing["item"]), placeholder: "Ingredient", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][section]", ing["section"], placeholder: "Sub-heading", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
           </div>
@@ -139,13 +113,13 @@
       </div>
     <% end %>
 
-    <p class="text-xs text-amber-400/80 mb-4">* The <%= @handout.station_label.downcase %> amounts were proposed by the agent. Please double-check them, especially ranges and "to taste" lines.</p>
+    <p class="text-xs text-amber-400/80 mb-4">* The <%= @packet.station_label.downcase %> amounts were proposed by the agent. Please double-check them, especially ranges and "to taste" lines.</p>
 
     <div class="flex items-center gap-3 flex-wrap">
       <%= submit_tag "Save & refresh preview", class: "px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" %>
-      <%= link_to print_nyk_handout_path(@handout), target: "_blank", rel: "noopener",
+      <%= link_to print_nyk_packet_path(@packet), target: "_blank", rel: "noopener",
             class: "px-5 py-2.5 rounded-lg border border-emerald-600 text-emerald-300 hover:bg-emerald-600/10 font-semibold" do %>
-        🖨 Print handout
+        🖨 Print recipes
       <% end %>
       <%= link_to "Done, back to schedule", nyk_list_path, class: "text-sm text-gray-400 hover:text-gray-200" %>
     </div>
@@ -155,11 +129,11 @@
       Reused packets are per-class copies, so this normally affects one class.
       A packet shared across runs of the same class (linked_count > 1, see the
       banner above) is the exception, so warn with the count when it's shared. %>
-  <%= button_to "Remove recipe from this class", nyk_handout_path(@handout), method: :delete,
+  <%= button_to "Delete this packet", nyk_packet_path(@packet), method: :delete,
         form: { class: "mt-4" },
         data: { turbo_confirm: linked_count > 1 ?
-          "Heads up: this recipe is shared by #{pluralize(linked_count, 'class')}. Deleting it removes the recipe from all of them. Continue?" :
-          "Remove this recipe from the class? This deletes the recipe and cannot be undone." },
+          "Heads up: this packet is shared by #{pluralize(linked_count, 'class')}. Deleting it removes it from all of them. Continue?" :
+          "Delete this packet? This cannot be undone." },
         class: "text-sm text-red-400 hover:text-red-300 cursor-pointer" %>
 
   <%# Full-width PDF preview below the form: this is the exact file that prints. %>
@@ -167,8 +141,8 @@
     <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
       <span class="text-sm font-semibold text-gray-300">PDF preview</span>
       <div class="flex items-center gap-4">
-        <%= link_to "Open print page", print_nyk_handout_path(@handout), class: "text-sm text-orange-400 hover:text-orange-300" %>
-        <%= link_to "Download PDF", print_nyk_handout_path(@handout, format: :pdf, download: 1, v: @handout.updated_at.to_i), class: "text-sm text-gray-400 hover:text-gray-200" %>
+        <%= link_to "Open print page", print_nyk_packet_path(@packet), class: "text-sm text-orange-400 hover:text-orange-300" %>
+        <%= link_to "Download PDF", print_nyk_packet_path(@packet, format: :pdf, download: 1, v: @packet.updated_at.to_i), class: "text-sm text-gray-400 hover:text-gray-200" %>
         <span class="text-xs text-gray-500">Updates each time you save</span>
       </div>
     </div>
@@ -176,11 +150,36 @@
       <%# v=updated_at busts the browser's PDF cache so "Save & refresh preview"
           actually redraws: without it the iframe URL is identical across saves
           and the stale cached PDF is shown. %>
-      <iframe src="<%= print_nyk_handout_path(@handout, format: :pdf, v: @handout.updated_at.to_i) %>"
+      <iframe src="<%= print_nyk_packet_path(@packet, format: :pdf, v: @packet.updated_at.to_i) %>"
               class="w-full" style="height: 92vh;" title="Recipe PDF preview"></iframe>
     </div>
   </div>
-    </div><%# end Recipe tab panel %>
+    </div><%# end Recipes tab panel %>
+
+    <%# ===== Equipment Items tab: the per-station setup list. Auto-saves on
+        every add/remove (own controller) and prints on the pull sheet. ===== %>
+    <div data-tabs-target="panel" class="hidden">
+      <div class="max-w-3xl mx-auto" data-controller="equipment-tags"
+           data-equipment-tags-catalog-value="<%= @equipment_catalog.to_json %>"
+           data-equipment-tags-selected-value="<%= @packet.equipment.to_json %>"
+           data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>"
+           data-equipment-tags-save-url-value="<%= nyk_packet_equipment_path(@packet) %>">
+        <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment to set up at each station</label>
+        <p class="text-xs text-gray-500 mb-3">Tap a tag to add it to this packet; tap an added one to remove it. Changes save automatically. Type to highlight matching tags. New items become reusable tags; tap a tag's minus to delete it from the list for good. These items print on the pull sheet as a per-station setup checklist.</p>
+        <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
+        <div class="flex gap-2 mb-4">
+          <input type="text" data-equipment-tags-target="input"
+                 data-action="keydown.enter->equipment-tags#addNew input->equipment-tags#filter"
+                 placeholder="Add equipment (e.g. cast iron skillet)"
+                 class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none">
+          <%= button_tag "Add", type: "button", data: { action: "equipment-tags#addNew" },
+                class: "shrink-0 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold cursor-pointer" %>
+        </div>
+        <p class="text-xs text-gray-500 mb-1" data-equipment-tags-target="paletteLabel">Tap to add:</p>
+        <div data-equipment-tags-target="catalog" class="flex flex-wrap gap-2"></div>
+        <textarea data-equipment-tags-target="field" class="hidden"></textarea>
+      </div>
+    </div>
 
     <div data-tabs-target="panel" class="hidden">
       <%# ===== Pull sheet tab: this recipe's per-class shopping/prep list ===== %>

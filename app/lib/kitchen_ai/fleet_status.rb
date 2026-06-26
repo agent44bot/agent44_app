@@ -92,7 +92,7 @@ module KitchenAi
         "- Visibility: #{visibility}",
         "- Cycles #{agent.setting(:slide_count) || 5} classes, #{agent.setting(:advance_seconds) || 10}s each",
         "- Auto-refreshes every #{agent.setting(:refresh_minutes) || 10} minutes",
-        "- Also prints a paper handout (Display settings → Print)"
+        "- Also prints a paper packet (Display settings → Print)"
       ].join("\n")
     end
 

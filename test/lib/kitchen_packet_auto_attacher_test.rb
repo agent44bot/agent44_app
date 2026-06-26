@@ -5,8 +5,8 @@ class KitchenPacketAutoAttacherTest < ActiveSupport::TestCase
     "ingredients" => [ { "qty" => "1 lb", "station_qty" => "1/2 lb", "item" => "Short rib", "section" => nil } ],
     "directions" => [ { "section" => nil, "steps" => [ "Grill." ] } ] } ].freeze
 
-  def handout(title)
-    KitchenHandout.create!(title: title, data: { "recipes" => RECIPES })
+  def packet(title)
+    KitchenPacket.create!(title: title, data: { "recipes" => RECIPES })
   end
 
   def snapshot_with(*events)
@@ -31,7 +31,7 @@ class KitchenPacketAutoAttacherTest < ActiveSupport::TestCase
   end
 
   test "attach_forward links future same-curriculum runs and marks them auto" do
-    h = handout("Korean Barbecue Class 6/19/26")
+    h = packet("Korean Barbecue Class 6/19/26")
     h.attach_to!("https://nyk/event/korean-bbq-6-19/") # manual on the first run
     snapshot_with(
       [ "Korean Barbecue Class 6/19/26", "https://nyk/event/korean-bbq-6-19/" ],
@@ -41,36 +41,36 @@ class KitchenPacketAutoAttacherTest < ActiveSupport::TestCase
 
     linked = KitchenPacketAutoAttacher.attach_forward(h)
     assert_equal 1, linked
-    sibling = KitchenHandoutLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/")
-    assert_equal h, sibling.kitchen_handout
+    sibling = KitchenPacketLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/")
+    assert_equal h, sibling.kitchen_packet
     assert sibling.auto, "auto-linked sibling should be flagged auto"
-    assert_nil KitchenHandoutLink.find_by(event_url: "https://nyk/event/sourdough-7-5/")
+    assert_nil KitchenPacketLink.find_by(event_url: "https://nyk/event/sourdough-7-5/")
   end
 
   test "attach_forward never overwrites an existing (manual) link" do
-    korean = handout("Korean Barbecue Class")
-    other  = handout("Korean Barbecue Class") # a second, different packet
+    korean = packet("Korean Barbecue Class")
+    other  = packet("Korean Barbecue Class") # a second, different packet
     snapshot_with([ "Korean Barbecue Class 7/3/26", "https://nyk/event/korean-bbq-7-3/" ])
     other.attach_to!("https://nyk/event/korean-bbq-7-3/") # manual choice stays
 
     KitchenPacketAutoAttacher.attach_forward(korean)
-    assert_equal other, KitchenHandoutLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/").kitchen_handout
+    assert_equal other, KitchenPacketLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/").kitchen_packet
   end
 
   test "attach_forward skips past classes" do
-    h = handout("Korean Barbecue Class")
+    h = packet("Korean Barbecue Class")
     snapshot_with([ "Korean Barbecue Class 1/1/26", "https://nyk/event/korean-bbq-past/", 2.weeks.ago ])
     assert_equal 0, KitchenPacketAutoAttacher.attach_forward(h)
   end
 
   test "attach_forward does nothing for a too-generic packet title" do
-    h = handout("Cooking Class")
+    h = packet("Cooking Class")
     snapshot_with([ "Cooking Class 7/3/26", "https://nyk/event/cooking-7-3/" ])
     assert_equal 0, KitchenPacketAutoAttacher.attach_forward(h)
   end
 
   test "run_for_snapshot links new future runs to a matching existing packet" do
-    h = handout("Korean Barbecue Class 6/19/26")
+    h = packet("Korean Barbecue Class 6/19/26")
     snap = snapshot_with(
       [ "Korean Barbecue Class 7/3/26", "https://nyk/event/korean-bbq-7-3/" ],
       [ "Knife Skills 7/4/26",          "https://nyk/event/knife-7-4/" ]
@@ -78,17 +78,17 @@ class KitchenPacketAutoAttacherTest < ActiveSupport::TestCase
 
     linked = KitchenPacketAutoAttacher.run_for_snapshot(snap)
     assert_equal 1, linked
-    assert_equal h, KitchenHandoutLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/")&.kitchen_handout
-    assert_nil KitchenHandoutLink.find_by(event_url: "https://nyk/event/knife-7-4/")
+    assert_equal h, KitchenPacketLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/")&.kitchen_packet
+    assert_nil KitchenPacketLink.find_by(event_url: "https://nyk/event/knife-7-4/")
   end
 
   test "run_for_snapshot leaves already-linked classes alone" do
-    h1 = handout("Korean Barbecue Class")
-    h2 = handout("Korean Barbecue Class")
+    h1 = packet("Korean Barbecue Class")
+    h2 = packet("Korean Barbecue Class")
     snap = snapshot_with([ "Korean Barbecue Class 7/3/26", "https://nyk/event/korean-bbq-7-3/" ])
     h2.attach_to!("https://nyk/event/korean-bbq-7-3/") # manual
 
     KitchenPacketAutoAttacher.run_for_snapshot(snap)
-    assert_equal h2, KitchenHandoutLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/").kitchen_handout
+    assert_equal h2, KitchenPacketLink.find_by(event_url: "https://nyk/event/korean-bbq-7-3/").kitchen_packet
   end
 end

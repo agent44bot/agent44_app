@@ -27,7 +27,7 @@ module KitchenAi
       @user = user
     end
 
-    # items: array of { class_name:, stations:, recipes: [ KitchenHandout#recipes ] }.
+    # items: array of { class_name:, stations:, recipes: [ KitchenPacket#recipes ] }.
     # stations is the multiplier for that class's per-station amounts.
     # observed_prices: optional hash of canonical_name => { "price" => dollars,
     # "unit" => unit } from past receipts; the model prefers these over guesses.

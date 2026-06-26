@@ -55,8 +55,8 @@
               "No capacity data — falling back to class-count ratio (#{sold} of #{denom} classes sold out)"
             end
           %>
-          <% week_has_recipe = defined?(@handouts_by_url) && @handouts_by_url &&
-                               week[:events].any? { |e| @handouts_by_url[e.url] } %>
+          <% week_has_recipe = defined?(@packets_by_url) && @packets_by_url &&
+                               week[:events].any? { |e| @packets_by_url[e.url] } %>
           <div class="border-b border-gray-700 pb-2 mb-4">
             <%# Whole header row is one toggle target so the gap between the
                 label and the "% sold" is clickable too (no dead space). %>
@@ -101,7 +101,7 @@
                 (left) and an Upload receipt control (right). The receipt feeds
                 a price history so future estimates use real numbers. %>
             <% if week_has_recipe %>
-              <% recipe_count = week[:events].count { |e| @handouts_by_url[e.url] } %>
+              <% recipe_count = week[:events].count { |e| @packets_by_url[e.url] } %>
               <% receipt = @receipt_by_week_start && @receipt_by_week_start[week[:start]] %>
               <% grocery_total = @grocery_total_by_week_start && @grocery_total_by_week_start[week[:start]] %>
               <div class="flex flex-col sm:flex-row gap-3">

@@ -39,7 +39,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     @snap.kitchen_events.create!(name: name, url: url, start_at: days_out.days.from_now.change(hour: 18),
                                  availability: "InStock", capacity: cap, spots_left: cap - booked)
     if recipe
-      h = KitchenHandout.create!(title: name, data: { "recipes" => RECIPE })
+      h = KitchenPacket.create!(title: name, data: { "recipes" => RECIPE })
       h.attach_to!(url)
     end
     url
@@ -172,7 +172,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     url = "https://nykitchen.com/event/groc-soldout/"
     @snap.kitchen_events.create!(name: "Sold Out Dinner", url: url, start_at: 1.day.from_now.change(hour: 18),
                                  availability: "SoldOut", capacity: 20, spots_left: 0)
-    h = KitchenHandout.create!(title: "Sold Out Dinner", data: { "recipes" => RECIPE })
+    h = KitchenPacket.create!(title: "Sold Out Dinner", data: { "recipes" => RECIPE })
     h.attach_to!(url)
     get nyk_grocery_path, headers: FRAME
     assert_response :success
@@ -233,7 +233,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
 
   test "the pull sheet lists the recipe's per-station equipment" do
     url = add_class("Ravioli", "groc-rav", 1, booked: 12)
-    h = KitchenHandout.for_event_url(url)
+    h = KitchenPacket.for_event_url(url)
     h.equipment = [ "Large stockpot", "Wooden spoon" ]
     h.save!
     get nyk_grocery_path(event_url: url, name: "Ravioli"), headers: FRAME
@@ -245,7 +245,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
 
   test "the week grocery list also shows equipment, grouped by class" do
     url = add_class("Ravioli", "groc-rav", 1, booked: 12)
-    h = KitchenHandout.for_event_url(url)
+    h = KitchenPacket.for_event_url(url)
     h.equipment = [ "Large stockpot" ]
     h.save!
     get nyk_grocery_path(from: Date.current.iso8601, to: (Date.current + 7).iso8601), headers: FRAME

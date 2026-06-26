@@ -22,8 +22,8 @@
 # Quantities are stored as display text for BOTH versions (no fraction math
 # in Ruby): the extractor proposes the station quantities and a human fixes
 # them in review, so ranges ("2-3 cloves") and "to taste" lines just work.
-class KitchenHandout < ApplicationRecord
-  has_many :links, class_name: "KitchenHandoutLink", dependent: :destroy
+class KitchenPacket < ApplicationRecord
+  has_many :links, class_name: "KitchenPacketLink", dependent: :destroy
 
   validates :title, presence: true
   validate :recipes_must_be_well_formed
@@ -57,7 +57,7 @@ class KitchenHandout < ApplicationRecord
   end
 
   # What the Opus extraction cost, as a short dollar string ("$0.04"), or nil
-  # when unknown (older handouts / reused packets that skipped extraction).
+  # when unknown (older packets / reused packets that skipped extraction).
   def extract_cost_label
     return if extract_cost_cents.blank?
     " (cost #{format('$%.2f', extract_cost_cents / 100.0)})"
@@ -117,17 +117,17 @@ class KitchenHandout < ApplicationRecord
       .uniq { |e| e.downcase }.reject { |e| hidden.include?(e.downcase) }.sort_by(&:downcase)
   end
 
-  # The handout attached to a class, by its stable identity (event URL).
+  # The packet attached to a class, by its stable identity (event URL).
   def self.for_event_url(url)
-    joins(:links).find_by(kitchen_handout_links: { event_url: url })
+    joins(:links).find_by(kitchen_packet_links: { event_url: url })
   end
 
-  # Attach to a class; a class can only carry one handout, so an existing
-  # link for that URL moves to this handout (re-linking a reused packet).
+  # Attach to a class; a class can only carry one packet, so an existing
+  # link for that URL moves to this packet (re-linking a reused packet).
   # auto: true marks a link the system made by matching the class name (so the
   # UI can badge it); a manual attach (auto: false) clears that mark.
   def attach_to!(event_url, auto: false)
-    KitchenHandoutLink.where(event_url: event_url).destroy_all
+    KitchenPacketLink.where(event_url: event_url).destroy_all
     links.create!(event_url: event_url, auto: auto)
   end
 

@@ -140,7 +140,7 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     assert_match "+ 20 more classes", response.body
   end
 
-  test "sold-out classes are excluded from the handout" do
+  test "sold-out classes are excluded from the packet" do
     add_event("Open Class", 24)
     add_event("Gone Class", 48, availability: "SoldOut")
     get nyk_display_print_path

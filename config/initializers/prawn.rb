@@ -1,4 +1,4 @@
-# Prawn warns whenever AFM (built-in) fonts touch non-ASCII; KitchenHandoutPdf
+# Prawn warns whenever AFM (built-in) fonts touch non-ASCII; KitchenPacketPdf
 # already ASCII-ifies fraction glyphs and WinAnsi-sanitizes every string, so
 # the warning is just noise in the logs.
 Rails.application.config.after_initialize do

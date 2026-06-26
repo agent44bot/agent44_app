@@ -1,11 +1,11 @@
-# Renders a KitchenHandout as the branded NY Kitchen recipe packet, the same
+# Renders a KitchenPacket as the branded NY Kitchen recipe packet, the same
 # layout as the kitchen's hand-made Publisher PDFs: one page per recipe at full
 # quantities, then the same recipes again at single-station quantities (tagged
 # top-right). Pure Prawn, no headless browser, so it runs inside the Fly app
 # with no extra system dependencies.
 #
-#   KitchenHandoutPdf.new(handout).render  # => PDF bytes (String)
-class KitchenHandoutPdf
+#   KitchenPacketPdf.new(packet).render  # => PDF bytes (String)
+class KitchenPacketPdf
   FOOTER = "800 South Main Street, Canandaigua, NY 14424   |   www.nykitchen.com   |   (585) 394-7070".freeze
   # Points (72 = 1in): a 7.5 x 10in text area, the same printable box as the
   # HTML packet, with 0.5in margins.
@@ -27,20 +27,20 @@ class KitchenHandoutPdf
   # Vulgar fractions, for spacing them off a leading number ("2½" -> "2 ½").
   VULGAR = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞⅐⅑⅒".freeze
 
-  def initialize(handout)
-    @handout = handout
+  def initialize(packet)
+    @packet = packet
   end
 
   def render
     doc = new_document
-    recipes = @handout.recipes
+    recipes = @packet.recipes
     return empty(doc) if recipes.empty?
 
     first = true
     # Two passes, every page labeled: the full-quantity batch (labeled "Dual
     # station", since the station amount is exactly half) first, then the
     # single-station set. [label, scaled?] — scaled? picks the qty column.
-    [ [ DUAL_STATION_LABEL, false ], [ @handout.station_label, true ] ].each do |label, scaled|
+    [ [ DUAL_STATION_LABEL, false ], [ @packet.station_label, true ] ].each do |label, scaled|
       recipes.each do |recipe|
         doc.start_new_page unless first
         first = false
@@ -73,7 +73,7 @@ class KitchenHandoutPdf
   end
 
   def empty(doc)
-    doc.text "No recipes on this handout yet.", align: :center, size: 13, color: "777777"
+    doc.text "No recipes on this packet yet.", align: :center, size: 13, color: "777777"
     doc.render
   end
 
