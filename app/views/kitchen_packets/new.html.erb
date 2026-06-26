@@ -1,6 +1,6 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 py-10">
   <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
-  <h1 class="text-2xl font-bold text-white mb-1">Add a recipe handout</h1>
+  <h1 class="text-2xl font-bold text-white mb-1">Add a packet</h1>
   <% if @event_name.present? %>
     <p class="text-sm text-gray-400 mb-6">For <span class="text-orange-400 font-medium"><%= @event_name %></span></p>
   <% end %>
@@ -9,7 +9,7 @@
   <% if @event_name.present? %>
     <div class="bg-purple-900/20 border border-purple-800/50 rounded-xl p-4 mb-6">
       <p class="text-sm text-purple-200 mb-3">No recipe to upload yet? Generate a draft from the class description with AI, then review and edit it.</p>
-      <%= button_to "✨ Generate recipe with AI", nyk_handouts_path,
+      <%= button_to "✨ Generate recipe with AI", nyk_packets_path,
             params: { generate: 1, event_url: @event_url, event_name: @event_name },
             form: { data: { controller: "form-spinner", action: "submit->form-spinner#show",
                             "form-spinner-message-value": "Generating your recipe…" } },
@@ -19,7 +19,7 @@
     <div class="my-4 text-center text-xs text-gray-600">or upload the real recipe</div>
   <% end %>
 
-  <%= form_with url: nyk_handouts_path, method: :post, multipart: true,
+  <%= form_with url: nyk_packets_path, method: :post, multipart: true,
         data: { controller: "form-spinner", action: "submit->form-spinner#show",
                 "form-spinner-message-value": "Building your recipe…" } do |f| %>
     <%= hidden_field_tag :event_url, @event_url %>
@@ -74,7 +74,7 @@
           <div data-recipe-filter-target="card" data-search-text="<%= h.search_text %>"
                class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5">
             <span class="text-sm text-gray-300 min-w-0 truncate"><%= h.title %></span>
-            <%= button_to "Copy", nyk_handouts_path,
+            <%= button_to "Copy", nyk_packets_path,
                   params: { existing_id: h.id, event_url: @event_url },
                   class: "shrink-0 text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 cursor-pointer" %>
           </div>

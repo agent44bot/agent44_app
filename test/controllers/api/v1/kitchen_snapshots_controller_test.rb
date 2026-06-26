@@ -694,7 +694,7 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     recipes = [ { "title" => "Korean BBQ",
       "ingredients" => [ { "qty" => "1 lb", "station_qty" => "1/2 lb", "item" => "Short rib", "section" => nil } ],
       "directions" => [ { "section" => nil, "steps" => [ "Grill." ] } ] } ]
-    handout = KitchenHandout.create!(title: "Korean Barbecue Class 6/19/26", data: { "recipes" => recipes })
+    packet = KitchenPacket.create!(title: "Korean Barbecue Class 6/19/26", data: { "recipes" => recipes })
 
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [
@@ -706,9 +706,9 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
       headers: @headers
     assert_response :created
 
-    link = KitchenHandoutLink.find_by(event_url: "https://nykitchen.com/event/korean-bbq-7-3/")
-    assert_equal handout, link.kitchen_handout
+    link = KitchenPacketLink.find_by(event_url: "https://nykitchen.com/event/korean-bbq-7-3/")
+    assert_equal packet, link.kitchen_packet
     assert link.auto, "ingest-attached link should be flagged auto"
-    assert_nil KitchenHandoutLink.find_by(event_url: "https://nykitchen.com/event/knife-7-4/")
+    assert_nil KitchenPacketLink.find_by(event_url: "https://nykitchen.com/event/knife-7-4/")
   end
 end

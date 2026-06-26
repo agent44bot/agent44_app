@@ -140,7 +140,7 @@
           sheet it's just the list; on the multi-class week list it's grouped by
           class. Read straight off each recipe packet (no AI), so it follows
           every run. %>
-      <% equip_classes = @with_recipe.select { |c| Array(c[:handout]&.equipment).any? } %>
+      <% equip_classes = @with_recipe.select { |c| Array(c[:packet]&.equipment).any? } %>
       <% if equip_classes.any? %>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-5 mb-1">
           Equipment per station<%= single && equip_classes.first[:stations] ? " (set up at each of #{pluralize(equip_classes.first[:stations], "station")})" : "" %>
@@ -153,7 +153,7 @@
             </p>
           <% end %>
           <ul class="mb-2">
-            <% Array(c[:handout].equipment).each do |eq| %>
+            <% Array(c[:packet].equipment).each do |eq| %>
               <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
                 <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
                 <span class="flex-1 min-w-0"><%= eq %></span>
@@ -174,12 +174,12 @@
       </div>
     </div>
 
-    <%# Embedded in the handout's Pull sheet tab: the print handler/CSS live in
+    <%# Embedded in the packet's Pull sheet tab: the print handler/CSS live in
         the standalone grocery shell, not here, so hide the dead Print button.
         That tab links out to the full page for printing. %>
     <div class="mt-4 flex items-center gap-4 no-print">
       <% unless params[:embedded] %>
-        <button type="button" class="px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" id="grocery-print-btn">🖨 Print</button>
+        <button type="button" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg border border-emerald-600 text-emerald-300 hover:bg-emerald-600/10 font-semibold cursor-pointer" id="grocery-print-btn">🖨 Print</button>
       <% end %>
       <% if @from_cache %>
         <span class="text-xs text-gray-500">Saved list (no new AI cost)</span>
@@ -211,7 +211,7 @@
         <% @without_recipe.each do |e| %>
           <li class="text-sm text-gray-400">
             <%= e.start_at.strftime("%a %-m/%-d") %> · <%= e.name %>
-            <%= link_to "add recipe", new_nyk_handout_path(event_url: e.url, event_name: e.name), class: "text-orange-400 hover:text-orange-300 ml-1" %>
+            <%= link_to "add recipe", new_nyk_packet_path(event_url: e.url, event_name: e.name), class: "text-orange-400 hover:text-orange-300 ml-1" %>
           </li>
         <% end %>
       </ul>

@@ -62,11 +62,11 @@ class KitchenController < ApplicationController
 
   def list
     @sendable_workspaces = sendable_workspaces_for(Current.user)
-    # Recipe handout per class (keyed by event URL) for the card row action.
-    @handouts_by_url = KitchenHandoutLink.pluck(:event_url, :kitchen_handout_id).to_h
+    # Recipe packet per class (keyed by event URL) for the card row action.
+    @packets_by_url = KitchenPacketLink.pluck(:event_url, :kitchen_packet_id).to_h
     # URLs whose packet was auto-attached (by class-name match) so the card can
     # badge them and Lora knows the system, not she, linked it.
-    @auto_handout_urls = KitchenHandoutLink.where(auto: true).pluck(:event_url).to_set
+    @auto_packet_urls = KitchenPacketLink.where(auto: true).pluck(:event_url).to_set
     # Latest uploaded grocery receipt per week (keyed by week_start) so each
     # expanded week can show whether a receipt is in / being read.
     @receipt_by_week_start = GroceryReceipt.recent_first.where.not(week_start: nil)
@@ -482,9 +482,9 @@ class KitchenController < ApplicationController
     redirect_to nyk_display_settings_path, notice: "Display settings saved."
   end
 
-  # Printable handouts of the next N non-sold-out classes. Two layouts (Lora's
+  # Printable packets of the next N non-sold-out classes. Two layouts (Lora's
   # request), both fed by the same upcoming-classes data:
-  #   flyer (default) — grab-and-go front-desk handout, 18 classes laid out 9
+  #   flyer (default) — grab-and-go front-desk packet, 18 classes laid out 9
   #                     to a side so it prints double-sided on one sheet; photos
   #                     + QR per row.
   #   stall           — big-font poster for the bathroom stalls, 6 classes on
@@ -936,7 +936,7 @@ class KitchenController < ApplicationController
     [ (7 - Date.current.cwday) % 7, 3 ].max
   end
 
-  # The grocery list service for this request (memoizes the handouts map +
+  # The grocery list service for this request (memoizes the packets map +
   # observed prices so the list page can total every week cheaply).
   def grocery_list_service
     @grocery_list_service ||= KitchenAi::GroceryList.new(user: Current.user)
@@ -964,7 +964,7 @@ class KitchenController < ApplicationController
     end
 
     @with_recipe    = svc.with_recipe(events)
-    @without_recipe = events.reject { |e| svc.handouts_by_event_url[e.url] }
+    @without_recipe = events.reject { |e| svc.packets_by_event_url[e.url] }
 
     @total_headcount = @with_recipe.sum { |c| c[:headcount].to_i }
     # Index per tag -> the view maps it to a (Tailwind-scannable) chip color.
@@ -972,7 +972,7 @@ class KitchenController < ApplicationController
     @with_recipe.each_with_index { |c, i| @tag_index[c[:tag]] = i }
     # Per-tag recipe lines for the hover/tap popover (full recipe amounts).
     @recipe_by_tag = @with_recipe.to_h do |c|
-      lines = c[:handout].recipes.flat_map do |r|
+      lines = c[:packet].recipes.flat_map do |r|
         Array(r["ingredients"]).map { |i| [ KitchenUnits.standardize(i["qty"]), IngredientText.normalize(i["item"]) ].map(&:to_s).reject(&:blank?).join(" ") }
       end.reject(&:blank?)
       [ c[:tag], lines ]

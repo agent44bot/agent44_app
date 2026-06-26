@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_23_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_26_120000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -358,17 +358,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_23_120000) do
     t.index ["kitchen_snapshot_id"], name: "index_kitchen_events_on_kitchen_snapshot_id"
   end
 
-  create_table "kitchen_handout_links", force: :cascade do |t|
+  create_table "kitchen_packet_links", force: :cascade do |t|
     t.boolean "auto", default: false, null: false
     t.datetime "created_at", null: false
     t.string "event_url", null: false
-    t.integer "kitchen_handout_id", null: false
+    t.integer "kitchen_packet_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["event_url"], name: "index_kitchen_handout_links_on_event_url", unique: true
-    t.index ["kitchen_handout_id"], name: "index_kitchen_handout_links_on_kitchen_handout_id"
+    t.index ["event_url"], name: "index_kitchen_packet_links_on_event_url", unique: true
+    t.index ["kitchen_packet_id"], name: "index_kitchen_packet_links_on_kitchen_packet_id"
   end
 
-  create_table "kitchen_handouts", force: :cascade do |t|
+  create_table "kitchen_packets", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.json "data", default: {}, null: false
     t.integer "extract_cost_cents"
@@ -801,7 +801,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_23_120000) do
   add_foreign_key "job_matches", "jobs", on_delete: :cascade
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
-  add_foreign_key "kitchen_handout_links", "kitchen_handouts"
+  add_foreign_key "kitchen_packet_links", "kitchen_packets"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
   add_foreign_key "notifications", "users"
   add_foreign_key "page_views", "users"

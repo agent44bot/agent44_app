@@ -1,7 +1,7 @@
 # Links a recipe packet forward to other runs of the SAME class, so Lora only
 # attaches a recipe once. Two entry points:
 #
-#   * attach_forward(handout)   - when a packet is attached to a class, link it
+#   * attach_forward(packet)   - when a packet is attached to a class, link it
 #                                 to future runs already on the calendar.
 #   * run_for_snapshot(snap)    - when the nightly snapshot lands, link newly
 #                                 appeared future runs to a matching packet.
@@ -29,21 +29,21 @@ class KitchenPacketAutoAttacher
     tokens.size >= MIN_TOKENS ? tokens : nil
   end
 
-  # Attach-time: link `handout` to every future run on the latest snapshot that
+  # Attach-time: link `packet` to every future run on the latest snapshot that
   # shares its curriculum and has no packet yet. Returns the number linked.
-  def self.attach_forward(handout, now: Time.current)
-    key = curriculum_key(handout.title)
+  def self.attach_forward(packet, now: Time.current)
+    key = curriculum_key(packet.title)
     return 0 unless key
 
     snapshot = KitchenSnapshot.latest
     return 0 unless snapshot
 
-    linked = KitchenHandoutLink.pluck(:event_url).to_set
+    linked = KitchenPacketLink.pluck(:event_url).to_set
     count = 0
     snapshot.kitchen_events.where("start_at > ?", now).find_each do |ev|
       next if linked.include?(ev.url)
       next unless curriculum_key(ev.name) == key
-      next unless link!(handout, ev.url)
+      next unless link!(packet, ev.url)
       linked << ev.url
       count += 1
     end
@@ -51,42 +51,42 @@ class KitchenPacketAutoAttacher
   end
 
   # Ingest-time: for every future event in `snapshot` without a packet, link the
-  # best-matching existing handout (same curriculum, most recently updated wins).
+  # best-matching existing packet (same curriculum, most recently updated wins).
   # Returns the number linked.
   def self.run_for_snapshot(snapshot, now: Time.current)
-    by_key = handouts_by_key
+    by_key = packets_by_key
     return 0 if by_key.empty?
 
-    linked = KitchenHandoutLink.pluck(:event_url).to_set
+    linked = KitchenPacketLink.pluck(:event_url).to_set
     count = 0
     snapshot.kitchen_events.where("start_at > ?", now).find_each do |ev|
       next if linked.include?(ev.url)
       key = curriculum_key(ev.name)
-      handout = key && by_key[key]
-      next unless handout
-      next unless link!(handout, ev.url)
+      packet = key && by_key[key]
+      next unless packet
+      next unless link!(packet, ev.url)
       linked << ev.url
       count += 1
     end
     count
   end
 
-  # Index of candidate handouts by curriculum key. Iterating oldest-first means
+  # Index of candidate packets by curriculum key. Iterating oldest-first means
   # the newest packet for a curriculum wins (later writes overwrite earlier).
-  def self.handouts_by_key
-    KitchenHandout.order(updated_at: :asc).each_with_object({}) do |h, acc|
+  def self.packets_by_key
+    KitchenPacket.order(updated_at: :asc).each_with_object({}) do |h, acc|
       key = curriculum_key(h.title)
       acc[key] = h if key
     end
   end
 
   # Create the auto link, tolerating a race on the unique event_url index.
-  def self.link!(handout, event_url)
-    KitchenHandoutLink.create!(kitchen_handout: handout, event_url: event_url, auto: true)
+  def self.link!(packet, event_url)
+    KitchenPacketLink.create!(kitchen_packet: packet, event_url: event_url, auto: true)
     true
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
     false
   end
 
-  private_class_method :handouts_by_key, :link!
+  private_class_method :packets_by_key, :link!
 end

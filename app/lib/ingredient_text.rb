@@ -2,7 +2,7 @@
 # (especially WP Recipe Maker / RecipeTinEats JSON-LD) emit ingredient strings
 # like "fresh ginger (, finely grated)", "lemongrass paste ((Note 2))", and
 # "Japanese eggplants, (, small...)". The extractor keeps the source text, so
-# these end up on the printed handout. This fixes the clearly-broken patterns
+# these end up on the printed packet. This fixes the clearly-broken patterns
 # only, deterministically, so it never touches real words.
 module IngredientText
   def self.clean(text)
@@ -17,7 +17,7 @@ module IngredientText
     s.gsub(/\s{2,}/, " ").strip
   end
 
-  # Sentence-cases an ingredient name for the handout house style (Lora's
+  # Sentence-cases an ingredient name for the packet house style (Lora's
   # "standardize ... capitalization" note): tone down SHOUTING by lowercasing
   # all-caps words ("KOSHER SALT" -> "kosher salt"), then capitalize the first
   # letter of the line. Mixed-case words (Dijon, McCormick, brand names) are
@@ -30,7 +30,7 @@ module IngredientText
     s.sub(/\p{L}/) { |c| c.upcase }                 # capitalize first letter
   end
 
-  # Both passes in handout order: fix punctuation artifacts, then sentence-case.
+  # Both passes in packet order: fix punctuation artifacts, then sentence-case.
   def self.normalize(text)
     sentence_case(clean(text))
   end

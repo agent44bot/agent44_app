@@ -106,18 +106,24 @@ Rails.application.routes.draw do
   post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
   # Printer-friendly list of the same N classes the display cycles. Admin-only.
   get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
-  # Recipe handouts: printable class recipe packets, attached from Sam's
-  # list page (upload or paste -> AI extraction -> review -> branded print).
-  get    "nykitchen/recipes",            to: "kitchen_handouts#index",  as: :nyk_recipes
-  post   "nykitchen/equipment_tags/hide", to: "kitchen_handouts#hide_equipment", as: :nyk_hide_equipment_tag
-  get    "nykitchen/handouts/new",       to: "kitchen_handouts#new",    as: :new_nyk_handout
-  post   "nykitchen/handouts",           to: "kitchen_handouts#create", as: :nyk_handouts
-  get    "nykitchen/handouts/:id/edit",  to: "kitchen_handouts#edit",   as: :edit_nyk_handout
-  post   "nykitchen/handouts/:id/regenerate", to: "kitchen_handouts#regenerate", as: :regenerate_nyk_handout
-  patch  "nykitchen/handouts/:id",       to: "kitchen_handouts#update", as: :nyk_handout
-  patch  "nykitchen/handouts/:id/equipment", to: "kitchen_handouts#update_equipment", as: :nyk_handout_equipment
-  delete "nykitchen/handouts/:id",       to: "kitchen_handouts#destroy"
-  get    "nykitchen/handouts/:id/print", to: "kitchen_handouts#print",  as: :print_nyk_handout
+  # Class packets: a per-class bundle (recipes + equipment + pull sheet),
+  # created/attached from Sam's list page.
+  post   "nykitchen/equipment_tags/hide", to: "kitchen_packets#hide_equipment", as: :nyk_hide_equipment_tag
+  get    "nykitchen/packets/new",       to: "kitchen_packets#new",    as: :new_nyk_packet
+  post   "nykitchen/packets",           to: "kitchen_packets#create", as: :nyk_packets
+  get    "nykitchen/packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet
+  post   "nykitchen/packets/:id/regenerate", to: "kitchen_packets#regenerate", as: :regenerate_nyk_packet
+  patch  "nykitchen/packets/:id",       to: "kitchen_packets#update", as: :nyk_packet
+  patch  "nykitchen/packets/:id/equipment", to: "kitchen_packets#update_equipment", as: :nyk_packet_equipment
+  delete "nykitchen/packets/:id",       to: "kitchen_packets#destroy"
+  get    "nykitchen/packets/:id/print", to: "kitchen_packets#print",  as: :print_nyk_packet
+  # Legacy redirects: old /handouts URLs and the removed /recipes library page
+  # (search/reuse now lives at the bottom of the new-packet page).
+  get "nykitchen/recipes",            to: redirect("/nykitchen/list")
+  get "nykitchen/handouts/new",       to: redirect("/nykitchen/packets/new")
+  get "nykitchen/handouts/:id/edit",  to: redirect("/nykitchen/packets/%{id}/edit")
+  get "nykitchen/handouts/:id/print", to: redirect("/nykitchen/packets/%{id}/print")
+  get "nykitchen/handouts/:id",       to: redirect("/nykitchen/packets/%{id}/edit")
   # /nykitchen/social renders the NYK workspace's social composer in-place
   # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
   # WorkspacesController#social by baking the slug in as a default param.

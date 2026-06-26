@@ -1,10 +1,10 @@
 require "test_helper"
 require "ostruct"
 
-# Recipe handouts: AI-extracted printable recipe packets attached to classes
+# Recipe packets: AI-extracted printable recipe packets attached to classes
 # by event URL from Sam's list page. The extractor is stubbed (never hit the
 # Anthropic API in tests).
-class KitchenHandoutsTest < ActionDispatch::IntegrationTest
+class KitchenPacketsTest < ActionDispatch::IntegrationTest
   EXTRACTED = [
     {
       "title" => "Fresh Pasta",
@@ -19,7 +19,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   EVENT_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-8-6-26/".freeze
 
   setup do
-    @user = User.create!(email_address: "handout-#{SecureRandom.hex(4)}@example.com", role: "user")
+    @user = User.create!(email_address: "packet-#{SecureRandom.hex(4)}@example.com", role: "user")
     sign_in_as(@user)
   end
 
@@ -34,44 +34,44 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     }
   end
 
-  test "create extracts recipes, saves the handout, and links the class" do
+  test "create extracts recipes, saves the packet, and links the class" do
     stub_extractor_success
-    post nyk_handouts_path, params: {
+    post nyk_packets_path, params: {
       event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
       recipe_text: "Fresh Pasta... 2 1/2 c flour..."
     }
 
-    handout = KitchenHandout.last
-    assert_redirected_to edit_nyk_handout_path(handout)
-    assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", handout.title
-    assert_equal "1¼ c", handout.recipes.first["ingredients"].first["station_qty"]
-    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
-    assert handout.extract_cost_cents.to_i.positive?, "captures the Opus extraction cost"
-    assert_match(/cost \$/, handout.extract_cost_label)
+    packet = KitchenPacket.last
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", packet.title
+    assert_equal "1¼ c", packet.recipes.first["ingredients"].first["station_qty"]
+    assert_equal packet, KitchenPacket.for_event_url(EVENT_URL)
+    assert packet.extract_cost_cents.to_i.positive?, "captures the Opus extraction cost"
+    assert_match(/cost \$/, packet.extract_cost_label)
   end
 
   test "create with empty input bounces back with an error" do
-    post nyk_handouts_path, params: { event_url: EVENT_URL, event_name: "X", recipe_text: "" }
-    assert_redirected_to new_nyk_handout_path(event_url: EVENT_URL, event_name: "X")
+    post nyk_packets_path, params: { event_url: EVENT_URL, event_name: "X", recipe_text: "" }
+    assert_redirected_to new_nyk_packet_path(event_url: EVENT_URL, event_name: "X")
     assert_match(/Paste a recipe/, flash[:alert])
-    assert_equal 0, KitchenHandout.count
+    assert_equal 0, KitchenPacket.count
   end
 
   test "generate builds an AI draft recipe for the class, billed as nyk_recipe_generate" do
     stub_extractor_success
-    post nyk_handouts_path, params: { generate: "1", event_url: EVENT_URL, event_name: "Korean BBQ Class" }
-    handout = KitchenHandout.last
-    assert_redirected_to edit_nyk_handout_path(handout)
-    assert_equal "Korean BBQ Class", handout.title
-    assert_equal "generated", handout.source_kind
-    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    post nyk_packets_path, params: { generate: "1", event_url: EVENT_URL, event_name: "Korean BBQ Class" }
+    packet = KitchenPacket.last
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_equal "Korean BBQ Class", packet.title
+    assert_equal "generated", packet.source_kind
+    assert_equal packet, KitchenPacket.for_event_url(EVENT_URL)
     # Logged under its own billing source so it shows as its own /billing line.
     assert_equal "nyk_recipe_generate", AiCallLog.last.source
     assert_includes AiCallLog::NYK_SOURCES, "nyk_recipe_generate"
   end
 
   test "new page offers Generate recipe with AI when opened from a class" do
-    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Korean BBQ")
+    get new_nyk_packet_path(event_url: EVENT_URL, event_name: "Korean BBQ")
     assert_response :success
     assert_match "Generate recipe with AI", response.body
   end
@@ -98,8 +98,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_match(/busy for a moment/, result.error)
   end
 
-  test "regenerate rewrites the handout recipes from an instruction, leaving equipment alone" do
-    handout = KitchenHandout.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED, "equipment" => [ "Bamboo mat" ] })
+  test "regenerate rewrites the packet recipes from an instruction, leaving equipment alone" do
+    packet = KitchenPacket.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED, "equipment" => [ "Bamboo mat" ] })
     revised = [
       { "title" => "Sushi Rice", "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ], "directions" => [] },
       { "title" => "Tuna rolls", "ingredients" => [ { "qty" => "8 oz", "station_qty" => "4 oz", "item" => "Sushi-grade tuna", "section" => nil } ], "directions" => [] },
@@ -110,38 +110,38 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
       OpenStruct.new(content: [ text ], usage: OpenStruct.new(input_tokens: 50, output_tokens: 100))
     }
 
-    post regenerate_nyk_handout_path(handout), params: { instruction: "Split the rolls into Tuna and Salmon, plus a shared rice" }
-    assert_redirected_to edit_nyk_handout_path(handout)
-    handout.reload
-    assert_equal [ "Sushi Rice", "Tuna rolls", "Salmon rolls" ], handout.recipes.map { |r| r["title"] }
-    assert_equal [ "Bamboo mat" ], handout.equipment, "equipment is untouched by a recipe rewrite"
+    post regenerate_nyk_packet_path(packet), params: { instruction: "Split the rolls into Tuna and Salmon, plus a shared rice" }
+    assert_redirected_to edit_nyk_packet_path(packet)
+    packet.reload
+    assert_equal [ "Sushi Rice", "Tuna rolls", "Salmon rolls" ], packet.recipes.map { |r| r["title"] }
+    assert_equal [ "Bamboo mat" ], packet.equipment, "equipment is untouched by a recipe rewrite"
     # Billed under the same line as Generate.
     assert_equal "nyk_recipe_generate", AiCallLog.last.source
   end
 
   test "regenerate with a blank instruction bounces back without changing recipes" do
-    handout = KitchenHandout.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
-    post regenerate_nyk_handout_path(handout), params: { instruction: "   " }
-    assert_redirected_to edit_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
+    post regenerate_nyk_packet_path(packet), params: { instruction: "   " }
+    assert_redirected_to edit_nyk_packet_path(packet)
     assert_match(/what to change/i, flash[:alert])
-    assert_equal EXTRACTED.map { |r| r["title"] }, handout.reload.recipes.map { |r| r["title"] }
+    assert_equal EXTRACTED.map { |r| r["title"] }, packet.reload.recipes.map { |r| r["title"] }
   end
 
   test "the edit page offers Ask AI to revise the recipes" do
-    handout = KitchenHandout.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
-    get edit_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_match "Revise with AI", response.body
-    assert_select "form[action=?]", regenerate_nyk_handout_path(handout)
+    assert_select "form[action=?]", regenerate_nyk_packet_path(packet)
   end
 
   test "reusing an existing packet copies it to the class without calling the AI" do
-    source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
-    assert_difference "KitchenHandout.count", 1 do
-      post nyk_handouts_path, params: { existing_id: source.id, event_url: EVENT_URL }
+    source = KitchenPacket.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
+    assert_difference "KitchenPacket.count", 1 do
+      post nyk_packets_path, params: { existing_id: source.id, event_url: EVENT_URL }
     end
-    copy = KitchenHandout.for_event_url(EVENT_URL)
-    assert_redirected_to edit_nyk_handout_path(copy)
+    copy = KitchenPacket.for_event_url(EVENT_URL)
+    assert_redirected_to edit_nyk_packet_path(copy)
     # A copy, not a shared link: the class gets its own new record.
     assert_not_equal source, copy
     assert_equal source.title, copy.title
@@ -151,27 +151,27 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   end
 
   test "reused copy is independent: editing or deleting it leaves the source alone" do
-    source = KitchenHandout.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
+    source = KitchenPacket.create!(title: "Fresh Pasta Ravioli", data: { "recipes" => EXTRACTED })
     copy = source.copy_to!(EVENT_URL)
 
     copy.update!(data: { "recipes" => [ EXTRACTED.first.merge("title" => "Changed") ] })
     assert_equal "Fresh Pasta", source.reload.recipes.first["title"]
 
     copy.destroy!
-    assert KitchenHandout.exists?(source.id)
+    assert KitchenPacket.exists?(source.id)
   end
 
   test "attaching moves the link when the class already had a packet" do
-    old = KitchenHandout.create!(title: "Old", data: { "recipes" => EXTRACTED })
+    old = KitchenPacket.create!(title: "Old", data: { "recipes" => EXTRACTED })
     old.attach_to!(EVENT_URL)
-    new_h = KitchenHandout.create!(title: "New", data: { "recipes" => EXTRACTED })
+    new_h = KitchenPacket.create!(title: "New", data: { "recipes" => EXTRACTED })
     new_h.attach_to!(EVENT_URL)
-    assert_equal new_h, KitchenHandout.for_event_url(EVENT_URL)
+    assert_equal new_h, KitchenPacket.for_event_url(EVENT_URL)
   end
 
   test "update parses the review form and drops blank ingredient rows" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single station",
       recipes: {
         "0" => {
@@ -184,15 +184,15 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
         }
       }
     }
-    assert_redirected_to edit_nyk_handout_path(handout)
-    handout.reload
-    assert_equal 1, handout.recipes.first["ingredients"].size
-    assert_equal [ "Pour flour in a bowl.", "Knead." ], handout.recipes.first["directions"].first["steps"]
+    assert_redirected_to edit_nyk_packet_path(packet)
+    packet.reload
+    assert_equal 1, packet.recipes.first["ingredients"].size
+    assert_equal [ "Pour flour in a bowl.", "Knead." ], packet.recipes.first["directions"].first["steps"]
   end
 
   test "update standardizes measurement units on save (Lora's house style)" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single station",
       recipes: {
         "0" => {
@@ -205,8 +205,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
         }
       }
     }
-    handout.reload
-    ings = handout.recipes.first["ingredients"]
+    packet.reload
+    ings = packet.recipes.first["ingredients"]
     assert_equal "2 T", ings[0]["qty"]
     assert_equal "1 T", ings[0]["station_qty"]
     assert_equal "1/2 c", ings[1]["qty"]
@@ -214,8 +214,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   end
 
   test "update cleans ingredient-name punctuation artifacts and sentence-cases on save" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single station",
       recipes: {
         "0" => {
@@ -228,23 +228,23 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
         }
       }
     }
-    handout.reload
-    ings = handout.recipes.first["ingredients"]
+    packet.reload
+    ings = packet.recipes.first["ingredients"]
     assert_equal "Fresh ginger (finely grated)", ings[0]["item"]
     assert_equal "Lemongrass paste (Note 2)", ings[1]["item"]
   end
 
   test "hide_equipment removes a tag from the palette for all recipes" do
-    KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Pasta machine" ] })
-    assert_includes KitchenHandout.equipment_catalog, "Pasta machine"
+    KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Pasta machine" ] })
+    assert_includes KitchenPacket.equipment_catalog, "Pasta machine"
     post nyk_hide_equipment_tag_path, params: { name: "Pasta machine" }
     assert_response :success
-    refute_includes KitchenHandout.equipment_catalog, "Pasta machine"
+    refute_includes KitchenPacket.equipment_catalog, "Pasta machine"
   end
 
   test "the edit page renders the equipment tag picker with catalog and selected" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Wooden spoon" ] })
-    get edit_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Wooden spoon" ] })
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_select "[data-controller='equipment-tags']"
     assert_match "data-equipment-tags-selected-value", response.body
@@ -254,43 +254,51 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   end
 
   test "update_equipment auto-saves the equipment list without touching recipes" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ] })
-    patch nyk_handout_equipment_path(handout), params: { equipment: "Whisk\nCast iron skillet" }
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ] })
+    patch nyk_packet_equipment_path(packet), params: { equipment: "Whisk\nCast iron skillet" }
     assert_response :success
-    handout.reload
-    assert_equal [ "Whisk", "Cast iron skillet" ], handout.equipment
-    assert_equal 1, handout.recipes.size # recipes untouched
+    packet.reload
+    assert_equal [ "Whisk", "Cast iron skillet" ], packet.equipment
+    assert_equal 1, packet.recipes.size # recipes untouched
   end
 
   test "the Add-recipe page wires the loading spinner on generate and build" do
-    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Macarons")
+    get new_nyk_packet_path(event_url: EVENT_URL, event_name: "Macarons")
     assert_response :success
     assert_match "form-spinner", response.body
   end
 
-  test "update saves the per-station equipment list (blank lines dropped) and round-trips it" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
-      title: "Packet", station_label: "Single station",
-      equipment: "Large stockpot\n  Wooden spoon  \n\nWhisk\n",
-      recipes: { "0" => {
-        title: "Fresh Pasta",
-        ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } },
-        directions: { "0" => { section: "", steps: "Mix." } }
-      } }
-    }
-    handout.reload
-    assert_equal [ "Large stockpot", "Wooden spoon", "Whisk" ], handout.equipment
-    assert_equal 1, handout.recipes.size
+  test "equipment list auto-saves via its endpoint (blank lines dropped) and round-trips it" do
+    # Equipment now lives on its own Equipment Items tab and auto-saves through
+    # update_equipment, not the recipe form.
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_equipment_path(packet), params: { equipment: "Large stockpot\n  Wooden spoon  \n\nWhisk\n" }
+    assert_response :success
+    packet.reload
+    assert_equal [ "Large stockpot", "Wooden spoon", "Whisk" ], packet.equipment
 
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_match "Large stockpot", response.body
   end
 
+  test "saving recipes does not wipe the separately-saved equipment" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ] })
+    patch nyk_packet_path(packet), params: {
+      title: "Packet", station_label: "Single station",
+      recipes: { "0" => {
+        title: "Fresh Pasta",
+        ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } }
+      } }
+    }
+    packet.reload
+    assert_equal [ "Whisk" ], packet.equipment
+    assert_equal 1, packet.recipes.size
+  end
+
   test "update saves a per-recipe headcount and round-trips it into the edit form" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single station",
       recipes: {
         "0" => { title: "Recipe A", headcount: "1",
@@ -301,18 +309,18 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
                  ingredients: { "0" => { qty: "1 t", station_qty: "1 t", item: "Salt", section: "" } } }
       }
     }
-    handout.reload
-    assert_equal [ 1, 2, 3 ], handout.recipes.map { |r| r["headcount"] }
+    packet.reload
+    assert_equal [ 1, 2, 3 ], packet.recipes.map { |r| r["headcount"] }
 
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_select "input[name='recipes[0][headcount]'][value='1']"
     assert_select "input[name='recipes[2][headcount]'][value='3']"
   end
 
   test "blank or non-positive recipe headcount is stored as nil" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single station",
       recipes: {
         "0" => { title: "Blank", headcount: "",
@@ -321,25 +329,25 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
                  ingredients: { "0" => { qty: "1 c", station_qty: "1 c", item: "Sugar", section: "" } } }
       }
     }
-    handout.reload
-    assert_nil handout.recipes[0]["headcount"]
-    assert_nil handout.recipes[1]["headcount"]
+    packet.reload
+    assert_nil packet.recipes[0]["headcount"]
+    assert_nil packet.recipes[1]["headcount"]
   end
 
-  test "the handout PDF renders a recipe headcount without error" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => [
+  test "the packet PDF renders a recipe headcount without error" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => [
       { "title" => "Sushi Rice", "headcount" => 2,
         "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rice", "section" => nil } ],
         "directions" => [ { "section" => nil, "steps" => [ "Rinse." ] } ] }
     ] })
-    get print_nyk_handout_path(handout, format: :pdf)
+    get print_nyk_packet_path(packet, format: :pdf)
     assert_response :success
     assert_equal "application/pdf", response.media_type
   end
 
   test "update keeps blank lines between steps so spacing carries into the PDF" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    patch nyk_handout_path(handout), params: {
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single station",
       recipes: { "0" => {
         title: "Sauce",
@@ -348,27 +356,27 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
         directions: { "0" => { section: "", steps: "\nMelt butter.\nStir in flour.\n\n\nSeason to taste.\n" } }
       } }
     }
-    handout.reload
-    steps = handout.recipes.first["directions"].first["steps"]
+    packet.reload
+    steps = packet.recipes.first["directions"].first["steps"]
     # Interior blank preserved (as ""), runs collapsed to one, edges trimmed.
     assert_equal [ "Melt butter.", "Stir in flour.", "", "Season to taste." ], steps
   end
 
   test "the edit textarea round-trips the blank line back into the box" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => [
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => [
       { "title" => "Sauce",
         "ingredients" => [ { "qty" => "2 T", "station_qty" => "1 T", "item" => "Butter", "section" => nil } ],
         "directions" => [ { "section" => nil, "steps" => [ "Melt butter.", "", "Season to taste." ] } ] } ] })
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_match "Melt butter.\n\nSeason to taste.", response.body
   end
 
   test "saving an edit busts the preview cache and serves a fresh PDF" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
 
     # The edit page's PDF preview iframe carries a cache-busting ?v= param.
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     before_src = css_select("iframe[title='Recipe PDF preview']").first["src"]
     before_v   = Rack::Utils.parse_nested_query(URI(before_src).query)["v"]
@@ -381,7 +389,7 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
 
     # "Save & refresh preview" with an added recipe (travel so updated_at advances).
     travel 1.second do
-      patch nyk_handout_path(handout), params: {
+      patch nyk_packet_path(packet), params: {
         title: "Packet", station_label: "Single station",
         recipes: {
           "0" => { title: "Fresh Pasta",
@@ -393,11 +401,11 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    assert_redirected_to edit_nyk_handout_path(handout)
+    assert_redirected_to edit_nyk_packet_path(packet)
 
     # The refreshed edit page points the iframe at a NEW url (so the browser
     # refetches instead of showing the cached PDF)...
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     after_src = css_select("iframe[title='Recipe PDF preview']").first["src"]
     after_v   = Rack::Utils.parse_nested_query(URI(after_src).query)["v"]
     assert_not_equal before_v, after_v,
@@ -412,16 +420,16 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   end
 
   test "print page embeds the recipe PDF" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    get print_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get print_nyk_packet_path(packet)
     assert_response :success
-    assert_match print_nyk_handout_path(handout, format: :pdf), response.body
+    assert_match print_nyk_packet_path(packet, format: :pdf), response.body
     assert_match "Packet", response.body
   end
 
   test "print.pdf streams a branded recipe PDF" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    get print_nyk_handout_path(handout, format: :pdf)
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get print_nyk_packet_path(packet, format: :pdf)
     assert_response :success
     assert_equal "application/pdf", response.media_type
     assert response.body.start_with?("%PDF"), "expected PDF bytes"
@@ -429,28 +437,28 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     assert_equal 2, response.body.scan("/Type /Page\n").size + response.body.scan("/Type /Page ").size
   end
 
-  test "the handout PDF embeds the Carlito body font" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    get print_nyk_handout_path(handout, format: :pdf)
+  test "the packet PDF embeds the Carlito body font" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get print_nyk_packet_path(packet, format: :pdf)
     assert_response :success
     assert_match(/Carlito/, response.body, "expected the Carlito font to be embedded")
   end
 
-  test "create from a recipe URL builds and links a handout" do
+  test "create from a recipe URL builds and links a packet" do
     stub_extractor_success
-    post nyk_handouts_path, params: {
+    post nyk_packets_path, params: {
       event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
       recipe_url: "https://example.com/recipes/fresh-pasta"
     }
-    handout = KitchenHandout.last
-    assert_redirected_to edit_nyk_handout_path(handout)
-    assert_equal "url", handout.source_kind
-    assert_equal "https://example.com/recipes/fresh-pasta", handout.source_url
-    assert_equal handout, KitchenHandout.for_event_url(EVENT_URL)
+    packet = KitchenPacket.last
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_equal "url", packet.source_kind
+    assert_equal "https://example.com/recipes/fresh-pasta", packet.source_url
+    assert_equal packet, KitchenPacket.for_event_url(EVENT_URL)
   end
 
   test "new page renders the drag-and-drop PDF zone with the pdf input intact" do
-    get new_nyk_handout_path
+    get new_nyk_packet_path
     assert_response :success
     assert_select "[data-controller='dropzone']"
     assert_select "input[type=file][name=pdf][data-dropzone-target=input]"
@@ -458,23 +466,23 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   end
 
   test "new page has no green reuse-suggestion box (removed per Lora) but lists packets to attach" do
-    KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 5/14", data: { "recipes" => EXTRACTED })
-    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26")
+    KitchenPacket.create!(title: "Fresh Pasta: Ravioli Workshop 5/14", data: { "recipes" => EXTRACTED })
+    get new_nyk_packet_path(event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26")
     assert_response :success
     assert_no_match(/Copy this packet to the class/, response.body) # green suggestion gone
     assert_match "Fresh Pasta: Ravioli Workshop 5/14", response.body # still in the attach list
   end
 
-  test "signed-out users cannot reach handout pages" do
+  test "signed-out users cannot reach packet pages" do
     delete session_path rescue nil
     reset!
-    get new_nyk_handout_path
+    get new_nyk_packet_path
     assert_response :redirect
   end
 
   test "list page shows edit link for linked classes and add link otherwise" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    handout.attach_to!(EVENT_URL)
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    packet.attach_to!(EVENT_URL)
     snapshot = KitchenSnapshot.create!(taken_on: Date.current)
     snapshot.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 8/6/26", url: EVENT_URL,
                                     start_at: 2.weeks.from_now, availability: "InStock")
@@ -486,80 +494,48 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     # Linked class: the recipe slot is "Edit" (printing lives on the edit
     # screen), not a direct Print link, so the slot means the same in both
     # states.
-    assert_select "a[href=?]", edit_nyk_handout_path(handout)
-    assert_no_match print_nyk_handout_path(handout), response.body
+    assert_select "a[href=?]", edit_nyk_packet_path(packet)
+    assert_no_match print_nyk_packet_path(packet), response.body
     # Unlinked class: an "Add" link to start a recipe. & is HTML-escaped in the
     # rendered href, so match on the escaped form.
-    assert_match ERB::Util.html_escape(new_nyk_handout_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
+    assert_match ERB::Util.html_escape(new_nyk_packet_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
   end
 
   test "print and edit allow same-origin framing for the PDF preview" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
 
-    get print_nyk_handout_path(handout, format: :pdf)
+    get print_nyk_packet_path(packet, format: :pdf)
     assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
     assert_match "frame-ancestors 'self'", response.headers["Content-Security-Policy"].to_s
 
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
     assert_match "frame-ancestors 'self'", response.headers["Content-Security-Policy"].to_s
   end
 
-  test "destroy removes the handout and its class link" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    handout.attach_to!(EVENT_URL)
-    delete nyk_handout_path(handout)
+  test "destroy removes the packet and its class link" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    packet.attach_to!(EVENT_URL)
+    delete nyk_packet_path(packet)
     assert_redirected_to nyk_list_path
-    assert_not KitchenHandout.exists?(handout.id)
-    assert_nil KitchenHandout.for_event_url(EVENT_URL)
-  end
-
-  test "destroy from the library returns to the library" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    delete nyk_handout_path(handout), params: { return_to: nyk_recipes_path }
-    assert_redirected_to nyk_recipes_path
+    assert_not KitchenPacket.exists?(packet.id)
+    assert_nil KitchenPacket.for_event_url(EVENT_URL)
   end
 
   test "destroy ignores an off-site return_to (no open redirect)" do
-    handout = KitchenHandout.create!(title: "Packet", data: { "recipes" => EXTRACTED })
-    delete nyk_handout_path(handout), params: { return_to: "https://evil.example.com" }
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    delete nyk_packet_path(packet), params: { return_to: "https://evil.example.com" }
     assert_redirected_to nyk_list_path
-  end
-
-  test "library lists every packet" do
-    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
-    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
-    get nyk_recipes_path
-    assert_response :success
-    assert_match "Fresh Pasta", response.body
-    assert_match "Sourdough Basics", response.body
   end
 
   SOURDOUGH = [ { "title" => "Sourdough",
     "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Rye", "section" => nil } ],
     "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] } ].freeze
 
-  # Search is now a live client-side filter: the index renders every packet with
-  # a data-search-text attribute, and recipe_filter_controller substring-matches
-  # against it. These assert the searchable text is on the page for the JS to use.
-  test "library exposes title in each packet's search text" do
-    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
-    get nyk_recipes_path
-    assert_response :success
-    assert_match(/data-search-text="[^"]*fresh pasta/, response.body)
-  end
-
-  test "library exposes recipe ingredients in the search text" do
-    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED }) # has "All-purpose flour"
-    get nyk_recipes_path
-    assert_response :success
-    assert_match(/data-search-text="[^"]*all-purpose flour/, response.body)
-  end
-
   test "attach picker searches the full library when given a query" do
-    KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
-    KitchenHandout.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
-    get new_nyk_handout_path(event_url: EVENT_URL, event_name: "Whatever", q: "sourdough")
+    KitchenPacket.create!(title: "Fresh Pasta", data: { "recipes" => EXTRACTED })
+    KitchenPacket.create!(title: "Sourdough Basics", data: { "recipes" => EXTRACTED })
+    get new_nyk_packet_path(event_url: EVENT_URL, event_name: "Whatever", q: "sourdough")
     assert_response :success
     assert_match "Sourdough Basics", response.body
     assert_no_match(/Copy this packet to the class/, response.body) # no similarity suggestion while searching
@@ -568,40 +544,40 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   SIBLING_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-9-3-26/".freeze
 
   test "reusing a packet copies it and auto-links other future runs to the copy" do
-    source = KitchenHandout.create!(title: "Fresh Pasta: Ravioli Workshop 8/6/26", data: { "recipes" => EXTRACTED })
+    source = KitchenPacket.create!(title: "Fresh Pasta: Ravioli Workshop 8/6/26", data: { "recipes" => EXTRACTED })
     snap = KitchenSnapshot.create!(taken_on: Date.current)
     snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 8/6/26", url: EVENT_URL,
                                 start_at: 2.weeks.from_now, availability: "InStock")
     snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 9/3/26", url: SIBLING_URL,
                                 start_at: 5.weeks.from_now, availability: "InStock")
 
-    post nyk_handouts_path, params: { existing_id: source.id, event_url: EVENT_URL }
+    post nyk_packets_path, params: { existing_id: source.id, event_url: EVENT_URL }
 
     # Reuse made a copy and landed on its review page; the sibling future run is
     # auto-linked to that copy, not to the source we reused from.
-    copy = KitchenHandout.for_event_url(EVENT_URL)
+    copy = KitchenPacket.for_event_url(EVENT_URL)
     assert_not_equal source, copy
-    assert_redirected_to edit_nyk_handout_path(copy)
-    assert_not KitchenHandoutLink.find_by(event_url: EVENT_URL).auto
-    sibling = KitchenHandoutLink.find_by(event_url: SIBLING_URL)
-    assert_equal copy, sibling.kitchen_handout
+    assert_redirected_to edit_nyk_packet_path(copy)
+    assert_not KitchenPacketLink.find_by(event_url: EVENT_URL).auto
+    sibling = KitchenPacketLink.find_by(event_url: SIBLING_URL)
+    assert_equal copy, sibling.kitchen_packet
     assert sibling.auto
   end
 
   test "edit page warns when a packet is shared by more than one class" do
-    handout = KitchenHandout.create!(title: "Korean BBQ", data: { "recipes" => EXTRACTED })
-    handout.attach_to!("https://nyk/a")
-    handout.links.create!(event_url: "https://nyk/b", auto: true)
-    get edit_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Korean BBQ", data: { "recipes" => EXTRACTED })
+    packet.attach_to!("https://nyk/a")
+    packet.links.create!(event_url: "https://nyk/b", auto: true)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_match "shared by", response.body
     assert_match "2 classes", response.body
   end
 
   test "edit page does not warn for a single-class packet" do
-    handout = KitchenHandout.create!(title: "Korean BBQ", data: { "recipes" => EXTRACTED })
-    handout.attach_to!("https://nyk/a")
-    get edit_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Korean BBQ", data: { "recipes" => EXTRACTED })
+    packet.attach_to!("https://nyk/a")
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_no_match(/shared by/, response.body)
   end
@@ -611,10 +587,10 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     url = "https://nykitchen.com/event/sushi/"
     snap.kitchen_events.create!(name: "Sushi Rolling", url: url, start_at: 3.days.from_now.change(hour: 18),
                                 availability: "InStock", capacity: 24, spots_left: 4)
-    handout = KitchenHandout.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED })
-    handout.attach_to!(url)
+    packet = KitchenPacket.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED })
+    packet.attach_to!(url)
 
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_select "[data-controller='tabs frame-src']"
     assert_select "button[data-tab-name='pull']"
@@ -635,10 +611,10 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
     snap.kitchen_events.create!(name: "Sushi PAST", url: past, start_at: 5.days.ago, availability: "InStock", capacity: 24, spots_left: 1)
     snap.kitchen_events.create!(name: "Sushi SOON", url: soon, start_at: 2.days.from_now, availability: "InStock", capacity: 24, spots_left: 1)
     snap.kitchen_events.create!(name: "Sushi LATER", url: later, start_at: 9.days.from_now, availability: "InStock", capacity: 24, spots_left: 1)
-    handout = KitchenHandout.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED })
-    [ past, soon, later ].each { |u| handout.links.create!(event_url: u) }
+    packet = KitchenPacket.create!(title: "Sushi Rolling", data: { "recipes" => EXTRACTED })
+    [ past, soon, later ].each { |u| packet.links.create!(event_url: u) }
 
-    get edit_nyk_handout_path(handout)
+    get edit_nyk_packet_path(packet)
     assert_response :success
     # Shared by 3 -> a dropdown; the default frame src points at the soonest upcoming run.
     assert_select "select option", 3
@@ -650,8 +626,8 @@ class KitchenHandoutsTest < ActionDispatch::IntegrationTest
   end
 
   test "Pull sheet tab shows an empty state when the recipe is attached to no class" do
-    handout = KitchenHandout.create!(title: "Orphan", data: { "recipes" => EXTRACTED })
-    get edit_nyk_handout_path(handout)
+    packet = KitchenPacket.create!(title: "Orphan", data: { "recipes" => EXTRACTED })
+    get edit_nyk_packet_path(packet)
     assert_response :success
     assert_match "isn't attached to a class yet", response.body
   end

@@ -111,10 +111,10 @@
           emerald Edit when one is). Always a
           recipe action so the slot means the same thing in both states;
           printing lives on the edit screen.
-      Only on pages that load @handouts_by_url (Sam's list). The combined week
+      Only on pages that load @packets_by_url (Sam's list). The combined week
       grocery list lives in the expanded week header, not per class. %>
-  <% if defined?(@handouts_by_url) && @handouts_by_url %>
-    <% handout_id = @handouts_by_url[event.url] %>
+  <% if defined?(@packets_by_url) && @packets_by_url %>
+    <% packet_id = @packets_by_url[event.url] %>
     <%# Mobile: the rail drops below the class info (full row, right-aligned) so
         the name/date get the card's full width instead of being squeezed by the
         fixed icon columns. sm+ keeps the original right-edge vertical strip. %>
@@ -123,10 +123,10 @@
           per-class pull sheet live on the edit screen's Pull sheet tab), Add
           when none. %>
       <div class="flex flex-col items-center justify-center w-16 px-1">
-        <% if handout_id %>
-          <% auto_linked = defined?(@auto_handout_urls) && @auto_handout_urls&.include?(event.url) %>
-          <%= link_to edit_nyk_handout_path(handout_id),
-                title: auto_linked ? "Auto-added from a matching class. Edit or change it here." : "Edit handout (and print it from there)",
+        <% if packet_id %>
+          <% auto_linked = defined?(@auto_packet_urls) && @auto_packet_urls&.include?(event.url) %>
+          <%= link_to edit_nyk_packet_path(packet_id),
+                title: auto_linked ? "Auto-added from a matching class. Edit or change it here." : "Edit packet (and print it from there)",
                 class: "flex flex-col items-center gap-0.5 text-emerald-400 hover:text-emerald-300 transition" do %>
             <span class="text-2xl leading-none">📝</span>
             <span class="text-[10px] font-medium">Edit</span>
@@ -135,8 +135,8 @@
             <% end %>
           <% end %>
         <% else %>
-          <%= link_to new_nyk_handout_path(event_url: event.url, event_name: event.name),
-                title: "Add a recipe handout",
+          <%= link_to new_nyk_packet_path(event_url: event.url, event_name: event.name),
+                title: "Add a packet",
                 class: "flex flex-col items-center gap-0.5 text-gray-500 hover:text-gray-300 transition" do %>
             <span class="text-2xl leading-none grayscale opacity-60">📝</span>
             <span class="text-[10px] font-medium">Add</span>

@@ -1,4 +1,4 @@
-<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+<div class="grocery-shell max-w-3xl mx-auto px-4 sm:px-6 py-10">
   <div class="flex items-center justify-between gap-3 mb-2 no-print">
     <%# A pull sheet is for one specific class, so the day-window pills (which
         re-scope the whole list) don't apply. %>
@@ -23,12 +23,16 @@
     <%= back_button "← Back to Sam's list", nyk_list_path %>
   </div>
 
-  <% if @single_class %>
-    <h1 class="text-2xl font-bold text-white mt-3 mb-1">Pull sheet</h1>
-    <% if @event_name.present? %><p class="text-sm text-gray-400 mb-6"><%= @event_name %></p><% end %>
-  <% else %>
-    <h1 class="text-2xl font-bold text-white mt-3 mb-6">Grocery list</h1>
-  <% end %>
+  <%# Screen header only; the printed white sheet carries its own title, so hide
+      this on print to avoid a near-empty first page. %>
+  <div class="no-print">
+    <% if @single_class %>
+      <h1 class="text-2xl font-bold text-white mt-3 mb-1">Pull sheet</h1>
+      <% if @event_name.present? %><p class="text-sm text-gray-400 mb-6"><%= @event_name %></p><% end %>
+    <% else %>
+      <h1 class="text-2xl font-bold text-white mt-3 mb-6">Grocery list</h1>
+    <% end %>
+  </div>
 
   <%# The list is built by an Opus call, so load it lazily in a frame: this page
       paints instantly and the spinner shows while the list is built (or fetched
@@ -56,7 +60,7 @@
   document.addEventListener("click", function (e) {
     if (e.target.closest("#grocery-print-btn")) window.print();
   });
-  // Opened from the handout Pull sheet "Print" button (?print=1): once the
+  // Opened from the packet Pull sheet "Print" button (?print=1): once the
   // sheet finishes loading in its eager frame, auto-open the print dialog. On
   // the iOS/Android app this page is handed to Safari, where printing works.
   if (new URLSearchParams(location.search).get("print") === "1") {
@@ -69,6 +73,10 @@
 <style>
   @media print {
     .no-print { display: none !important; }
+    /* Hide app chrome so the sheet starts at the top of page 1 (the fixed footer
+       and sticky nav otherwise reserve space and push it to a blank page 2). */
+    nav, footer { display: none !important; }
+    .grocery-shell { padding: 0 !important; max-width: none !important; }
     .print-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
     body { background: #fff !important; }
   }

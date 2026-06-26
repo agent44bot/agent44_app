@@ -1,12 +1,12 @@
 <%# Print page: the branded recipe packet shown as the actual PDF (rendered by
-    KitchenHandoutPdf), full-height, with Print / Download / Edit. The PDF is
+    KitchenPacketPdf), full-height, with Print / Download / Edit. The PDF is
     the same artifact Lora downloads or prints, so what she sees is what prints. %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NY Kitchen · <%= @handout.title %></title>
+  <title>NY Kitchen · <%= @packet.title %></title>
   <style>
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: #525659; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
@@ -19,14 +19,14 @@
 </head>
 <body>
   <div class="bar">
-    <span class="title"><%= @handout.title %></span>
-    <a class="btn" href="<%= edit_nyk_handout_path(@handout) %>">Edit</a>
+    <span class="title"><%= @packet.title %></span>
+    <a class="btn" href="<%= edit_nyk_packet_path(@packet) %>">Edit</a>
     <a class="btn" href="<%= nyk_list_path %>">Sam's list</a>
-    <a class="btn" href="<%= print_nyk_handout_path(@handout, format: :pdf, download: 1, v: @handout.updated_at.to_i) %>">Download</a>
+    <a class="btn" href="<%= print_nyk_packet_path(@packet, format: :pdf, download: 1, v: @packet.updated_at.to_i) %>">Download</a>
     <button class="btn btn-primary" id="print-btn" type="button">🖨 Print</button>
   </div>
   <%# v=updated_at busts the browser PDF cache so a fresh save shows fresh pages. %>
-  <iframe id="pdf" src="<%= print_nyk_handout_path(@handout, format: :pdf, v: @handout.updated_at.to_i) %>" title="<%= @handout.title %>"></iframe>
+  <iframe id="pdf" src="<%= print_nyk_packet_path(@packet, format: :pdf, v: @packet.updated_at.to_i) %>" title="<%= @packet.title %>"></iframe>
 
   <%= javascript_tag nonce: true do %>
     document.getElementById("print-btn")?.addEventListener("click", function () {

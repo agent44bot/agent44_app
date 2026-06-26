@@ -1,5 +1,5 @@
 # Turns a pasted class recipe (or an uploaded PDF) into the structured
-# KitchenHandout data: recipes with ingredient lines and direction sections,
+# KitchenPacket data: recipes with ingredient lines and direction sections,
 # plus a proposed single-station quantity for every ingredient. Quantities
 # are display text on purpose (no fraction math here or in Ruby): the model
 # proposes, a human reviews in the edit form.
@@ -117,7 +117,7 @@ module KitchenAi
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
-    # Revise an existing handout's recipes per a free-text instruction from
+    # Revise an existing packet's recipes per a free-text instruction from
     # the user (e.g. "split the rolls into Tuna, Salmon, and Vegetarian, plus a
     # shared rice"). Returns the COMPLETE updated recipe set. Billed under the
     # same source as generate.

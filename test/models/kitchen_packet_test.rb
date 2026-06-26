@@ -1,6 +1,6 @@
 require "test_helper"
 
-class KitchenHandoutTest < ActiveSupport::TestCase
+class KitchenPacketTest < ActiveSupport::TestCase
   RECIPES = [
     {
       "title" => "Fresh Pasta",
@@ -10,7 +10,7 @@ class KitchenHandoutTest < ActiveSupport::TestCase
   ].freeze
 
   def make(title, ingredient = "All-purpose flour")
-    KitchenHandout.create!(title: title, data: { "recipes" => [
+    KitchenPacket.create!(title: title, data: { "recipes" => [
       { "title" => title,
         "ingredients" => [ { "qty" => "1 c", "station_qty" => "1/2 c", "item" => ingredient, "section" => nil } ],
         "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] }
@@ -20,34 +20,34 @@ class KitchenHandoutTest < ActiveSupport::TestCase
   test "search matches the title" do
     pasta = make("Fresh Pasta")
     make("Sourdough Basics")
-    assert_equal [ pasta ], KitchenHandout.search("pasta").to_a
+    assert_equal [ pasta ], KitchenPacket.search("pasta").to_a
   end
 
   test "search matches an ingredient inside the recipe data" do
     pasta = make("Fresh Pasta", "All-purpose flour")
     make("Sourdough Basics", "Rye")
-    assert_equal [ pasta ], KitchenHandout.search("all-purpose").to_a
+    assert_equal [ pasta ], KitchenPacket.search("all-purpose").to_a
   end
 
   test "blank search returns everything" do
     make("Fresh Pasta")
     make("Sourdough Basics")
-    assert_equal 2, KitchenHandout.search("").count
-    assert_equal 2, KitchenHandout.search(nil).count
+    assert_equal 2, KitchenPacket.search("").count
+    assert_equal 2, KitchenPacket.search(nil).count
   end
 
   test "search escapes LIKE wildcards so they match literally" do
     make("Fresh Pasta")
-    assert_equal 0, KitchenHandout.search("%").count
+    assert_equal 0, KitchenPacket.search("%").count
   end
 
   test "search_text flattens title, ingredients, and steps, lowercased" do
-    handout = KitchenHandout.create!(title: "Fresh Pasta", data: { "recipes" => [
+    packet = KitchenPacket.create!(title: "Fresh Pasta", data: { "recipes" => [
       { "title" => "Cherry Sauce",
         "ingredients" => [ { "qty" => "2 c", "station_qty" => "1 c", "item" => "Cherry tomatoes", "section" => nil } ],
         "directions" => [ { "section" => nil, "steps" => [ "Simmer the tomatoes." ] } ] }
     ] })
-    text = handout.search_text
+    text = packet.search_text
     assert_includes text, "fresh pasta"
     assert_includes text, "cherry sauce"
     assert_includes text, "cherry tomatoes"
@@ -68,28 +68,28 @@ class KitchenHandoutTest < ActiveSupport::TestCase
     h = make("Pasta")
     h.equipment = [ "Pasta machine" ]
     h.save!
-    assert_includes KitchenHandout.equipment_catalog, "Pasta machine"
-    assert_includes KitchenHandout.equipment_catalog, "Whisk" # a starter tag
+    assert_includes KitchenPacket.equipment_catalog, "Pasta machine"
+    assert_includes KitchenPacket.equipment_catalog, "Whisk" # a starter tag
 
-    KitchenHandout.hide_equipment("Pasta machine")
-    KitchenHandout.hide_equipment("whisk") # case-insensitive vs starter "Whisk"
+    KitchenPacket.hide_equipment("Pasta machine")
+    KitchenPacket.hide_equipment("whisk") # case-insensitive vs starter "Whisk"
 
-    refute_includes KitchenHandout.equipment_catalog, "Pasta machine"
-    refute_includes KitchenHandout.equipment_catalog.map(&:downcase), "whisk"
+    refute_includes KitchenPacket.equipment_catalog, "Pasta machine"
+    refute_includes KitchenPacket.equipment_catalog.map(&:downcase), "whisk"
   end
 
   test "hide_equipment ignores blanks and de-dupes" do
-    KitchenHandout.hide_equipment("Tongs")
-    KitchenHandout.hide_equipment("tongs")
-    KitchenHandout.hide_equipment("  ")
-    assert_equal [ "Tongs" ], KitchenHandout.hidden_equipment
+    KitchenPacket.hide_equipment("Tongs")
+    KitchenPacket.hide_equipment("tongs")
+    KitchenPacket.hide_equipment("  ")
+    assert_equal [ "Tongs" ], KitchenPacket.hidden_equipment
   end
 
   test "equipment_catalog merges the starter palette with used items, de-duped and sorted" do
     h = make("Pasta")
     h.equipment = [ "Pasta machine", "whisk" ] # 'whisk' duplicates starter 'Whisk'
     h.save!
-    cat = KitchenHandout.equipment_catalog
+    cat = KitchenPacket.equipment_catalog
     assert_includes cat, "Pasta machine"  # a used item appears
     assert_includes cat, "Cutting board"  # a starter item appears
     assert_equal 1, cat.count { |e| e.downcase == "whisk" }, "case-insensitive de-dupe"

@@ -1,4 +1,4 @@
-# House style for recipe-handout measurements (Lora's request): standardize the
+# House style for recipe-packet measurements (Lora's request): standardize the
 # common volume and weight units so every printed packet reads the same way.
 #
 #   tablespoon -> T    teaspoon -> tsp    cup -> c

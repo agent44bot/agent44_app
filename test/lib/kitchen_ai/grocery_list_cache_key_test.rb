@@ -11,7 +11,7 @@ class GroceryListCacheKeyTest < ActiveSupport::TestCase
       event: OpenStruct.new(url: "https://nyk/event/a"),
       tag: "A",
       stations: 6,
-      handout: OpenStruct.new(data: { "recipes" => recipes, "equipment" => equipment })
+      packet: OpenStruct.new(data: { "recipes" => recipes, "equipment" => equipment })
     } ]
   end
 

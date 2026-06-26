@@ -4,7 +4,7 @@
 # cache key.
 #
 # Stateless math (tag/headcount/stations/cache_key) lives in class methods; an
-# instance memoizes the handouts map + observed prices for one request/job, so
+# instance memoizes the packets map + observed prices for one request/job, so
 # the list page can total every week cheaply.
 module KitchenAi
   class GroceryList
@@ -44,11 +44,11 @@ module KitchenAi
       # of serving a stale estimate.
       def cache_key(with_recipe, observed = {})
         # Exclude equipment from the key: it's the per-station setup gear, which
-        # the pull sheet renders live from the handout and which has no bearing
+        # the pull sheet renders live from the packet and which has no bearing
         # on the ingredient/price aggregation. Keeping it here would re-bill Opus
         # every time someone tweaks an equipment tag.
         recipes = with_recipe.sort_by { |c| c[:event].url }
-                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:handout].data.except("equipment") ] }
+                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:packet].data.except("equipment") ] }
         payload = { recipes: recipes, observed: observed.sort.to_h }.to_json
         "nyk_grocery_list:v3:#{Digest::SHA256.hexdigest(payload)}"
       end
@@ -64,11 +64,11 @@ module KitchenAi
       @user = user
     end
 
-    # All recipe handouts indexed by the event URL they're attached to. Loaded
+    # All recipe packets indexed by the event URL they're attached to. Loaded
     # once per instance (the list page reads it for every week's total).
-    def handouts_by_event_url
-      @handouts_by_event_url ||=
-        KitchenHandout.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
+    def packets_by_event_url
+      @packets_by_event_url ||=
+        KitchenPacket.includes(:links).flat_map { |h| h.links.map { |l| [ l.event_url, h ] } }.to_h
     end
 
     # Most recent observed unit price per ingredient (from receipts) as a plain
@@ -83,10 +83,10 @@ module KitchenAi
     # recipe, each tagged and scaled by booked stations. per_ticket /
     # per_ticket_overridden drive the "Ticket portions" control on the list.
     def with_recipe(events)
-      handouts = handouts_by_event_url
+      packets = packets_by_event_url
       events.filter_map do |e|
-        h = handouts[e.url] or next
-        { event: e, handout: h, tag: self.class.tag(e),
+        h = packets[e.url] or next
+        { event: e, packet: h, tag: self.class.tag(e),
           headcount: self.class.headcount(e), stations: self.class.stations(e),
           per_ticket: e.people_per_ticket, per_ticket_overridden: e.portion_overridden? }
       end
@@ -103,7 +103,7 @@ module KitchenAi
       end
       return [ nil, false ] unless write
 
-      items = with_recipe.map { |c| { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: c[:handout].recipes } }
+      items = with_recipe.map { |c| { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: c[:packet].recipes } }
       result = KitchenAi::GroceryAggregator.new(user: @user).build(items, observed_prices: observed)
       Rails.cache.write(key, result, expires_in: CACHE_TTL) if result&.ok?
       [ result, false ]
