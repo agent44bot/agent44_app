@@ -6,6 +6,29 @@
     Signed in as <span class="text-gray-200"><%= Current.user&.email_address %></span>
   </p>
 
+  <!-- Profile photo -->
+  <div class="mb-6 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-800">
+      <h2 class="text-white font-semibold text-base">Profile photo</h2>
+      <p class="text-xs text-gray-500 mt-0.5">
+        Shown next to your name in workspaces. PNG, JPEG, or WebP, up to 5 MB.
+      </p>
+    </div>
+    <%= form_with url: update_avatar_settings_path, method: :patch, local: true,
+          html: { multipart: true }, class: "px-5 py-4 flex flex-wrap items-center gap-4" do %>
+      <%= user_avatar_tag Current.user, size: "h-14 w-14", ring: "ring-2 ring-gray-800", extra: "text-base" %>
+      <%= file_field_tag :avatar, accept: "image/png,image/jpeg,image/webp",
+            class: "flex-1 min-w-[200px] text-sm text-gray-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-gray-700 file:text-white file:cursor-pointer" %>
+      <% if Current.user&.avatar&.attached? %>
+        <label class="text-xs text-gray-400 inline-flex items-center gap-1">
+          <%= check_box_tag "remove_avatar", "1" %> remove
+        </label>
+      <% end %>
+      <%= submit_tag "Save photo",
+            class: "px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+  </div>
+
   <!-- Display name -->
   <div class="mb-6 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-800">
