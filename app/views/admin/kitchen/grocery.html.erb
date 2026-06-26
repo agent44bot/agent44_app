@@ -34,6 +34,32 @@
     <% end %>
   </div>
 
+  <%# Manager-only (owner/admin) control to show/hide the rough dollar estimates
+      on this list. Lives here so Lora flips it right where the prices appear,
+      not buried in workspace settings. Hidden on a single-class pull sheet
+      (which never shows prices) and for non-managers. %>
+  <% if !@single_class && @nyk_workspace && %w[owner admin].include?(@my_workspace_role) %>
+    <% grocery_prices_on = @nyk_workspace.show_grocery_prices? %>
+    <div class="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap no-print">
+      <div class="min-w-0">
+        <p class="text-sm text-white">Show grocery price estimates</p>
+        <p class="text-xs text-gray-500 mt-0.5">When on, the grocery list shows rough dollar estimates. Keep off until real prices are uploaded.</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-xs font-semibold uppercase <%= grocery_prices_on ? 'text-gray-500' : 'text-gray-300' %>">Off</span>
+        <%= button_to toggle_grocery_prices_workspace_path(@nyk_workspace.slug),
+              method: :post,
+              form_class: "inline-flex",
+              data: { test: "grocery-prices-toggle" },
+              aria: { label: "Show grocery price estimates", checked: grocery_prices_on.to_s },
+              class: "relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer #{grocery_prices_on ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}" do %>
+          <span class="absolute inline-block h-5 w-5 rounded-full bg-white shadow transition transform <%= grocery_prices_on ? 'translate-x-5' : 'translate-x-0.5' %>"></span>
+        <% end %>
+        <span class="text-xs font-semibold uppercase <%= grocery_prices_on ? 'text-green-400' : 'text-gray-500' %>">On</span>
+      </div>
+    </div>
+  <% end %>
+
   <%# The list is built by an Opus call, so load it lazily in a frame: this page
       paints instantly and the spinner shows while the list is built (or fetched
       from cache). The frame src carries a single class, a specific week, or a

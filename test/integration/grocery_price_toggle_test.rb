@@ -46,14 +46,14 @@ class GroceryPriceToggleTest < ActionDispatch::IntegrationTest
     refute @nyk.reload.show_grocery_prices?, "non-member should not be able to flip the toggle"
   end
 
-  test "the manager sees the toggle control on the NYK hub; a member does not" do
+  test "the manager sees the toggle control on the grocery page; a member does not" do
     sign_in_as(@manager)
-    get nykitchen_path
+    get nyk_grocery_path
     assert_response :success
     assert_match "Show grocery price estimates", response.body
 
     sign_in_as(@member)
-    get nykitchen_path
+    get nyk_grocery_path
     assert_response :success
     assert_no_match "Show grocery price estimates", response.body
   end

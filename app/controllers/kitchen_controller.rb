@@ -990,7 +990,7 @@ class KitchenController < ApplicationController
     # title row. Anonymous viewers (hub only) get nil.
     @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
     # Grocery price estimates stay hidden until real price data is uploaded;
-    # the manager toggle (workspaces/_team) flips this per workspace.
+    # the manager toggle (on the grocery page) flips this per workspace.
     @show_grocery_prices = @nyk_workspace&.show_grocery_prices? || false
     @workspace_agents = @nyk_workspace ? WorkspaceAgent::KINDS.index_with { |k| @nyk_workspace.agent_for(k) } : {}
     @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
