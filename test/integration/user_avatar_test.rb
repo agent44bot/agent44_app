@@ -27,6 +27,27 @@ class UserAvatarSettingsTest < ActionDispatch::IntegrationTest
     assert_redirected_to settings_path
     assert_not @user.reload.avatar.attached?
   end
+
+  test "avatar_display is nil without a photo and resizes once attached" do
+    assert_nil @user.avatar_display
+
+    @user.avatar.attach(io: file_fixture("sample_bottle.png").open, filename: "a.png", content_type: "image/png")
+    display = @user.reload.avatar_display
+    assert_not_nil display
+    # Where a variant processor is available it's a 256x256 fill, not the
+    # multi-MB original. (Guarded so the test still passes without libvips.)
+    if @user.avatar.variable?
+      assert_respond_to display, :variation
+      assert_equal [ 256, 256 ], display.variation.transformations[:resize_to_fill]
+    end
+  end
+
+  test "the profile photo form is wired for an instant local preview" do
+    get settings_path
+    assert_response :success
+    assert_select "form[data-controller=?]", "avatar-field"
+    assert_select "[data-avatar-field-target=input]"
+  end
 end
 
 # The Workspaces index header shows real member avatars (initials fallback) plus

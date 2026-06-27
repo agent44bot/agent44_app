@@ -18,7 +18,7 @@ module ApplicationHelper
   def user_avatar_tag(user, size: "h-9 w-9", ring: "ring-2 ring-gray-950", extra: "")
     base = "#{size} rounded-full shrink-0 #{ring} #{extra}".strip
     if user.avatar.attached?
-      image_tag user.avatar, alt: user.display_identifier, loading: "lazy",
+      image_tag user.avatar_display, alt: user.display_identifier, loading: "lazy",
                 class: "#{base} object-cover bg-gray-800"
     else
       content_tag :span, user.avatar_initials,

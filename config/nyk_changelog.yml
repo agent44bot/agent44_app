@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-27
+  note: Profile photos now show up instantly. The moment you pick a picture you see a preview before saving, and photos load faster everywhere because they are resized down instead of sent at full phone-camera size.
+
 - date: 2026-06-26
   note: You can now add a profile photo on your Settings page. Your photo (or your initials if you skip it) shows next to your name in the workspace member list and in the team row at the top of the Workspaces page.
 
