@@ -54,6 +54,10 @@ gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 2.0"
+# Ruby binding for libvips (installed in the Docker image), the default Rails 8
+# Active Storage variant processor. Without it, avatar/logo variants raise
+# LoadError at render time and images show as broken.
+gem "ruby-vips", "~> 2.2"
 
 # QR codes for the printable class schedule (inline SVG, no network calls)
 gem "rqrcode", "~> 2.2"

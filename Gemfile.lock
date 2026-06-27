@@ -143,6 +143,14 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.0)
       tzinfo
+    ffi (1.17.4-aarch64-linux-gnu)
+    ffi (1.17.4-aarch64-linux-musl)
+    ffi (1.17.4-arm-linux-gnu)
+    ffi (1.17.4-arm-linux-musl)
+    ffi (1.17.4-arm64-darwin)
+    ffi (1.17.4-x86_64-darwin)
+    ffi (1.17.4-x86_64-linux-gnu)
+    ffi (1.17.4-x86_64-linux-musl)
     fugit (1.12.1)
       et-orbi (~> 1.4)
       raabro (~> 1.4)
@@ -366,6 +374,9 @@ GEM
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
+    ruby-vips (2.3.0)
+      ffi (~> 1.12)
+      logger
     rubyzip (3.4.0)
     safety_net_attestation (0.5.0)
       jwt (>= 2.0, < 4.0)
@@ -508,6 +519,7 @@ DEPENDENCIES
   rails (~> 8.1.2)
   rqrcode (~> 2.2)
   rubocop-rails-omakase
+  ruby-vips (~> 2.2)
   selenium-webdriver
   simple_oauth (~> 0.3)
   solid_cable
