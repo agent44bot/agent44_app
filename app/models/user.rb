@@ -24,9 +24,11 @@ class User < ApplicationRecord
   has_many :authored_workspace_posts, class_name: "WorkspacePost", foreign_key: :author_id, dependent: :destroy
   has_many :authored_workspace_drafts, class_name: "WorkspaceDraft", foreign_key: :author_id, dependent: :destroy
 
-  # Profile photo. Mirrors Workspace#logo (served as the original blob, sized
-  # with CSS) so there's no image-processing variant dependency. has_one_attached
-  # auto-purges on destroy, so the Apple delete-account flow stays intact.
+  # Profile photo. Uploaded as the original blob but rendered everywhere through
+  # the resized #avatar_display variant (libvips is in the deploy image), so a
+  # multi-MB upload never gets sent full size into a small avatar circle.
+  # has_one_attached auto-purges on destroy, so the Apple delete-account flow
+  # stays intact.
   has_one_attached :avatar
 
   AVATAR_TYPES = %w[image/png image/jpeg image/webp].freeze
@@ -139,6 +141,16 @@ class User < ApplicationRecord
 
   def avatar_color_classes
     AVATAR_PALETTE[id.to_i % AVATAR_PALETTE.size]
+  end
+
+  # A small, square, cached thumbnail for display. Every avatar render site goes
+  # through this rather than the raw blob, which can be several MB straight off
+  # an iPhone. 256px covers the largest use (a 56px circle at 3x DPR) with room
+  # to spare. Falls back to the original if the file isn't variant-processable.
+  def avatar_display
+    return unless avatar.attached?
+    return avatar unless avatar.variable?
+    avatar.variant(resize_to_fill: [ 256, 256 ])
   end
 
   private

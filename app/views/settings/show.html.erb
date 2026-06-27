@@ -15,9 +15,22 @@
       </p>
     </div>
     <%= form_with url: update_avatar_settings_path, method: :patch, local: true,
-          html: { multipart: true }, class: "px-5 py-4 flex flex-wrap items-center gap-4" do %>
-      <%= user_avatar_tag Current.user, size: "h-14 w-14", ring: "ring-2 ring-gray-800", extra: "text-base" %>
+          html: { multipart: true, data: { controller: "avatar-field" } },
+          class: "px-5 py-4 flex flex-wrap items-center gap-4" do %>
+      <% avatar_classes = "h-14 w-14 rounded-full shrink-0 ring-2 ring-gray-800 object-cover bg-gray-800" %>
+      <% if Current.user&.avatar&.attached? %>
+        <%= image_tag Current.user.avatar_display, alt: Current.user.display_identifier,
+              data: { avatar_field_target: "preview" }, class: avatar_classes %>
+      <% else %>
+        <img data-avatar-field-target="preview" alt="" hidden class="<%= avatar_classes %>">
+        <%= content_tag :span, Current.user&.avatar_initials,
+              data: { avatar_field_target: "fallback" },
+              class: "h-14 w-14 rounded-full shrink-0 ring-2 ring-gray-800 #{Current.user&.avatar_color_classes} " \
+                     "inline-flex items-center justify-center text-base font-semibold uppercase select-none leading-none",
+              title: Current.user&.display_identifier %>
+      <% end %>
       <%= file_field_tag :avatar, accept: "image/png,image/jpeg,image/webp",
+            data: { avatar_field_target: "input", action: "change->avatar-field#preview" },
             class: "flex-1 min-w-[200px] text-sm text-gray-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-gray-700 file:text-white file:cursor-pointer" %>
       <% if Current.user&.avatar&.attached? %>
         <label class="text-xs text-gray-400 inline-flex items-center gap-1">
