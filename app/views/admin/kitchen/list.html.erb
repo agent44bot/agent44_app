@@ -4,7 +4,18 @@
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10" data-controller="kitchen-filter">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10" data-controller="kitchen-filter recipe-loading">
+  <%# Shown by recipe-loading#show while a no-recipe class is drafting its recipe
+      with AI (several seconds before the redirect to the editor). %>
+  <div data-recipe-loading-target="overlay"
+       class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-gray-950/90 backdrop-blur-sm text-center px-6">
+    <svg class="animate-spin h-10 w-10 text-orange-500" viewBox="0 0 24 24" fill="none">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    <p class="text-white text-base font-semibold">Generating recipe with AI...</p>
+    <p class="text-gray-400 text-sm">This takes a few seconds. Hang tight, we are drafting the recipe and equipment list.</p>
+  </div>
   <%= render "admin/kitchen/breadcrumbs" %>
 
   <div class="mb-6">
