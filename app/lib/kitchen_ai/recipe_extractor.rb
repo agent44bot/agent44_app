@@ -168,6 +168,52 @@ module KitchenAi
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
+    # Read a packet's recipes and suggest the per-station setup equipment they
+    # need. Returns a Result whose `equipment` is the suggested list (the caller
+    # merges it with whatever is already on the packet). Billed under generate.
+    def suggest_equipment(class_name:, recipes:, description: nil)
+      return Result.new(ok?: false, error: "Add a recipe first, then Agent Sam can suggest the equipment.") if Array(recipes).blank?
+
+      chosen_model = AiModelChoice.resolve(GENERATE_SOURCE, default: MODEL)
+      prompt = <<~MSG
+        Class name: #{class_name}
+
+        Class description:
+        #{description.to_s.strip.presence || '(none provided)'}
+
+        Recipes (JSON):
+        #{JSON.generate({ "recipes" => recipes })}
+      MSG
+
+      response = with_api_retry do
+        if self.class.stub
+          self.class.stub.call(messages: [ { role: "user", content: [] } ])
+        else
+          api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
+          return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
+          Anthropic::Client.new(api_key: api_key).messages.create(
+            model:      chosen_model,
+            max_tokens: 1000,
+            system:     EQUIPMENT_PROMPT,
+            messages:   [ { role: "user", content: prompt } ]
+          )
+        end
+      end
+
+      log = AiCallLogger.log!(response, model: chosen_model, source: GENERATE_SOURCE, user: @user)
+      cost_cents = log&.cost_cents&.round
+
+      equipment = parse_equipment(response)
+      return Result.new(ok?: false, error: "Could not read equipment from the recipe. Try again.") if equipment.blank?
+
+      Result.new(ok?: true, equipment: equipment, cost_cents: cost_cents)
+    rescue Anthropic::Errors::APIError => e
+      Rails.logger.warn("[equipment_suggest] #{e.class}: #{e.message}")
+      Result.new(ok?: false, error: "Agent Sam was busy for a moment. Please try again.")
+    rescue => e
+      Result.new(ok?: false, error: "#{e.class}: #{e.message}")
+    end
+
     private
 
     # Run the API call, retrying once on a transient Anthropic error (overload /
@@ -250,6 +296,23 @@ module KitchenAi
       - item is the ingredient name in sentence case (capitalize only the first word; keep proper nouns and brands capitalized). No Title Case or ALL CAPS.
       - section groups ingredient lines under a sub-heading or null.
       - directions: clear steps grouped by section when natural, else one group with section null.
+    PROMPT
+
+    # For reading a recipe set and listing the per-station setup equipment it
+    # needs. Same JSON shape as the "equipment" field GENERATE_PROMPT emits.
+    EQUIPMENT_PROMPT = <<~PROMPT.freeze
+      You are a culinary instructor setting up a hands-on cooking class. You are
+      given the class info and its recipes as JSON. List the equipment to set out
+      at each student station for these recipes.
+
+      Reply with ONLY a JSON object, no prose, no code fences:
+      {"equipment": ["Cutting board", "Chef's knife", "Saucepan"]}
+
+      Rules:
+      - List the per-station setup gear the recipes require: tools, pans, bowls, small appliances, and serving items a student needs at their station.
+      - Infer from the techniques in the directions (e.g. "whisk" implies a whisk and a mixing bowl; "saute" implies a skillet; "bake" implies a sheet pan and the oven).
+      - Use common kitchen names in sentence case ("Cutting board", "Whisk", "Cast iron skillet"). One item per entry, no quantities.
+      - Keep it focused: only what these recipes actually need. Do not list pantry ingredients.
     PROMPT
 
     # Fetch a recipe page and return its readable text, or a Result on error.

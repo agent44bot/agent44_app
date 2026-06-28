@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-28
+  note: On the Equipment Items tab you can now tap "Ask Agent Sam to update equipment items" and Sam reads the recipe and fills in the gear each station needs. It adds to whatever you already have, so nothing you set by hand is lost.
+
+- date: 2026-06-28
   note: Your agents now have profile photos. Every bot shows a friendly stock avatar on the roster, and from workspace settings (Agent photos) you can give any one of them its own picture.
 
 - date: 2026-06-28

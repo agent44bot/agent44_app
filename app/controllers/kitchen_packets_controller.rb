@@ -154,6 +154,34 @@ class KitchenPacketsController < ApplicationController
     head :ok
   end
 
+  # POST /nykitchen/packets/:id/suggest_equipment  — Agent Sam reads this
+  # packet's recipe and adds the per-station equipment it needs, merged with
+  # whatever is already set (so it never wipes manual additions). Lands back on
+  # the Equipment Items tab. Billed under the same AI line as Generate.
+  def suggest_equipment
+    @packet = KitchenPacket.find(params[:id])
+    event = event_for(@packet.links.first&.event_url)
+    result = KitchenAi::RecipeExtractor.new(user: Current.user).suggest_equipment(
+      class_name:  event&.name.presence || @packet.title,
+      description: event&.description,
+      recipes:     @packet.recipes
+    )
+    unless result.ok?
+      return redirect_to edit_nyk_packet_path(@packet, tab: "equipment"), alert: result.error
+    end
+
+    before = @packet.equipment
+    merged = (before + Array(result.equipment)).map { |e| e.to_s.strip }.reject(&:blank?).uniq
+    @packet.update!(data: @packet.data.merge("equipment" => merged))
+
+    added = merged.size - before.size
+    note  = added.positive? ? "Agent Sam added #{helpers.pluralize(added, 'equipment item')} from the recipe." :
+                              "Agent Sam reviewed the recipe; your equipment list already covers it."
+    redirect_to edit_nyk_packet_path(@packet, tab: "equipment"), notice: note
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to edit_nyk_packet_path(@packet, tab: "equipment"), alert: e.message
+  end
+
   # Delete an equipment tag from the shared palette for good (the tag picker's
   # "-" button posts here). Persisted in Setting so it stays gone across recipes.
   def hide_equipment

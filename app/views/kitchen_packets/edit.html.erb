@@ -56,14 +56,14 @@
   <%# Ask the AI to rewrite the recipes from a free-text request. Separate
       form from the editable recipe form below (no nested forms), posts to
       #regenerate and lands back here for review. %>
-  <div data-controller="form-spinner" data-form-spinner-message-value="Revising the recipes with AI…" class="mb-8 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
-    <h2 class="text-sm font-semibold text-purple-200 mb-1">✨ Ask AI to revise these recipes</h2>
-    <p class="text-xs text-purple-200/70 mb-3">Describe the change in your own words (for example: "Split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared sushi rice"). The AI rewrites the recipes below for you to review and save.</p>
+  <div data-controller="form-spinner" data-form-spinner-message-value="Agent Sam is revising the recipes…" class="mb-8 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
+    <h2 class="text-sm font-semibold text-purple-200 mb-1">✨ Ask Agent Sam to revise these recipes</h2>
+    <p class="text-xs text-purple-200/70 mb-3">Describe the change in your own words (for example: "Split the rolls into separate Tuna, Salmon, and Vegetarian recipes, plus one shared sushi rice"). Agent Sam rewrites the recipes below for you to review and save.</p>
     <%= form_with url: regenerate_nyk_packet_path(@packet), method: :post, data: { action: "form-spinner#show" } do %>
       <%= text_area_tag :instruction, nil, rows: 2, placeholder: "What should change?",
             class: "w-full rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-3 py-2 mb-2 focus:border-purple-500 focus:outline-none" %>
       <div class="flex items-center gap-3 flex-wrap">
-        <%= submit_tag "✨ Revise with AI", class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
+        <%= submit_tag "✨ Revise with Agent Sam", class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
         <% if @packet.links.count > 1 %>
           <span class="text-xs text-amber-300/80">This recipe is shared by <%= pluralize(@packet.links.count, "class") %>, so the rewrite updates all of them.</span>
         <% end %>
@@ -176,6 +176,16 @@
            data-equipment-tags-save-url-value="<%= nyk_packet_equipment_path(@packet) %>">
         <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment to set up at each station</label>
         <p class="text-xs text-gray-500 mb-3">Tap a tag to add it to this packet; tap an added one to remove it. Changes save automatically. Type to highlight matching tags. New items become reusable tags; tap a tag's minus to delete it from the list for good. These items print on the pull sheet as a per-station setup checklist.</p>
+        <%# Let Agent Sam read the recipe and fill in the gear it needs. Merges
+            with whatever is already set, so it never wipes manual additions. %>
+        <div data-controller="form-spinner" data-form-spinner-message-value="Agent Sam is reading the recipe…"
+             class="mb-4 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
+          <%= button_to "✨ Ask Agent Sam to update equipment items",
+                nyk_suggest_equipment_path(@packet), method: :post,
+                data: { action: "form-spinner#show" },
+                class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
+          <p class="text-xs text-purple-200/70 mt-2">Sam reads this packet's recipe and adds the equipment each station needs. Review and tweak the tags below.</p>
+        </div>
         <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
         <div class="flex gap-2 mb-4">
           <input type="text" data-equipment-tags-target="input"
