@@ -127,12 +127,33 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal EXTRACTED.map { |r| r["title"] }, packet.reload.recipes.map { |r| r["title"] }
   end
 
-  test "the edit page offers Ask AI to revise the recipes" do
+  test "the edit page offers Ask Agent Sam to revise the recipes" do
     packet = KitchenPacket.create!(title: "Sushi", data: { "recipes" => EXTRACTED })
     get edit_nyk_packet_path(packet)
     assert_response :success
-    assert_match "Revise with AI", response.body
+    assert_match "Revise with Agent Sam", response.body
     assert_select "form[action=?]", regenerate_nyk_packet_path(packet)
+    assert_select "form[action=?]", nyk_suggest_equipment_path(packet)
+  end
+
+  test "suggest_equipment has Agent Sam read the recipe and merges new gear in" do
+    packet = KitchenPacket.create!(title: "French Macarons", data: { "recipes" => EXTRACTED, "equipment" => [ "Sheet pan" ] })
+    text = OpenStruct.new(text: { "equipment" => [ "Sheet pan", "Whisk", "Piping bag" ] }.to_json)
+    KitchenAi::RecipeExtractor.stub = ->(messages:) {
+      OpenStruct.new(content: [ text ], usage: OpenStruct.new(input_tokens: 40, output_tokens: 30))
+    }
+
+    post nyk_suggest_equipment_path(packet)
+    assert_redirected_to edit_nyk_packet_path(packet, tab: "equipment")
+    assert_equal [ "Sheet pan", "Whisk", "Piping bag" ], packet.reload.equipment, "merges, keeping the existing item once"
+    assert_equal "nyk_recipe_generate", AiCallLog.last.source
+  end
+
+  test "suggest_equipment needs a recipe to read (no AI call)" do
+    KitchenAi::RecipeExtractor.stub = ->(messages:) { raise "should not have called AI" }
+    result = KitchenAi::RecipeExtractor.new(user: @user).suggest_equipment(class_name: "Macarons", recipes: [])
+    assert_not result.ok?
+    assert_match(/add a recipe first/i, result.error)
   end
 
   test "reusing an existing packet copies it to the class without calling the AI" do
