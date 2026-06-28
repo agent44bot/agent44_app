@@ -561,6 +561,40 @@ class KitchenController < ApplicationController
     end
   end
 
+  # PATCH /nykitchen/agents/:kind/avatar  — workspace owner/admin sets (or
+  # clears) a bot's profile photo. Pass remove=1 to drop it back to the stock
+  # avatar. Mirrors #rename_agent's auth + workspace lookup.
+  def update_agent_avatar
+    kind = params[:kind].to_s
+    unless WorkspaceAgent::KINDS.include?(kind)
+      redirect_to nykitchen_path, alert: "Unknown agent." and return
+    end
+    workspace = Workspace.find_by(slug: "nykitchen")
+    role = workspace&.role_for(Current.user)
+    unless workspace && %w[owner admin].include?(role)
+      redirect_to nykitchen_path, alert: "Only workspace admins can change agent photos." and return
+    end
+    agent = workspace.agent_for(kind)
+    call  = agent.display_name.presence || ApplicationHelper::NYK_ROSTER.dig(kind, :call) || kind.titleize
+
+    if params[:remove].present?
+      agent.avatar.purge
+      redirect_back fallback_location: nykitchen_path, notice: "#{call}'s photo removed." and return
+    end
+
+    unless params[:avatar].present?
+      redirect_back fallback_location: nykitchen_path, alert: "Pick an image first." and return
+    end
+
+    agent.avatar.attach(params[:avatar])
+    if agent.valid?
+      redirect_back fallback_location: nykitchen_path, notice: "#{call}'s photo updated."
+    else
+      agent.avatar.purge
+      redirect_back fallback_location: nykitchen_path, alert: agent.errors.full_messages.first || "Couldn't update the photo."
+    end
+  end
+
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot

@@ -37,7 +37,7 @@
 
   .ra-head{display:flex;align-items:flex-start;gap:13px}
   .ra-avatar{flex-shrink:0;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
-    font-size:23px;background:color-mix(in srgb,var(--accent) 16%,transparent);
+    font-size:23px;object-fit:cover;background:color-mix(in srgb,var(--accent) 16%,transparent);
     border:1px solid color-mix(in srgb,var(--accent) 38%,transparent)}
   .ra-id{min-width:0}
   .ra-call{display:block;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:800;
@@ -98,7 +98,7 @@
     a = @workspace_agents[kind.to_s]
     call = (a&.display_name.presence) || m[:call]
     code = a ? "No.#{a.agent_number}" : nil
-    html = +%(<span class="ra-avatar">#{m[:emoji]}</span><span class="ra-id"><span class="ra-call">#{ERB::Util.h(call)}</span><span class="ra-meta"><span class="ra-tag">#{ERB::Util.h(m[:tag])}</span>)
+    html = +%(#{workspace_agent_avatar_tag(a)}<span class="ra-id"><span class="ra-call">#{ERB::Util.h(call)}</span><span class="ra-meta"><span class="ra-tag">#{ERB::Util.h(m[:tag])}</span>)
     html << %(<span class="ra-sep">·</span><span class="ra-code">#{ERB::Util.h(code)}</span>) if code
     html << %(</span>) # /ra-meta
     # Per-agent "salary" — this month's tokens + cost. Owner/admin only (Lora).

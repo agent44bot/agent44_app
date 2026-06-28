@@ -50,6 +50,35 @@
     <p class="text-xs text-gray-500 mt-2">PNG, JPEG, or WebP, up to 2 MB. Shown on your workspace pages.</p>
   </section>
 
+  <% if workspace.slug == "nykitchen" %>
+    <section class="mb-10">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Agent photos</h2>
+      <p class="text-xs text-gray-500 mb-3">Each bot uses a shared stock avatar by default. Give one its own photo here.</p>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+        <% WorkspaceAgent::KINDS.each do |kind| %>
+          <% agent = workspace.agent_for(kind) %>
+          <div class="flex items-center gap-3 px-4 py-3 flex-wrap">
+            <%= workspace_agent_avatar_tag(agent, size: 40, html_class: "h-10 w-10 rounded-lg object-cover bg-gray-800 shrink-0") %>
+            <div class="min-w-0 w-28 shrink-0">
+              <p class="text-sm text-white truncate"><%= nyk_agent_callsign(kind, agent) %></p>
+              <p class="text-xs text-gray-500"><%= nyk_agent_meta(kind)[:tag] %></p>
+            </div>
+            <%= form_with url: nyk_agent_avatar_path(kind: kind), method: :patch, local: true,
+                          html: { multipart: true }, class: "flex flex-wrap items-center gap-2 flex-1 min-w-[200px]" do %>
+              <%= file_field_tag :avatar, accept: "image/png,image/jpeg,image/webp",
+                    class: "flex-1 min-w-[140px] text-xs text-gray-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white file:cursor-pointer" %>
+              <%= submit_tag "Save", class: "text-xs text-gray-300 hover:text-white px-3 py-1.5 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
+            <% end %>
+            <% if agent.avatar.attached? %>
+              <%= button_to "Remove", nyk_agent_avatar_path(kind: kind, remove: 1), method: :patch,
+                    class: "text-xs text-gray-500 hover:text-red-400 px-2 py-1.5 cursor-pointer shrink-0" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
   <section class="mb-10">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Website URL</h2>
     <%= form_with model: workspace, url: workspace_path(workspace.slug), method: :patch, local: true,
