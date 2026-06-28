@@ -80,6 +80,16 @@ class NykBillingController < ApplicationController
     redirect_to nyk_billing_path, notice: "Model updated to #{AiModelChoice::OPTIONS[key][:label]}."
   end
 
+  # Manager toggles whether opening a class with no recipe auto-drafts one with
+  # AI (Setting default is on). Off reverts to the manual upload/paste form.
+  def update_auto_recipe
+    on = params[:auto_recipe_on_open] == "1"
+    Setting.set("nyk:auto_recipe_on_open", on ? "true" : "false")
+    redirect_to nyk_billing_path,
+                notice: on ? "Auto-draft is on. Opening a class drafts a recipe with AI." :
+                             "Auto-draft is off. Opening a class shows the manual recipe form."
+  end
+
   # Site-admin only: set this workspace's $/min test-run rate, then re-price all
   # of its existing smoke runs so billing + the agent salaries reflect it at once.
   def update_rate

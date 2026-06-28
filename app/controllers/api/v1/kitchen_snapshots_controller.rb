@@ -142,14 +142,6 @@ module Api
         notify_ticket_changes(snapshot, prev_spots)
         notify_wrongly_closed(snapshot, prev_events, prev_avail)
 
-        # Carry recipe packets forward to newly appeared runs of the same class.
-        # Best-effort: never let auto-attach failures fail the snapshot ingest.
-        begin
-          KitchenPacketAutoAttacher.run_for_snapshot(snapshot)
-        rescue => e
-          Rails.logger.error("[auto-attach] #{e.class}: #{e.message}")
-        end
-
         render json: { snapshot_id: snapshot.id, taken_on: taken_on, events_created: created }, status: :created
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity

@@ -11,6 +11,16 @@
       Built with the Opus model<span class="text-gray-400 font-medium"><%= @packet.extract_cost_label %></span>.
     </p>
   <% end %>
+  <%# Per-class override: swap this recipe for your own (PDF, paste, link, or
+      copy another recipe). Replaces the recipe on this class only. %>
+  <% replace_url = @packet.links.first&.event_url %>
+  <% if replace_url.present? %>
+    <p class="text-xs mb-2">
+      <%= link_to "Replace with my own (PDF, paste, link, or copy)",
+            new_nyk_packet_path(event_url: replace_url, event_name: @packet.title),
+            class: "text-orange-400 hover:text-orange-300 underline" %>
+    </p>
+  <% end %>
   <% linked_count = @packet.links.count %>
   <% if linked_count > 1 %>
     <div class="mb-6 flex items-start gap-2 rounded-lg bg-amber-900/20 border border-amber-800/60 px-3 py-2">

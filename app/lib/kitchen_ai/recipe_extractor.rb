@@ -24,7 +24,7 @@ module KitchenAi
     BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36".freeze
 
-    Result = Struct.new(:ok?, :recipes, :error, :cost_cents, keyword_init: true)
+    Result = Struct.new(:ok?, :recipes, :equipment, :error, :cost_cents, keyword_init: true)
 
     class << self
       attr_accessor :stub
@@ -109,7 +109,7 @@ module KitchenAi
       recipes = parse(response)
       return Result.new(ok?: false, error: "Could not generate a recipe. Try again.") if recipes.blank?
 
-      Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
+      Result.new(ok?: true, recipes: recipes, equipment: parse_equipment(response), cost_cents: cost_cents)
     rescue Anthropic::Errors::APIError => e
       Rails.logger.warn("[recipe_generate] #{e.class}: #{e.message}")
       Result.new(ok?: false, error: "The recipe generator was busy for a moment. Please try Generate again.")
@@ -213,7 +213,8 @@ module KitchenAi
       Reply with ONLY a JSON object, no prose, no code fences:
       {"recipes": [{"title": "...",
                     "ingredients": [{"qty": "2½ c", "station_qty": "1¼ c", "item": "All-purpose flour", "section": null}],
-                    "directions": [{"section": null, "steps": ["..."]}]}]}
+                    "directions": [{"section": null, "steps": ["..."]}]}],
+       "equipment": ["Cutting board", "Chef's knife", "Saucepan"]}
 
       Rules:
       - Invent sensible quantities and clear steps that fit the dish. qty is a full-class batch as display text.
@@ -222,6 +223,7 @@ module KitchenAi
       - item is the ingredient name in sentence case (capitalize only the first word; keep proper nouns and brands capitalized). No Title Case or ALL CAPS.
       - section groups ingredient lines under a sub-heading (e.g. "Sauce") or null.
       - directions: clear steps grouped by section when natural, else one group with section null.
+      - equipment is the per-station setup gear this dish needs, using common kitchen names (e.g. "Cutting board", "Saucepan", "Whisk"). A short list an instructor would set out at each student station.
       - This is a draft for an instructor to review and edit, so keep it realistic and concise.
     PROMPT
 
@@ -406,6 +408,18 @@ module KitchenAi
       recipes
     rescue JSON::ParserError
       nil
+    end
+
+    # Optional equipment list the generate prompt may include. Best-effort:
+    # missing or malformed equipment just yields [] (the recipe still stands).
+    def parse_equipment(response)
+      raw = response.content&.first&.text.to_s
+      json = raw[/\{.*\}/m]
+      return [] if json.blank?
+      list = JSON.parse(json)["equipment"]
+      list.is_a?(Array) ? list.map { |e| e.to_s.strip }.reject(&:blank?) : []
+    rescue JSON::ParserError
+      []
     end
   end
 end
