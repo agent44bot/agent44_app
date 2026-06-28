@@ -130,13 +130,11 @@
                 class: "flex flex-col items-center gap-0.5 text-emerald-400 hover:text-emerald-300 transition" do %>
             <span class="text-2xl leading-none">📝</span>
             <span class="text-[10px] font-medium">Edit</span>
-            <% if auto_linked %>
-              <span class="text-[8px] font-semibold uppercase tracking-wide text-amber-400 leading-none">auto</span>
-            <% end %>
           <% end %>
         <% else %>
           <%= link_to open_nyk_packet_path(event_url: event.url, event_name: event.name),
                 title: "Add a packet",
+                data: { action: "recipe-loading#show" },
                 class: "flex flex-col items-center gap-0.5 text-gray-500 hover:text-gray-300 transition" do %>
             <span class="text-2xl leading-none grayscale opacity-60">📝</span>
             <span class="text-[10px] font-medium">Add</span>
