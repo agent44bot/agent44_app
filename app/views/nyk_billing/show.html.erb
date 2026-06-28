@@ -48,17 +48,19 @@
     <p class="text-sm text-gray-500 italic mb-8">No AI usage yet this month.</p>
   <% else %>
     <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden mb-8">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm" data-controller="table-sort">
         <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
           <tr>
-            <th class="px-4 py-2 text-left">Feature</th>
-            <th class="px-4 py-2 text-right">Calls</th>
-            <th class="px-4 py-2 text-right">Cost</th>
+            <th class="px-4 py-2 text-left cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="text">Feature<span data-sort-arrow></span></th>
+            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="number">Calls<span data-sort-arrow></span></th>
+            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="number">Cost<span data-sort-arrow></span></th>
+            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="number">Avg/call<span data-sort-arrow></span></th>
             <th class="px-4 py-2 text-right">Model</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-800">
           <% @summary.sort_by { |_, v| -v[:cost_dollars] }.each do |source, v| %>
+            <% avg = v[:calls].to_i.positive? ? v[:cost_dollars] / v[:calls] : 0 %>
             <tr>
               <td class="px-4 py-2 text-gray-200">
                 <%= case source
@@ -73,8 +75,9 @@
                     else                           source
                     end %>
               </td>
-              <td class="px-4 py-2 text-right text-gray-300"><%= v[:calls] %></td>
-              <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+              <td class="px-4 py-2 text-right text-gray-300" data-sort-value="<%= v[:calls] %>"><%= v[:calls] %></td>
+              <td class="px-4 py-2 text-right text-white" data-sort-value="<%= v[:cost_dollars] %>">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+              <td class="px-4 py-2 text-right text-gray-300" data-sort-value="<%= avg %>">$<%= sprintf("%.4f", avg) %></td>
               <td class="px-4 py-2">
                 <% if AiModelChoice.controllable?(source) %>
                   <div class="flex justify-end gap-1">
@@ -106,20 +109,23 @@
         scope as the per-feature table above, just grouped by model. %>
     <h2 class="text-base font-semibold text-white mb-3">Spend by model</h2>
     <div class="rounded-lg bg-gray-900 border border-gray-800 overflow-hidden mb-8">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm" data-controller="table-sort">
         <thead class="bg-gray-800/50 text-xs uppercase text-gray-500">
           <tr>
-            <th class="px-4 py-2 text-left">Model</th>
-            <th class="px-4 py-2 text-right">Calls</th>
-            <th class="px-4 py-2 text-right">Cost</th>
+            <th class="px-4 py-2 text-left cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="text">Model<span data-sort-arrow></span></th>
+            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="number">Calls<span data-sort-arrow></span></th>
+            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="number">Cost<span data-sort-arrow></span></th>
+            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-300" data-action="click->table-sort#sort" data-sort-type="number">Avg/call<span data-sort-arrow></span></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-800">
           <% @model_summary.sort_by { |_, v| -v[:cost_dollars] }.each do |model, v| %>
+            <% avg = v[:calls].to_i.positive? ? v[:cost_dollars] / v[:calls] : 0 %>
             <tr>
               <td class="px-4 py-2 text-gray-200"><%= model %></td>
-              <td class="px-4 py-2 text-right text-gray-300"><%= v[:calls] %></td>
-              <td class="px-4 py-2 text-right text-white">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+              <td class="px-4 py-2 text-right text-gray-300" data-sort-value="<%= v[:calls] %>"><%= v[:calls] %></td>
+              <td class="px-4 py-2 text-right text-white" data-sort-value="<%= v[:cost_dollars] %>">$<%= sprintf("%.4f", v[:cost_dollars]) %></td>
+              <td class="px-4 py-2 text-right text-gray-300" data-sort-value="<%= avg %>">$<%= sprintf("%.4f", avg) %></td>
             </tr>
           <% end %>
         </tbody>
@@ -128,6 +134,7 @@
             <td class="px-4 py-2 font-semibold text-gray-200">Total</td>
             <td class="px-4 py-2 text-right font-semibold text-gray-300"><%= @ai_calls %></td>
             <td class="px-4 py-2 text-right font-bold text-white">$<%= sprintf("%.4f", @ai_total) %></td>
+            <td class="px-4 py-2 text-right font-semibold text-gray-300">$<%= sprintf("%.4f", @ai_calls.to_i.positive? ? @ai_total / @ai_calls : 0) %></td>
           </tr>
         </tfoot>
       </table>
