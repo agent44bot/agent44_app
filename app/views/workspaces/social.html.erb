@@ -15,6 +15,10 @@
 
   <div class="flex items-start justify-between gap-2 mb-6 flex-wrap">
     <div>
+      <% if @workspace.logo.attached? %>
+        <%= image_tag @workspace.logo, alt: "#{@workspace.name} logo",
+              class: "h-12 w-auto mb-3 rounded bg-white/5 p-1" %>
+      <% end %>
       <%# NY Kitchen uses the "Field Roster" identity (Echo · BROADCAST · #n) to
           match the hub + other agent pages; other workspaces keep the generic
           "Social Agent" heading. %>
@@ -46,10 +50,11 @@
         <button type="button"
                 data-action="click->collapsible#toggle"
                 aria-label="Social Agent settings"
-                class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
           </svg>
+          Settings
         </button>
       <% end %>
     </div>
