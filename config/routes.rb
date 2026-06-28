@@ -147,6 +147,7 @@ Rails.application.routes.draw do
   patch "nykitchen/billing/invoices/:id/pay", to: "nyk_billing#mark_invoice_paid", as: :nyk_billing_invoice_pay
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
+  patch "nykitchen/agents/:kind/avatar", to: "kitchen#update_agent_avatar", as: :nyk_agent_avatar
 
   # NY Kitchen storage-room alcohol inventory. Lora scans cases IN, Chris scans
   # bottles OUT; on-hand is the running Σ (in − out). All actions require

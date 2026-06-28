@@ -62,4 +62,22 @@ class WorkspaceAgentTest < ActiveSupport::TestCase
     assert token.present?
     assert_equal token, agent.reload.setting(:share_token)
   end
+
+  test "avatar_display is nil when no photo is attached (falls back to stock)" do
+    assert_nil @workspace.agent_for("list").avatar_display
+  end
+
+  test "accepts a valid image avatar and exposes a resized display variant" do
+    agent = @workspace.agent_for("list")
+    agent.avatar.attach(io: file_fixture("sample_bottle.png").open, filename: "sam.png", content_type: "image/png")
+    assert agent.valid?
+    assert agent.avatar_display.present?
+  end
+
+  test "rejects a non-image avatar upload" do
+    agent = @workspace.agent_for("list")
+    agent.avatar.attach(io: StringIO.new("not an image"), filename: "a.txt", content_type: "text/plain")
+    assert_not agent.valid?
+    assert_match(/PNG/, agent.errors[:avatar].join)
+  end
 end

@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-28
+  note: Your agents now have profile photos. Every bot shows a friendly stock avatar on the roster, and from workspace settings (Agent photos) you can give any one of them its own picture.
+
+- date: 2026-06-28
   note: Recipes now draft themselves when you open a class that has none. Open a class on Sam's list and a recipe draft is ready to review and edit, with a starter equipment list. A repeating class (like Chef's Table) carries forward the last run's recipe at no cost, and you can always replace any draft with your own PDF. To keep costs down, drafting only runs for classes within about six weeks or already selling, and there is an on/off switch on the billing page.
 
 - date: 2026-06-27

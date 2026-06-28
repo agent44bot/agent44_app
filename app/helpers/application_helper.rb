@@ -127,6 +127,15 @@ module ApplicationHelper
     NYK_ROSTER[kind.to_s] || { call: kind.to_s.titleize, tag: "Agent", accent: "#f97316", emoji: "🤖" }
   end
 
+  # Profile avatar for a workspace agent: its uploaded photo (resized) if one is
+  # set, else the shared stock bot avatar. `agent` may be nil (anonymous viewer
+  # with no workspace yet). Pass extra classes via `html_class`; size is in px.
+  def workspace_agent_avatar_tag(agent, size: 46, html_class: "ra-avatar")
+    src = (agent&.avatar_display if agent.respond_to?(:avatar_display)) || "avatars/bot.png"
+    image_tag src, alt: "Agent avatar", loading: "lazy", width: size, height: size,
+              class: html_class
+  end
+
   # An agent's display callsign: its saved display_name if set, else the roster
   # default. `agent` may be nil (anonymous viewer with no workspace yet).
   def nyk_agent_callsign(kind, agent = nil)
