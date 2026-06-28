@@ -22,6 +22,9 @@
         <span class="text-xs text-gray-500 font-mono">/<%= @workspace.slug %></span>
         &middot; <%= @workspace.timezone %>
       </p>
+      <div class="mt-3">
+        <%= render "member_avatars", members: @memberships.map(&:user), size: "h-9 w-9" %>
+      </div>
     </div>
     <button type="button"
             data-action="click->collapsible#toggle"
@@ -48,7 +51,8 @@
           class: "block bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-orange-500/50 rounded-xl p-5 transition group" do %>
       <div class="flex items-start justify-between mb-3">
         <div class="flex items-center gap-2">
-          <span class="text-2xl">📣</span>
+          <%= workspace_agent_avatar_tag(@workspace.agent_for("social"), size: 32,
+                html_class: "h-8 w-8 rounded-lg object-cover bg-gray-800 shrink-0") %>
           <h2 class="text-lg font-bold text-white">Social Agent</h2>
         </div>
         <span class="text-gray-600 group-hover:text-orange-400 transition">→</span>
