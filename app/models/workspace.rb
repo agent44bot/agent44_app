@@ -27,6 +27,11 @@ class Workspace < ApplicationRecord
   validates :timezone, presence: true
   validate :acceptable_logo
 
+  # The main site the workspace's agents watch and pull from. Optional, but if
+  # set it must be a real http(s) URL so downstream agents can fetch it.
+  normalizes :source_url, with: ->(u) { u.strip.presence }
+  validate :source_url_is_http
+
   before_validation :generate_slug, on: :create
   after_create :ensure_owner_membership
 
@@ -99,6 +104,14 @@ class Workspace < ApplicationRecord
     if logo.blob.byte_size > LOGO_MAX_BYTES
       errors.add(:logo, "must be 2 MB or smaller")
     end
+  end
+
+  def source_url_is_http
+    return if source_url.blank?
+    uri = URI.parse(source_url)
+    errors.add(:source_url, "must be a valid http or https URL") unless uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    errors.add(:source_url, "must be a valid http or https URL")
   end
 
   def generate_slug

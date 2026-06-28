@@ -121,7 +121,7 @@ class WorkspacesController < ApplicationController
   private
 
   def workspace_params
-    params.require(:workspace).permit(:name, :description, :timezone, :logo)
+    params.require(:workspace).permit(:name, :description, :timezone, :logo, :source_url)
   end
 
   def load_workspace
