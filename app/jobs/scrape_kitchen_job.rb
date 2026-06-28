@@ -97,13 +97,6 @@ class ScrapeKitchenJob < ApplicationJob
       )
     end
 
-    # Carry recipe packets forward to newly appeared runs of the same class.
-    begin
-      KitchenPacketAutoAttacher.run_for_snapshot(snapshot)
-    rescue => e
-      Rails.logger.error("[auto-attach] #{e.class}: #{e.message}")
-    end
-
     Notification.notify!(
       level: "success",
       source: "kitchen_scraper",

@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-28
+  note: Recipes now draft themselves when you open a class that has none. Open a class on Sam's list and a recipe draft is ready to review and edit, with a starter equipment list. A repeating class (like Chef's Table) carries forward the last run's recipe at no cost, and you can always replace any draft with your own PDF. To keep costs down, drafting only runs for classes within about six weeks or already selling, and there is an on/off switch on the billing page.
+
 - date: 2026-06-27
   note: Profile photos now show up instantly. The moment you pick a picture you see a preview before saving, and photos load faster everywhere because they are resized down instead of sent at full phone-camera size.
 

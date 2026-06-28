@@ -496,9 +496,9 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     # states.
     assert_select "a[href=?]", edit_nyk_packet_path(packet)
     assert_no_match print_nyk_packet_path(packet), response.body
-    # Unlinked class: an "Add" link to start a recipe. & is HTML-escaped in the
-    # rendered href, so match on the escaped form.
-    assert_match ERB::Util.html_escape(new_nyk_packet_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
+    # Unlinked class: an "Add" link that opens the lazy recipe flow. & is
+    # HTML-escaped in the rendered href, so match on the escaped form.
+    assert_match ERB::Util.html_escape(open_nyk_packet_path(event_url: "https://nykitchen.com/event/sourdough/", event_name: "Sourdough Basics")), response.body
   end
 
   test "print and edit allow same-origin framing for the PDF preview" do
@@ -543,7 +543,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
 
   SIBLING_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-9-3-26/".freeze
 
-  test "reusing a packet copies it and auto-links other future runs to the copy" do
+  test "reusing a packet copies it to this class only (sibling carries forward lazily on open)" do
     source = KitchenPacket.create!(title: "Fresh Pasta: Ravioli Workshop 8/6/26", data: { "recipes" => EXTRACTED })
     snap = KitchenSnapshot.create!(taken_on: Date.current)
     snap.kitchen_events.create!(name: "Fresh Pasta: Ravioli Workshop 8/6/26", url: EVENT_URL,
@@ -553,15 +553,14 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
 
     post nyk_packets_path, params: { existing_id: source.id, event_url: EVENT_URL }
 
-    # Reuse made a copy and landed on its review page; the sibling future run is
-    # auto-linked to that copy, not to the source we reused from.
+    # Reuse made an independent copy on this class and landed on its review page.
+    # The sibling future run is NOT eagerly linked; it carries forward only when
+    # someone opens it (lazy copy-forward), so it has no link yet.
     copy = KitchenPacket.for_event_url(EVENT_URL)
     assert_not_equal source, copy
     assert_redirected_to edit_nyk_packet_path(copy)
     assert_not KitchenPacketLink.find_by(event_url: EVENT_URL).auto
-    sibling = KitchenPacketLink.find_by(event_url: SIBLING_URL)
-    assert_equal copy, sibling.kitchen_packet
-    assert sibling.auto
+    assert_nil KitchenPacketLink.find_by(event_url: SIBLING_URL)
   end
 
   test "edit page warns when a packet is shared by more than one class" do

@@ -690,7 +690,7 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     assert_includes warning_alerts.order(created_at: :desc).first.title, "Class B"
   end
 
-  test "ingest auto-attaches a packet to a new run of the same class" do
+  test "ingest does not eagerly link recipes (carry-forward is lazy, on open)" do
     recipes = [ { "title" => "Korean BBQ",
       "ingredients" => [ { "qty" => "1 lb", "station_qty" => "1/2 lb", "item" => "Short rib", "section" => nil } ],
       "directions" => [ { "section" => nil, "steps" => [ "Grill." ] } ] } ]
@@ -699,16 +699,14 @@ class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
     post "/api/v1/kitchen_snapshots",
       params: { taken_on: @today, events: [
         { url: "https://nykitchen.com/event/korean-bbq-7-3/", name: "Korean Barbecue Class 7/3/26",
-          start_at: 3.weeks.from_now.iso8601, spots_left: 10, capacity: 24, availability: "InStock" },
-        { url: "https://nykitchen.com/event/knife-7-4/", name: "Knife Skills 7/4/26",
           start_at: 3.weeks.from_now.iso8601, spots_left: 10, capacity: 24, availability: "InStock" }
       ] }.to_json,
       headers: @headers
     assert_response :created
 
-    link = KitchenPacketLink.find_by(event_url: "https://nykitchen.com/event/korean-bbq-7-3/")
-    assert_equal packet, link.kitchen_packet
-    assert link.auto, "ingest-attached link should be flagged auto"
-    assert_nil KitchenPacketLink.find_by(event_url: "https://nykitchen.com/event/knife-7-4/")
+    # The new run is NOT pre-linked at ingest; it carries forward only when a
+    # user opens it (KitchenPacketsController#open copies the matching packet).
+    assert_nil KitchenPacketLink.find_by(event_url: "https://nykitchen.com/event/korean-bbq-7-3/")
+    assert_equal packet, KitchenPacketAutoAttacher.packet_for("Korean Barbecue Class 7/3/26")
   end
 end

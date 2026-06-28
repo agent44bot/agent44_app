@@ -23,6 +23,40 @@ class KitchenPacketsController < ApplicationController
     @existing = KitchenPacket.order(updated_at: :desc).to_a
   end
 
+  # Open a class's recipe lazily (the "+ recipe" icon on Sam's list points here).
+  # Decided in order, so AI only fires when there's genuinely nothing to carry
+  # forward and it's worth the cost:
+  #   1. already has a recipe       -> just open it (idempotent, never re-bills)
+  #   2. recurring class            -> copy forward the last run's recipe ($0)
+  #   3. allowed (toggle + window)  -> draft one with AI on first open
+  #   4. otherwise                  -> the manual "Add a packet" form (no AI)
+  def open
+    event_url = params[:event_url].to_s
+    return redirect_to(nyk_list_path, alert: "Missing class.") if event_url.blank?
+
+    if (packet = KitchenPacket.for_event_url(event_url))
+      return redirect_to edit_nyk_packet_path(packet)
+    end
+
+    event = event_for(event_url)
+    name  = params[:event_name].presence || event&.name
+
+    if (prior = KitchenPacketAutoAttacher.packet_for(name))
+      packet = link_or_discard(prior.dup_packet, event_url, auto: true)
+      return redirect_to edit_nyk_packet_path(packet),
+                         notice: "Carried forward from the last run (no AI cost). Edits here stay on this class."
+    end
+
+    if auto_recipe_allowed?(event)
+      packet = generate_packet_for(event, event_url, name)
+      return back_to_new(event_url, packet) if packet.is_a?(String) # error message
+      return redirect_to edit_nyk_packet_path(packet),
+                         notice: "Draft recipe generated with AI#{packet.extract_cost_label}. Review and edit it, then save."
+    end
+
+    redirect_to new_nyk_packet_path(event_url: event_url, event_name: name)
+  end
+
   def create
     event_url = params[:event_url].to_s
 
@@ -35,7 +69,6 @@ class KitchenPacketsController < ApplicationController
       return redirect_to nyk_list_path, notice: "#{source.title} ready." if event_url.blank?
 
       packet = source.copy_to!(event_url)
-      KitchenPacketAutoAttacher.attach_forward(packet)
       return redirect_to edit_nyk_packet_path(packet),
                          notice: "Copied #{packet.title} to this class. Edits here stay on this class; the original recipe is untouched."
     end
@@ -45,21 +78,8 @@ class KitchenPacketsController < ApplicationController
     if params[:generate].present?
       event = event_for(event_url)
       name  = params[:event_name].presence || event&.name
-      result = KitchenAi::RecipeExtractor.new(user: Current.user).generate(
-        class_name: name, description: event&.description
-      )
-      return back_to_new(event_url, result.error) unless result.ok?
-
-      packet = KitchenPacket.create!(
-        title: name.presence || result.recipes.first["title"],
-        data: { "recipes" => result.recipes },
-        source_kind: "generated",
-        extract_cost_cents: result.cost_cents
-      )
-      if event_url.present?
-        packet.attach_to!(event_url)
-        KitchenPacketAutoAttacher.attach_forward(packet)
-      end
+      packet = generate_packet_for(event, event_url, name)
+      return back_to_new(event_url, packet) if packet.is_a?(String)
       return redirect_to edit_nyk_packet_path(packet),
                          notice: "Draft recipe generated with AI#{packet.extract_cost_label}. Review and edit it, then save."
     end
@@ -84,10 +104,9 @@ class KitchenPacketsController < ApplicationController
       source_kind: source_kind_for(pdf: pdf, url: source_url),
       extract_cost_cents: result.cost_cents
     )
-    if event_url.present?
-      packet.attach_to!(event_url)
-      KitchenPacketAutoAttacher.attach_forward(packet)
-    end
+    # Manual attach replaces any existing (e.g. auto) recipe on this class, which
+    # is the "replace with my own PDF" override path.
+    packet.attach_to!(event_url) if event_url.present?
 
     redirect_to edit_nyk_packet_path(packet),
                 notice: "Recipes built with the Opus model#{packet.extract_cost_label}. Review them against the preview, then save."
@@ -194,6 +213,47 @@ class KitchenPacketsController < ApplicationController
 
   def back_to_new(event_url, alert)
     redirect_to new_nyk_packet_path(event_url: event_url, event_name: params[:event_name]), alert: alert
+  end
+
+  # AI-draft a recipe from the class name + description, save it, and link the
+  # class. Returns the saved packet, or an error String to surface to the user.
+  # Shared by #open (lazy, on first open) and #create's Generate button.
+  def generate_packet_for(event, event_url, name)
+    result = KitchenAi::RecipeExtractor.new(user: Current.user).generate(
+      class_name: name, description: event&.description
+    )
+    return result.error unless result.ok?
+
+    packet = KitchenPacket.create!(
+      title: name.presence || result.recipes.first["title"],
+      data: { "recipes" => result.recipes, "equipment" => Array(result.equipment) },
+      source_kind: "generated",
+      extract_cost_cents: result.cost_cents
+    )
+    return packet if event_url.blank?
+    link_or_discard(packet, event_url, auto: false)
+  end
+
+  # Should opening this class auto-draft with AI? Only when the manager left the
+  # toggle on AND the class is near-term or already selling, so idle browsing of
+  # far-future classes never runs up the bill.
+  def auto_recipe_allowed?(event)
+    return false unless Setting.get("nyk:auto_recipe_on_open") != "false" # default on
+    return false unless event
+    horizon = (Setting.get("nyk:auto_recipe_horizon_days").presence || 42).to_i
+    event.start_at <= horizon.days.from_now || event.tickets_sold.to_i.positive?
+  end
+
+  # Claim the one-per-class link for `packet`. On a concurrent open that already
+  # linked the class, discard this packet and open the winner instead, so we
+  # never show two recipes for one class (and a duplicate AI draft is dropped).
+  # Avoids attach_to! here because its destroy-first step isn't race-safe.
+  def link_or_discard(packet, event_url, auto: false)
+    KitchenPacketLink.create!(kitchen_packet: packet, event_url: event_url, auto: auto)
+    packet
+  rescue ActiveRecord::RecordNotUnique
+    packet.destroy
+    KitchenPacket.for_event_url(event_url)
   end
 
   # The current class for an event URL (latest snapshot), for its description.

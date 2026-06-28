@@ -110,6 +110,7 @@ Rails.application.routes.draw do
   # Class packets: a per-class bundle (recipes + equipment + pull sheet),
   # created/attached from Sam's list page.
   post   "nykitchen/equipment_tags/hide", to: "kitchen_packets#hide_equipment", as: :nyk_hide_equipment_tag
+  get    "nykitchen/packets/open",      to: "kitchen_packets#open",   as: :open_nyk_packet
   get    "nykitchen/packets/new",       to: "kitchen_packets#new",    as: :new_nyk_packet
   post   "nykitchen/packets",           to: "kitchen_packets#create", as: :nyk_packets
   get    "nykitchen/packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet
@@ -142,6 +143,7 @@ Rails.application.routes.draw do
   patch "nykitchen/billing/rate",    to: "nyk_billing#update_rate",    as: :nyk_billing_rate
   patch "nykitchen/billing/pricing", to: "nyk_billing#update_pricing", as: :nyk_billing_pricing
   patch "nykitchen/billing/model",   to: "nyk_billing#update_model",   as: :nyk_billing_model
+  patch "nykitchen/billing/auto_recipe", to: "nyk_billing#update_auto_recipe", as: :nyk_billing_auto_recipe
   patch "nykitchen/billing/invoices/:id/pay", to: "nyk_billing#mark_invoice_paid", as: :nyk_billing_invoice_pay
   post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
   patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
