@@ -1,0 +1,19 @@
+<%# Overlapping stack of a workspace's member avatars (the real teammates,
+    e.g. RB, who belongs to every workspace). Photo if set, else initials.
+    Locals:
+      members — array of User
+      limit   — max avatars before a "+N" chip (default 4)
+      size    — Tailwind h/w pair (default "h-8 w-8")
+%>
+<% members = Array(members) %>
+<% limit ||= 4 %>
+<% size  ||= "h-8 w-8" %>
+<% return if members.empty? %>
+<div class="flex -space-x-2 shrink-0">
+  <% members.first(limit).each do |u| %>
+    <%= user_avatar_tag u, size: size %>
+  <% end %>
+  <% if members.size > limit %>
+    <span class="<%= size %> rounded-full bg-gray-800 text-gray-300 ring-2 ring-gray-950 inline-flex items-center justify-center text-xs font-semibold shrink-0">+<%= members.size - limit %></span>
+  <% end %>
+</div>

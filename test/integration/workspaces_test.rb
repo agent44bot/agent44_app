@@ -51,6 +51,24 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     refute_match theirs.name, response.body
   end
 
+  test "index shows each workspace's member avatars on its row" do
+    Workspace.create!(name: "Avatars WS", owner: @owner)
+    sign_in_as(@owner)
+    get workspaces_path(force: 1)
+    assert_response :success
+    # The owner is a member, so their avatar (initials title = identifier) renders.
+    assert_match @owner.display_identifier, response.body
+  end
+
+  test "show page renders member avatars and the social agent avatar" do
+    ws = Workspace.create!(name: "Microgreens", owner: @owner)
+    sign_in_as(@owner)
+    get workspace_path(ws.slug)
+    assert_response :success
+    assert_match @owner.display_identifier, response.body, "member avatar present"
+    assert_match %r{avatars/bot}, response.body, "social agent shows the stock bot avatar"
+  end
+
   test "index renders trashcan for owners/admins and hides it from viewers" do
     owned   = Workspace.create!(name: "OwnedWS",  owner: @owner)
     guested = Workspace.create!(name: "GuestedWS", owner: @outside)

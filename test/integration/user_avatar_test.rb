@@ -58,10 +58,11 @@ class WorkspacesAvatarStackTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
   end
 
-  test "the header shows the current user's avatar and the agent bot" do
+  test "each workspace row shows its member avatars, not a header bot" do
+    Workspace.create!(name: "Neo WS", owner: @user)
     get workspaces_path(force: 1)
     assert_response :success
-    assert_select "img[alt=?]", "Agent helper"                  # the bot stays
-    assert_select "span[title=?]", @user.display_identifier      # current user's initials chip
+    assert_select "span[title=?]", @user.display_identifier      # member avatar chip on the row
+    assert_select "img[alt=?]", "Agent helper", false            # decorative header bot removed
   end
 end
