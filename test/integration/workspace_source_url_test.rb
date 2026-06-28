@@ -46,4 +46,16 @@ class WorkspaceSourceUrlTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[name=?]", "workspace[source_url]"
   end
+
+  test "owner can change the workspace timezone from the settings panel" do
+    sign_in_as(@owner)
+    patch workspace_path(@ws.slug), params: { workspace: { timezone: "Pacific Time (US & Canada)" } }
+    assert_equal "Pacific Time (US & Canada)", @ws.reload.timezone
+  end
+
+  test "the settings panel shows a timezone selector" do
+    sign_in_as(@owner)
+    get workspace_path(@ws.slug)
+    assert_select "select[name=?]", "workspace[timezone]"
+  end
 end
