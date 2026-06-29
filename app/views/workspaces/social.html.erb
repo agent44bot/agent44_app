@@ -218,11 +218,16 @@
       <% accounts_by_platform = @social_accounts.group_by(&:platform) %>
       <% fb_connect = workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug) %>
       <% platform_tabs = [
-           { key: "x",         label: "X",         connect: workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),       method: :post },
-           { key: "bluesky",   label: "Bluesky",   connect: new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),   method: :get },
-           { key: "threads",   label: "Threads",   connect: workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug), method: :post },
-           { key: "facebook",  label: "Facebook",  connect: fb_connect, method: :post },
-           { key: "instagram", label: "Instagram", connect: fb_connect, method: :post, via_meta: true }
+           { key: "x",         label: "X",         connect: workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),       method: :post,
+             steps: ["Click Connect below.", "Log in to X and authorize Agent44 Labs.", "You'll come right back here with X connected."] },
+           { key: "bluesky",   label: "Bluesky",   connect: new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),   method: :get,
+             steps: ["In Bluesky, open Settings, then App Passwords, and create one (use that, not your main password).", "Click Connect below.", "Enter your handle and the app password, then save."] },
+           { key: "threads",   label: "Threads",   connect: workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug), method: :post,
+             steps: ["Click Connect below.", "Log in with your Threads (Instagram) account through Meta and approve access.", "You'll come right back here with Threads connected."] },
+           { key: "facebook",  label: "Facebook",  connect: fb_connect, method: :post,
+             steps: ["Click Connect below.", "Log in with Facebook and pick the Page you post from.", "Grant access, and you'll come right back here connected."] },
+           { key: "instagram", label: "Instagram", connect: fb_connect, method: :post, via_meta: true,
+             steps: ["Make sure your Instagram is a Professional account linked to a Facebook Page.", "Click Connect below to log in through Meta.", "Approve access, and you'll come right back here connected."] }
          ] %>
       <% can_connect = %w[owner admin].include?(@my_role) %>
 
@@ -297,16 +302,25 @@
                 <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-sm text-gray-500">No <%= t[:label] %> posts yet.</div>
               <% end %>
             <% else %>
-              <%# Not connected: offer to connect. %>
+              <%# Not connected: offer to connect, with steps to follow. %>
               <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
                 <p class="text-sm text-gray-400"><%= t[:label] %> isn't connected yet.</p>
                 <% if t[:via_meta] %>
                   <p class="text-xs text-gray-600 mt-1">Instagram connects through Meta (the same login as Facebook).</p>
                 <% end %>
                 <% if can_connect %>
-                  <div class="mt-3 inline-block"><%= connect_control %></div>
+                  <% if t[:steps].present? %>
+                    <ol class="mt-4 mx-auto max-w-sm text-left text-xs text-gray-400 space-y-1.5 list-decimal list-inside marker:text-orange-400">
+                      <% t[:steps].each do |step| %>
+                        <li><%= step %></li>
+                      <% end %>
+                    </ol>
+                  <% end %>
+                  <div class="mt-4 inline-block"><%= connect_control %></div>
+                <% else %>
+                  <p class="text-xs text-gray-600 mt-2">Ask a workspace admin to connect <%= t[:label] %>.</p>
                 <% end %>
-                <p class="text-xs text-gray-600 mt-3">No posts yet.</p>
+                <p class="text-xs text-gray-600 mt-4">No posts yet.</p>
               </div>
             <% end %>
           </div>
