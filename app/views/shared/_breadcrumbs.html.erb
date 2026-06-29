@@ -1,0 +1,19 @@
+<%# Shared breadcrumb trail. Caller passes `crumbs`: an ordered array of
+    [label, path] pairs. The last pair uses path = nil and renders as the
+    current page (plain text). Paths run through safe_internal_path. %>
+<nav aria-label="Breadcrumb" class="text-sm min-w-0">
+  <ol class="flex flex-wrap items-center gap-2">
+    <% crumbs.each_with_index do |(label, path), i| %>
+      <% last = (i == crumbs.size - 1) %>
+      <li class="flex items-center gap-2 min-w-0">
+        <% if last || path.blank? %>
+          <span aria-current="page" class="text-gray-200 font-medium truncate max-w-[12rem]"><%= label %></span>
+        <% else %>
+          <%= link_to label, (safe_internal_path(path) || path),
+              class: "text-gray-400 hover:text-orange-400 transition truncate max-w-[12rem]" %>
+          <span aria-hidden="true" class="text-gray-600">/</span>
+        <% end %>
+      </li>
+    <% end %>
+  </ol>
+</nav>

@@ -33,8 +33,8 @@ class WorkspaceDeletePermissionTest < ActionDispatch::IntegrationTest
     get workspace_path(@ws.slug)
     assert_response :success
     assert_select "h2", text: /Danger zone/, count: 0
-    # but the admin still sees team management
-    assert_select "h2", text: /Invite a teammate/
+    # but the admin still sees team management (invite is an h3 under "People")
+    assert_select "h3", text: /Invite a teammate/
   end
 
   test "the owner sees the Danger zone" do

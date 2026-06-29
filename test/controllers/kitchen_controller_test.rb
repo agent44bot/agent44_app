@@ -506,7 +506,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     get nyk_social_path
     assert_response :success
     # The composer view renders, not a redirect — URL stays /nykitchen/social.
-    assert_match %r{name="workspace\[timezone\]"}, response.body
+    # (Timezone editing moved to the hub; the social settings panel is now the
+    # Connected accounts list, shown to owner/admin.)
+    assert_match %r{Connected accounts}, response.body
   end
 
   test "nyk_list_path renders breadcrumbs above the list" do
