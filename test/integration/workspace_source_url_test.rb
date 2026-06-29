@@ -58,4 +58,25 @@ class WorkspaceSourceUrlTest < ActionDispatch::IntegrationTest
     get workspace_path(@ws.slug)
     assert_select "select[name=?]", "workspace[timezone]"
   end
+
+  test "owner can save the brand context (description) from the settings panel" do
+    sign_in_as(@owner)
+    assert_changes -> { @ws.reload.description }, to: "Microgreens farm, Greece NY. Friendly, local voice." do
+      patch workspace_path(@ws.slug), params: { workspace: { description: "Microgreens farm, Greece NY. Friendly, local voice." } }
+    end
+    assert_redirected_to workspace_path(@ws.slug)
+  end
+
+  test "the settings panel shows a brand context field" do
+    sign_in_as(@owner)
+    get workspace_path(@ws.slug)
+    assert_select "textarea[name=?]", "workspace[description]"
+  end
+
+  test "editor (non-admin) cannot change the brand context" do
+    sign_in_as(@editor)
+    patch workspace_path(@ws.slug), params: { workspace: { description: "sneaky" } }
+    assert_nil @ws.reload.description
+    assert_match(/Only workspace admins/, flash[:alert])
+  end
 end

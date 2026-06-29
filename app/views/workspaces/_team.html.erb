@@ -91,6 +91,18 @@
   </section>
 
   <section class="mb-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Brand context</h2>
+    <%= form_with model: workspace, url: workspace_path(workspace.slug), method: :patch, local: true,
+                  class: "space-y-2" do |f| %>
+      <%= f.text_area :description, value: workspace.description, rows: 6,
+            placeholder: "Who the brand is, what it sells, who it talks to, the voice and any taglines. The Social Agent uses this to write on-brand posts.",
+            class: "w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-base text-white placeholder-gray-600 focus:outline-none focus:border-orange-500" %>
+      <%= f.submit "Save brand context", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+    <p class="text-xs text-gray-500 mt-2">This steers how the Social Agent writes. The more specific (products, audience, voice, taglines), the more on-brand the drafts.</p>
+  </section>
+
+  <section class="mb-10">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Timezone</h2>
     <%= form_with model: workspace, url: workspace_path(workspace.slug), method: :patch, local: true,
                   class: "flex flex-wrap items-center gap-2" do |f| %>
