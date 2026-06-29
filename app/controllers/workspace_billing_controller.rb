@@ -40,6 +40,14 @@ class WorkspaceBillingController < ApplicationController
     @discount_amount     = (@subtotal * @discount_percent / 100.0).round(2)
     @month_total         = (@subtotal - @discount_amount).round(2)
 
+    # Raw cost (our COGS) + the multiplier are visible only to the workspace
+    # owner and site admins. Other managers (e.g. a client's admin) see the
+    # billed figures (raw x multiplier) with the equation hidden, so they never
+    # see our cost basis. Mirrors the Social Agent cost counter tiering.
+    @raw_visible    = Current.user&.admin? || @workspace.role_for(Current.user) == "owner"
+    @cost_factor    = @raw_visible ? 1.0 : @usage_multiplier
+    @ai_usage_billed = (@raw_total * @usage_multiplier)
+
     @invoices = Invoice.where(workspace_id: @workspace.id).recent.to_a
 
     # Selected model key per AI feature, for the owner/admin model toggle.
