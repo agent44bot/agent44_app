@@ -100,7 +100,9 @@ class WorkspacesController < ApplicationController
     @memberships  = @workspace.memberships.includes(:user).order(:created_at)
     @invitations  = @workspace.invitations.pending.order(created_at: :desc)
     @social_accounts = @workspace.social_accounts.order(:platform, :handle)
-    @posts        = @workspace.workspace_posts.recent.limit(10)
+    # Loaded across platforms, then grouped per platform for the tabbed Recent
+    # posts view (X / Bluesky / Facebook / Instagram).
+    @posts        = @workspace.workspace_posts.recent.limit(40)
     @my_role      = @workspace.role_for(current_user)
     @writer       = WorkspaceMembership::ROLES.then { %w[owner admin editor].include?(@my_role) }
     @x_account        = @workspace.social_accounts.active.for_platform("x").first

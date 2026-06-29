@@ -1,0 +1,52 @@
+<%# One recent-post row. Locals: p (WorkspacePost), workspace, writer (bool). %>
+<div class="px-4 py-3">
+  <div class="flex items-center justify-between mb-1 gap-3">
+    <p class="text-xs text-gray-500 truncate">
+      <%= p.author.display_identifier %> · <%= p.created_at.in_time_zone(workspace.timezone).strftime("%b %-d, %-l:%M %p") %>
+    </p>
+    <div class="flex items-center gap-3 shrink-0">
+      <% if p.posted? && p.remote_url.present? %>
+        <% label = case p.platform
+           when "bluesky"   then "View on Bluesky →"
+           when "threads"   then "View on Threads →"
+           when "facebook"  then "View on Facebook →"
+           when "instagram" then "View on Instagram →"
+           else                  "View on X →"
+           end %>
+        <%= link_to label, p.remote_url, target: "_blank", rel: "noopener", class: "text-xs text-orange-400 hover:text-orange-300" %>
+      <% elsif p.failed? %>
+        <span class="text-xs text-red-400" title="<%= p.error %>">failed</span>
+      <% else %>
+        <span class="text-xs text-gray-500"><%= p.status %></span>
+      <% end %>
+      <% if writer %>
+        <%= button_to workspace_post_path(workspace_slug: workspace.slug, id: p.id),
+            method: :delete,
+            form: { data: { turbo_confirm: p.posted? ? "Delete this post from #{p.platform.titleize} and remove it from the list?" : "Remove this row?" } },
+            class: "text-gray-500 hover:text-red-400 cursor-pointer",
+            title: p.posted? ? "Delete + remove" : "Remove" do %>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+          </svg>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  <p class="text-sm text-white whitespace-pre-wrap break-words"><%= p.body %></p>
+  <% if p.failed? && p.error.present? %>
+    <p class="text-xs text-red-500 mt-1 font-mono break-words"><%= p.error %></p>
+  <% end %>
+  <% if p.posted? && p.metrics_synced_at.present? %>
+    <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+      <% if p.platform == "x" %>
+        <span title="impressions">👁 <%= number_with_delimiter(p.impressions) %></span>
+      <% end %>
+      <span title="likes">❤️ <%= p.likes %></span>
+      <span title="<%= p.platform == 'x' ? 'retweets' : 'reposts' %>">🔁 <%= p.reposts %></span>
+      <span title="replies">💬 <%= p.replies %></span>
+      <% if p.quotes.positive? %><span title="quotes">📝 <%= p.quotes %></span><% end %>
+      <% if p.platform == "x" && p.bookmarks.positive? %><span title="bookmarks">🔖 <%= p.bookmarks %></span><% end %>
+      <span class="text-gray-700" title="last refreshed <%= p.metrics_synced_at %>">updated <%= time_ago_in_words(p.metrics_synced_at) %> ago</span>
+    </div>
+  <% end %>
+</div>
