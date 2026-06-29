@@ -11,6 +11,14 @@ module ApplicationHelper
     link_to label, path, class: BACK_BUTTON_CLASSES
   end
 
+  # Whether to show the top-level "Workspaces" breadcrumb crumb. Site admins
+  # and anyone in more than one workspace get it (they can navigate up to the
+  # index); a single-workspace customer (e.g. a kitchen customer pinned to
+  # NY Kitchen) does not, since "Workspaces" would just bounce back to them.
+  def show_workspaces_crumb?
+    Current.user&.admin? || Current.user&.workspaces&.active&.count.to_i > 1
+  end
+
   # Renders a user's round avatar: the uploaded photo if present, otherwise a
   # colored initials circle. `size` is the Tailwind h/w pair (e.g. "h-9 w-9")
   # and `ring` the separator ring (defaults to the gray-950 page bg used in
