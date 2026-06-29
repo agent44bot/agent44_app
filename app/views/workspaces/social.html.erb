@@ -1,9 +1,7 @@
 <% content_for :title, "#{@workspace.name} · Social Agent" %>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-     data-controller="collapsible composer"
-     data-collapsible-collapsed-value="true"
-     data-collapsible-scroll-on-expand-value="true">
+     data-controller="composer">
   <div class="flex items-center justify-between gap-3 mb-6 text-sm">
     <% back_btn = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition shrink-0" %>
     <% ws_root = show_workspaces_crumb? ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
@@ -49,71 +47,8 @@
           <span>New post</span>
         </button>
       <% end %>
-      <% if %w[owner admin].include?(@my_role) %>
-        <button type="button"
-                data-action="click->collapsible#toggle"
-                aria-label="Social Agent settings"
-                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
-          </svg>
-          Settings
-        </button>
-      <% end %>
     </div>
   </div>
-
-  <% if %w[owner admin].include?(@my_role) %>
-    <div data-collapsible-target="body" class="mb-6 space-y-4">
-      <div>
-        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Connected accounts</h2>
-
-        <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-          <% @social_accounts.each do |acct| %>
-            <div class="flex items-center justify-between px-4 py-3 gap-3">
-              <div class="min-w-0">
-                <p class="text-sm text-white truncate"><%= acct.label %></p>
-                <p class="text-xs text-gray-500"><%= acct.platform %><% if acct.token_expires_at.present? %> · token expires <%= acct.token_expires_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %><% end %></p>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-xs uppercase tracking-wide <%= acct.status == 'active' ? 'text-green-400' : 'text-yellow-400' %>"><%= acct.status %></span>
-                <%= button_to "Disconnect", workspace_social_account_path(workspace_slug: @workspace.slug, id: acct.id),
-                    method: :delete, form: { data: { turbo_confirm: "Disconnect #{acct.label}?" } },
-                    class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
-              </div>
-            </div>
-          <% end %>
-
-          <%# Unconnected platforms — each gets a row with a Connect CTA.
-              Gate on @social_accounts (any status), not @x_account etc.
-              (which are .active-only) so a needs_reauth row above doesn't
-              also surface here. %>
-          <% platforms_with_account = @social_accounts.map(&:platform).to_set %>
-          <% [
-               ["X",        "x",        workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),       :post],
-               ["Bluesky",  "bluesky",  new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),   :get],
-               ["Threads",  "threads",  workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug), :post],
-               ["Facebook", "facebook", workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug), :post]
-             ].each do |name, platform, path, method| %>
-            <% next if platforms_with_account.include?(platform) %>
-            <div class="flex items-center justify-between px-4 py-3 gap-3">
-              <div class="min-w-0">
-                <p class="text-sm text-gray-300"><%= name %></p>
-                <p class="text-xs text-gray-600">not connected</p>
-              </div>
-              <% if method == :get %>
-                <%= link_to "Connect", path,
-                    class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md inline-block" %>
-              <% else %>
-                <%= button_to "Connect", path, method: method,
-                    class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-  <% end %>
 
   <% if @writer %>
     <% if @connected_platforms.any? %>
@@ -278,15 +213,19 @@
         <% end %>
 
       <%# Recent posts, tabbed by platform. Each tab shows a green check when the
-          platform is connected, a red dot when it isn't. Unconnected platforms
-          (Facebook/Instagram) offer a Connect CTA in place of posts. %>
-      <% posts_by_platform = @posts.group_by(&:platform) %>
+          platform is connected (active account), a red dot otherwise. Connected
+          tabs list their posts + a Disconnect control; unconnected tabs offer a
+          Connect CTA. This is now the single place to manage connections (the
+          old Settings panel was retired). %>
+      <% posts_by_platform   = @posts.group_by(&:platform) %>
+      <% accounts_by_platform = @social_accounts.group_by(&:platform) %>
       <% fb_connect = workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug) %>
       <% platform_tabs = [
-           { key: "x",         label: "X",         account: @x_account },
-           { key: "bluesky",   label: "Bluesky",   account: @bluesky_account },
-           { key: "facebook",  label: "Facebook",  account: @facebook_account, connect: fb_connect },
-           { key: "instagram", label: "Instagram", account: nil,               connect: fb_connect, via_meta: true }
+           { key: "x",         label: "X",         connect: workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),       method: :post },
+           { key: "bluesky",   label: "Bluesky",   connect: new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),   method: :get },
+           { key: "threads",   label: "Threads",   connect: workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug), method: :post },
+           { key: "facebook",  label: "Facebook",  connect: fb_connect, method: :post },
+           { key: "instagram", label: "Instagram", connect: fb_connect, method: :post, via_meta: true }
          ] %>
       <% can_connect = %w[owner admin].include?(@my_role) %>
 
@@ -308,11 +247,12 @@
 
         <div class="flex items-center gap-1 border-b border-gray-800 mb-3 overflow-x-auto">
           <% platform_tabs.each_with_index do |t, i| %>
+            <% account = accounts_by_platform[t[:key]]&.first %>
             <button type="button" data-tabs-target="tab" data-action="click->tabs#select"
                     data-tab-index="<%= i %>" data-tab-name="<%= t[:key] %>"
                     class="flex items-center gap-1.5 px-3 py-2 border-b-2 text-sm font-medium whitespace-nowrap cursor-pointer transition">
               <%= t[:label] %>
-              <% if t[:account] %>
+              <% if account&.status == "active" %>
                 <span class="text-green-400 text-xs" title="Connected" aria-label="connected">✓</span>
               <% else %>
                 <span class="inline-block w-2 h-2 rounded-full bg-red-500" title="Not connected" aria-label="not connected"></span>
@@ -322,27 +262,52 @@
         </div>
 
         <% platform_tabs.each_with_index do |t, i| %>
-          <% posts = posts_by_platform[t[:key]] || [] %>
-          <div data-tabs-target="panel" class="<%= "hidden" unless i.zero? %>">
-            <% if posts.any? %>
-              <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-                <% posts.each do |p| %>
-                  <%= render "workspaces/post_card", p: p, workspace: @workspace, writer: @writer %>
-                <% end %>
-              </div>
-            <% elsif t[:account] %>
-              <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-sm text-gray-500">
-                No <%= t[:label] %> posts yet.
-              </div>
+          <% posts   = posts_by_platform[t[:key]] || [] %>
+          <% account = accounts_by_platform[t[:key]]&.first %>
+          <% connect_control = capture do %>
+            <% if t[:method] == :get %>
+              <%= link_to "Connect", t[:connect], class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md inline-block" %>
             <% else %>
+              <%= button_to "Connect", t[:connect], method: :post, class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
+            <% end %>
+          <% end %>
+          <div data-tabs-target="panel" class="<%= "hidden" unless i.zero? %>">
+            <% if account %>
+              <%# Connected (or needs-reauth) account: management line + posts. %>
+              <div class="flex items-center justify-between gap-3 mb-3 px-1 text-xs">
+                <span class="text-gray-500 truncate">
+                  <%= account.handle %><% if account.token_expires_at.present? %> · token expires <%= account.token_expires_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %><% end %>
+                </span>
+                <div class="flex items-center gap-3 shrink-0">
+                  <% unless account.status == "active" %>
+                    <span class="uppercase tracking-wide text-amber-400">needs reconnect</span>
+                    <% if can_connect %><%= connect_control %><% end %>
+                  <% end %>
+                  <% if can_connect %>
+                    <%= button_to "Disconnect", workspace_social_account_path(workspace_slug: @workspace.slug, id: account.id),
+                        method: :delete, form: { data: { turbo_confirm: "Disconnect #{account.label}?" } },
+                        class: "text-red-400 hover:text-red-300 cursor-pointer" %>
+                  <% end %>
+                </div>
+              </div>
+              <% if posts.any? %>
+                <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+                  <% posts.each do |p| %>
+                    <%= render "workspaces/post_card", p: p, workspace: @workspace, writer: @writer %>
+                  <% end %>
+                </div>
+              <% else %>
+                <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-sm text-gray-500">No <%= t[:label] %> posts yet.</div>
+              <% end %>
+            <% else %>
+              <%# Not connected: offer to connect. %>
               <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
                 <p class="text-sm text-gray-400"><%= t[:label] %> isn't connected yet.</p>
                 <% if t[:via_meta] %>
                   <p class="text-xs text-gray-600 mt-1">Instagram connects through Meta (the same login as Facebook).</p>
                 <% end %>
-                <% if can_connect && t[:connect] %>
-                  <%= button_to "Connect #{t[:label]}", t[:connect], method: :post,
-                      class: "inline-flex items-center mt-3 px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
+                <% if can_connect %>
+                  <div class="mt-3 inline-block"><%= connect_control %></div>
                 <% end %>
                 <p class="text-xs text-gray-600 mt-3">No posts yet.</p>
               </div>
