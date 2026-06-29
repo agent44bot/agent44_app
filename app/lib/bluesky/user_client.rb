@@ -28,7 +28,9 @@ module Bluesky
       @account = social_account
     end
 
-    def post_text(text, image_url: nil)
+    # image_bytes (already under the 1MB blob limit) attaches a native image;
+    # image_url fetches one from a URL. image_bytes wins if both are given.
+    def post_text(text, image_url: nil, image_bytes: nil, image_content_type: nil)
       return Result.new(ok?: false, error: "Account is not Bluesky") unless @account.platform == "bluesky"
       return Result.new(ok?: false, error: "Account needs reauth")   if @account.status != "active"
       return Result.new(ok?: false, error: "Post is empty")          if text.to_s.strip.empty?
@@ -38,8 +40,13 @@ module Bluesky
 
       # Upload image first (if any) so we have the blob ref for the embed.
       embed = nil
-      if image_url.present?
-        blob = upload_image_blob(image_url, alt_text: text.first(300))
+      blob =
+        if image_bytes.present?
+          upload_blob_bytes(image_bytes, image_content_type || "image/jpeg")
+        elsif image_url.present?
+          upload_image_blob(image_url, alt_text: text.first(300))
+        end
+      if blob
         return Result.new(ok?: false, error: "Image upload failed: #{blob[:error]}") unless blob[:ok]
         embed = {
           "$type" => "app.bsky.embed.images",
@@ -176,6 +183,14 @@ module Bluesky
     def upload_image_blob(url, alt_text: nil)
       bytes, mime = fetch_image_bytes(url)
       return { ok: false, error: "could not fetch #{url}" } unless bytes
+      upload_blob_bytes(bytes, mime)
+    rescue => e
+      { ok: false, error: "#{e.class}: #{e.message}" }
+    end
+
+    # POST raw image bytes to uploadBlob and return the blob ref the embed
+    # needs. Bluesky rejects images > 1MB, so callers must downscale first.
+    def upload_blob_bytes(bytes, mime)
       return { ok: false, error: "image > 1MB (#{bytes.bytesize} bytes)" } if bytes.bytesize > MAX_IMAGE_BYTES
 
       response = http_request(:post, PDS_URL + UPLOAD_BLOB_PATH, payload: bytes, content_type: mime)

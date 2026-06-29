@@ -1,3 +1,5 @@
+require "vips" # downscaling the attached image to Bluesky's 1MB blob limit
+
 # Dispatches a post body to the workspace's connected accounts on each
 # requested platform. Creates one WorkspacePost row per platform and
 # returns a Result aggregating per-platform success/failure lines.
@@ -70,7 +72,7 @@ module WorkspacePosts
     def call_client(platform, account)
       case platform
       when "x"        then post_to_x(account)
-      when "bluesky"  then Bluesky::UserClient.new(account).post_text(@body, image_url: @image_url)
+      when "bluesky"  then post_to_bluesky(account)
       when "threads"  then Threads::UserClient.new(account).post_text(@body)
       when "facebook" then Facebook::UserClient.new(account).post_text(@body)
       end
@@ -86,6 +88,37 @@ module WorkspacePosts
       return X::UserClient::Result.new(ok?: false, error: "image upload: #{upload.error}") unless upload.ok?
 
       client.post_tweet(@body, media_ids: [ upload.media_id ])
+    end
+
+    # Bluesky takes a native blob. Prefer the attached image (downscaled to fit
+    # Bluesky's 1MB blob limit); fall back to the URL-based image for posts that
+    # only carry an image_url. No image -> plain text.
+    def post_to_bluesky(account)
+      client = Bluesky::UserClient.new(account)
+      if @image
+        bytes, mime = bluesky_image_bytes
+        return client.post_text(@body, image_bytes: bytes, image_content_type: mime) if bytes
+      end
+      client.post_text(@body, image_url: @image_url)
+    end
+
+    # Returns [bytes, mime] for the attached image, downscaled under Bluesky's
+    # 1MB limit. Small JPEGs pass through as-is; anything bigger (or non-JPEG)
+    # is re-encoded as a resized JPEG, dropping quality until it fits. Returns
+    # nil if it can't get under the limit, so the post still goes out as text.
+    def bluesky_image_bytes
+      raw = @image.download
+      return [ raw, @image.content_type ] if @image.content_type == "image/jpeg" && raw.bytesize <= Bluesky::UserClient::MAX_IMAGE_BYTES
+
+      thumb = Vips::Image.thumbnail_buffer(raw, 1280)
+      [ 80, 60, 45, 30 ].each do |q|
+        jpeg = thumb.jpegsave_buffer(Q: q, strip: true)
+        return [ jpeg, "image/jpeg" ] if jpeg.bytesize <= Bluesky::UserClient::MAX_IMAGE_BYTES
+      end
+      nil
+    rescue => e
+      Rails.logger.warn("bluesky_image_bytes failed: #{e.class}: #{e.message}")
+      nil
     end
 
     def remote_id_for(platform, result)

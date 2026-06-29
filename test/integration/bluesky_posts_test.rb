@@ -202,4 +202,42 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match /at least one platform/i, response.body
   end
+
+  test "a draft's attached image is uploaded as a blob and embedded on Bluesky" do
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "look", target_platforms: %w[bluesky], status: "draft")
+    # content_type jpeg + small => passes through without re-encoding (no vips).
+    draft.image.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")), filename: "b.jpg", content_type: "image/jpeg")
+
+    uploaded = false
+    embed = nil
+    Bluesky::UserClient.http_stub = ->(_method, url, payload, _bearer) {
+      if url.end_with?("uploadBlob")
+        uploaded = true
+        { status: "200", body: { "blob" => { "$type" => "blob", "ref" => { "$link" => "bafyimg" }, "mimeType" => "image/jpeg", "size" => payload.bytesize } } }
+      else
+        embed = payload[:record][:embed]
+        { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/img1" } }
+      end
+    }
+
+    sign_in_as(@owner)
+    post publish_workspace_draft_path(workspace_slug: @ws.slug, id: draft.id)
+
+    assert uploaded, "the attached image should be uploaded to Bluesky as a blob"
+    refute_nil embed, "the post record should carry an images embed"
+    assert_equal "app.bsky.embed.images", embed["$type"]
+    assert_equal "posted", WorkspacePost.where(platform: "bluesky").last.status
+  end
+
+  test "bluesky_image_bytes re-encodes a non-jpeg attachment to a small jpeg" do
+    png   = Vips::Image.black(800, 800).pngsave_buffer
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "x", target_platforms: %w[bluesky], status: "draft")
+    draft.image.attach(io: StringIO.new(png), filename: "x.png", content_type: "image/png")
+
+    dispatcher = WorkspacePosts::Dispatcher.new(@ws, author: @owner, body: "x", platforms: %w[bluesky], image: draft.image)
+    bytes, mime = dispatcher.send(:bluesky_image_bytes)
+
+    assert_equal "image/jpeg", mime, "non-jpeg is re-encoded to jpeg"
+    assert bytes.bytesize <= Bluesky::UserClient::MAX_IMAGE_BYTES, "must fit Bluesky's 1MB blob limit"
+  end
 end
