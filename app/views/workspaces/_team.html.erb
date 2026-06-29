@@ -82,6 +82,18 @@
     <% end %>
   </section>
 
+  <% unless workspace.slug == "nykitchen" %>
+    <h2 class="text-base font-bold text-white mt-12 mb-4">Billing</h2>
+    <%= link_to billing_workspace_path(workspace.slug),
+          class: "rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between gap-3 flex-wrap hover:border-orange-500/50 transition mb-10" do %>
+      <div class="min-w-0">
+        <p class="text-sm text-white">AI usage and billing</p>
+        <p class="text-xs text-gray-500 mt-0.5">Token usage, cost, and monthly invoices.</p>
+      </div>
+      <span class="text-gray-400 shrink-0">→</span>
+    <% end %>
+  <% end %>
+
   <h2 class="text-base font-bold text-white mt-12 mb-4">Workspace settings</h2>
 
   <section class="mb-10">

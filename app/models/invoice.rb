@@ -52,21 +52,32 @@ class Invoice < ApplicationRecord
 
     range = period_start.beginning_of_day..period_end.end_of_day
 
-    # Raw fleet cost for the period: AI usage (per feature) + smoke tests.
-    ai_logs   = AiCallLog.where(source: AiCallLog::NYK_SOURCES, created_at: range)
+    # NY Kitchen bills its kitchen AI features (by source) plus browser smoke
+    # tests with an ENV-global markup. Every other workspace bills its own
+    # workspace-attributed AI usage (by workspace_id), no smoke tests, with its
+    # own usage_multiplier.
+    nyk = (workspace.slug == "nykitchen")
+
+    ai_logs   = nyk ? AiCallLog.where(source: AiCallLog::NYK_SOURCES, created_at: range)
+                    : AiCallLog.for_workspace(workspace).where(created_at: range)
     by_source = AiCallLog.summary_by_source(ai_logs)
     ai_cost   = AiCallLog.total_cost_dollars(ai_logs)
 
-    smoke_runs    = SmokeTestRun.nyk.where(started_at: range)
-    smoke_cost    = smoke_runs.sum(:cost_dollars).to_f
-    smoke_count   = smoke_runs.count
+    smoke_cost  = 0.0
+    smoke_count = 0
+    if nyk
+      smoke_runs  = SmokeTestRun.nyk.where(started_at: range)
+      smoke_cost  = smoke_runs.sum(:cost_dollars).to_f
+      smoke_count = smoke_runs.count
+    end
 
     raw_total = ai_cost + smoke_cost
 
-    multiplier  = (ENV["NYK_RAW_MULTIPLIER"].presence || DEFAULT_MULTIPLIER).to_f
+    multiplier  = nyk ? (ENV["NYK_RAW_MULTIPLIER"].presence || DEFAULT_MULTIPLIER).to_f
+                      : workspace.effective_usage_multiplier
     # configured = the fee before waiving (mirrors the billing page's
     # @base_fee_configured); applied = what's actually charged (0 if waived).
-    configured_fee = (workspace.base_fee_dollars || DEFAULT_BASE_FEE).to_f
+    configured_fee = (workspace.base_fee_dollars || (nyk ? DEFAULT_BASE_FEE : 0.0)).to_f
     waived         = workspace.base_fee_waived?
     base_fee       = waived ? 0.0 : configured_fee
     discount_pc    = (workspace.discount_percent || 0).to_f
@@ -107,7 +118,8 @@ class Invoice < ApplicationRecord
       "nyk_recipe_extract" => "Recipe import",
       "nyk_recipe_generate" => "Recipe generation (AI)",
       "nyk_receipt_extract" => "Receipt scanning",
-      "nyk_ask"            => "Super Agent chat"
+      "nyk_ask"            => "Super Agent chat",
+      "workspace_ai_assist" => "Social Agent drafts"
     }
     items = by_source.sort_by { |_, v| -v[:cost_dollars] }.map do |source, v|
       { "label" => labels[source] || source, "calls" => v[:calls],

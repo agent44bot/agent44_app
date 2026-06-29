@@ -3,7 +3,9 @@ require "test_helper"
 class InvoiceTest < ActiveSupport::TestCase
   def setup
     @owner = User.create!(email_address: "owner-#{SecureRandom.hex(4)}@example.com")
-    @ws = Workspace.create!(name: "NY Kitchen", slug: "nyk-#{SecureRandom.hex(4)}",
+    # slug "nykitchen" so generate_for takes the NYK billing branch (NYK_SOURCES
+    # + smoke tests + ENV multiplier), which is what these assertions cover.
+    @ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen",
                             owner: @owner, timezone: "UTC",
                             base_fee_waived: true, discount_percent: 95)
     @month = Date.new(2026, 5, 15)

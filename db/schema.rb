@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_26_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_29_190100) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -85,9 +85,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_26_130000) do
     t.string "source", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.integer "workspace_id"
     t.index ["created_at"], name: "index_ai_call_logs_on_created_at"
     t.index ["source"], name: "index_ai_call_logs_on_source"
     t.index ["user_id"], name: "index_ai_call_logs_on_user_id"
+    t.index ["workspace_id"], name: "index_ai_call_logs_on_workspace_id"
   end
 
   create_table "credentials", force: :cascade do |t|
@@ -765,6 +767,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_26_130000) do
     t.datetime "archived_at"
     t.decimal "base_fee_dollars", precision: 10, scale: 2
     t.boolean "base_fee_waived", default: false, null: false
+    t.boolean "billing_enabled", default: false, null: false
     t.datetime "created_at", null: false
     t.text "description"
     t.decimal "discount_percent", precision: 5, scale: 2, default: "0.0"
@@ -778,6 +781,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_26_130000) do
     t.decimal "test_cost_per_minute", precision: 12, scale: 6
     t.string "timezone", default: "UTC", null: false
     t.datetime "updated_at", null: false
+    t.decimal "usage_multiplier", precision: 6, scale: 2, default: "1.0", null: false
     t.index ["archived_at"], name: "index_workspaces_on_archived_at"
     t.index ["owner_id"], name: "index_workspaces_on_owner_id"
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true

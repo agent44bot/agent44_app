@@ -11,6 +11,7 @@ class Workspace < ApplicationRecord
   has_many :workspace_drafts,  dependent: :destroy
   has_many :workspace_agents,  dependent: :destroy
   has_many :usage_events,      dependent: :destroy # metered billable actions
+  has_many :ai_call_logs,      dependent: :nullify # keep usage history if a workspace is deleted
 
   # Brand logo for the workspace (white-label: shown on the workspace's pages
   # in place of the generic mark). Stored on the persistent volume via
@@ -92,6 +93,13 @@ class Workspace < ApplicationRecord
   def effective_base_fee(default = 50.0)
     return 0.0 if base_fee_waived?
     base_fee_dollars || default
+  end
+
+  # Raw-cost markup for this workspace's usage billing (1.0 = no markup, true
+  # cost). Site-admin set on the billing page. NY Kitchen keeps its ENV-based
+  # multiplier; every other workspace uses this column.
+  def effective_usage_multiplier
+    (usage_multiplier || 1.0).to_f
   end
 
   private

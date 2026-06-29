@@ -1,5 +1,6 @@
 class AiCallLog < ApplicationRecord
   belongs_to :user, optional: true
+  belongs_to :workspace, optional: true
 
   # Per-model published rates in $/MTok at write time. Update here when
   # Anthropic changes pricing — historical rows then reflect the new rate
@@ -28,9 +29,10 @@ class AiCallLog < ApplicationRecord
   # Used for the hub "ask" salary badge (internal view, shows both).
   SUPER_AGENT_SOURCES = %w[nyk_ask nyk_agent].freeze
 
-  scope :nyk,         -> { where(source: NYK_SOURCES) }
-  scope :super_agent, -> { where(source: SUPER_AGENT_SOURCES) }
-  scope :this_month,  -> { where("created_at >= ?", Time.zone.now.beginning_of_month) }
+  scope :nyk,           -> { where(source: NYK_SOURCES) }
+  scope :super_agent,   -> { where(source: SUPER_AGENT_SOURCES) }
+  scope :this_month,    -> { where("created_at >= ?", Time.zone.now.beginning_of_month) }
+  scope :for_workspace, ->(ws) { where(workspace_id: ws) }
 
   def cost_dollars
     rate = RATES[model] || DEFAULT_RATE
@@ -128,6 +130,27 @@ class AiCallLog < ApplicationRecord
         start:        month_start.to_date,
         by_source:    by_source,
         cost_dollars: by_source.values.sum { |h| h[:cost_dollars] }
+      }
+    end.reverse
+  end
+
+  # Per-calendar-month usage for a single workspace (by workspace_id, across all
+  # its sources) over the last `months` months. Same shape as monthly_by_source
+  # so the billing bar-chart partial can render either. Oldest month first.
+  def self.monthly_for_workspace(workspace, months: 6, now: Time.zone.now)
+    window_start = now.beginning_of_month - (months - 1).months
+    logs = where(workspace_id: workspace.id, created_at: window_start..).to_a
+    by_month = logs.group_by { |l| l.created_at.in_time_zone(now.time_zone).strftime("%Y-%m") }
+
+    (0...months).map do |i|
+      month_start = now.beginning_of_month - i.months
+      found       = by_month[month_start.strftime("%Y-%m")] || []
+      {
+        key:          month_start.strftime("%Y-%m"),
+        label:        month_start.strftime("%b"),
+        start:        month_start.to_date,
+        by_source:    summary_by_source(found),
+        cost_dollars: total_cost_dollars(found)
       }
     end.reverse
   end

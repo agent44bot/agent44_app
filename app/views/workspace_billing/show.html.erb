@@ -1,0 +1,179 @@
+<% content_for :title, "#{@workspace.name} · AI usage" %>
+<% labels = WorkspaceBillingController::SOURCE_LABELS %>
+<% has_markup = @usage_multiplier != 1.0 || @base_fee.positive? || @discount_percent.positive? %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center justify-between gap-3 mb-6 text-sm">
+    <% ws_root = show_workspaces_crumb? ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
+    <%= render "shared/breadcrumbs", crumbs: ws_root + [[@workspace.name, workspace_path(@workspace.slug)], ["AI usage", nil]] %>
+    <%= back_button "← #{@workspace.name}", workspace_path(@workspace.slug) %>
+  </div>
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-white">AI usage</h1>
+    <p class="text-xs text-gray-500 font-mono mt-1"><%= @workspace.name %> · <%= @month_start.strftime("%B %Y") %></p>
+  </div>
+
+  <%# This month total + breakdown %>
+  <div class="rounded-lg border border-gray-800 bg-gray-900 p-5 mb-6">
+    <p class="text-xs uppercase tracking-wide text-gray-500">This month</p>
+    <p class="text-3xl font-black text-white mt-1"><%= number_to_currency(@month_total) %></p>
+    <div class="mt-3 text-sm text-gray-400 space-y-1">
+      <% if has_markup %>
+        <div class="flex justify-between"><span>Platform fee<%= " (waived)" if @base_fee_waived %></span><span><%= number_to_currency(@base_fee) %></span></div>
+        <div class="flex justify-between"><span>AI usage (<%= number_to_currency(@raw_total) %> raw × <%= @usage_multiplier %>)</span><span><%= number_to_currency(@raw_total * @usage_multiplier) %></span></div>
+        <div class="flex justify-between border-t border-gray-800 pt-1"><span>Subtotal</span><span><%= number_to_currency(@subtotal) %></span></div>
+        <% if @discount_percent.positive? %>
+          <div class="flex justify-between text-green-400"><span>Discount (<%= @discount_percent %>%)</span><span>- <%= number_to_currency(@discount_amount) %></span></div>
+        <% end %>
+      <% else %>
+        <div class="flex justify-between"><span>AI usage (true cost, no markup)</span><span><%= number_to_currency(@raw_total) %></span></div>
+      <% end %>
+      <div class="flex justify-between text-white font-semibold border-t border-gray-800 pt-1"><span>Total</span><span><%= number_to_currency(@month_total) %></span></div>
+    </div>
+  </div>
+
+  <%# Per-feature usage %>
+  <div class="mb-8">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">By feature this month</h2>
+    <div class="rounded-lg border border-gray-800 bg-gray-900 overflow-hidden">
+      <% if @summary.any? %>
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase tracking-wide text-gray-500 border-b border-gray-800">
+            <tr><th class="text-left px-4 py-2 font-medium">Feature</th><th class="text-right px-4 py-2 font-medium">Calls</th><th class="text-right px-4 py-2 font-medium">Tokens</th><th class="text-right px-4 py-2 font-medium">Cost</th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800">
+            <% @summary.sort_by { |_, v| -v[:cost_dollars] }.each do |source, v| %>
+              <tr>
+                <td class="px-4 py-2 text-white"><%= labels[source] || source.titleize %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_with_delimiter(v[:calls]) %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_with_delimiter(v[:input_tokens] + v[:output_tokens]) %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_to_currency(v[:cost_dollars], precision: 4) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <p class="px-4 py-6 text-sm text-gray-500 text-center">No AI usage yet this month.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Per-model %>
+  <% if @model_summary.any? %>
+    <div class="mb-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">By model</h2>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase tracking-wide text-gray-500 border-b border-gray-800">
+            <tr><th class="text-left px-4 py-2 font-medium">Model</th><th class="text-right px-4 py-2 font-medium">Calls</th><th class="text-right px-4 py-2 font-medium">Tokens</th><th class="text-right px-4 py-2 font-medium">Cost</th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800">
+            <% @model_summary.sort_by { |_, v| -v[:cost_dollars] }.each do |model, v| %>
+              <tr>
+                <td class="px-4 py-2 text-white"><%= model %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_with_delimiter(v[:calls]) %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_with_delimiter(v[:input_tokens] + v[:output_tokens]) %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_to_currency(v[:cost_dollars], precision: 4) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%# 6-month trend (raw cost), inline Tailwind bars %>
+  <div class="mb-8">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">AI usage trend (6 months, raw cost)</h2>
+    <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+      <div class="flex items-end gap-2 h-24">
+        <% @ai_trend.each do |m| %>
+          <% pct = @ai_trend_max > 0 ? [ (m[:cost_dollars] / @ai_trend_max * 100).round, 2 ].max : 0 %>
+          <% is_current = (m[:key] == @month_start.strftime("%Y-%m")) %>
+          <div class="flex-1 flex flex-col items-center justify-end h-full" title="<%= m[:label] %>: <%= number_to_currency(m[:cost_dollars], precision: 4) %> raw">
+            <span class="text-[10px] text-gray-400 mb-1"><%= m[:cost_dollars] >= 1 ? m[:cost_dollars].round : sprintf("%.2f", m[:cost_dollars]) %></span>
+            <div class="w-full rounded-t <%= is_current ? "bg-orange-500" : "bg-gray-700" %>" style="height: <%= pct %>%"></div>
+          </div>
+        <% end %>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <% @ai_trend.each do |m| %>
+          <% is_current = (m[:key] == @month_start.strftime("%Y-%m")) %>
+          <div class="flex-1 text-center text-[10px] <%= is_current ? "text-orange-300" : "text-gray-600" %>"><%= m[:label] %></div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# Recent calls %>
+  <% if @recent.any? %>
+    <div class="mb-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Recent calls</h2>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 overflow-hidden">
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-gray-800">
+            <% @recent.each do |log| %>
+              <tr>
+                <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap"><%= log.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %></td>
+                <td class="px-4 py-2 text-white"><%= labels[log.source] || log.source.titleize %></td>
+                <td class="px-4 py-2 text-right text-gray-300 text-xs"><%= AiCallLog.model_label(log.model) %></td>
+                <td class="px-4 py-2 text-right text-gray-300"><%= number_to_currency(log.cost_dollars, precision: 4) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Invoices %>
+  <% if @invoices.any? %>
+    <div class="mb-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Invoices</h2>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+        <% @invoices.each do |inv| %>
+          <div class="flex items-center justify-between px-4 py-3 gap-3">
+            <div class="min-w-0">
+              <p class="text-sm text-white"><%= inv.period_label %> · <%= number_to_currency(inv.total_dollars) %></p>
+              <p class="text-xs <%= inv.paid? ? "text-green-400" : "text-yellow-400" %>"><%= inv.status %></p>
+            </div>
+            <% if Current.user&.admin? && !inv.paid? %>
+              <%= button_to "Mark paid", billing_invoice_paid_workspace_path(@workspace.slug, invoice_id: inv.id),
+                  method: :post,
+                  class: "text-xs text-gray-300 hover:text-white px-3 py-1 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Site-admin pricing knobs %>
+  <% if Current.user&.admin? %>
+    <div class="mb-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Pricing (site admin)</h2>
+      <%= form_with url: billing_pricing_workspace_path(@workspace.slug), method: :post, local: true,
+                    class: "rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3" do %>
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="text-xs text-gray-400 w-40">Usage multiplier</label>
+          <%= number_field_tag :usage_multiplier, @usage_multiplier, step: "0.1", min: "0",
+              class: "w-28 rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+          <span class="text-xs text-gray-500">1.0 = true cost (no markup)</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="text-xs text-gray-400 w-40">Monthly platform fee ($)</label>
+          <%= number_field_tag :base_fee_dollars, (@base_fee_configured.positive? ? @base_fee_configured : nil), step: "1", min: "0", placeholder: "0",
+              class: "w-28 rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+          <label class="text-xs text-gray-400 inline-flex items-center gap-1"><%= check_box_tag :base_fee_waived, "1", @base_fee_waived %> waive</label>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="text-xs text-gray-400 w-40">Discount (%)</label>
+          <%= number_field_tag :discount_percent, (@discount_percent.positive? ? @discount_percent : nil), step: "1", min: "0", max: "100", placeholder: "0",
+              class: "w-28 rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+        </div>
+        <%= submit_tag "Save pricing", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
