@@ -234,17 +234,28 @@
       <div class="mt-6" data-controller="tabs"
            data-tabs-active-classes-value="text-white border-orange-500"
            data-tabs-inactive-classes-value="text-gray-500 border-transparent hover:text-gray-300">
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
           <h3 class="text-xs uppercase tracking-wide text-gray-500">Recent posts</h3>
-          <%= button_to refresh_metrics_workspace_path(@workspace.slug),
-              method: :post,
-              class: "text-xs text-gray-400 hover:text-orange-400 cursor-pointer flex items-center gap-1",
-              title: "Pull latest impressions / likes / reposts from X + Bluesky now" do %>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            Refresh metrics
-          <% end %>
+          <div class="flex items-center gap-4">
+            <% if @workspace.manager?(Current.user) %>
+              <% ws_ai_cost = AiCallLog.usage_rollup(AiCallLog.for_workspace(@workspace).this_month)[:cost_dollars] %>
+              <span class="text-xs text-gray-500 flex items-center gap-1.5"
+                    title="This workspace's AI usage cost so far this month (updates live as the assistant is used)">
+                <span class="text-gray-600">AI this month</span>
+                <span id="ws-ai-cost" class="font-mono text-orange-300">$<%= sprintf("%.4f", ws_ai_cost) %></span>
+                <span id="ws-ai-cost-delta" class="font-mono text-green-400 opacity-0 transition-opacity duration-500"></span>
+              </span>
+            <% end %>
+            <%= button_to refresh_metrics_workspace_path(@workspace.slug),
+                method: :post,
+                class: "text-xs text-gray-400 hover:text-orange-400 cursor-pointer flex items-center gap-1",
+                title: "Pull latest impressions / likes / reposts from X + Bluesky now" do %>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Refresh metrics
+            <% end %>
+          </div>
         </div>
 
         <div class="flex items-center gap-1 border-b border-gray-800 mb-3 overflow-x-auto">
@@ -323,6 +334,7 @@
                 <p class="text-xs text-gray-600 mt-4">No posts yet.</p>
               </div>
             <% end %>
+            <%= render "workspaces/connect_chat", workspace: @workspace, platform: t[:key], label: t[:label] %>
           </div>
         <% end %>
       </div>
