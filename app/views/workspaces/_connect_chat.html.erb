@@ -1,0 +1,20 @@
+<%# Per-platform connection help chat. Locals: workspace, platform, label.
+    Renders inside each platform tab panel on the Social Agent page. Members
+    (incl. editors like a client) can ask how to connect/post; the live cost
+    counter that the replies feed is rendered separately and gated to managers. %>
+<div class="mt-5 rounded-lg border border-gray-800 bg-gray-900/60 p-4"
+     data-controller="connect-chat"
+     data-connect-chat-url-value="<%= workspace_ai_chat_path(workspace_slug: workspace.slug) %>"
+     data-connect-chat-platform-value="<%= platform %>">
+  <p class="text-xs text-gray-500 mb-2">
+    <span aria-hidden="true">💬</span> Stuck connecting <%= label %>? Ask the assistant.
+  </p>
+  <div data-connect-chat-target="log" class="space-y-2 max-h-64 overflow-y-auto mb-3 text-sm empty:hidden"></div>
+  <form data-action="connect-chat#send" class="flex items-center gap-2">
+    <input data-connect-chat-target="input" type="text" autocomplete="off"
+           placeholder="e.g. How do I create a Bluesky app password?"
+           class="flex-1 rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-base sm:text-sm focus:border-orange-500 focus:outline-none" />
+    <button type="submit" data-connect-chat-target="send"
+            class="px-3 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer shrink-0">Ask</button>
+  </form>
+</div>

@@ -197,6 +197,7 @@ Rails.application.routes.draw do
     resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
     post "drafts/from_image", to: "workspace_drafts#from_image", as: :draft_from_image
+    post "ai_chat", to: "workspace_ai_chats#create", as: :ai_chat
     resources :drafts, only: [ :create, :edit, :update, :destroy ], controller: "workspace_drafts" do
       member do
         post :publish
