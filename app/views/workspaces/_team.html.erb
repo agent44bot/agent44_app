@@ -12,8 +12,10 @@
 %>
 <% admin = %w[owner admin].include?(my_role) %>
 
-<section class="mt-12 mb-10">
-  <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Members</h2>
+<h2 class="text-base font-bold text-white mt-12 mb-4">People</h2>
+
+<section class="mb-8">
+  <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Members</h3>
   <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
     <% memberships.each do |m| %>
       <div class="flex items-center justify-between gap-3 px-4 py-3">
@@ -33,6 +35,55 @@
 </section>
 
 <% if admin %>
+  <section class="mb-10">
+    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Invite a teammate</h3>
+    <%= form_with url: workspace_invitations_path(workspace_slug: workspace.slug), local: true, class: "flex flex-wrap gap-2" do |f| %>
+      <%= f.email_field :email, required: true, placeholder: "boss@magenta.com",
+          class: "flex-1 min-w-[220px] rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+      <%= f.select :role, [["editor","editor"],["admin","admin"],["viewer","viewer"]], {},
+          class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2" %>
+      <%= f.submit "Send invite", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+    <% end %>
+
+    <dl class="mt-3 text-xs text-gray-500 space-y-1">
+      <div class="flex gap-2">
+        <dt class="text-gray-400 font-semibold w-14 shrink-0">Admin</dt>
+        <dd>Invite teammates, connect social accounts, delete the workspace.</dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="text-gray-400 font-semibold w-14 shrink-0">Editor</dt>
+        <dd>Compose, schedule, and post.</dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="text-gray-400 font-semibold w-14 shrink-0">Viewer</dt>
+        <dd>Read-only access.</dd>
+      </div>
+    </dl>
+
+    <% if invitations.any? %>
+      <div class="mt-4 rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+        <% invitations.each do |inv| %>
+          <div class="flex items-center justify-between px-4 py-3 gap-3">
+            <div class="min-w-0">
+              <p class="text-sm text-white truncate"><%= inv.email %></p>
+              <p class="text-xs text-gray-500 truncate">
+                <%= inv.role %> · expires <%= inv.expires_at.in_time_zone(workspace.timezone).strftime("%b %-d") %>
+              </p>
+              <p class="text-[11px] text-gray-600 font-mono break-all mt-1">
+                <%= workspace_invitation_view_url(token: inv.token) %>
+              </p>
+            </div>
+            <%= button_to "Revoke", workspace_invitation_path(workspace_slug: workspace.slug, id: inv.id),
+                method: :delete, form: { data: { turbo_confirm: "Revoke this invite?" } },
+                class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <h2 class="text-base font-bold text-white mt-12 mb-4">Workspace settings</h2>
+
   <section class="mb-10">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Brand logo</h2>
     <%= form_with model: workspace, url: workspace_path(workspace.slug), method: :patch, local: true,
@@ -112,54 +163,7 @@
             { class: "flex-1 min-w-[240px] rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" } %>
       <%= f.submit "Save", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
     <% end %>
-    <p class="text-xs text-gray-500 mt-2">Used across the workspace for scheduling and timestamps. Also editable from the Social Agent page.</p>
-  </section>
-
-  <section class="mb-10">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">Invite a teammate</h2>
-    <%= form_with url: workspace_invitations_path(workspace_slug: workspace.slug), local: true, class: "flex flex-wrap gap-2" do |f| %>
-      <%= f.email_field :email, required: true, placeholder: "boss@magenta.com",
-          class: "flex-1 min-w-[220px] rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none" %>
-      <%= f.select :role, [["editor","editor"],["admin","admin"],["viewer","viewer"]], {},
-          class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2" %>
-      <%= f.submit "Send invite", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
-    <% end %>
-
-    <dl class="mt-3 text-xs text-gray-500 space-y-1">
-      <div class="flex gap-2">
-        <dt class="text-gray-400 font-semibold w-14 shrink-0">Admin</dt>
-        <dd>Invite teammates, connect social accounts, delete the workspace.</dd>
-      </div>
-      <div class="flex gap-2">
-        <dt class="text-gray-400 font-semibold w-14 shrink-0">Editor</dt>
-        <dd>Compose, schedule, and post.</dd>
-      </div>
-      <div class="flex gap-2">
-        <dt class="text-gray-400 font-semibold w-14 shrink-0">Viewer</dt>
-        <dd>Read-only access.</dd>
-      </div>
-    </dl>
-
-    <% if invitations.any? %>
-      <div class="mt-4 rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-        <% invitations.each do |inv| %>
-          <div class="flex items-center justify-between px-4 py-3 gap-3">
-            <div class="min-w-0">
-              <p class="text-sm text-white truncate"><%= inv.email %></p>
-              <p class="text-xs text-gray-500 truncate">
-                <%= inv.role %> · expires <%= inv.expires_at.in_time_zone(workspace.timezone).strftime("%b %-d") %>
-              </p>
-              <p class="text-[11px] text-gray-600 font-mono break-all mt-1">
-                <%= workspace_invitation_view_url(token: inv.token) %>
-              </p>
-            </div>
-            <%= button_to "Revoke", workspace_invitation_path(workspace_slug: workspace.slug, id: inv.id),
-                method: :delete, form: { data: { turbo_confirm: "Revoke this invite?" } },
-                class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
+    <p class="text-xs text-gray-500 mt-2">Used across the workspace for scheduling and timestamps.</p>
   </section>
 
   <% if Current.user&.admin? %>

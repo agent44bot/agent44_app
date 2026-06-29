@@ -228,12 +228,17 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert ws.pricing_visible_for?(@owner),        "site admin still sees pricing"
   end
 
-  test "social renders the composer with the timezone form" do
+  test "social shows the connected-accounts panel for owners; timezone moved to the hub" do
     ws = Workspace.create!(name: "Social WS", owner: @owner)
     sign_in_as(@owner)
     get social_workspace_path(ws.slug)
     assert_response :success
-    # The composer page shows the timezone select (owners only).
+    # The social settings panel is now Connected accounts only.
+    assert_match %r{Connected accounts}, response.body
+    # Timezone editing now lives on the workspace hub, not the composer.
+    assert_no_match %r{name="workspace\[timezone\]"}, response.body
+
+    get workspace_path(ws.slug)
     assert_match %r{name="workspace\[timezone\]"}, response.body
   end
 end

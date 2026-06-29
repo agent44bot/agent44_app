@@ -4,11 +4,13 @@
      data-controller="collapsible composer"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <div class="flex justify-end mb-6 text-sm">
-    <% back_btn = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" %>
+  <div class="flex items-center justify-between gap-3 mb-6 text-sm">
+    <% back_btn = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition shrink-0" %>
     <% if @workspace.slug == "nykitchen" %>
+      <%= render "shared/breadcrumbs", crumbs: [["NY Kitchen", nykitchen_path], [nyk_agent_callsign("social", @workspace.agent_for("social")), nil]] %>
       <%= link_to "← NY Kitchen", nykitchen_path, class: back_btn %>
     <% else %>
+      <%= render "shared/breadcrumbs", crumbs: [["Workspaces", workspaces_path(force: 1)], [@workspace.name, workspace_path(@workspace.slug)], ["Social Agent", nil]] %>
       <%= link_to "← #{@workspace.name}", workspace_path(@workspace.slug), class: back_btn %>
     <% end %>
   </div>
@@ -62,16 +64,6 @@
 
   <% if %w[owner admin].include?(@my_role) %>
     <div data-collapsible-target="body" class="mb-6 space-y-4">
-      <%= form_with model: @workspace, url: workspace_path(@workspace.slug), method: :patch, local: true,
-                    class: "flex flex-wrap items-center gap-2" do |f| %>
-        <label class="text-xs text-gray-500 uppercase tracking-wide">Timezone</label>
-        <%= f.time_zone_select :timezone,
-            ActiveSupport::TimeZone.us_zones,
-            { default: @workspace.timezone },
-            { class: "rounded-md bg-gray-900 border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" } %>
-        <%= f.submit "Save", class: "text-xs text-gray-300 hover:text-white px-3 py-1 border border-gray-700 rounded-md hover:border-orange-500 cursor-pointer" %>
-      <% end %>
-
       <div>
         <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Connected accounts</h2>
 

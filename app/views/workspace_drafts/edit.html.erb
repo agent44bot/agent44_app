@@ -8,6 +8,13 @@
 <% back_path  = back_to || social_workspace_path(@workspace.slug) %>
 <% back_label = back_to.nil? ? "← Back to workspace" : (back_to == nyk_list_path ? "← Back to Sam's list" : "← Back") %>
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <%# Standard trail only when arriving directly (no return_to deep link) on a
+      non-NYK workspace; the return_to/NYK cases keep the context-aware back button. %>
+  <% if back_to.nil? && @workspace.slug != "nykitchen" %>
+    <div class="mb-4">
+      <%= render "shared/breadcrumbs", crumbs: [["Workspaces", workspaces_path(force: 1)], [@workspace.name, workspace_path(@workspace.slug)], ["Social Agent", social_workspace_path(@workspace.slug)], ["Edit draft", nil]] %>
+    </div>
+  <% end %>
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Edit draft</h1>
