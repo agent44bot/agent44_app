@@ -1,6 +1,7 @@
 require "test_helper"
 
-# Covers the Social Agent flow redesign: breadcrumbs, the People grouping
+# Covers the Social Agent flow redesign: adaptive breadcrumbs (the "Workspaces"
+# root only shows for site admins / multi-workspace users), the People grouping
 # (invite next to members), and the de-duplicated settings.
 class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
   setup do
@@ -10,22 +11,38 @@ class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
     @ws.memberships.create!(user: @editor, role: "editor")
   end
 
-  test "hub renders a breadcrumb trail to Workspaces" do
+  # ----- adaptive breadcrumb root -----
+
+  test "a single-workspace user does not get the Workspaces crumb on the hub" do
     sign_in_as(@owner)
     get workspace_path(@ws.slug)
     assert_response :success
-    assert_select "nav[aria-label=?]", "Breadcrumb"
-    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1)
-    assert_select "nav[aria-label=?] [aria-current=?]", "Breadcrumb", "page", text: @ws.name
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1), false
   end
 
-  test "social page renders a breadcrumb with Social Agent as the current page" do
+  test "a single-workspace user's social trail is Workspace / Social Agent, no Workspaces root" do
     sign_in_as(@owner)
     get social_workspace_path(@ws.slug)
     assert_response :success
     assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspace_path(@ws.slug)
     assert_select "nav[aria-label=?] [aria-current=?]", "Breadcrumb", "page", text: "Social Agent"
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1), false
   end
+
+  test "a site admin gets the Workspaces crumb on the hub and the social page" do
+    admin = User.create!(email_address: "tl-a-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
+    @ws.memberships.create!(user: admin, role: "admin")
+    sign_in_as(admin)
+
+    get workspace_path(@ws.slug)
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1)
+
+    get social_workspace_path(@ws.slug)
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1)
+    assert_select "nav[aria-label=?] [aria-current=?]", "Breadcrumb", "page", text: "Social Agent"
+  end
+
+  # ----- People grouping + de-duplicated settings -----
 
   test "invite form sits directly under members with no settings in between" do
     sign_in_as(@owner)
@@ -38,7 +55,6 @@ class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
     assert invite,  "Invite heading should render"
     assert invite > members, "Invite should come after Members"
 
-    # No workspace-settings heading should appear between Members and Invite.
     between = body[members...invite]
     %w[Brand\ logo Website\ URL Brand\ context Timezone].each do |h|
       refute_includes between, h, "#{h} should not sit between Members and Invite"
@@ -63,13 +79,27 @@ class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
     assert_select "input[value=?]", "Delete workspace", false
   end
 
-  test "NY Kitchen social page uses its own breadcrumb root, not Workspaces" do
-    nyk = Workspace.create!(name: "NY Kitchen", owner: @owner, slug: "nykitchen")
-    nyk # referenced
-    sign_in_as(@owner)
+  # ----- NY Kitchen adaptive root -----
+
+  test "a NY Kitchen-only customer sees NY Kitchen as the root, not Workspaces" do
+    nyk  = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @owner }
+    lora = User.create!(email_address: "tl-lora-#{SecureRandom.hex(4)}@example.com")
+    nyk.memberships.create!(user: lora, role: "admin")
+    sign_in_as(lora)
     get nyk_social_path
     assert_response :success
     assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", nykitchen_path
     assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1), false
+  end
+
+  test "a site admin sees Workspaces above NY Kitchen on the NYK social page" do
+    nyk   = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @owner }
+    admin = User.create!(email_address: "tl-a2-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
+    nyk.memberships.create!(user: admin, role: "admin")
+    sign_in_as(admin)
+    get nyk_social_path
+    assert_response :success
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1)
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", nykitchen_path
   end
 end

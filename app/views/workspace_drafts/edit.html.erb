@@ -11,8 +11,9 @@
   <%# Standard trail only when arriving directly (no return_to deep link) on a
       non-NYK workspace; the return_to/NYK cases keep the context-aware back button. %>
   <% if back_to.nil? && @workspace.slug != "nykitchen" %>
+    <% ws_root = show_workspaces_crumb? ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
     <div class="mb-4">
-      <%= render "shared/breadcrumbs", crumbs: [["Workspaces", workspaces_path(force: 1)], [@workspace.name, workspace_path(@workspace.slug)], ["Social Agent", social_workspace_path(@workspace.slug)], ["Edit draft", nil]] %>
+      <%= render "shared/breadcrumbs", crumbs: ws_root + [[@workspace.name, workspace_path(@workspace.slug)], ["Social Agent", social_workspace_path(@workspace.slug)], ["Edit draft", nil]] %>
     </div>
   <% end %>
   <div class="flex items-center justify-between mb-6">
