@@ -1,8 +1,8 @@
 # Connection help chat on the Social Agent page. Any workspace member can ask
 # how to connect / post to a platform; the reply comes from Claude Haiku via
 # WorkspaceAi::ConnectHelper. Cost is logged against the workspace + user, and
-# the running cost is only returned to managers (owner/admin) so members never
-# see pricing (mirrors Workspace#pricing_visible_for?).
+# returned tiered by role: owner (and site admins) get raw + billed, admins get
+# billed only (never our raw cost), editors/viewers get nothing.
 class WorkspaceAiChatsController < ApplicationController
   before_action :load_workspace
   before_action :require_member
@@ -25,15 +25,31 @@ class WorkspaceAiChatsController < ApplicationController
       return render json: { ok: false, error: result.error }, status: :unprocessable_entity
     end
 
-    payload = { ok: true, reply: result.reply }
-    if @workspace.manager?(current_user)
-      payload[:cost_dollars]        = result.cost_dollars
-      payload[:workspace_month_cost] = workspace_month_cost
-    end
-    render json: payload
+    render json: payload_with_cost(result)
   end
 
   private
+
+  # Cost is tiered by workspace role: owner (and site admins) get raw + billed;
+  # admins get billed only (never our raw cost / the multiplier); editors and
+  # viewers get nothing. Billed = raw x the workspace usage multiplier.
+  def payload_with_cost(result)
+    payload     = { ok: true, reply: result.reply }
+    role        = @workspace.role_for(current_user)
+    raw_view    = current_user&.admin? || role == "owner"
+    billed_view = raw_view || role == "admin"
+    return payload unless billed_view
+
+    mult = @workspace.effective_usage_multiplier
+    payload[:month_billed] = workspace_month_cost * mult
+    payload[:cost_billed]  = result.cost_dollars.to_f * mult
+    if raw_view
+      payload[:month_raw]  = workspace_month_cost
+      payload[:cost_raw]   = result.cost_dollars.to_f
+      payload[:multiplier] = mult
+    end
+    payload
+  end
 
   def load_workspace
     @workspace = Workspace.find_by!(slug: params[:workspace_slug])

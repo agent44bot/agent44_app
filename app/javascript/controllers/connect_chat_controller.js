@@ -35,8 +35,8 @@ export default class extends Controller {
         thinking.textContent = data.reply
         this.history.push({ role: "user", content: text })
         this.history.push({ role: "assistant", content: data.reply })
-        if (typeof data.workspace_month_cost === "number") {
-          this.updateCounter(data.workspace_month_cost, data.cost_dollars)
+        if (typeof data.month_billed === "number") {
+          this.updateCounter(data)
         }
       } else {
         thinking.textContent = data.error || "Sorry, something went wrong. Please try again."
@@ -67,11 +67,19 @@ export default class extends Controller {
     return bubble
   }
 
-  // Updates the shared manager-only counter (one per page) and flashes the delta.
-  updateCounter(monthCost, delta) {
-    const el = document.getElementById("ws-ai-cost")
-    if (!el) return
-    el.textContent = "$" + monthCost.toFixed(4)
+  // Updates the shared cost counter (one per page) and flashes the billed delta.
+  // The server sends month_billed always (when allowed) and month_raw only to
+  // owner/site-admin viewers, so we update whichever spans exist.
+  updateCounter(data) {
+    const billedEl = document.getElementById("ws-ai-cost-billed")
+    if (billedEl && typeof data.month_billed === "number") {
+      billedEl.textContent = "$" + data.month_billed.toFixed(4)
+    }
+    const rawEl = document.getElementById("ws-ai-cost-raw")
+    if (rawEl && typeof data.month_raw === "number") {
+      rawEl.textContent = "$" + data.month_raw.toFixed(4)
+    }
+    const delta = data.cost_billed
     if (typeof delta === "number" && delta > 0) {
       const flash = document.getElementById("ws-ai-cost-delta")
       if (flash) {

@@ -237,12 +237,25 @@
         <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
           <h3 class="text-xs uppercase tracking-wide text-gray-500">Recent posts</h3>
           <div class="flex items-center gap-4">
-            <% if @workspace.manager?(Current.user) %>
-              <% ws_ai_cost = AiCallLog.usage_rollup(AiCallLog.for_workspace(@workspace).this_month)[:cost_dollars] %>
+            <%# AI usage counter, tiered by workspace role: owner (and site admins)
+                see raw + billed; admins see billed only; everyone else nothing.
+                Billed = raw cost x the workspace usage multiplier. %>
+            <% ai_role     = @workspace.role_for(Current.user) %>
+            <% ai_raw_view = Current.user&.admin? || ai_role == "owner" %>
+            <% ai_billed_view = ai_raw_view || ai_role == "admin" %>
+            <% if ai_billed_view %>
+              <% ai_mult   = @workspace.effective_usage_multiplier %>
+              <% ai_raw    = AiCallLog.usage_rollup(AiCallLog.for_workspace(@workspace).this_month)[:cost_dollars] %>
+              <% ai_billed = ai_raw * ai_mult %>
               <span class="text-xs text-gray-500 flex items-center gap-1.5"
-                    title="This workspace's AI usage cost so far this month (updates live as the assistant is used)">
+                    title="This workspace's AI usage this month (updates live as the assistant is used)">
                 <span class="text-gray-600">AI this month</span>
-                <span id="ws-ai-cost" class="font-mono text-orange-300">$<%= sprintf("%.4f", ws_ai_cost) %></span>
+                <% if ai_raw_view %>
+                  <span id="ws-ai-cost-raw" class="font-mono text-gray-400">$<%= sprintf("%.4f", ai_raw) %></span>
+                  <span class="text-gray-600">raw &times;<%= ai_mult.to_f.round(1) %> &rarr;</span>
+                <% end %>
+                <span id="ws-ai-cost-billed" class="font-mono text-orange-300">$<%= sprintf("%.4f", ai_billed) %></span>
+                <% if ai_raw_view %><span class="text-gray-600">billed</span><% end %>
                 <span id="ws-ai-cost-delta" class="font-mono text-green-400 opacity-0 transition-opacity duration-500"></span>
               </span>
             <% end %>
