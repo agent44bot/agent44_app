@@ -20,42 +20,27 @@ class XUserClientMediaTest < ActiveSupport::TestCase
     assert_includes X::Oauth::DEFAULT_SCOPES, "media.write"
   end
 
-  test "upload_media runs INIT, APPEND, FINALIZE with params in the query string" do
-    seen = []
-    X::UserClient.media_stub = ->(params, file, bearer) {
-      seen << params[:command]
+  test "upload_media posts a single multipart request with media + media_category" do
+    captured = nil
+    X::UserClient.media_stub = ->(fields, bearer) {
+      captured = fields
       assert_equal "AT", bearer
-      case params[:command]
-      when "INIT"
-        assert_equal "image/png",   params[:media_type]
-        assert_equal "tweet_image", params[:media_category]
-        assert_equal 8,             params[:total_bytes]
-        assert_nil file, "INIT must not carry a body"
-        { status: "202", body: { "data" => { "id" => "M-1" } } }
-      when "APPEND"
-        assert_equal "M-1", params[:media_id]
-        assert_equal 0,     params[:segment_index]
-        assert_equal "image/png", file[:content_type]
-        assert_equal "PNGBYTES",  file[:data]
-        { status: "204", body: {} }
-      when "FINALIZE"
-        assert_equal "M-1", params[:media_id]
-        assert_nil file, "FINALIZE must not carry a body"
-        { status: "200", body: { "data" => { "id" => "M-1" } } }
-      end
+      { status: "200", body: { "data" => { "id" => "M-1" } } }
     }
 
     res = X::UserClient.new(@acct).upload_media("PNGBYTES", "image/png")
     assert res.ok?
     assert_equal "M-1", res.media_id
-    assert_equal %w[INIT APPEND FINALIZE], seen
+    assert_equal "tweet_image", captured["media_category"]
+    assert_equal "image/png",   captured["media"][:content_type]
+    assert_equal "PNGBYTES",    captured["media"][:data]
   end
 
-  test "upload_media surfaces an INIT failure (e.g. missing media.write)" do
+  test "upload_media surfaces a failure (e.g. missing media.write)" do
     X::UserClient.media_stub = ->(*) { { status: "403", body: { "detail" => "media.write missing" } } }
     res = X::UserClient.new(@acct).upload_media("X", "image/png")
     refute res.ok?
-    assert_match(/INIT failed/, res.error)
+    assert_match(/image upload/, res.error)
     assert_match(/media.write/, res.error)
   end
 

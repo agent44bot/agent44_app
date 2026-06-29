@@ -78,14 +78,12 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
     draft = @ws.workspace_drafts.create!(author: @owner, body: "look at this", target_platforms: %w[x], status: "draft")
     draft.image.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")), filename: "b.png", content_type: "image/png")
 
-    media_calls = []
-    X::UserClient.media_stub = ->(params, _file, _bearer) {
-      media_calls << params[:command]
-      case params[:command]
-      when "INIT"     then { status: "202", body: { "data" => { "id" => "MEDIA-9" } } }
-      when "APPEND"   then { status: "204", body: {} }
-      when "FINALIZE" then { status: "200", body: { "data" => { "id" => "MEDIA-9" } } }
-      end
+    media_uploads = 0
+    X::UserClient.media_stub = ->(fields, _bearer) {
+      media_uploads += 1
+      assert_equal "tweet_image", fields["media_category"]
+      assert fields["media"][:data].present?, "the image bytes must be sent as the media part"
+      { status: "200", body: { "data" => { "id" => "MEDIA-9" } } }
     }
     tweet_payload = nil
     X::UserClient.http_stub = ->(_method, _url, payload, _bearer) {
@@ -96,7 +94,7 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
     sign_in_as(@owner)
     post publish_workspace_draft_path(workspace_slug: @ws.slug, id: draft.id)
 
-    assert_equal %w[INIT APPEND FINALIZE], media_calls
+    assert_equal 1, media_uploads, "one single-shot media upload"
     assert_equal({ media_ids: [ "MEDIA-9" ] }, tweet_payload[:media])
 
     wp = WorkspacePost.last
