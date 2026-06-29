@@ -13,7 +13,10 @@ module X
     AUTHORIZE_URL  = "https://twitter.com/i/oauth2/authorize"
     TOKEN_URL      = "https://api.x.com/2/oauth2/token"
     ME_URL         = "https://api.x.com/2/users/me"
-    DEFAULT_SCOPES = %w[tweet.read tweet.write users.read offline.access].freeze
+    # media.write is required to upload images/video via /2/media/upload.
+    # Accounts connected before this scope was added must reconnect once to
+    # get a token that carries it (text-only posting keeps working meanwhile).
+    DEFAULT_SCOPES = %w[tweet.read tweet.write media.write users.read offline.access].freeze
 
     TokenResult = Struct.new(:ok?, :access_token, :refresh_token, :expires_in, :scope, :token_type, :error, keyword_init: true)
     UserResult  = Struct.new(:ok?, :id, :username, :name, :error, keyword_init: true)

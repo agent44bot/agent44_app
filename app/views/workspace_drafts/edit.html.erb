@@ -46,7 +46,7 @@
   </div>
 
   <%= form_with url: workspace_draft_path(workspace_slug: @workspace.slug, id: @draft.id),
-                method: :patch, local: true,
+                method: :patch, local: true, multipart: true,
                 class: "rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3" do %>
     <%= hidden_field_tag :return_to, params[:return_to] %>
     <% body_value = draft_text.presence || @draft.body %>
@@ -67,6 +67,23 @@
         </div>
         <p class="text-xs text-gray-500">Bluesky attaches as an inline image (max 1MB). X auto-renders the URL preview card from the link in the body. Clear the field to drop the image.</p>
       <% end %>
+    </div>
+
+    <%# Native photo attached to the post (uploaded to X as real media). %>
+    <div class="space-y-2">
+      <%= label_tag :image, "Photo (posted to X)", class: "block text-xs uppercase tracking-wide text-gray-500" %>
+      <% if @draft.image.attached? %>
+        <div class="rounded-md border border-gray-800 bg-black p-2 inline-block">
+          <%= image_tag @draft.image, alt: "", class: "max-h-40 rounded-sm" %>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-gray-400">
+          <%= check_box_tag :remove_image, "1", false, class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+          Remove this photo
+        </label>
+      <% end %>
+      <%= file_field_tag :image, accept: "image/png,image/jpeg,image/gif,image/webp",
+          class: "w-full text-sm text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-700 file:bg-gray-800 file:text-white file:cursor-pointer" %>
+      <p class="text-xs text-gray-500">Uploaded natively to X. JPEG, PNG, GIF, or WebP, up to 5MB.</p>
     </div>
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -92,7 +109,10 @@
 
     <div class="flex items-center justify-end gap-2 pt-1">
       <%= link_to "Cancel", back_path, class: "text-sm text-gray-400 hover:text-gray-200 px-3 py-2" %>
-      <%= submit_tag "Save draft",
+      <%= button_tag "Save draft", type: "submit", name: "commit", value: "save",
+          class: "inline-flex items-center px-4 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+      <%= button_tag "Post now", type: "submit", name: "commit", value: "post",
+          data: { turbo_confirm: "Post to the selected platforms now?" },
           class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
     </div>
   <% end %>

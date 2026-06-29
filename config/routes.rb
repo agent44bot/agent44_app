@@ -193,6 +193,7 @@ Rails.application.routes.draw do
     resources :social_accounts, only: [ :destroy ]
     resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
+    post "drafts/from_image", to: "workspace_drafts#from_image", as: :draft_from_image
     resources :drafts, only: [ :create, :edit, :update, :destroy ], controller: "workspace_drafts" do
       member do
         post :publish

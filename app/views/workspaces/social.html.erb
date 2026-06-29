@@ -136,10 +136,25 @@
           <%= form_with url: workspace_draft_suggest_path(workspace_slug: @workspace.slug), local: true, class: "space-y-2" do %>
             <div class="flex flex-wrap gap-2">
               <%= text_field_tag :topic, draft_topic, placeholder: "What should AI draft about? (optional)",
-                  class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
+                  class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
               <%= submit_tag "✨ Draft with AI",
                   class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
             </div>
+          <% end %>
+
+          <%# Upload a photo → AI captions it on-brand → review on the next
+              screen, then post it (with the image) to X. %>
+          <%= form_with url: workspace_draft_from_image_path(workspace_slug: @workspace.slug), local: true, multipart: true, class: "space-y-2 pt-1 border-t border-gray-800" do %>
+            <p class="text-xs text-gray-500 uppercase tracking-wide pt-2">Or draft from a photo</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <%= file_field_tag :image, accept: "image/png,image/jpeg,image/gif,image/webp", required: true,
+                  class: "flex-1 min-w-[220px] text-sm text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-700 file:bg-gray-800 file:text-white file:cursor-pointer" %>
+              <%= text_field_tag :topic, nil, placeholder: "Occasion/angle (optional)",
+                  class: "flex-1 min-w-[180px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
+              <%= submit_tag "📸 Draft from image",
+                  class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
+            </div>
+            <p class="text-xs text-gray-500">Posts the photo natively to X. JPEG, PNG, GIF, or WebP, up to 5MB.</p>
           <% end %>
 
           <%= form_with url: workspace_posts_path(workspace_slug: @workspace.slug), local: true, class: "space-y-3" do |f| %>

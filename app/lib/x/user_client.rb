@@ -1,38 +1,50 @@
 require "net/http"
 require "uri"
 require "json"
+require "securerandom"
 
 # Per-account X v2 client. Reads bearer token from a SocialAccount row,
 # refreshes once on 401, and returns a Result.
 module X
   class UserClient
-    POST_URL  = "https://api.x.com/2/tweets"
-    TWEET_URL = "https://api.x.com/2/tweets" # /:id appended at call site
+    POST_URL   = "https://api.x.com/2/tweets"
+    TWEET_URL  = "https://api.x.com/2/tweets" # /:id appended at call site
+    MEDIA_URL  = "https://api.x.com/2/media/upload"
     MAX_TWEET_LENGTH = 280
+    # X allows up to 5MB for a tweet image. We guard here so an oversized
+    # upload fails fast with a clear message instead of a confusing API error.
+    MAX_IMAGE_BYTES  = 5 * 1024 * 1024
 
-    Result = Struct.new(:ok?, :tweet_id, :error, keyword_init: true)
+    Result      = Struct.new(:ok?, :tweet_id, :error, keyword_init: true)
+    MediaResult = Struct.new(:ok?, :media_id, :error, keyword_init: true)
 
     class << self
       # Stub signature: ->(method, url, payload_or_nil, bearer) -> { status:, body: }
       attr_accessor :http_stub
+      # Stub signature: ->(url, form_fields_hash, bearer) -> { status:, body: }
+      # form_fields_hash values are strings or { filename:, content_type:, data: }.
+      attr_accessor :multipart_stub
     end
 
     def initialize(social_account)
       @account = social_account
     end
 
-    def post_tweet(text)
+    def post_tweet(text, media_ids: [])
       return Result.new(ok?: false, error: "Account is not X")               unless @account.platform == "x"
       return Result.new(ok?: false, error: "Account needs reauth")           if @account.status != "active"
       return Result.new(ok?: false, error: "Tweet is empty")                 if text.to_s.strip.empty?
       return Result.new(ok?: false, error: "Tweet exceeds #{MAX_TWEET_LENGTH} chars") if text.length > MAX_TWEET_LENGTH
 
+      payload = { text: text }
+      payload[:media] = { media_ids: Array(media_ids).map(&:to_s) } if Array(media_ids).any?
+
       ensure_fresh_token!
-      response = http_request(:post, POST_URL, payload: { text: text })
+      response = http_request(:post, POST_URL, payload: payload)
 
       if response[:status] == "401"
         return Result.new(ok?: false, error: "Unauthorized — refresh failed") unless refresh_token!
-        response = http_request(:post, POST_URL, payload: { text: text })
+        response = http_request(:post, POST_URL, payload: payload)
       end
 
       case response[:status]
@@ -46,6 +58,54 @@ module X
       end
     rescue => e
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
+    end
+
+    # Uploads an image to X via the v2 chunked flow (INIT -> APPEND -> FINALIZE)
+    # and returns a MediaResult carrying the media_id to attach to a tweet.
+    # Requires the media.write OAuth scope (see X::Oauth::DEFAULT_SCOPES); an
+    # account connected before that scope was added will get a 403 here until
+    # it is reconnected. Images finalize synchronously, so no STATUS polling.
+    def upload_media(bytes, content_type)
+      return MediaResult.new(ok?: false, error: "Account is not X")     unless @account.platform == "x"
+      return MediaResult.new(ok?: false, error: "Account needs reauth") if @account.status != "active"
+      return MediaResult.new(ok?: false, error: "Empty image")          if bytes.to_s.empty?
+      return MediaResult.new(ok?: false, error: "Image exceeds 5MB")     if bytes.bytesize > MAX_IMAGE_BYTES
+
+      ensure_fresh_token!
+
+      init = multipart_request(MEDIA_URL, {
+        "command"        => "INIT",
+        "media_type"     => content_type.to_s,
+        "total_bytes"    => bytes.bytesize.to_s,
+        "media_category" => "tweet_image"
+      })
+      if init[:status] == "401" && refresh_token!
+        init = multipart_request(MEDIA_URL, {
+          "command" => "INIT", "media_type" => content_type.to_s,
+          "total_bytes" => bytes.bytesize.to_s, "media_category" => "tweet_image"
+        })
+      end
+      media_id = init[:body].dig("data", "id")
+      return MediaResult.new(ok?: false, error: "INIT failed: #{format_error(init)}") if media_id.blank?
+
+      append = multipart_request(MEDIA_URL, {
+        "command"       => "APPEND",
+        "media_id"      => media_id,
+        "segment_index" => "0",
+        "media"         => { filename: "image", content_type: content_type.to_s, data: bytes }
+      })
+      unless %w[200 204].include?(append[:status])
+        return MediaResult.new(ok?: false, error: "APPEND failed: #{format_error(append)}")
+      end
+
+      final = multipart_request(MEDIA_URL, { "command" => "FINALIZE", "media_id" => media_id })
+      unless %w[200 201].include?(final[:status])
+        return MediaResult.new(ok?: false, error: "FINALIZE failed: #{format_error(final)}")
+      end
+
+      MediaResult.new(ok?: true, media_id: media_id)
+    rescue => e
+      MediaResult.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
     # Fetches public engagement metrics for a tweet via /2/tweets/:id with
@@ -163,6 +223,50 @@ module X
         {}
       end
       { status: res.code, body: body }
+    end
+
+    # POST multipart/form-data. String values are plain form fields; a Hash
+    # value { filename:, content_type:, data: } becomes a file part. Used for
+    # the chunked media upload (INIT/APPEND/FINALIZE) where APPEND carries the
+    # raw image bytes.
+    def multipart_request(url, fields)
+      if self.class.multipart_stub
+        return self.class.multipart_stub.call(url, fields, @account.access_token)
+      end
+      uri      = URI(url)
+      boundary = "----agent44#{SecureRandom.hex(16)}"
+      body     = build_multipart_body(fields, boundary)
+
+      req = Net::HTTP::Post.new(uri)
+      req["Authorization"] = "Bearer #{@account.access_token}"
+      req["Content-Type"]  = "multipart/form-data; boundary=#{boundary}"
+      req.body = body
+
+      res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
+      parsed = begin
+        JSON.parse(res.body.to_s)
+      rescue JSON::ParserError
+        {}
+      end
+      { status: res.code, body: parsed }
+    end
+
+    def build_multipart_body(fields, boundary)
+      parts = +""
+      fields.each do |name, value|
+        parts << "--#{boundary}\r\n"
+        if value.is_a?(Hash)
+          parts << %(Content-Disposition: form-data; name="#{name}"; filename="#{value[:filename]}"\r\n)
+          parts << "Content-Type: #{value[:content_type]}\r\n\r\n"
+          parts << value[:data].dup.force_encoding("BINARY")
+          parts << "\r\n"
+        else
+          parts << %(Content-Disposition: form-data; name="#{name}"\r\n\r\n)
+          parts << "#{value}\r\n"
+        end
+      end
+      parts << "--#{boundary}--\r\n"
+      parts.force_encoding("BINARY")
     end
 
     def format_error(response)

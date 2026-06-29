@@ -4,6 +4,10 @@ class WorkspaceDraft < ApplicationRecord
   belongs_to :workspace
   belongs_to :author, class_name: "User"
 
+  # Optional uploaded image (e.g. a photo Brian snaps). Captioned by the AI
+  # Drafter and uploaded to X as native media at publish time.
+  has_one_attached :image
+
   serialize :target_platforms, coder: JSON, type: Array
   serialize :results,          coder: JSON, type: Array
 
