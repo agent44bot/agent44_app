@@ -45,7 +45,7 @@ module WorkspaceAi
           )
         end
 
-      AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user)
+      AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user, workspace: @workspace)
       text = extract_text(response)
       return Result.new(ok?: false, error: "Empty AI response") if text.blank?
 

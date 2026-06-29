@@ -40,6 +40,7 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
       post workspace_draft_suggest_path(workspace_slug: @ws.slug), params: { topic: "tokens at rest" }
     end
     assert_redirected_to social_workspace_path(@ws.slug)
+    assert_equal @ws.id, AiCallLog.where(source: "workspace_ai_assist").last.workspace_id, "draft usage is attributed to the workspace"
     assert_match "tokens at rest", @captured_prompt
     assert_match "Builder energy", @captured_prompt
 

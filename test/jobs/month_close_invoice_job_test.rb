@@ -7,7 +7,8 @@ class MonthCloseInvoiceJobTest < ActiveSupport::TestCase
     @owner = User.create!(email_address: "owner-#{SecureRandom.hex(4)}@example.com")
     @ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen",
                             owner: @owner, timezone: "UTC",
-                            base_fee_waived: true, discount_percent: 95)
+                            base_fee_waived: true, discount_percent: 95,
+                            billing_enabled: true)
   end
 
   test "creates an invoice for last month and emails it" do

@@ -6,16 +6,18 @@ class MonthCloseInvoiceJob < ApplicationJob
   # workspace+period), so a re-run on the same month reuses the existing row
   # rather than double-billing.
   def perform(month: nil)
-    workspace = Workspace.find_by(slug: "nykitchen")
-    unless workspace
-      Rails.logger.info("MonthCloseInvoiceJob: no nykitchen workspace, skipping")
+    workspaces = Workspace.where(billing_enabled: true).to_a
+    if workspaces.empty?
+      Rails.logger.info("MonthCloseInvoiceJob: no billing-enabled workspaces, skipping")
       return
     end
 
     # Default target = the calendar month that just ended (yesterday's month).
     target = month || (Date.current - 1.day).beginning_of_month
-    invoice = Invoice.generate_for(workspace, target)
-    deliver(invoice)
+    workspaces.each do |workspace|
+      invoice = Invoice.generate_for(workspace, target)
+      deliver(invoice)
+    end
   rescue => e
     Notification.notify!(
       level: "error",
