@@ -16,9 +16,9 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    WorkspaceAi::Drafter.stub      = nil
-    X::UserClient.http_stub        = nil
-    X::UserClient.multipart_stub   = nil
+    WorkspaceAi::Drafter.stub = nil
+    X::UserClient.http_stub   = nil
+    X::UserClient.media_stub  = nil
   end
 
   def png_upload(type = "image/png")
@@ -79,9 +79,9 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
     draft.image.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")), filename: "b.png", content_type: "image/png")
 
     media_calls = []
-    X::UserClient.multipart_stub = ->(_url, fields, _bearer) {
-      media_calls << fields["command"]
-      case fields["command"]
+    X::UserClient.media_stub = ->(params, _file, _bearer) {
+      media_calls << params[:command]
+      case params[:command]
       when "INIT"     then { status: "202", body: { "data" => { "id" => "MEDIA-9" } } }
       when "APPEND"   then { status: "204", body: {} }
       when "FINALIZE" then { status: "200", body: { "data" => { "id" => "MEDIA-9" } } }
@@ -109,7 +109,7 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
     draft = @ws.workspace_drafts.create!(author: @owner, body: "x", target_platforms: %w[x], status: "draft")
     draft.image.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")), filename: "b.png", content_type: "image/png")
 
-    X::UserClient.multipart_stub = ->(*) { { status: "403", body: { "detail" => "media.write missing" } } }
+    X::UserClient.media_stub = ->(*) { { status: "403", body: { "detail" => "media.write missing" } } }
     tweeted = false
     X::UserClient.http_stub = ->(*) { tweeted = true; { status: "201", body: { "data" => { "id" => "NO" } } } }
 
