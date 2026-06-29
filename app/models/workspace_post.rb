@@ -5,6 +5,10 @@ class WorkspacePost < ApplicationRecord
   belongs_to :author,         class_name: "User"
   belongs_to :social_account, optional: true
 
+  # Carries the image that was posted (copied from the draft's attachment) so
+  # the history list can show the thumbnail next to the post.
+  has_one_attached :image
+
   validates :platform, presence: true, inclusion: { in: SocialAccount::PLATFORMS }
   # Same generous limit as WorkspaceDraft. Per-platform caps (X 280,
   # Bluesky 300, etc.) are enforced inside the platform UserClient at

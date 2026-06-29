@@ -13,11 +13,14 @@ module WorkspacePosts
       def partial? = successes.any? && failures.any?
     end
 
-    def initialize(workspace, author:, body:, platforms:, image_url: nil, source_url: nil)
+    # image: an ActiveStorage attachment (e.g. draft.image) uploaded as native
+    # media on X. image_url stays the URL-based path Bluesky/Facebook use.
+    def initialize(workspace, author:, body:, platforms:, image: nil, image_url: nil, source_url: nil)
       @workspace  = workspace
       @author     = author
       @body       = body.to_s.strip
       @platforms  = (Array(platforms).map(&:to_s) & SocialAccount::PLATFORMS)
+      @image      = image if image.respond_to?(:attached?) && image.attached?
       @image_url  = image_url.presence
       @source_url = source_url.presence
     end
@@ -43,6 +46,7 @@ module WorkspacePosts
           source_url:     @source_url,
           status:         "pending"
         )
+        post.image.attach(@image.blob) if @image
         rows << post
 
         result = call_client(platform, account)
@@ -65,11 +69,23 @@ module WorkspacePosts
 
     def call_client(platform, account)
       case platform
-      when "x"        then X::UserClient.new(account).post_tweet(@body)
+      when "x"        then post_to_x(account)
       when "bluesky"  then Bluesky::UserClient.new(account).post_text(@body, image_url: @image_url)
       when "threads"  then Threads::UserClient.new(account).post_text(@body)
       when "facebook" then Facebook::UserClient.new(account).post_text(@body)
       end
+    end
+
+    # X needs native media: upload the attached image first to get a media_id,
+    # then attach it to the tweet. No image -> plain text tweet.
+    def post_to_x(account)
+      client = X::UserClient.new(account)
+      return client.post_tweet(@body) unless @image
+
+      upload = client.upload_media(@image.download, @image.content_type)
+      return X::UserClient::Result.new(ok?: false, error: "image upload: #{upload.error}") unless upload.ok?
+
+      client.post_tweet(@body, media_ids: [ upload.media_id ])
     end
 
     def remote_id_for(platform, result)

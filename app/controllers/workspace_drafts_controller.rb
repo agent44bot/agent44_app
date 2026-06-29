@@ -2,6 +2,9 @@ class WorkspaceDraftsController < ApplicationController
   before_action :load_workspace
   before_action :require_writer
 
+  ALLOWED_IMAGE_TYPES = %w[image/jpeg image/png image/gif image/webp].freeze
+  MAX_IMAGE_BYTES     = 5 * 1024 * 1024 # X's tweet-image cap
+
   def create
     body      = params[:body].to_s.strip
     platforms = Array(params[:target_platforms]).map(&:to_s) & SocialAccount::PLATFORMS
@@ -56,10 +59,52 @@ class WorkspaceDraftsController < ApplicationController
     end
 
     if draft.update(body: body, target_platforms: platforms, image_url: params[:image_url].to_s.presence)
+      attach_image!(draft, params[:image]) if params[:image].present?
+      draft.image.purge if params[:remove_image] == "1" && draft.image.attached?
+      return publish_draft(draft) if params[:commit] == "post"
       redirect_to social_workspace_path(@workspace.slug), notice: "Draft updated."
     else
       redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id, return_to: rt),
                   alert: "Update failed: #{draft.errors.full_messages.to_sentence}"
+    end
+  end
+
+  # POST /workspaces/:slug/drafts/from_image — Brian's core loop: upload a
+  # photo, the AI agent captions it on-brand, and we drop him on the edit
+  # screen to review the caption + image before posting (with the image) to X.
+  def from_image
+    upload = params[:image]
+    if upload.blank?
+      return redirect_to social_workspace_path(@workspace.slug), alert: "Pick an image first."
+    end
+    unless ALLOWED_IMAGE_TYPES.include?(upload.content_type)
+      return redirect_to social_workspace_path(@workspace.slug), alert: "Image must be a JPEG, PNG, GIF, or WebP."
+    end
+
+    bytes = upload.read
+    if bytes.bytesize > MAX_IMAGE_BYTES
+      return redirect_to social_workspace_path(@workspace.slug), alert: "Image is too large (max 5MB)."
+    end
+
+    result = WorkspaceAi::Drafter
+               .new(@workspace, user: current_user)
+               .suggest(topic: params[:topic], image_data: bytes, image_media_type: upload.content_type)
+
+    body = result.ok? ? result.text : "Add a caption for this photo."
+
+    draft = @workspace.workspace_drafts.new(
+      author:           current_user,
+      body:             body,
+      target_platforms: default_image_platforms,
+      status:           "draft"
+    )
+
+    if draft.save
+      attach_image!(draft, upload)
+      notice = result.ok? ? "Caption drafted from your image. Review, then post." : "Image saved, but AI caption failed (#{result.error}). Write your own."
+      redirect_to edit_workspace_draft_path(workspace_slug: @workspace.slug, id: draft.id), notice: notice
+    else
+      redirect_to social_workspace_path(@workspace.slug), alert: "Couldn't start a draft: #{draft.errors.full_messages.to_sentence}"
     end
   end
 
@@ -92,19 +137,7 @@ class WorkspaceDraftsController < ApplicationController
 
   def publish
     draft = @workspace.workspace_drafts.find(params[:id])
-    if draft.published? || draft.partial? || draft.failed?
-      return redirect_to social_workspace_path(@workspace.slug), alert: "Draft was already processed."
-    end
-
-    result = WorkspaceDrafts::Publisher.new(draft).call
-    if result.all_ok?
-      redirect_to social_workspace_path(@workspace.slug), notice: "Posted — #{result.successes.join(' · ')}"
-    elsif result.all_bad?
-      redirect_to social_workspace_path(@workspace.slug), alert: "All posts failed — #{result.failures.join(' · ')}"
-    else
-      redirect_to social_workspace_path(@workspace.slug),
-                  alert: "Partial: posted to #{result.successes.size}, failed #{result.failures.size}. #{result.failures.join(' · ')}"
-    end
+    publish_draft(draft)
   end
 
   def suggest
@@ -131,6 +164,35 @@ class WorkspaceDraftsController < ApplicationController
     Time.use_zone(@workspace.timezone) { Time.zone.parse(raw.to_s) }
   rescue ArgumentError
     nil
+  end
+
+  def publish_draft(draft)
+    if draft.published? || draft.partial? || draft.failed?
+      return redirect_to social_workspace_path(@workspace.slug), alert: "Draft was already processed."
+    end
+
+    result = WorkspaceDrafts::Publisher.new(draft).call
+    if result.all_ok?
+      redirect_to social_workspace_path(@workspace.slug), notice: "Posted: #{result.successes.join(' · ')}"
+    elsif result.all_bad?
+      redirect_to social_workspace_path(@workspace.slug), alert: "All posts failed: #{result.failures.join(' · ')}"
+    else
+      redirect_to social_workspace_path(@workspace.slug),
+                  alert: "Partial: posted to #{result.successes.size}, failed #{result.failures.size}. #{result.failures.join(' · ')}"
+    end
+  end
+
+  def attach_image!(draft, upload)
+    upload.rewind if upload.respond_to?(:rewind)
+    draft.image.attach(io: upload, filename: upload.original_filename.presence || "image", content_type: upload.content_type)
+  end
+
+  # Default an image draft to X (the platform we upload native media to). If
+  # X isn't connected, fall back to whatever the workspace has so the draft
+  # still saves and the publish step surfaces any connection issue.
+  def default_image_platforms
+    connected = @workspace.social_accounts.pluck(:platform).uniq
+    connected.include?("x") ? [ "x" ] : (connected.presence || [ "x" ])
   end
 
   def load_workspace

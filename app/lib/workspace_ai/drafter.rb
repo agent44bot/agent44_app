@@ -1,3 +1,5 @@
+require "base64"
+
 # Generates a single X-length post draft for a Workspace using Claude Haiku.
 # Reuses the existing AiCallLogger so usage rolls up into the same billing
 # dashboard the NYK enhance flow already feeds.
@@ -20,11 +22,16 @@ module WorkspaceAi
       @user      = user
     end
 
-    def suggest(topic: nil, existing_draft: nil, **_ignored)
+    # When image_data (raw bytes) + image_media_type are given, the post is
+    # captioned from the image using Claude's vision support — this is Brian's
+    # "snap a photo, let the agent write the post" flow.
+    def suggest(topic: nil, existing_draft: nil, image_data: nil, image_media_type: nil, **_ignored)
       api_key = Rails.application.credentials.dig(:anthropic, :api_key) || ENV["ANTHROPIC_API_KEY"]
       return Result.new(ok?: false, error: "ANTHROPIC_API_KEY not set") if api_key.blank?
 
-      prompt = build_prompt(topic: topic, existing_draft: existing_draft)
+      has_image = image_data.present? && image_media_type.present?
+      prompt    = build_prompt(topic: topic, existing_draft: existing_draft, has_image: has_image)
+      content   = message_content(prompt, image_data, image_media_type)
 
       response =
         if self.class.stub
@@ -34,7 +41,7 @@ module WorkspaceAi
           client.messages.create(
             model:      MODEL,
             max_tokens: MAX_TOKENS,
-            messages:   [ { role: "user", content: prompt } ]
+            messages:   [ { role: "user", content: content } ]
           )
         end
 
@@ -51,12 +58,23 @@ module WorkspaceAi
 
     private
 
-    def build_prompt(topic:, existing_draft:)
+    # Builds the message content for the Anthropic call. With an image we send
+    # a vision content array (image block + text prompt); otherwise plain text.
+    def message_content(prompt, image_data, image_media_type)
+      return prompt if image_data.blank? || image_media_type.blank?
+
+      [
+        { type: "image", source: { type: "base64", media_type: image_media_type, data: Base64.strict_encode64(image_data) } },
+        { type: "text",  text: prompt }
+      ]
+    end
+
+    def build_prompt(topic:, existing_draft:, has_image: false)
       <<~PROMPT
         You are a social media writer for #{@workspace.name}.
         #{brand_context}
 
-        #{task_instruction(topic: topic, existing_draft: existing_draft)}
+        #{task_instruction(topic: topic, existing_draft: existing_draft, has_image: has_image)}
 
         Constraints:
         - Use everyday wording. No em-dashes. No greetings.
@@ -84,9 +102,14 @@ module WorkspaceAi
       "Brand context:\n#{desc}"
     end
 
-    def task_instruction(topic:, existing_draft:)
+    def task_instruction(topic:, existing_draft:, has_image: false)
       topic_s    = topic.to_s.strip
       existing_s = existing_draft.to_s.strip
+
+      if has_image
+        base = "Write a single X (Twitter) post inspired by the attached image. Describe what is genuinely in the image and tie it to the brand. Do not invent details you cannot see."
+        return topic_s.present? ? %(#{base}\nAlso work in this angle/occasion: "#{topic_s}") : base
+      end
 
       if existing_s.present? && topic_s.present?
         %(Rewrite this draft to be sharper and on-brand, taking the topic into account.\nTopic: "#{topic_s}"\nCurrent draft: "#{existing_s}")
