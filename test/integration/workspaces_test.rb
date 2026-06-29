@@ -228,13 +228,15 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert ws.pricing_visible_for?(@owner),        "site admin still sees pricing"
   end
 
-  test "social shows the connected-accounts panel for owners; timezone moved to the hub" do
+  test "social manages connections in platform tabs; timezone lives on the hub" do
     ws = Workspace.create!(name: "Social WS", owner: @owner)
     sign_in_as(@owner)
     get social_workspace_path(ws.slug)
     assert_response :success
-    # The social settings panel is now Connected accounts only.
-    assert_match %r{Connected accounts}, response.body
+    # Connections are managed in the platform tabs now (the old Settings panel
+    # was retired).
+    assert_select "[data-controller=tabs]"
+    assert_select "h2", text: /Connected accounts/, count: 0
     # Timezone editing now lives on the workspace hub, not the composer.
     assert_no_match %r{name="workspace\[timezone\]"}, response.body
 

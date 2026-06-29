@@ -1,8 +1,10 @@
 require "test_helper"
 
-# The Recent posts section is tabbed by platform: X / Bluesky / Facebook /
+# Recent posts is tabbed by platform: X / Bluesky / Threads / Facebook /
 # Instagram, each with a connected (green check) or not-connected (red dot)
-# indicator; unconnected platforms offer a Connect CTA.
+# indicator. Connected tabs list posts + a Disconnect control; unconnected
+# tabs offer a Connect CTA. The tabs are the single home for connections (the
+# old Settings panel was retired).
 class SocialPlatformTabsTest < ActionDispatch::IntegrationTest
   setup do
     @owner = User.create!(email_address: "spt-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
@@ -24,24 +26,32 @@ class SocialPlatformTabsTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     assert_select "[data-controller=tabs]"
-    %w[x bluesky facebook instagram].each do |key|
+    %w[x bluesky threads facebook instagram].each do |key|
       assert_select "[data-tab-name=?]", key
     end
-    # Connected -> green check; not connected -> red dot.
     assert_select "[data-tab-name=x] [aria-label=?]", "connected"
     assert_select "[data-tab-name=bluesky] [aria-label=?]", "connected"
+    assert_select "[data-tab-name=threads] [aria-label=?]", "not connected"
     assert_select "[data-tab-name=facebook] [aria-label=?]", "not connected"
     assert_select "[data-tab-name=instagram] [aria-label=?]", "not connected"
   end
 
-  test "X and Bluesky posts render; Facebook/Instagram offer a connect CTA" do
+  test "connected tabs show posts + Disconnect; unconnected tabs offer Connect" do
     sign_in_as(@owner)
     get social_workspace_path(@ws.slug)
 
     assert_match "X MICROGREENS POST", response.body
     assert_match "BLUESKY MICROGREENS POST", response.body
+    assert_select "button", text: /Disconnect/
     assert_match "Facebook isn't connected yet", response.body
     assert_match "Instagram isn't connected yet", response.body
-    assert_select "button", text: /Connect Facebook/
+    assert_match "Threads isn't connected yet", response.body
+  end
+
+  test "the old Settings panel and gear are gone" do
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+    assert_select "h2", text: /Connected accounts/, count: 0
+    assert_select "button[aria-label=?]", "Social Agent settings", count: 0
   end
 end
