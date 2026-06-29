@@ -46,8 +46,17 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match "shipped: tokens encrypted at rest #builder", response.body
     assert_match "AI-suggested", response.body
+    # The composer must be OPEN (not collapsed) so the suggested draft is visible.
+    assert_no_match(/data-composer-target="body" class="[^"]*hidden/, response.body)
   ensure
     ENV.delete("ANTHROPIC_API_KEY")
+  end
+
+  test "composer stays collapsed on a normal visit (no suggested draft)" do
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+    assert_response :success
+    assert_match(/data-composer-target="body" class="[^"]*hidden/, response.body)
   end
 
   test "credentials fallback: works when ENV is blank but credentials.anthropic.api_key is set" do

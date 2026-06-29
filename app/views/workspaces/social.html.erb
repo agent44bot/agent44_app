@@ -116,7 +116,9 @@
 
   <% if @writer %>
     <% if @connected_platforms.any? %>
-    <div data-composer-target="body" class="hidden mb-10">
+    <%# Start open when AI just returned a suggested draft, otherwise the
+        pre-filled draft is hidden inside the collapsed composer. %>
+    <div data-composer-target="body" class="<%= "hidden" unless flash[:draft_text].present? %> mb-10">
       <% draft_text  = flash[:draft_text].to_s %>
       <% draft_topic = flash[:draft_topic].to_s %>
       <% min_len     = @connected_platforms.include?("x") ? 280 : 300 %>
