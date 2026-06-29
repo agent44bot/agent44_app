@@ -187,6 +187,7 @@ Rails.application.routes.draw do
       get  :social
       get  "billing",                           to: "workspace_billing#show",             as: :billing
       post "billing/pricing",                   to: "workspace_billing#update_pricing",   as: :billing_pricing
+      post "billing/model",                     to: "workspace_billing#update_model",     as: :billing_model
       post "billing/invoices/:invoice_id/paid", to: "workspace_billing#mark_invoice_paid", as: :billing_invoice_paid
       post :refresh_metrics
       post :toggle_pricing

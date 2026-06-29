@@ -32,6 +32,7 @@ module WorkspaceAi
       has_image = image_data.present? && image_media_type.present?
       prompt    = build_prompt(topic: topic, existing_draft: existing_draft, has_image: has_image)
       content   = message_content(prompt, image_data, image_media_type)
+      model     = WorkspaceAi::ModelChoice.resolve(@workspace, SOURCE, default: MODEL)
 
       response =
         if self.class.stub
@@ -39,13 +40,13 @@ module WorkspaceAi
         else
           client = Anthropic::Client.new(api_key: api_key)
           client.messages.create(
-            model:      MODEL,
+            model:      model,
             max_tokens: MAX_TOKENS,
             messages:   [ { role: "user", content: content } ]
           )
         end
 
-      AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user, workspace: @workspace)
+      AiCallLogger.log!(response, model: model, source: SOURCE, user: @user, workspace: @workspace)
       text = extract_text(response)
       return Result.new(ok?: false, error: "Empty AI response") if text.blank?
 
