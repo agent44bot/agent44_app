@@ -4,15 +4,12 @@
      data-controller="collapsible composer"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <div class="flex items-center justify-between gap-3 mb-6 text-sm">
-    <% back_btn = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition shrink-0" %>
+  <div class="flex items-center gap-3 mb-6 text-sm">
     <% ws_root = show_workspaces_crumb? ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
     <% if @workspace.slug == "nykitchen" %>
       <%= render "shared/breadcrumbs", crumbs: ws_root + [["NY Kitchen", nykitchen_path], [nyk_agent_callsign("social", @workspace.agent_for("social")), nil]] %>
-      <%= link_to "← NY Kitchen", nykitchen_path, class: back_btn %>
     <% else %>
       <%= render "shared/breadcrumbs", crumbs: ws_root + [[@workspace.name, workspace_path(@workspace.slug)], ["Social Agent", nil]] %>
-      <%= link_to "← #{@workspace.name}", workspace_path(@workspace.slug), class: back_btn %>
     <% end %>
   </div>
 
