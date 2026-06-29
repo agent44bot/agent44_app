@@ -21,9 +21,9 @@ module X
     class << self
       # Stub signature: ->(method, url, payload_or_nil, bearer) -> { status:, body: }
       attr_accessor :http_stub
-      # Stub signature: ->(url, form_fields_hash, bearer) -> { status:, body: }
-      # form_fields_hash values are strings or { filename:, content_type:, data: }.
-      attr_accessor :multipart_stub
+      # Stub signature: ->(params_hash, file_or_nil, bearer) -> { status:, body: }
+      # file_or_nil is { filename:, content_type:, data: } on APPEND, else nil.
+      attr_accessor :media_stub
     end
 
     def initialize(social_account)
@@ -63,8 +63,13 @@ module X
     # Uploads an image to X via the v2 chunked flow (INIT -> APPEND -> FINALIZE)
     # and returns a MediaResult carrying the media_id to attach to a tweet.
     # Requires the media.write OAuth scope (see X::Oauth::DEFAULT_SCOPES); an
-    # account connected before that scope was added will get a 403 here until
-    # it is reconnected. Images finalize synchronously, so no STATUS polling.
+    # account connected before that scope was added gets a 403 here until it is
+    # reconnected. Images finalize synchronously, so no STATUS polling.
+    #
+    # IMPORTANT: the command parameters (command/total_bytes/media_type/etc.)
+    # go in the QUERY STRING, not the request body. X returns HTTP 400 if they
+    # are sent as form fields. Only APPEND has a body, and only the raw image
+    # bytes as a multipart "media" part. (Matches X's official xurl examples.)
     def upload_media(bytes, content_type)
       return MediaResult.new(ok?: false, error: "Account is not X")     unless @account.platform == "x"
       return MediaResult.new(ok?: false, error: "Account needs reauth") if @account.status != "active"
@@ -73,32 +78,21 @@ module X
 
       ensure_fresh_token!
 
-      init = multipart_request(MEDIA_URL, {
-        "command"        => "INIT",
-        "media_type"     => content_type.to_s,
-        "total_bytes"    => bytes.bytesize.to_s,
-        "media_category" => "tweet_image"
-      })
-      if init[:status] == "401" && refresh_token!
-        init = multipart_request(MEDIA_URL, {
-          "command" => "INIT", "media_type" => content_type.to_s,
-          "total_bytes" => bytes.bytesize.to_s, "media_category" => "tweet_image"
-        })
-      end
+      init_params = { command: "INIT", total_bytes: bytes.bytesize, media_type: content_type.to_s, media_category: "tweet_image" }
+      init = media_request(init_params)
+      init = media_request(init_params) if init[:status] == "401" && refresh_token!
       media_id = init[:body].dig("data", "id")
       return MediaResult.new(ok?: false, error: "INIT failed: #{format_error(init)}") if media_id.blank?
 
-      append = multipart_request(MEDIA_URL, {
-        "command"       => "APPEND",
-        "media_id"      => media_id,
-        "segment_index" => "0",
-        "media"         => { filename: "image", content_type: content_type.to_s, data: bytes }
-      })
+      append = media_request(
+        { command: "APPEND", media_id: media_id, segment_index: 0 },
+        file: { filename: "image", content_type: content_type.to_s, data: bytes }
+      )
       unless %w[200 204].include?(append[:status])
         return MediaResult.new(ok?: false, error: "APPEND failed: #{format_error(append)}")
       end
 
-      final = multipart_request(MEDIA_URL, { "command" => "FINALIZE", "media_id" => media_id })
+      final = media_request({ command: "FINALIZE", media_id: media_id })
       unless %w[200 201].include?(final[:status])
         return MediaResult.new(ok?: false, error: "FINALIZE failed: #{format_error(final)}")
       end
@@ -225,22 +219,22 @@ module X
       { status: res.code, body: body }
     end
 
-    # POST multipart/form-data. String values are plain form fields; a Hash
-    # value { filename:, content_type:, data: } becomes a file part. Used for
-    # the chunked media upload (INIT/APPEND/FINALIZE) where APPEND carries the
-    # raw image bytes.
-    def multipart_request(url, fields)
-      if self.class.multipart_stub
-        return self.class.multipart_stub.call(url, fields, @account.access_token)
+    # POST to /2/media/upload. The command params go in the QUERY STRING; a
+    # body is sent only when `file` is given (APPEND), as a single multipart
+    # "media" part carrying the raw bytes. Returns { status:, body: }.
+    def media_request(params, file: nil)
+      if self.class.media_stub
+        return self.class.media_stub.call(params, file, @account.access_token)
       end
-      uri      = URI(url)
-      boundary = "----agent44#{SecureRandom.hex(16)}"
-      body     = build_multipart_body(fields, boundary)
-
+      uri = URI("#{MEDIA_URL}?#{URI.encode_www_form(params)}")
       req = Net::HTTP::Post.new(uri)
       req["Authorization"] = "Bearer #{@account.access_token}"
-      req["Content-Type"]  = "multipart/form-data; boundary=#{boundary}"
-      req.body = body
+
+      if file
+        boundary = "----agent44#{SecureRandom.hex(16)}"
+        req["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
+        req.body = build_multipart_body({ "media" => file }, boundary)
+      end
 
       res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
       parsed = begin

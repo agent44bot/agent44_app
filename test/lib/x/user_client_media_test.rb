@@ -12,34 +12,35 @@ class XUserClientMediaTest < ActiveSupport::TestCase
   end
 
   teardown do
-    X::UserClient.multipart_stub = nil
-    X::UserClient.http_stub      = nil
+    X::UserClient.media_stub = nil
+    X::UserClient.http_stub  = nil
   end
 
   test "media.write is in the default OAuth scopes (else uploads 403)" do
     assert_includes X::Oauth::DEFAULT_SCOPES, "media.write"
   end
 
-  test "upload_media runs INIT, APPEND, FINALIZE and returns the media id" do
+  test "upload_media runs INIT, APPEND, FINALIZE with params in the query string" do
     seen = []
-    X::UserClient.multipart_stub = ->(url, fields, bearer) {
-      seen << fields["command"]
-      assert_equal X::UserClient::MEDIA_URL, url
+    X::UserClient.media_stub = ->(params, file, bearer) {
+      seen << params[:command]
       assert_equal "AT", bearer
-      case fields["command"]
+      case params[:command]
       when "INIT"
-        assert_equal "image/png",    fields["media_type"]
-        assert_equal "tweet_image",  fields["media_category"]
-        assert_equal "8",            fields["total_bytes"]
+        assert_equal "image/png",   params[:media_type]
+        assert_equal "tweet_image", params[:media_category]
+        assert_equal 8,             params[:total_bytes]
+        assert_nil file, "INIT must not carry a body"
         { status: "202", body: { "data" => { "id" => "M-1" } } }
       when "APPEND"
-        assert_equal "M-1",       fields["media_id"]
-        assert_equal "0",         fields["segment_index"]
-        assert_equal "image/png", fields["media"][:content_type]
-        assert_equal "PNGBYTES",  fields["media"][:data]
+        assert_equal "M-1", params[:media_id]
+        assert_equal 0,     params[:segment_index]
+        assert_equal "image/png", file[:content_type]
+        assert_equal "PNGBYTES",  file[:data]
         { status: "204", body: {} }
       when "FINALIZE"
-        assert_equal "M-1", fields["media_id"]
+        assert_equal "M-1", params[:media_id]
+        assert_nil file, "FINALIZE must not carry a body"
         { status: "200", body: { "data" => { "id" => "M-1" } } }
       end
     }
@@ -51,7 +52,7 @@ class XUserClientMediaTest < ActiveSupport::TestCase
   end
 
   test "upload_media surfaces an INIT failure (e.g. missing media.write)" do
-    X::UserClient.multipart_stub = ->(*) { { status: "403", body: { "detail" => "media.write missing" } } }
+    X::UserClient.media_stub = ->(*) { { status: "403", body: { "detail" => "media.write missing" } } }
     res = X::UserClient.new(@acct).upload_media("X", "image/png")
     refute res.ok?
     assert_match(/INIT failed/, res.error)
@@ -60,7 +61,7 @@ class XUserClientMediaTest < ActiveSupport::TestCase
 
   test "upload_media rejects an oversized image before any HTTP call" do
     called = false
-    X::UserClient.multipart_stub = ->(*) { called = true; {} }
+    X::UserClient.media_stub = ->(*) { called = true; {} }
     big = "a" * (X::UserClient::MAX_IMAGE_BYTES + 1)
     res = X::UserClient.new(@acct).upload_media(big, "image/png")
     refute res.ok?
