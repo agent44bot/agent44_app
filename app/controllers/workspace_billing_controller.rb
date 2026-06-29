@@ -41,6 +41,24 @@ class WorkspaceBillingController < ApplicationController
     @month_total         = (@subtotal - @discount_amount).round(2)
 
     @invoices = Invoice.where(workspace_id: @workspace.id).recent.to_a
+
+    # Selected model key per AI feature, for the owner/admin model toggle.
+    @model_keys = WorkspaceAi::ModelChoice::FEATURES.keys.index_with do |feature|
+      WorkspaceAi::ModelChoice.selected_key(@workspace, feature)
+    end
+  end
+
+  # Owner/admin picks the Anthropic model (Haiku/Sonnet/Opus) for a workspace
+  # AI feature. Pricing knobs stay site-admin only; the model is a manager call.
+  def update_model
+    feature = params[:feature].to_s
+    key     = params[:model].to_s
+    unless WorkspaceAi::ModelChoice::FEATURES.key?(feature) && AiModelChoice::KEYS.include?(key)
+      return redirect_to billing_workspace_path(@workspace.slug), alert: "Could not update that model."
+    end
+    WorkspaceAi::ModelChoice.set(@workspace, feature, key)
+    redirect_to billing_workspace_path(@workspace.slug),
+                notice: "#{WorkspaceAi::ModelChoice::FEATURES[feature]} now uses #{AiModelChoice::OPTIONS[key][:label]}."
   end
 
   def update_pricing

@@ -45,16 +45,17 @@ module WorkspaceAi
 
       messages = build_messages(history, message)
       system   = system_prompt(platform)
+      model    = WorkspaceAi::ModelChoice.resolve(@workspace, SOURCE, default: MODEL)
 
       response =
         if self.class.stub
           self.class.stub.call(system: system, messages: messages)
         else
           client = Anthropic::Client.new(api_key: api_key)
-          client.messages.create(model: MODEL, max_tokens: MAX_TOKENS, system: system, messages: messages)
+          client.messages.create(model: model, max_tokens: MAX_TOKENS, system: system, messages: messages)
         end
 
-      log  = AiCallLogger.log!(response, model: MODEL, source: SOURCE, user: @user, workspace: @workspace)
+      log  = AiCallLogger.log!(response, model: model, source: SOURCE, user: @user, workspace: @workspace)
       text = extract_text(response)
       return Result.new(ok?: false, error: "Empty AI response") if text.blank?
 
