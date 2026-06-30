@@ -33,9 +33,18 @@
     </div>
   </div>
   <p class="text-sm text-white whitespace-pre-wrap break-words"><%= p.body %></p>
-  <% if p.image_url.present? %>
-    <%# Attached image (stored as a plain URL on the post). Shown as a small
-        thumbnail that opens the full image in a new tab. %>
+  <%# Attached image as a thumbnail that opens the full image in a new tab.
+      Native media is an ActiveStorage attachment (p.image, what posts to X +
+      Bluesky); some URL-based posts (Facebook) instead carry a plain
+      image_url. Render the ORIGINAL blob (sized down by CSS) rather than a
+      resized variant, so we don't write any derivative files to the Fly
+      volume. The browser downloads the already-stored original. %>
+  <% if p.image.attached? %>
+    <a href="<%= url_for(p.image) %>" target="_blank" rel="noopener" class="inline-block mt-2">
+      <%= image_tag p.image, alt: "Attached image", loading: "lazy",
+            class: "h-20 w-20 object-cover rounded-md border border-gray-800 hover:opacity-90 transition" %>
+    </a>
+  <% elsif p.image_url.present? %>
     <a href="<%= p.image_url %>" target="_blank" rel="noopener" class="inline-block mt-2">
       <%= image_tag p.image_url, alt: "Attached image", loading: "lazy",
             class: "h-20 w-20 object-cover rounded-md border border-gray-800 hover:opacity-90 transition" %>
