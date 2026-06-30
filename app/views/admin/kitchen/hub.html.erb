@@ -214,13 +214,14 @@
     </div>
   <% end %>
 
-  <%# Field Roster — the agent cards. Collapsible (state persisted per browser)
-      and kept at the bottom so the hub opens clean. Collapsed by default; once a
-      user expands it, the choice sticks. The header keeps the agent count and
-      any "needs attention" tally visible in both states. Card ordering still
-      floats the most-used / any failing agent first (see hub_card_order). %>
+  <%# Field Roster — the agent cards. Expanded by default so the hub opens with
+      the dashboard visible, but collapsible: tap the header to fold the cards
+      away, and the choice is remembered per browser (persistKey). The header
+      keeps the agent count and any "needs attention" tally visible in both
+      states. Card ordering still floats the most-used / any failing agent
+      first (see hub_card_order). %>
   <section data-controller="collapsible"
-           data-collapsible-collapsed-value="true"
+           data-collapsible-collapsed-value="false"
            data-collapsible-persist-key-value="nyk-roster"
            data-collapsible-scroll-on-expand-value="true">
     <button type="button" data-action="click->collapsible#toggle"

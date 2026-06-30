@@ -12,7 +12,7 @@
   note: Echo now sends a phone notification when one of your X or Bluesky posts gets new likes, reposts, or replies (for example "+2 likes, +1 reply on your X post"). Everyone on the NY Kitchen team gets it, and anyone can mute these from their notification settings.
 
 - date: 2026-06-30
-  note: The agent cards on the NY Kitchen home page now sit in a collapsible "Field Roster" section at the bottom, so the page opens clean. Tap the header to expand or collapse; your choice is remembered. The header always shows how many agents are on duty and how many need attention.
+  note: The agent cards on the NY Kitchen home page are now a collapsible "Field Roster" section. Tap the header to fold the cards away when you want a cleaner page; your choice is remembered. The header always shows how many agents are on duty and how many need attention.
 
 - date: 2026-06-30
   note: Every agent page (and the NY Kitchen home page) now shows a breadcrumb trail at the top (Workspaces / NY Kitchen / agent), so you always know where you are and can jump back in one tap.
