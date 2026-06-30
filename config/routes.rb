@@ -193,6 +193,7 @@ Rails.application.routes.draw do
       post :toggle_pricing
       post :toggle_grocery_prices
       patch :social_tabs
+      get :connect_chats
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]

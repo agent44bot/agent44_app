@@ -16,6 +16,7 @@ class Workspace < ApplicationRecord
   has_many :workspace_agents,  dependent: :destroy
   has_many :usage_events,      dependent: :destroy # metered billable actions
   has_many :ai_call_logs,      dependent: :nullify # keep usage history if a workspace is deleted
+  has_many :connect_chat_messages, dependent: :destroy # connect-help Q&A transcripts
 
   # Brand logo for the workspace (white-label: shown on the workspace's pages
   # in place of the generic mark). Stored on the persistent volume via

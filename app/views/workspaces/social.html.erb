@@ -294,6 +294,13 @@
                   <%= submit_tag "Save", class: "w-full text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
                 <% end %>
               </details>
+              <%# Manager-only: review what members asked the connect-help assistant. %>
+              <%= link_to connect_chats_workspace_path(@workspace.slug),
+                    class: "text-xs text-gray-400 hover:text-orange-400 flex items-center gap-1",
+                    title: "See what members asked the connect-help assistant" do %>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 3v-3z"/></svg>
+                Questions
+              <% end %>
             <% end %>
             <%= button_to refresh_metrics_workspace_path(@workspace.slug),
                 method: :post,
