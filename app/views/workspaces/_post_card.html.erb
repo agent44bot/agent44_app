@@ -36,10 +36,12 @@
   <%# Attached image as a thumbnail that opens the full image in a new tab.
       Native media is an ActiveStorage attachment (p.image, what posts to X +
       Bluesky); some URL-based posts (Facebook) instead carry a plain
-      image_url. Render a small resized variant to keep the list light. %>
+      image_url. Render the ORIGINAL blob (sized down by CSS) rather than a
+      resized variant, so we don't write any derivative files to the Fly
+      volume. The browser downloads the already-stored original. %>
   <% if p.image.attached? %>
     <a href="<%= url_for(p.image) %>" target="_blank" rel="noopener" class="inline-block mt-2">
-      <%= image_tag p.image.variant(resize_to_limit: [ 200, 200 ]), alt: "Attached image", loading: "lazy",
+      <%= image_tag p.image, alt: "Attached image", loading: "lazy",
             class: "h-20 w-20 object-cover rounded-md border border-gray-800 hover:opacity-90 transition" %>
     </a>
   <% elsif p.image_url.present? %>
