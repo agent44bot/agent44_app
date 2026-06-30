@@ -84,12 +84,13 @@ class RefreshSocialMetricsJob < ApplicationJob
 
     workspace = post.workspace
     return unless workspace
+    return if quiet_hours?(workspace) # no overnight pings (metrics still update)
 
     summary  = deltas.map { |f, n| "+#{n} #{ENGAGEMENT_FIELDS[f].pluralize(n)}" }.join(", ")
     platform = post.platform == "x" ? "X" : post.platform.titleize
     snippet  = post.body.to_s.gsub(/\s+/, " ").strip.truncate(80)
 
-    workspace.users.find_each do |user|
+    social_recipients(workspace).find_each do |user|
       Notification.notify!(
         level:         "info",
         source:        "social_engagement",
@@ -102,6 +103,26 @@ class RefreshSocialMetricsJob < ApplicationJob
         workspace:     workspace
       )
     end
+  end
+
+  # Quiet hours: no social pushes from 9:00 PM to 8:00 AM in the workspace's
+  # local time (NY Kitchen is Eastern). Metrics still refresh; only the alert
+  # is held. Overnight engagement just won't ping (it shows in the counts).
+  QUIET_START_HOUR = 21 # 9 PM
+  QUIET_END_HOUR   = 8  # 8 AM
+  def quiet_hours?(workspace)
+    tz   = workspace.timezone.presence || "Eastern Time (US & Canada)"
+    hour = Time.current.in_time_zone(tz).hour
+    hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
+  end
+
+  # Who receives social engagement pushes for a workspace. If the Setting
+  # "social_engagement:recipients:<workspace_id>" holds a comma-separated list
+  # of user IDs, only those members are notified (e.g. NY Kitchen -> only Rich);
+  # otherwise every member gets them (the default).
+  def social_recipients(workspace)
+    ids = Setting.get("social_engagement:recipients:#{workspace.id}").to_s.split(",").map(&:strip).reject(&:blank?)
+    ids.empty? ? workspace.users : workspace.users.where(id: ids)
   end
 
   # In-app deep link to the workspace's social page. NY Kitchen has its own
