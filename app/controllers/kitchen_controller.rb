@@ -499,7 +499,9 @@ class KitchenController < ApplicationController
     @per_page = 9 # flyer: forces a clean 9-front / 9-back page break
     default_limit = @variant == "stall" ? 6 : 18
     @print_limit = params[:n].present? ? params[:n].to_i.clamp(1, 60) : default_limit
-    upcoming = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
+    # Drop sold-out classes and private bookings/buyouts — neither is something
+    # a flyer/poster reader can walk up and book.
+    upcoming = snapshot ? snapshot.kitchen_events.upcoming.reject { |e| e.sold_out? || e.private_event? } : []
     @events = upcoming.first(@print_limit)
     @more_count = upcoming.size - @events.size
     @last_updated = snapshot&.taken_on

@@ -60,6 +60,14 @@ class KitchenEventTest < ActiveSupport::TestCase
     refute instock.sold_out?
   end
 
+  test "private_event? flags private bookings/buyouts by name" do
+    assert build_event(name: "Hands-On Kitchen Classroom Reserved for Private Event").private_event?
+    assert build_event(name: "WNYHeroes Private Chef's Table 8/28/26").private_event?
+    refute build_event(name: "Homemade Fresh Pasta Workshop 7/5/26").private_event?
+    # word boundary: "Privateer"-style substrings shouldn't match
+    refute build_event(name: "Privateer Rum Tasting").private_event?
+  end
+
   test "people_per_ticket defaults to 1 and stays 1 for a single-person ticket" do
     e = build_event(description: "For this class, 1 ticket is for 1 person.")
     assert_nil e.detected_people_per_ticket

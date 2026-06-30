@@ -13,6 +13,14 @@ class KitchenEvent < ApplicationRecord
     av.include?("soldout") || av.include?("closed")
   end
 
+  # A private booking / buyout, not a public class (e.g. "Reserved for Private
+  # Event", "WNYHeroes Private Chef's Table"). These carry no price or
+  # availability, so they slip past sold_out? — the print flyer/poster filter
+  # them out so we don't advertise classes the public can't book.
+  def private_event?
+    name.to_s.match?(/\bprivate\b/i)
+  end
+
   # Distinguish a genuine sellout (every seat booked → "SoldOut") from sales
   # merely ending ("Tickets no longer available" → "Closed", a pre-event cutoff
   # that can leave seats unsold). The report must not count a cutoff as a sellout.

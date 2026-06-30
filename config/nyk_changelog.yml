@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-06-30
+  note: Private bookings and buyouts (anything marked Private) no longer show on the printed class flyer or the bathroom stall poster, so those handouts only list classes the public can actually book.
+
 - date: 2026-06-28
   note: On the Equipment Items tab you can now tap "Ask Agent Sam to update equipment items" and Sam reads the recipe and fills in the gear each station needs. It adds to whatever you already have, so nothing you set by hand is lost.
 
