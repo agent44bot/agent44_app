@@ -105,4 +105,16 @@ class SocialPlatformTabsTest < ActionDispatch::IntegrationTest
     assert_select "h4", text: "Today"
     assert_select "h4", text: "Yesterday"
   end
+
+  test "a post with an attached image renders a thumbnail linking to the full image" do
+    img = "https://example.com/microgreens.jpg"
+    @ws.workspace_posts.create!(author: @owner, platform: "x", body: "POST WITH IMAGE", status: "posted",
+      image_url: img, remote_id: "7", remote_url: "https://x.com/goe/status/7", posted_at: Time.current)
+
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+
+    assert_select "img[src=?]", img
+    assert_select "a[href=?] img", img, { count: 1 }, "thumbnail should link to the full image"
+  end
 end
