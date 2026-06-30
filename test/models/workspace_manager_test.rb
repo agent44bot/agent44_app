@@ -55,7 +55,7 @@ class WorkspaceManagerTest < ActiveSupport::TestCase
 
   test "hidden_social_tabs defaults to empty and round-trips through settings" do
     assert_equal [], @ws.hidden_social_tabs
-    @ws.update!(hidden_social_tabs: ["instagram", :facebook, "instagram"])
+    @ws.update!(hidden_social_tabs: [ "instagram", :facebook, "instagram" ])
     assert_equal %w[instagram facebook], Workspace.find(@ws.id).hidden_social_tabs
   end
 end
