@@ -102,19 +102,23 @@ class WorkspaceAiChatTest < ActionDispatch::IntegrationTest
     ENV.delete("ANTHROPIC_API_KEY")
   end
 
-  test "managers can review transcripts; editors cannot" do
+  test "only a site admin can review transcripts; workspace owner/admin/editor cannot" do
     @ws.connect_chat_messages.create!(user: @editor, platform: "facebook", role: "user", content: "WHY WONT FACEBOOK CONNECT")
     @ws.connect_chat_messages.create!(user: @editor, platform: "facebook", role: "assistant", content: "Meta setup is pending.")
 
-    sign_in_as(@owner)
+    site_admin = User.create!(email_address: "site-#{SecureRandom.hex(4)}@example.com").tap { |u| u.update_column(:role, "admin") }
+    sign_in_as(site_admin)
     get connect_chats_workspace_path(@ws.slug)
     assert_response :success
     assert_match "WHY WONT FACEBOOK CONNECT", response.body
     assert_match "Meta setup is pending.", response.body
 
-    sign_in_as(@editor)
-    get connect_chats_workspace_path(@ws.slug)
-    assert_redirected_to social_workspace_path(@ws.slug)
+    # The workspace owner and admin (clients) must NOT see it.
+    [ @owner, @wsadmin, @editor ].each do |client|
+      sign_in_as(client)
+      get connect_chats_workspace_path(@ws.slug)
+      assert_redirected_to social_workspace_path(@ws.slug), "#{client.email_address} should be blocked"
+    end
   end
 
   test "non-members are forbidden" do

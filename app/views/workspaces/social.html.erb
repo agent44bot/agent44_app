@@ -294,7 +294,11 @@
                   <%= submit_tag "Save", class: "w-full text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
                 <% end %>
               </details>
-              <%# Manager-only: review what members asked the connect-help assistant. %>
+            <% end %>
+            <%# Agent44 team (site admin) only: review what members asked the
+                connect-help assistant. Hidden from workspace owners/admins, and
+                from "View as" impersonation (Current.user is the impersonee). %>
+            <% if Current.user&.admin? %>
               <%= link_to connect_chats_workspace_path(@workspace.slug),
                     class: "text-xs text-gray-400 hover:text-orange-400 flex items-center gap-1",
                     title: "See what members asked the connect-help assistant" do %>
