@@ -117,4 +117,17 @@ class SocialPlatformTabsTest < ActionDispatch::IntegrationTest
     assert_select "img[src=?]", img
     assert_select "a[href=?] img", img, { count: 1 }, "thumbnail should link to the full image"
   end
+
+  test "a post with a native ActiveStorage image renders a thumbnail" do
+    post = @ws.workspace_posts.create!(author: @owner, platform: "x", body: "NATIVE IMAGE POST", status: "posted",
+      remote_id: "8", remote_url: "https://x.com/goe/status/8", posted_at: Time.current)
+    post.image.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")),
+      filename: "sample_bottle.png", content_type: "image/png")
+
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+
+    # Variant src (a representation) inside a link to the full blob.
+    assert_select "a[href*=?] img[src*=?]", "active_storage", "active_storage"
+  end
 end
