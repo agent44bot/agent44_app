@@ -62,7 +62,7 @@
       <% draft_text  = flash[:draft_text].to_s %>
       <% draft_topic = flash[:draft_topic].to_s %>
       <% min_len     = @connected_platforms.include?("x") ? 280 : 300 %>
-      <div class="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3">
+      <div class="rounded-lg border-2 border-green-500 bg-gray-900 p-4 space-y-3 shadow-lg shadow-green-500/20">
           <% if draft_text.present? %>
             <p class="text-xs text-orange-400">✨ AI-suggested draft below — edit, then post.</p>
           <% end %>
@@ -70,7 +70,7 @@
           <%= form_with url: workspace_draft_suggest_path(workspace_slug: @workspace.slug), local: true, class: "space-y-2" do %>
             <div class="flex flex-wrap gap-2">
               <%= text_field_tag :topic, draft_topic, placeholder: "What should AI draft about? (optional)",
-                  class: "flex-1 min-w-[220px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
+                  class: "flex-1 min-w-[220px] rounded-md bg-white border border-gray-300 text-black placeholder-gray-500 px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
               <%= submit_tag "✨ Draft with AI",
                   class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
             </div>
@@ -84,7 +84,7 @@
               <%= file_field_tag :image, accept: "image/png,image/jpeg,image/gif,image/webp", required: true,
                   class: "flex-1 min-w-[220px] text-sm text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-700 file:bg-gray-800 file:text-white file:cursor-pointer" %>
               <%= text_field_tag :topic, nil, placeholder: "Occasion/angle (optional)",
-                  class: "flex-1 min-w-[180px] rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
+                  class: "flex-1 min-w-[180px] rounded-md bg-white border border-gray-300 text-black placeholder-gray-500 px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
               <%= submit_tag "📸 Draft from image",
                   class: "inline-flex items-center px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-orange-500 text-white text-sm cursor-pointer" %>
             </div>
@@ -95,7 +95,7 @@
             <%= f.text_area :body, rows: 3, maxlength: min_len, required: true,
                 value: draft_text.presence,
                 placeholder: "Write your post, or use ✨ Draft with AI above",
-                class: "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none font-mono text-sm" %>
+                class: "w-full rounded-md bg-white border border-gray-300 text-black placeholder-gray-500 px-3 py-2 focus:border-orange-500 focus:outline-none font-mono text-sm" %>
 
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
               <span class="text-xs text-gray-500 uppercase tracking-wide">Post to:</span>
@@ -128,7 +128,7 @@
             <div class="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
               <label class="text-xs text-gray-500 uppercase tracking-wide">Schedule for:</label>
               <%= datetime_field_tag :scheduled_for, nil,
-                  class: "rounded-md bg-black border border-gray-700 text-white px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" %>
+                  class: "rounded-md bg-white border border-gray-300 text-black placeholder-gray-500 px-2 py-1 text-xs focus:border-orange-500 focus:outline-none" %>
               <span class="text-xs text-gray-500">(<%= @workspace.timezone %>) — leave blank to post now or save as draft</span>
             </div>
 
