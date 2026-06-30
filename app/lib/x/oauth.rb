@@ -18,7 +18,16 @@ module X
     # get a token that carries it (text-only posting keeps working meanwhile).
     DEFAULT_SCOPES = %w[tweet.read tweet.write media.write users.read offline.access].freeze
 
-    TokenResult = Struct.new(:ok?, :access_token, :refresh_token, :expires_in, :scope, :token_type, :error, keyword_init: true)
+    TokenResult = Struct.new(:ok?, :access_token, :refresh_token, :expires_in, :scope, :token_type, :error, :status, keyword_init: true) do
+      # A failure worth retrying later instead of forcing a reconnect: X 5xx,
+      # rate limiting (429), or a network error (status nil). A 4xx is a real
+      # auth problem (invalid_grant / invalid_client) -> the user must reconnect.
+      def retryable?
+        return false if ok?
+        s = status.to_s
+        s.empty? || s.start_with?("5") || s == "429"
+      end
+    end
     UserResult  = Struct.new(:ok?, :id, :username, :name, :error, keyword_init: true)
 
     class << self
@@ -76,6 +85,10 @@ module X
           client_id:     client_id
         })
         parse_token_response(status, body)
+      rescue => e
+        # Network/timeout: treat as transient (status nil -> retryable?), so a
+        # blip reaching X doesn't get mistaken for a revoked token.
+        TokenResult.new(ok?: false, status: nil, error: "#{e.class}: #{e.message}")
       end
 
       def me(access_token:)
@@ -126,10 +139,11 @@ module X
             refresh_token: body["refresh_token"],
             expires_in:    body["expires_in"],
             scope:         body["scope"],
-            token_type:    body["token_type"]
+            token_type:    body["token_type"],
+            status:        status
           )
         else
-          TokenResult.new(ok?: false, error: format_error(status, body))
+          TokenResult.new(ok?: false, status: status, error: format_error(status, body))
         end
       end
 

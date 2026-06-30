@@ -28,6 +28,11 @@ class RefreshXTokensJob < ApplicationJob
         status:           "active",
         last_synced_at:   Time.current
       )
+    elsif result.retryable?
+      # Transient X outage / rate limit / network blip: leave the account
+      # active so the next scheduled run retries. Marking it needs_reauth here
+      # would strand it (this job only refreshes active accounts).
+      Rails.logger.warn("X token refresh transient failure for SocialAccount ##{acct.id}: #{result.error} (will retry)")
     else
       Rails.logger.warn("X token refresh failed for SocialAccount ##{acct.id}: #{result.error}")
       acct.mark_needs_reauth!

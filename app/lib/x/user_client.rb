@@ -184,8 +184,11 @@ module X
         )
         true
       else
+        # Only force a reconnect on a real auth rejection; a transient X 5xx /
+        # rate limit / network blip leaves the account active so the scheduled
+        # refresh job can recover it without manual reconnect.
         Rails.logger.warn("X refresh failed for SocialAccount ##{@account.id}: #{result.error}")
-        @account.mark_needs_reauth!
+        @account.mark_needs_reauth! unless result.retryable?
         false
       end
     end
