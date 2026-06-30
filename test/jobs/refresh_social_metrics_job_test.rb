@@ -120,6 +120,64 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
 
   private
 
+  test "pushes an engagement alert to workspace members when metrics rise after a prior sync" do
+    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: member, role: "editor")
+    post = posted!(@x_acct, "x", "TID-9")
+    post.update!(likes: 10, replies: 1, metrics_synced_at: 2.hours.ago) # prior baseline
+
+    X::UserClient.http_stub = ->(_method, url, _payload, _bearer) {
+      assert url.include?("TID-9")
+      { status: "200", body: { "data" => { "id" => "TID-9", "public_metrics" => {
+        "impression_count" => 0, "like_count" => 12, "retweet_count" => 0,
+        "reply_count" => 3, "quote_count" => 0, "bookmark_count" => 0
+      } } } }
+    }
+
+    RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id)
+
+    note = Notification.where(source: "social_engagement", user_id: member.id).order(:created_at).last
+    assert note, "the workspace member should receive an engagement push"
+    assert_match(/\+2 likes/,   note.title) # 10 -> 12
+    assert_match(/\+2 replies/, note.title) # 1 -> 3
+    assert_match(/X post/,      note.title)
+  end
+
+  test "does not push on a post's first sync (no prior baseline to diff against)" do
+    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: member, role: "editor")
+    posted!(@x_acct, "x", "TID-FIRST") # metrics_synced_at is nil
+
+    X::UserClient.http_stub = ->(_method, _url, _payload, _bearer) {
+      { status: "200", body: { "data" => { "id" => "TID-FIRST", "public_metrics" => {
+        "impression_count" => 0, "like_count" => 50, "retweet_count" => 0,
+        "reply_count" => 0, "quote_count" => 0, "bookmark_count" => 0
+      } } } }
+    }
+
+    assert_no_difference -> { Notification.where(source: "social_engagement").count } do
+      RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id)
+    end
+  end
+
+  test "does not push when metrics are unchanged since the last sync" do
+    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: member, role: "editor")
+    post = posted!(@x_acct, "x", "TID-SAME")
+    post.update!(likes: 7, metrics_synced_at: 2.hours.ago)
+
+    X::UserClient.http_stub = ->(_method, _url, _payload, _bearer) {
+      { status: "200", body: { "data" => { "id" => "TID-SAME", "public_metrics" => {
+        "impression_count" => 0, "like_count" => 7, "retweet_count" => 0,
+        "reply_count" => 0, "quote_count" => 0, "bookmark_count" => 0
+      } } } }
+    }
+
+    assert_no_difference -> { Notification.where(source: "social_engagement").count } do
+      RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id)
+    end
+  end
+
   def posted!(account, platform, remote_id)
     @ws.workspace_posts.create!(
       author: @owner, social_account: account, platform: platform,
