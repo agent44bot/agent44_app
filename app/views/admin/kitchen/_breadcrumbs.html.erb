@@ -1,5 +1,22 @@
-<div class="flex justify-end mb-6 text-sm">
-  <%= link_to nykitchen_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
-    ← NY Kitchen
+<%# Breadcrumb trail for NY Kitchen pages:  Workspaces / NY Kitchen / <crumb>
+    Locals (both optional):
+      kind:    agent kind ("list", "display", "analyst", "ask", "data", "test")
+               -> last crumb is that agent's callsign (Sam, Neon, ...), kept in
+               sync with the hub via ApplicationHelper#nyk_agent_callsign.
+      current: explicit last-crumb label for sub-pages (e.g. "Pantry").
+    With neither, the trail ends at "NY Kitchen" itself (the workspace hub).
+    This trail is the only back-nav on these pages (no extra back button). %>
+<% kind    = local_assigns[:kind].presence %>
+<% current = local_assigns[:current].presence ||
+             (kind && nyk_agent_callsign(kind, (@workspace_agents && @workspace_agents[kind.to_s]))) %>
+<nav aria-label="Breadcrumb" class="flex items-center gap-2 min-w-0 mb-6 text-base text-gray-400">
+  <%= link_to "Workspaces", workspaces_path, class: "hover:text-orange-400 transition" %>
+  <span class="text-gray-600" aria-hidden="true">/</span>
+  <% if current %>
+    <%= link_to "NY Kitchen", nykitchen_path, class: "hover:text-orange-400 transition" %>
+    <span class="text-gray-600" aria-hidden="true">/</span>
+    <span class="text-white font-semibold truncate" aria-current="page"><%= current %></span>
+  <% else %>
+    <span class="text-white font-semibold" aria-current="page">NY Kitchen</span>
   <% end %>
-</div>
+</nav>

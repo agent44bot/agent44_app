@@ -160,15 +160,13 @@
      data-controller="collapsible"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
+  <%= render "admin/kitchen/breadcrumbs" %>
   <%# "Track users" moved to the top nav (admin-only, all pages). %>
-  <div class="flex justify-between items-center mb-6 text-sm">
+  <div class="flex items-center mb-6 text-sm">
     <%= link_to nyk_guide_path, target: "_blank", rel: "noopener",
           class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition",
           title: "Open the NY Kitchen how-to guide (PDF)" do %>
       📖 How-to guide
-    <% end %>
-    <%= link_to workspaces_path(force: 1), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
-      ← All workspaces
     <% end %>
   </div>
 
