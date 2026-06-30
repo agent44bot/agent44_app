@@ -486,7 +486,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     get nyk_test_path
     assert_response :success
     assert_match /Test Agent/,    response.body
-    assert_match /← NY Kitchen/,  response.body
+    assert_select "nav[aria-label=?]", "Breadcrumb"
+    assert_match /Workspaces/,    response.body
+    assert_match /Argus/,         response.body # agent callsign as the current crumb
     assert_match /Smoke Tests/,   response.body
   end
 
@@ -494,7 +496,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     get nyk_data_path
     assert_response :success
     assert_match /Data Agent/,   response.body
-    assert_match /← NY Kitchen/, response.body
+    assert_select "nav[aria-label=?]", "Breadcrumb"
+    assert_match /Workspaces/,   response.body
+    assert_match /Scout/,        response.body # agent callsign as the current crumb
     assert_match /Scrapes/,      response.body
   end
 
@@ -514,7 +518,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     create_event("Pasta 101", 2.days.from_now, "InStock")
     get nyk_list_path
     assert_response :success
-    assert_match /← NY Kitchen/, response.body
+    assert_select "nav[aria-label=?]", "Breadcrumb"
+    assert_match /Workspaces/, response.body
+    assert_match /Sam/,        response.body # agent callsign as the current crumb
   end
 
   # ----- Display Agent (/nykitchen/display + /nykitchen/display/settings) -----
