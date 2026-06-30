@@ -1,8 +1,9 @@
 require "test_helper"
 
-# Covers the Social Agent flow redesign: adaptive breadcrumbs (the "Workspaces"
-# root only shows for site admins / multi-workspace users), the People grouping
-# (invite next to members), and the de-duplicated settings.
+# Covers the Social Agent flow redesign: breadcrumbs (generic workspaces always
+# show the "Workspaces" root; NY Kitchen keeps the adaptive root so its pinned
+# customers see NY Kitchen, not Workspaces), the People grouping (invite next to
+# members), and the de-duplicated settings.
 class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
   setup do
     @owner  = User.create!(email_address: "tl-o-#{SecureRandom.hex(4)}@example.com")
@@ -13,20 +14,20 @@ class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
 
   # ----- adaptive breadcrumb root -----
 
-  test "a single-workspace user does not get the Workspaces crumb on the hub" do
+  test "a generic single-workspace user gets the Workspaces crumb on the hub" do
     sign_in_as(@owner)
     get workspace_path(@ws.slug)
     assert_response :success
-    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1), false
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1)
   end
 
-  test "a single-workspace user's social trail is Workspace / Social Agent, no Workspaces root" do
+  test "a generic single-workspace user's social trail is Workspaces / Workspace / Social Agent" do
     sign_in_as(@owner)
     get social_workspace_path(@ws.slug)
     assert_response :success
+    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1)
     assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspace_path(@ws.slug)
     assert_select "nav[aria-label=?] [aria-current=?]", "Breadcrumb", "page", text: "Social Agent"
-    assert_select "nav[aria-label=?] a[href=?]", "Breadcrumb", workspaces_path(force: 1), false
   end
 
   test "a site admin gets the Workspaces crumb on the hub and the social page" do

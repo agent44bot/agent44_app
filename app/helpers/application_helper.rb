@@ -11,10 +11,11 @@ module ApplicationHelper
     link_to label, path, class: BACK_BUTTON_CLASSES
   end
 
-  # Whether to show the top-level "Workspaces" breadcrumb crumb. Site admins
-  # and anyone in more than one workspace get it (they can navigate up to the
-  # index); a single-workspace customer (e.g. a kitchen customer pinned to
-  # NY Kitchen) does not, since "Workspaces" would just bounce back to them.
+  # Whether to show the top-level "Workspaces" breadcrumb crumb on NY Kitchen
+  # pages. Site admins and anyone in more than one workspace get it; a
+  # single-workspace NY Kitchen customer (pinned to /nykitchen) does not, since
+  # "Workspaces" would just bounce back to them. Generic workspaces always show
+  # the Workspaces root.
   def show_workspaces_crumb?
     Current.user&.admin? || Current.user&.workspaces&.active&.count.to_i > 1
   end

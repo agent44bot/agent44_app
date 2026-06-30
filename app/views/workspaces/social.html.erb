@@ -3,7 +3,9 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
      data-controller="composer">
   <div class="flex items-center gap-3 mb-6 text-sm">
-    <% ws_root = show_workspaces_crumb? ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
+    <%# Generic workspaces always show the Workspaces root; NY Kitchen keeps the
+        adaptive root (its pinned customers see NY Kitchen, not Workspaces). %>
+    <% ws_root = (@workspace.slug != "nykitchen" || show_workspaces_crumb?) ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
     <% if @workspace.slug == "nykitchen" %>
       <%= render "shared/breadcrumbs", crumbs: ws_root + [["NY Kitchen", nykitchen_path], [nyk_agent_callsign("social", @workspace.agent_for("social")), nil]] %>
     <% else %>
