@@ -3,7 +3,7 @@ require "test_helper"
 class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
   setup do
     @owner = User.create!(email_address: "rsm-#{SecureRandom.hex(4)}@example.com")
-    @ws    = Workspace.create!(name: "Metrics WS", owner: @owner)
+    @ws    = Workspace.create!(name: "Metrics WS", owner: @owner, timezone: "Eastern Time (US & Canada)")
     @x_acct = @ws.social_accounts.create!(platform: "x", connected_by: @owner, handle: "@a", external_id: "1",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
     @b_acct = @ws.social_accounts.create!(platform: "bluesky", connected_by: @owner, handle: "@a.bsky.social",
@@ -120,27 +120,61 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
 
   private
 
+  # 4:00 PM UTC = 12:00 PM Eastern (EDT) — a daytime hour, outside quiet hours.
+  DAYTIME = Time.utc(2026, 6, 30, 16, 0, 0)
+  # 3:00 AM UTC = 11:00 PM Eastern (EDT) — inside the 9pm-8am quiet window.
+  QUIET   = Time.utc(2026, 7, 1, 3, 0, 0)
+
+  def stub_x_metrics(remote_id, likes:, replies: 0)
+    X::UserClient.http_stub = ->(_method, _url, _payload, _bearer) {
+      { status: "200", body: { "data" => { "id" => remote_id, "public_metrics" => {
+        "impression_count" => 0, "like_count" => likes, "retweet_count" => 0,
+        "reply_count" => replies, "quote_count" => 0, "bookmark_count" => 0
+      } } } }
+    }
+  end
+
   test "pushes an engagement alert to workspace members when metrics rise after a prior sync" do
     member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
     @ws.memberships.create!(user: member, role: "editor")
     post = posted!(@x_acct, "x", "TID-9")
     post.update!(likes: 10, replies: 1, metrics_synced_at: 2.hours.ago) # prior baseline
+    stub_x_metrics("TID-9", likes: 12, replies: 3)
 
-    X::UserClient.http_stub = ->(_method, url, _payload, _bearer) {
-      assert url.include?("TID-9")
-      { status: "200", body: { "data" => { "id" => "TID-9", "public_metrics" => {
-        "impression_count" => 0, "like_count" => 12, "retweet_count" => 0,
-        "reply_count" => 3, "quote_count" => 0, "bookmark_count" => 0
-      } } } }
-    }
-
-    RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id)
+    travel_to(DAYTIME) { RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true) }
 
     note = Notification.where(source: "social_engagement", user_id: member.id).order(:created_at).last
     assert note, "the workspace member should receive an engagement push"
     assert_match(/\+2 likes/,   note.title) # 10 -> 12
     assert_match(/\+2 replies/, note.title) # 1 -> 3
     assert_match(/X post/,      note.title)
+  end
+
+  test "no social push during quiet hours (9pm-8am local), but metrics still update" do
+    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: member, role: "editor")
+    post = posted!(@x_acct, "x", "TID-Q")
+    post.update!(likes: 10, metrics_synced_at: 2.hours.ago)
+    stub_x_metrics("TID-Q", likes: 25)
+
+    assert_no_difference -> { Notification.where(source: "social_engagement").count } do
+      travel_to(QUIET) { RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true) }
+    end
+    assert_equal 25, post.reload.likes, "metrics still refresh overnight; only the push is held"
+  end
+
+  test "only the allowlisted recipients get the social push" do
+    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: member, role: "editor")
+    Setting.set("social_engagement:recipients:#{@ws.id}", @owner.id.to_s) # owner only
+    post = posted!(@x_acct, "x", "TID-A")
+    post.update!(likes: 1, metrics_synced_at: 2.hours.ago)
+    stub_x_metrics("TID-A", likes: 9)
+
+    travel_to(DAYTIME) { RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true) }
+
+    assert Notification.where(source: "social_engagement", user_id: @owner.id).exists?, "owner is on the allowlist"
+    refute Notification.where(source: "social_engagement", user_id: member.id).exists?, "member is not on the allowlist"
   end
 
   test "does not push on a post's first sync (no prior baseline to diff against)" do

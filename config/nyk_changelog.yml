@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-30
+  note: Social engagement notifications are now quieter. They no longer go out overnight (held from 9:00 PM to 8:00 AM Eastern), and they can be limited to specific team members so not everyone gets pinged.
+
+- date: 2026-06-30
   note: Connecting X is more reliable too. If X has a brief hiccup during the connect step (either getting the token or reading your profile), the app now retries automatically instead of making you start the authorize flow over.
 
 - date: 2026-06-30
