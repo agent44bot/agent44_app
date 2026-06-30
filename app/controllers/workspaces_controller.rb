@@ -1,8 +1,8 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices, :social_tabs ]
+  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices, :social_tabs, :connect_chats ]
   before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
   before_action :require_admin,     only: [ :update, :toggle_grocery_prices ]
-  before_action :require_manager,   only: [ :social_tabs ]
+  before_action :require_manager,   only: [ :social_tabs, :connect_chats ]
   before_action :require_owner,     only: [ :destroy ]
   before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
   def index
@@ -90,6 +90,26 @@ class WorkspacesController < ApplicationController
     end
     @workspace.update!(hidden_social_tabs: ALL_SOCIAL_TABS - visible)
     redirect_to social_workspace_path(@workspace.slug), notice: "Updated which social tabs are shown."
+  end
+
+  # Manager-only review of the "Ask the assistant" connect-help transcripts, so
+  # owners/admins can see what members (clients) asked. Newest first, grouped in
+  # the view by asker.
+  def connect_chats
+    # Pair each question with the reply that followed it (robust to a missing
+    # row), newest exchange first.
+    msgs = @workspace.connect_chat_messages.includes(:user).chronological.last(1000)
+    pending = nil
+    @exchanges = []
+    msgs.each do |m|
+      if m.role == "user"
+        pending = m
+      elsif m.role == "assistant" && pending
+        @exchanges << { question: pending, answer: m }
+        pending = nil
+      end
+    end
+    @exchanges.reverse!
   end
 
   # Workspace agents hub. Today every workspace has just one agent (Social),

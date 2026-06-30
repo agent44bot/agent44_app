@@ -25,10 +25,22 @@ class WorkspaceAiChatsController < ApplicationController
       return render json: { ok: false, error: result.error }, status: :unprocessable_entity
     end
 
+    persist_transcript(platform, params[:message].to_s, result.reply)
     render json: payload_with_cost(result)
   end
 
   private
+
+  # Save the exchange so workspace managers can review what members asked. Two
+  # rows per turn (the question, then the reply). Best-effort: a logging failure
+  # must never break the chat the member is using.
+  def persist_transcript(platform, question, answer)
+    max = ConnectChatMessage::MAX_CONTENT
+    @workspace.connect_chat_messages.create!(user: current_user, platform: platform, role: "user", content: question.to_s.strip.first(max))
+    @workspace.connect_chat_messages.create!(user: current_user, platform: platform, role: "assistant", content: answer.to_s.strip.first(max))
+  rescue => e
+    Rails.logger.error("persist_transcript failed for workspace=#{@workspace.id}: #{e.class}: #{e.message}")
+  end
 
   # Cost is tiered by workspace role: owner (and site admins) get raw + billed;
   # admins get billed only (never our raw cost / the multiplier); editors and

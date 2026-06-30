@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_29_190100) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_30_120000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -90,6 +90,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_190100) do
     t.index ["source"], name: "index_ai_call_logs_on_source"
     t.index ["user_id"], name: "index_ai_call_logs_on_user_id"
     t.index ["workspace_id"], name: "index_ai_call_logs_on_workspace_id"
+  end
+
+  create_table "connect_chat_messages", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.string "platform", null: false
+    t.string "role", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.integer "workspace_id", null: false
+    t.index ["user_id"], name: "index_connect_chat_messages_on_user_id"
+    t.index ["workspace_id", "created_at"], name: "index_connect_chat_messages_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_connect_chat_messages_on_workspace_id"
   end
 
   create_table "credentials", force: :cascade do |t|
@@ -790,6 +803,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_190100) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_call_logs", "users"
+  add_foreign_key "connect_chat_messages", "users"
+  add_foreign_key "connect_chat_messages", "workspaces"
   add_foreign_key "credentials", "users"
   add_foreign_key "device_tokens", "users"
   add_foreign_key "fleet_requests", "users"

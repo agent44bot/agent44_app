@@ -1,0 +1,49 @@
+<% content_for :title, "#{@workspace.name} · Connection questions" %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex items-center gap-3 mb-4 text-sm">
+    <%= render "shared/breadcrumbs", crumbs: [
+          ["Workspaces", workspaces_path(force: 1)],
+          [@workspace.name, workspace_path(@workspace.slug)],
+          ["Social Agent", social_workspace_path(@workspace.slug)],
+          ["Questions", nil]
+        ] %>
+  </div>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-black text-white tracking-tight">Connection questions</h1>
+    <p class="text-sm text-gray-400 mt-1">
+      What members asked the connect-help assistant on the Social Agent page.
+      <%= pluralize(@exchanges.size, "question") %>.
+    </p>
+  </div>
+
+  <% if @exchanges.any? %>
+    <div class="space-y-3">
+      <% @exchanges.each do |x| %>
+        <% q = x[:question]; a = x[:answer] %>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+          <div class="flex items-center justify-between gap-3 mb-2 text-xs text-gray-500">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="uppercase tracking-wide text-gray-400"><%= q.platform.titleize %></span>
+              <span class="text-gray-700">·</span>
+              <span class="truncate"><%= q.user&.display_identifier || "Former member" %></span>
+            </div>
+            <span class="shrink-0" title="<%= q.created_at %>">
+              <%= q.created_at.in_time_zone(@workspace.timezone).strftime("%b %-d, %-l:%M %p") %>
+            </span>
+          </div>
+          <p class="text-sm text-white whitespace-pre-wrap break-words"><%= q.content %></p>
+          <div class="mt-3 pt-3 border-t border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Assistant</p>
+            <p class="text-sm text-gray-300 whitespace-pre-wrap break-words"><%= a.content %></p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="rounded-lg border border-gray-800 bg-gray-900 p-8 text-center text-sm text-gray-500">
+      No one has asked the connect-help assistant yet.
+    </div>
+  <% end %>
+</div>

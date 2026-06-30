@@ -80,6 +80,43 @@ class WorkspaceAiChatTest < ActionDispatch::IntegrationTest
     ENV.delete("ANTHROPIC_API_KEY")
   end
 
+  test "the exchange is persisted as a question + reply transcript" do
+    ENV["ANTHROPIC_API_KEY"] = "stub"
+    sign_in_as(@editor)
+
+    assert_difference -> { ConnectChatMessage.where(workspace: @ws).count }, 2 do
+      post workspace_ai_chat_path(workspace_slug: @ws.slug),
+           params: { platform: "facebook", message: "How do I connect my Facebook Page?" }, as: :json
+    end
+    assert_response :success
+
+    q = @ws.connect_chat_messages.chronological.first
+    a = @ws.connect_chat_messages.chronological.last
+    assert_equal "user", q.role
+    assert_equal "How do I connect my Facebook Page?", q.content
+    assert_equal @editor.id, q.user_id
+    assert_equal "facebook", q.platform
+    assert_equal "assistant", a.role
+    assert_match "log in to Facebook", a.content
+  ensure
+    ENV.delete("ANTHROPIC_API_KEY")
+  end
+
+  test "managers can review transcripts; editors cannot" do
+    @ws.connect_chat_messages.create!(user: @editor, platform: "facebook", role: "user", content: "WHY WONT FACEBOOK CONNECT")
+    @ws.connect_chat_messages.create!(user: @editor, platform: "facebook", role: "assistant", content: "Meta setup is pending.")
+
+    sign_in_as(@owner)
+    get connect_chats_workspace_path(@ws.slug)
+    assert_response :success
+    assert_match "WHY WONT FACEBOOK CONNECT", response.body
+    assert_match "Meta setup is pending.", response.body
+
+    sign_in_as(@editor)
+    get connect_chats_workspace_path(@ws.slug)
+    assert_redirected_to social_workspace_path(@ws.slug)
+  end
+
   test "non-members are forbidden" do
     sign_in_as(@outsider)
     post workspace_ai_chat_path(workspace_slug: @ws.slug),
