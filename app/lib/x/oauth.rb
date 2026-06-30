@@ -33,6 +33,9 @@ module X
     class << self
       # Swap with a Proc(method, url, params|nil, headers) -> [status, body_hash] in tests.
       attr_accessor :http_stub
+      # Seconds of linear backoff between connect retries; tests set this to 0.
+      attr_writer :retry_backoff
+      def retry_backoff = @retry_backoff.nil? ? 1.0 : @retry_backoff
 
       def configured?
         client_id.present? && client_secret.present?
@@ -67,28 +70,24 @@ module X
         "#{AUTHORIZE_URL}?#{URI.encode_www_form(params)}"
       end
 
+      # Connect runs inside the OAuth callback (a live request), and X's token
+      # endpoint flaps with 503s. Retry a transient failure a couple times with
+      # a short backoff so one blip doesn't make the user redo the whole
+      # authorize flow. A 5xx means X didn't accept the (single-use) code, so
+      # re-presenting it is safe; a 4xx (bad/expired code) returns immediately.
       def exchange_code(code:, redirect_uri:, code_verifier:)
-        status, body = post_form(TOKEN_URL, {
+        params = {
           code:          code,
           grant_type:    "authorization_code",
           client_id:     client_id,
           redirect_uri:  redirect_uri,
           code_verifier: code_verifier
-        })
-        parse_token_response(status, body)
+        }
+        with_token_retry { post_token_form(params) }
       end
 
       def refresh(refresh_token:)
-        status, body = post_form(TOKEN_URL, {
-          grant_type:    "refresh_token",
-          refresh_token: refresh_token,
-          client_id:     client_id
-        })
-        parse_token_response(status, body)
-      rescue => e
-        # Network/timeout: treat as transient (status nil -> retryable?), so a
-        # blip reaching X doesn't get mistaken for a revoked token.
-        TokenResult.new(ok?: false, status: nil, error: "#{e.class}: #{e.message}")
+        post_token_form(grant_type: "refresh_token", refresh_token: refresh_token, client_id: client_id)
       end
 
       def me(access_token:)
@@ -104,6 +103,29 @@ module X
       end
 
       private
+
+      # POST the token endpoint and parse, never raising: a network/timeout
+      # error becomes a transient result (status nil -> retryable?), so callers
+      # treat it like a 5xx rather than a revoked token.
+      def post_token_form(params)
+        status, body = post_form(TOKEN_URL, params)
+        parse_token_response(status, body)
+      rescue => e
+        TokenResult.new(ok?: false, status: nil, error: "#{e.class}: #{e.message}")
+      end
+
+      # Retry a transient (retryable?) token result a few times with linear
+      # backoff. Used by exchange_code so a flaky X 503 during the connect
+      # callback auto-retries instead of dumping the user back to "not connected".
+      def with_token_retry(max: 2)
+        attempt = 0
+        loop do
+          result = yield
+          return result if result.ok? || !result.retryable? || attempt >= max
+          attempt += 1
+          sleep(retry_backoff * attempt)
+        end
+      end
 
       def post_form(url, params)
         return http_stub.call(:post, url, params, nil) if http_stub

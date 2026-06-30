@@ -13,10 +13,12 @@ class XOauthTest < ActionDispatch::IntegrationTest
     @orig_client_secret = X::Oauth.method(:client_secret)
     X::Oauth.define_singleton_method(:client_id)     { "stub-client" }
     X::Oauth.define_singleton_method(:client_secret) { "stub-secret" }
+    X::Oauth.retry_backoff = 0 # no real sleeping between connect retries in tests
   end
 
   teardown do
     X::Oauth.http_stub = nil
+    X::Oauth.retry_backoff = nil
     orig_id     = @orig_client_id
     orig_secret = @orig_client_secret
     X::Oauth.define_singleton_method(:client_id)     { orig_id.call }
@@ -98,5 +100,36 @@ class XOauthTest < ActionDispatch::IntegrationTest
     sign_in_as(viewer)
     post workspace_oauth_x_connect_path(workspace_slug: @ws.slug)
     assert_response :redirect
+  end
+
+  test "exchange_code retries a transient 503 then succeeds" do
+    calls = 0
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) {
+      calls += 1
+      if calls == 1
+        [ "503", { "title" => "Service Unavailable" } ]
+      else
+        [ "200", { "access_token" => "AT", "refresh_token" => "RT", "expires_in" => 7200, "scope" => "x", "token_type" => "bearer" } ]
+      end
+    }
+    result = X::Oauth.exchange_code(code: "c", redirect_uri: "https://x/cb", code_verifier: "v")
+    assert result.ok?, result.error
+    assert_equal 2, calls, "should have retried once after the 503"
+  end
+
+  test "exchange_code gives up after the retry budget on a persistent 503" do
+    calls = 0
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) { calls += 1; [ "503", {} ] }
+    result = X::Oauth.exchange_code(code: "c", redirect_uri: "https://x/cb", code_verifier: "v")
+    refute result.ok?
+    assert_equal 3, calls, "initial attempt plus two retries"
+  end
+
+  test "exchange_code does not retry a real 4xx (bad/expired code)" do
+    calls = 0
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) { calls += 1; [ "400", { "error" => "invalid_grant" } ] }
+    result = X::Oauth.exchange_code(code: "c", redirect_uri: "https://x/cb", code_verifier: "v")
+    refute result.ok?
+    assert_equal 1, calls, "a 4xx is final, no retry"
   end
 end
