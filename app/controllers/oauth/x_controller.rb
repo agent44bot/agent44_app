@@ -46,6 +46,10 @@ module Oauth
       )
       return halt(social_workspace_path(workspace.slug), "Token exchange failed: #{token.error}") unless token.ok?
 
+      # Observability: the granted scope is the usual reason /2/users/me 401s
+      # (users.read missing). Log it so a failed connect is diagnosable.
+      Rails.logger.info("[oauth/x] exchange ok for #{workspace.slug}: scope=#{token.scope.inspect} token_type=#{token.token_type.inspect}")
+
       me = ::X::Oauth.me(access_token: token.access_token)
       return halt(social_workspace_path(workspace.slug), "Couldn't fetch X profile: #{me.error}") unless me.ok?
 
@@ -82,6 +86,7 @@ module Oauth
     end
 
     def halt(path, message)
+      Rails.logger.warn("[oauth/x] connect halted: #{message}")
       redirect_to path, alert: message
     end
   end
