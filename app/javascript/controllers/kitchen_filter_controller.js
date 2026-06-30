@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Live search for Sam's class list. Typing in the search box filters event
-// cards by their data-search-text (class name + dish/menu + chef). All classes
+// cards by their data-search-text (class name + dish/menu). All classes
 // are already on the page, so this filters instantly with no server round-trip.
 //
 // Weeks start collapsed; a week containing a match is auto-expanded so the hit
