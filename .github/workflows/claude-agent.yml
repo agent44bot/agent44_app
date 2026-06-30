@@ -57,8 +57,8 @@ jobs:
             Post the review as a single PR comment with `gh pr comment`.
             Never use em dashes or en dashes in anything you write.
           claude_args: |
-            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Read,Glob,Grep"
-            --max-turns 25
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh pr checks:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git blame:*),Bash(ls:*),Bash(cat:*),Read,Glob,Grep"
+            --max-turns 40
 
   mention:
     if: |
