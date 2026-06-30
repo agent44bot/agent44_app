@@ -1,7 +1,8 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices ]
+  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices, :social_tabs ]
   before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
   before_action :require_admin,     only: [ :update, :toggle_grocery_prices ]
+  before_action :require_manager,   only: [ :social_tabs ]
   before_action :require_owner,     only: [ :destroy ]
   before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
   def index
@@ -77,6 +78,20 @@ class WorkspacesController < ApplicationController
     redirect_to social_workspace_path(@workspace.slug), notice: "Refreshed metrics on #{count} #{'post'.pluralize(count)}."
   end
 
+  # Owner/admin control over which social platform tabs show on the Social page.
+  # The form submits the checked (visible) keys; unchecked ones are hidden. At
+  # least one tab must stay visible so the page never renders an empty bar.
+  ALL_SOCIAL_TABS = %w[x bluesky threads facebook instagram].freeze
+
+  def social_tabs
+    visible = Array(params[:visible_tabs]).map(&:to_s) & ALL_SOCIAL_TABS
+    if visible.empty?
+      redirect_to social_workspace_path(@workspace.slug), alert: "Keep at least one tab visible." and return
+    end
+    @workspace.update!(hidden_social_tabs: ALL_SOCIAL_TABS - visible)
+    redirect_to social_workspace_path(@workspace.slug), notice: "Updated which social tabs are shown."
+  end
+
   # Workspace agents hub. Today every workspace has just one agent (Social),
   # but the hub gives a consistent shape so future agents (analytics, alerts,
   # etc.) can join the fleet here. NY Kitchen has a richer 4-agent hub at
@@ -145,6 +160,13 @@ class WorkspacesController < ApplicationController
   def require_site_admin
     return if current_user&.admin?
     redirect_to workspaces_path, alert: "Only site admins can create new workspaces during the dogfood phase."
+  end
+
+  # Owner/admin of this workspace (or a site admin) — the tier allowed to manage
+  # workspace-level settings like which social tabs are visible.
+  def require_manager
+    return if @workspace.manager?(current_user)
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace owners and admins can change tabs."
   end
 
   def current_user

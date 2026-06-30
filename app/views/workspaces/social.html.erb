@@ -35,7 +35,11 @@
       <% else %>
         <h1 class="text-2xl font-bold text-white">Social Agent</h1>
       <% end %>
-      <p class="text-xs text-gray-500 font-mono mt-1"><%= @workspace.name %> · /<%= @workspace.slug %> · <%= @workspace.timezone %></p>
+      <%# Internal meta (name / slug / timezone): hidden from clients, kept for
+          site admins. The name already shows in the breadcrumb. %>
+      <% if Current.user&.admin? %>
+        <p class="text-xs text-gray-500 font-mono mt-1"><%= @workspace.name %> · /<%= @workspace.slug %> · <%= @workspace.timezone %></p>
+      <% end %>
     </div>
     <div class="flex items-center gap-2">
       <% if @writer && @connected_platforms.any? %>
@@ -232,6 +236,12 @@
              steps: ["Make sure your Instagram is a Professional account linked to a Facebook Page.", "Click Connect below to log in through Meta.", "Approve access, and you'll come right back here connected."] }
          ] %>
       <% can_connect = %w[owner admin].include?(@my_role) %>
+      <%# Owner/admin can hide platform tabs (e.g. Instagram before it's used).
+          Hidden tabs drop out for everyone; managers re-show them via "Edit
+          tabs". visible_tabs drives both the tab bar and the panels so their
+          indices stay in lockstep with the tabs Stimulus controller. %>
+      <% hidden_tab_keys = @workspace.hidden_social_tabs %>
+      <% visible_tabs    = platform_tabs.reject { |t| hidden_tab_keys.include?(t[:key]) } %>
 
       <div class="mt-6" data-controller="tabs"
            data-tabs-active-classes-value="text-white border-orange-500"
@@ -261,6 +271,29 @@
                 <span id="ws-ai-cost-delta" class="font-mono text-green-400 opacity-0 transition-opacity duration-500"></span>
               </span>
             <% end %>
+            <% if can_connect %>
+              <%# Native <details> disclosure: no JS, closes on outside click via
+                  the page. Checked = visible; submit hides the unchecked ones. %>
+              <details class="relative">
+                <summary class="text-xs text-gray-400 hover:text-orange-400 cursor-pointer list-none flex items-center gap-1" title="Show or hide platform tabs">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                  Edit tabs
+                </summary>
+                <%= form_with url: social_tabs_workspace_path(@workspace.slug), method: :patch,
+                      data: { turbo: false },
+                      class: "absolute right-0 z-20 mt-2 w-44 rounded-md border border-gray-800 bg-gray-900 p-3 shadow-lg space-y-2 text-left" do %>
+                  <p class="text-xs text-gray-500">Show these tabs:</p>
+                  <% platform_tabs.each do |t| %>
+                    <label class="flex items-center gap-2 text-xs text-gray-300">
+                      <%= check_box_tag "visible_tabs[]", t[:key], !hidden_tab_keys.include?(t[:key]),
+                            class: "rounded border-gray-700 bg-gray-800 text-orange-500 focus:ring-orange-500" %>
+                      <%= t[:label] %>
+                    </label>
+                  <% end %>
+                  <%= submit_tag "Save", class: "w-full text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
+                <% end %>
+              </details>
+            <% end %>
             <%= button_to refresh_metrics_workspace_path(@workspace.slug),
                 method: :post,
                 class: "text-xs text-gray-400 hover:text-orange-400 cursor-pointer flex items-center gap-1",
@@ -274,7 +307,7 @@
         </div>
 
         <div class="flex items-center gap-1 border-b border-gray-800 mb-3 overflow-x-auto">
-          <% platform_tabs.each_with_index do |t, i| %>
+          <% visible_tabs.each_with_index do |t, i| %>
             <% account = accounts_by_platform[t[:key]]&.first %>
             <button type="button" data-tabs-target="tab" data-action="click->tabs#select"
                     data-tab-index="<%= i %>" data-tab-name="<%= t[:key] %>"
@@ -289,7 +322,7 @@
           <% end %>
         </div>
 
-        <% platform_tabs.each_with_index do |t, i| %>
+        <% visible_tabs.each_with_index do |t, i| %>
           <% posts   = posts_by_platform[t[:key]] || [] %>
           <% account = accounts_by_platform[t[:key]]&.first %>
           <% connect_control = capture do %>
@@ -319,11 +352,16 @@
                 </div>
               </div>
               <% if posts.any? %>
-                <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-                  <% posts.each do |p| %>
-                    <%= render "workspaces/post_card", p: p, workspace: @workspace, writer: @writer %>
-                  <% end %>
-                </div>
+                <%# Posts come back newest-first, so grouping by day yields
+                    Today, then Yesterday, then older dates in order. %>
+                <% posts.group_by { |p| social_post_day_label(p.created_at, @workspace.timezone) }.each do |day_label, day_posts| %>
+                  <h4 class="text-xs uppercase tracking-wide text-gray-500 mt-4 mb-2 first:mt-0"><%= day_label %></h4>
+                  <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+                    <% day_posts.each do |p| %>
+                      <%= render "workspaces/post_card", p: p, workspace: @workspace, writer: @writer %>
+                    <% end %>
+                  </div>
+                <% end %>
               <% else %>
                 <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-sm text-gray-500">No <%= t[:label] %> posts yet.</div>
               <% end %>

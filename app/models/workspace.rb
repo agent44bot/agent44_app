@@ -1,6 +1,10 @@
 class Workspace < ApplicationRecord
   ROLES = %w[owner admin editor viewer].freeze
 
+  # Free-form per-workspace preferences (JSON in the `settings` text column).
+  # Currently holds hidden_social_tabs; safe to grow with other UI prefs.
+  serialize :settings, coder: JSON, type: Hash
+
   belongs_to :owner, class_name: "User"
 
   has_many :memberships,       class_name: "WorkspaceMembership", dependent: :destroy
@@ -100,6 +104,17 @@ class Workspace < ApplicationRecord
   # multiplier; every other workspace uses this column.
   def effective_usage_multiplier
     (usage_multiplier || 1.0).to_f
+  end
+
+  # Social platform tabs an owner/admin has hidden from the Social page (array
+  # of platform keys, e.g. ["instagram", "facebook"]). Hidden for everyone,
+  # including managers, until re-shown via the "Edit tabs" control.
+  def hidden_social_tabs
+    Array((settings || {})["hidden_social_tabs"])
+  end
+
+  def hidden_social_tabs=(keys)
+    self.settings = (settings || {}).merge("hidden_social_tabs" => Array(keys).map(&:to_s).uniq)
   end
 
   private

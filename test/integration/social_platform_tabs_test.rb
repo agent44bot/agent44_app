@@ -54,4 +54,55 @@ class SocialPlatformTabsTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: /Connected accounts/, count: 0
     assert_select "button[aria-label=?]", "Social Agent settings", count: 0
   end
+
+  test "owner/admin can hide a tab and it drops out for everyone" do
+    sign_in_as(@owner)
+    patch social_tabs_workspace_path(@ws.slug), params: { visible_tabs: %w[x bluesky threads facebook] }
+    assert_redirected_to social_workspace_path(@ws.slug)
+    assert_equal %w[instagram], @ws.reload.hidden_social_tabs
+
+    get social_workspace_path(@ws.slug)
+    assert_select "[data-tab-name=instagram]", count: 0
+    assert_select "[data-tab-name=x]"
+    refute_match "Instagram isn't connected yet", response.body, "the hidden tab's panel should be gone too"
+  end
+
+  test "hiding every tab is rejected so the bar never empties" do
+    sign_in_as(@owner)
+    patch social_tabs_workspace_path(@ws.slug), params: { visible_tabs: [] }
+    assert_redirected_to social_workspace_path(@ws.slug)
+    assert_equal [], @ws.reload.hidden_social_tabs
+  end
+
+  test "non-managers cannot change tabs and never see the Edit tabs control" do
+    editor = User.create!(email_address: "ed-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: editor, role: "editor")
+    sign_in_as(editor)
+
+    get social_workspace_path(@ws.slug)
+    assert_select "summary", text: /Edit tabs/, count: 0
+
+    patch social_tabs_workspace_path(@ws.slug), params: { visible_tabs: %w[x] }
+    assert_redirected_to social_workspace_path(@ws.slug)
+    assert_equal [], @ws.reload.hidden_social_tabs, "editor must not change visibility"
+  end
+
+  test "managers see the Edit tabs control" do
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+    assert_select "summary", text: /Edit tabs/
+  end
+
+  test "recent posts are grouped under Today / Yesterday / dated headers" do
+    # The setup X post is from today; add an older one on the X tab.
+    @ws.workspace_posts.create!(author: @owner, platform: "x", body: "OLD X POST", status: "posted",
+      remote_id: "9", remote_url: "https://x.com/goe/status/9", posted_at: 1.day.ago, created_at: 1.day.ago)
+
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+
+    assert_select "[data-tab-name=x]" # sanity
+    assert_select "h4", text: "Today"
+    assert_select "h4", text: "Yesterday"
+  end
 end
