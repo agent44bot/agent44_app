@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-30
+  note: Social posts no longer fail when they run long. Each network now gets a version trimmed to its own size limit (X is the shortest), keeping the reservation link, so a post can go to X, Bluesky, and Facebook at once without one of them rejecting it.
+
+- date: 2026-06-30
   note: Private bookings and buyouts (anything marked Private) no longer show on the printed class flyer or the bathroom stall poster, so those handouts only list classes the public can actually book.
 
 - date: 2026-06-28
