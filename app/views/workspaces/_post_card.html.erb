@@ -33,6 +33,14 @@
     </div>
   </div>
   <p class="text-sm text-white whitespace-pre-wrap break-words"><%= p.body %></p>
+  <% if p.image_url.present? %>
+    <%# Attached image (stored as a plain URL on the post). Shown as a small
+        thumbnail that opens the full image in a new tab. %>
+    <a href="<%= p.image_url %>" target="_blank" rel="noopener" class="inline-block mt-2">
+      <%= image_tag p.image_url, alt: "Attached image", loading: "lazy",
+            class: "h-20 w-20 object-cover rounded-md border border-gray-800 hover:opacity-90 transition" %>
+    </a>
+  <% end %>
   <% if p.failed? && p.error.present? %>
     <p class="text-xs text-red-500 mt-1 font-mono break-words"><%= p.error %></p>
   <% end %>
