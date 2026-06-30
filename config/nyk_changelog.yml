@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-30
+  note: Connecting X is more reliable too. If X has a brief hiccup during the connect step, the app now retries automatically instead of making you start the authorize flow over.
+
+- date: 2026-06-30
   note: Your X connection is steadier. A brief X outage no longer kicks the account into "needs reconnect"; the system now waits and retries on its own, and only asks you to reconnect when X has actually revoked access.
 
 - date: 2026-06-30
