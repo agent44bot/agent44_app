@@ -39,11 +39,13 @@ module WorkspacePosts
           next
         end
 
+        body = fit_for(platform)
+
         post = @workspace.workspace_posts.create!(
           author:         @author,
           social_account: account,
           platform:       platform,
-          body:           @body,
+          body:           body,
           image_url:      @image_url,
           source_url:     @source_url,
           status:         "pending"
@@ -51,7 +53,7 @@ module WorkspacePosts
         post.image.attach(@image.blob) if @image
         rows << post
 
-        result = call_client(platform, account)
+        result = call_client(platform, account, body)
 
         if result&.ok?
           url = remote_url_for(platform, account, result)
@@ -69,37 +71,55 @@ module WorkspacePosts
 
     private
 
-    def call_client(platform, account)
+    def call_client(platform, account, body)
       case platform
-      when "x"        then post_to_x(account)
-      when "bluesky"  then post_to_bluesky(account)
-      when "threads"  then Threads::UserClient.new(account).post_text(@body)
-      when "facebook" then Facebook::UserClient.new(account).post_text(@body)
+      when "x"        then post_to_x(account, body)
+      when "bluesky"  then post_to_bluesky(account, body)
+      when "threads"  then Threads::UserClient.new(account).post_text(body)
+      when "facebook" then Facebook::UserClient.new(account).post_text(body)
       end
+    end
+
+    # Fit the body to the platform's character limit so one draft can go out
+    # everywhere without a single platform hard-failing on length. X counts a
+    # link as 23 chars (t.co), so links don't eat its budget.
+    PLATFORM_LIMITS = {
+      "x"        => X::UserClient::MAX_TWEET_LENGTH,
+      "bluesky"  => Bluesky::UserClient::MAX_LENGTH,
+      "threads"  => Threads::UserClient::MAX_LENGTH,
+      "facebook" => Facebook::UserClient::MAX_LENGTH
+    }.freeze
+
+    def fit_for(platform)
+      Fitter.fit(
+        @body,
+        limit:      PLATFORM_LIMITS[platform],
+        url_weight: platform == "x" ? X::UserClient::TCO_URL_LENGTH : nil
+      )
     end
 
     # X needs native media: upload the attached image first to get a media_id,
     # then attach it to the tweet. No image -> plain text tweet.
-    def post_to_x(account)
+    def post_to_x(account, body)
       client = X::UserClient.new(account)
-      return client.post_tweet(@body) unless @image
+      return client.post_tweet(body) unless @image
 
       upload = client.upload_media(@image.download, @image.content_type)
       return X::UserClient::Result.new(ok?: false, error: "image upload: #{upload.error}") unless upload.ok?
 
-      client.post_tweet(@body, media_ids: [ upload.media_id ])
+      client.post_tweet(body, media_ids: [ upload.media_id ])
     end
 
     # Bluesky takes a native blob. Prefer the attached image (downscaled to fit
     # Bluesky's 1MB blob limit); fall back to the URL-based image for posts that
     # only carry an image_url. No image -> plain text.
-    def post_to_bluesky(account)
+    def post_to_bluesky(account, body)
       client = Bluesky::UserClient.new(account)
       if @image
         bytes, mime = bluesky_image_bytes
-        return client.post_text(@body, image_bytes: bytes, image_content_type: mime) if bytes
+        return client.post_text(body, image_bytes: bytes, image_content_type: mime) if bytes
       end
-      client.post_text(@body, image_url: @image_url)
+      client.post_text(body, image_url: @image_url)
     end
 
     # Returns [bytes, mime] for the attached image, downscaled under Bluesky's

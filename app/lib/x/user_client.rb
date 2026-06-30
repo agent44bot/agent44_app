@@ -11,12 +11,20 @@ module X
     TWEET_URL  = "https://api.x.com/2/tweets" # /:id appended at call site
     MEDIA_URL  = "https://api.x.com/2/media/upload"
     MAX_TWEET_LENGTH = 280
+    TCO_URL_LENGTH   = 23 # X wraps every link in a t.co shortlink of this fixed length
+    URL_RE           = %r{https?://\S+}
     # X allows up to 5MB for a tweet image. We guard here so an oversized
     # upload fails fast with a clear message instead of a confusing API error.
     MAX_IMAGE_BYTES  = 5 * 1024 * 1024
 
     Result      = Struct.new(:ok?, :tweet_id, :error, keyword_init: true)
     MediaResult = Struct.new(:ok?, :media_id, :error, keyword_init: true)
+
+    # Length the way X counts it: every link is 23 chars regardless of its real
+    # length, so a long reservation URL doesn't push an otherwise-fine tweet over.
+    def self.tweet_length(text)
+      text.to_s.gsub(URL_RE) { "x" * TCO_URL_LENGTH }.length
+    end
 
     class << self
       # Stub signature: ->(method, url, payload_or_nil, bearer) -> { status:, body: }
@@ -34,7 +42,7 @@ module X
       return Result.new(ok?: false, error: "Account is not X")               unless @account.platform == "x"
       return Result.new(ok?: false, error: "Account needs reauth")           if @account.status != "active"
       return Result.new(ok?: false, error: "Tweet is empty")                 if text.to_s.strip.empty?
-      return Result.new(ok?: false, error: "Tweet exceeds #{MAX_TWEET_LENGTH} chars") if text.length > MAX_TWEET_LENGTH
+      return Result.new(ok?: false, error: "Tweet exceeds #{MAX_TWEET_LENGTH} chars") if self.class.tweet_length(text) > MAX_TWEET_LENGTH
 
       payload = { text: text }
       payload[:media] = { media_ids: Array(media_ids).map(&:to_s) } if Array(media_ids).any?
