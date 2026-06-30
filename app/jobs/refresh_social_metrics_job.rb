@@ -43,6 +43,13 @@ class RefreshSocialMetricsJob < ApplicationJob
 
     return false unless metrics
 
+    # Snapshot the engagement counts before the update so we can tell members
+    # about NEW activity. Skip the alert on a post's very first sync: there's no
+    # prior baseline, so the whole current count would read as "new" and spam a
+    # burst (especially right after this ships, when every old post syncs once).
+    had_prior_sync = post.metrics_synced_at.present?
+    before = ENGAGEMENT_FIELDS.keys.index_with { |f| post.public_send(f).to_i }
+
     post.update!(
       impressions:       metrics[:impressions].to_i,
       likes:             metrics[:likes].to_i,
@@ -52,9 +59,62 @@ class RefreshSocialMetricsJob < ApplicationJob
       bookmarks:         metrics[:bookmarks].to_i,
       metrics_synced_at: Time.current
     )
+
+    notify_new_engagement(post, before) if had_prior_sync
     true
   rescue => e
     Rails.logger.warn("RefreshSocialMetricsJob: WorkspacePost ##{post.id} failed: #{e.class}: #{e.message}")
     false
+  end
+
+  # Engagement metrics we alert on (impressions/bookmarks are passive, skipped),
+  # mapped to their singular human label for the push copy.
+  ENGAGEMENT_FIELDS = { likes: "like", reposts: "repost", quotes: "quote", replies: "reply" }.freeze
+
+  # Push a "your post got new engagement" alert to every workspace member when
+  # any tracked metric went up since the last sync. Per-user and per-workspace
+  # push opt-outs are honored inside Notification.notify!. One push per post per
+  # refresh; the body summarizes all the deltas (e.g. "+2 likes, +1 reply").
+  def notify_new_engagement(post, before)
+    deltas = ENGAGEMENT_FIELDS.keys.filter_map do |f|
+      gained = post.public_send(f).to_i - before[f]
+      [ f, gained ] if gained.positive?
+    end
+    return if deltas.empty?
+
+    workspace = post.workspace
+    return unless workspace
+
+    summary  = deltas.map { |f, n| "+#{n} #{ENGAGEMENT_FIELDS[f].pluralize(n)}" }.join(", ")
+    platform = post.platform == "x" ? "X" : post.platform.titleize
+    snippet  = post.body.to_s.gsub(/\s+/, " ").strip.truncate(80)
+
+    workspace.users.find_each do |user|
+      Notification.notify!(
+        level:         "info",
+        source:        "social_engagement",
+        title:         "#{summary} on your #{platform} post",
+        body:          snippet.presence,
+        apns:          true,
+        apns_url:      social_path_for(workspace),
+        apns_subtitle: social_agent_label(workspace),
+        apns_user:     user,
+        workspace:     workspace
+      )
+    end
+  end
+
+  # In-app deep link to the workspace's social page. NY Kitchen has its own
+  # slug-baked route; everything else uses the generic workspace social path.
+  def social_path_for(workspace)
+    helpers = Rails.application.routes.url_helpers
+    workspace.slug == "nykitchen" ? helpers.nyk_social_path : helpers.social_workspace_path(workspace.slug)
+  end
+
+  # Subtitle on the push: the social agent's name (NY Kitchen's is "Echo").
+  def social_agent_label(workspace)
+    name = workspace.agent_for("social")&.display_name.presence
+    name ||= "Echo" if workspace.slug == "nykitchen"
+    "#{name || 'Social'} · #{workspace.name}"
   end
 end
