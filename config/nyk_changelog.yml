@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-30
+  note: Your X connection is steadier. A brief X outage no longer kicks the account into "needs reconnect"; the system now waits and retries on its own, and only asks you to reconnect when X has actually revoked access.
+
+- date: 2026-06-30
   note: Echo now sends a phone notification when one of your X or Bluesky posts gets new likes, reposts, or replies (for example "+2 likes, +1 reply on your X post"). Everyone on the NY Kitchen team gets it, and anyone can mute these from their notification settings.
 
 - date: 2026-06-30
