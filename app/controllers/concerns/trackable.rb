@@ -15,6 +15,7 @@ module Trackable
     return if controller_path.start_with?("api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
     return if bot_request?
+    return if EXCLUDED_IPS.include?(client_ip)
 
     # Public (allow_unauthenticated_access) actions skip require_authentication,
     # so Current.session is never resumed there and signed-in users were
@@ -31,9 +32,7 @@ module Trackable
     TrackPageViewJob.perform_later(
       path: tracked_path,
       method: request.method,
-      # Fly's edge proxy is what remote_ip sees (the public proxy hop isn't
-      # trusted); the real client IP arrives in Fly-Client-IP.
-      ip_address: request.headers["Fly-Client-IP"].presence || request.remote_ip,
+      ip_address: client_ip,
       user_agent: request.user_agent,
       referrer: request.referrer,
       user_id: Current.user&.id,
@@ -72,6 +71,22 @@ module Trackable
   # PageView tracking for every real user. UA-based bot filtering below
   # still catches actual crawlers.
   BLOCKED_IPS = Set.new.freeze
+
+  # Real client IPs to leave out of analytics entirely — our own traffic,
+  # so dogfooding and "View as" QA don't pollute the visitor stats. Matched
+  # against the Fly-Client-IP client address (see #client_ip), NOT
+  # request.remote_ip (which is fly's edge proxy). Residential IPs can
+  # change; update here if owner traffic starts showing up again.
+  EXCLUDED_IPS = Set[
+    "8.47.103.237" # owner (botwhisperer / Penfield)
+  ].freeze
+
+  # The true client address. Fly's edge proxy is what remote_ip sees (the
+  # public proxy hop isn't trusted), so the real client IP arrives in the
+  # Fly-Client-IP header.
+  def client_ip
+    request.headers["Fly-Client-IP"].presence || request.remote_ip
+  end
 
   def bot_request?
     return true if BLOCKED_IPS.include?(request.remote_ip)
