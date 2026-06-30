@@ -214,6 +214,26 @@
     </div>
   <% end %>
 
+  <%# Field Roster — the agent cards. Collapsible (state persisted per browser)
+      and kept at the bottom so the hub opens clean. Collapsed by default; once a
+      user expands it, the choice sticks. The header keeps the agent count and
+      any "needs attention" tally visible in both states. Card ordering still
+      floats the most-used / any failing agent first (see hub_card_order). %>
+  <section data-controller="collapsible"
+           data-collapsible-collapsed-value="true"
+           data-collapsible-persist-key-value="nyk-roster"
+           data-collapsible-scroll-on-expand-value="true">
+    <button type="button" data-action="click->collapsible#toggle"
+            class="group flex items-center justify-between w-full mb-4 px-1 text-left">
+      <span class="flex items-baseline gap-2 min-w-0">
+        <span class="ra-eyebrow">Field Roster</span>
+        <span class="text-sm text-gray-500"><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %><% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
+      </span>
+      <svg data-collapsible-target="icon" class="w-5 h-5 shrink-0 text-gray-500 group-hover:text-gray-300 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+    <div data-collapsible-target="body">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr <%= "pay-on" if @can_see_pricing %>">
     <%# Analyst / Iris (no liveness dot — it's a dashboard, not a worker) %>
     <%= link_to nyk_analyst_path, class: "ra-card", style: accent_style.call(:analyst) do %>
@@ -537,5 +557,7 @@
     </div>
 
   </div>
+    </div>
+  </section>
 
 </div>

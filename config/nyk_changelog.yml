@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-06-30
+  note: The agent cards on the NY Kitchen home page now sit in a collapsible "Field Roster" section at the bottom, so the page opens clean. Tap the header to expand or collapse; your choice is remembered. The header always shows how many agents are on duty and how many need attention.
+
+- date: 2026-06-30
   note: Every agent page (and the NY Kitchen home page) now shows a breadcrumb trail at the top (Workspaces / NY Kitchen / agent), so you always know where you are and can jump back in one tap.
 
 - date: 2026-06-30
