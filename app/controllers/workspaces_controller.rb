@@ -2,7 +2,8 @@ class WorkspacesController < ApplicationController
   before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices, :social_tabs, :connect_chats ]
   before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
   before_action :require_admin,     only: [ :update, :toggle_grocery_prices ]
-  before_action :require_manager,   only: [ :social_tabs, :connect_chats ]
+  before_action :require_manager,   only: [ :social_tabs ]
+  before_action :require_site_admin_view, only: [ :connect_chats ]
   before_action :require_owner,     only: [ :destroy ]
   before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
   def index
@@ -187,6 +188,14 @@ class WorkspacesController < ApplicationController
   def require_manager
     return if @workspace.manager?(current_user)
     redirect_to social_workspace_path(@workspace.slug), alert: "Only workspace owners and admins can change tabs."
+  end
+
+  # Agent44 team (site admin) only — keeps the connect-help transcripts private
+  # to us, not visible to workspace owners/admins (clients). Uses Current.user
+  # so "View as" impersonation correctly hides it (you see the client's view).
+  def require_site_admin_view
+    return if current_user&.admin?
+    redirect_to social_workspace_path(@workspace.slug), alert: "Only the Agent44 team can view this."
   end
 
   def current_user
