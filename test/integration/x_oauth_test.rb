@@ -132,4 +132,63 @@ class XOauthTest < ActionDispatch::IntegrationTest
     refute result.ok?
     assert_equal 1, calls, "a 4xx is final, no retry"
   end
+
+  test "me retries a transient 401 then returns the profile" do
+    calls = 0
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) {
+      calls += 1
+      if calls == 1
+        [ "401", { "title" => "Unauthorized" } ]
+      else
+        [ "200", { "data" => { "id" => "42", "username" => "magenta", "name" => "Magenta" } } ]
+      end
+    }
+    result = X::Oauth.me(access_token: "AT")
+    assert result.ok?, result.error
+    assert_equal "magenta", result.username
+    assert_equal 2, calls, "should have retried once after the 401"
+  end
+
+  test "me retries a transient 503 then returns the profile" do
+    calls = 0
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) {
+      calls += 1
+      calls == 1 ? [ "503", {} ] : [ "200", { "data" => { "id" => "7", "username" => "u", "name" => "U" } } ]
+    }
+    result = X::Oauth.me(access_token: "AT")
+    assert result.ok?, result.error
+    assert_equal 2, calls
+  end
+
+  test "me gives up after the retry budget on a persistent 401" do
+    calls = 0
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) { calls += 1; [ "401", { "title" => "Unauthorized" } ] }
+    result = X::Oauth.me(access_token: "AT")
+    refute result.ok?
+    assert_equal 3, calls, "initial attempt plus two retries"
+  end
+
+  test "connect callback survives a transient 401 on the profile read" do
+    attempt = 0
+    X::Oauth.http_stub = ->(method, url, _params, headers) {
+      case [ method, url ]
+      when [ :post, X::Oauth::TOKEN_URL ]
+        [ "200", { "access_token" => "AT", "refresh_token" => "RT", "expires_in" => 7200,
+                  "scope" => "tweet.read users.read offline.access", "token_type" => "bearer" } ]
+      when [ :get, X::Oauth::ME_URL ]
+        attempt += 1
+        attempt == 1 ? [ "401", { "title" => "Unauthorized" } ] : [ "200", { "data" => { "id" => "99", "username" => "nyk", "name" => "NYK" } } ]
+      else
+        raise "unexpected #{method} #{url}"
+      end
+    }
+    sign_in_as(@owner)
+    post workspace_oauth_x_connect_path(workspace_slug: @ws.slug)
+    state = Rack::Utils.parse_query(URI(response.headers["Location"]).query)["state"]
+
+    assert_difference -> { SocialAccount.count }, 1 do
+      get oauth_x_callback_path, params: { code: "fake", state: state }
+    end
+    assert_equal "@nyk", @ws.social_accounts.last.handle
+  end
 end

@@ -28,7 +28,18 @@ module X
         s.empty? || s.start_with?("5") || s == "429"
       end
     end
-    UserResult  = Struct.new(:ok?, :id, :username, :name, :error, keyword_init: true)
+    UserResult  = Struct.new(:ok?, :id, :username, :name, :error, :status, keyword_init: true) do
+      # The profile read happens right after we mint a token during connect, so
+      # a 401/5xx/429/network there is treated as a transient X hiccup and
+      # retried (bounded). A genuinely bad token still settles out after the
+      # retry budget. (Looser than TokenResult#retryable?, which excludes 401,
+      # because here we already hold a freshly issued token.)
+      def retryable?
+        return false if ok?
+        s = status.to_s
+        s.empty? || s.start_with?("5") || s == "429" || s == "401"
+      end
+    end
 
     class << self
       # Swap with a Proc(method, url, params|nil, headers) -> [status, body_hash] in tests.
@@ -90,19 +101,29 @@ module X
         post_token_form(grant_type: "refresh_token", refresh_token: refresh_token, client_id: client_id)
       end
 
+      # Read the connecting user's profile. X sometimes 401s/5xxs this call for
+      # a moment right after issuing the token (seen during X outages), which
+      # would otherwise fail the whole connect even though the token is good, so
+      # retry transient failures (bounded) before giving up.
       def me(access_token:)
-        status, body = get_json(ME_URL, headers: { "Authorization" => "Bearer #{access_token}" })
-        if status == "200"
-          data = body["data"] || {}
-          UserResult.new(ok?: true, id: data["id"], username: data["username"], name: data["name"])
-        else
-          UserResult.new(ok?: false, error: format_error(status, body))
-        end
-      rescue => e
-        UserResult.new(ok?: false, error: "#{e.class}: #{e.message}")
+        with_token_retry { fetch_me(access_token) }
       end
 
       private
+
+      # GET /2/users/me, never raising: a network error becomes a transient
+      # result (status nil -> retryable?) so with_token_retry retries it.
+      def fetch_me(access_token)
+        status, body = get_json(ME_URL, headers: { "Authorization" => "Bearer #{access_token}" })
+        if status == "200"
+          data = body["data"] || {}
+          UserResult.new(ok?: true, status: status, id: data["id"], username: data["username"], name: data["name"])
+        else
+          UserResult.new(ok?: false, status: status, error: format_error(status, body))
+        end
+      rescue => e
+        UserResult.new(ok?: false, status: nil, error: "#{e.class}: #{e.message}")
+      end
 
       # POST the token endpoint and parse, never raising: a network/timeout
       # error becomes a transient result (status nil -> retryable?), so callers
