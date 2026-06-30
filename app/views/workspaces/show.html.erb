@@ -4,11 +4,9 @@
      data-controller="collapsible"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <% if show_workspaces_crumb? %>
-    <div class="flex items-center gap-3 mb-6 text-sm">
-      <%= render "shared/breadcrumbs", crumbs: [["Workspaces", workspaces_path(force: 1)], [@workspace.name, nil]] %>
-    </div>
-  <% end %>
+  <div class="flex items-center gap-3 mb-6 text-sm">
+    <%= render "shared/breadcrumbs", crumbs: [["Workspaces", workspaces_path(force: 1)], [@workspace.name, nil]] %>
+  </div>
 
   <div class="mb-8 flex items-start justify-between gap-2 flex-wrap">
     <div>

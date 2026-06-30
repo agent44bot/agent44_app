@@ -4,7 +4,7 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="flex items-center justify-between gap-3 mb-6 text-sm">
-    <% ws_root = show_workspaces_crumb? ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
+    <% ws_root = [["Workspaces", workspaces_path(force: 1)]] %>
     <%= render "shared/breadcrumbs", crumbs: ws_root + [[@workspace.name, workspace_path(@workspace.slug)], ["AI usage", nil]] %>
     <%= back_button "← #{@workspace.name}", workspace_path(@workspace.slug) %>
   </div>
