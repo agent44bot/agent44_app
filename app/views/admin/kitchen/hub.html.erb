@@ -169,28 +169,28 @@
      data-controller="collapsible"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <%# Breadcrumbs on the left, Settings right-aligned on the same line. %>
-  <div class="flex items-start justify-between gap-3">
-    <%= render "admin/kitchen/breadcrumbs" %>
-    <% if @nyk_workspace %>
-      <button type="button"
-              data-action="click->collapsible#toggle"
-              aria-label="Workspace settings"
-              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
-        </svg>
-        Settings
-      </button>
-    <% end %>
-  </div>
-  <%# "Track users" moved to the top nav (admin-only, all pages). %>
-  <div class="flex items-center mb-6 text-sm">
-    <%= link_to nyk_guide_path, target: "_blank", rel: "noopener",
-          class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition",
-          title: "Open the NY Kitchen how-to guide (PDF)" do %>
-      📖 How-to guide
-    <% end %>
+  <%# Breadcrumbs on the left; page actions (guide + settings) grouped on the
+      right so the header row stays balanced. %>
+  <div class="flex items-center justify-between gap-3 mb-6">
+    <%= render "admin/kitchen/breadcrumbs", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %>
+    <div class="flex items-center gap-2 shrink-0">
+      <%= link_to nyk_guide_path, target: "_blank", rel: "noopener",
+            class: "inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition",
+            title: "Open the NY Kitchen how-to guide (PDF)" do %>
+        📖 How-to guide
+      <% end %>
+      <% if @nyk_workspace %>
+        <button type="button"
+                data-action="click->collapsible#toggle"
+                aria-label="Workspace settings"
+                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition text-sm font-medium">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+          </svg>
+          Settings
+        </button>
+      <% end %>
+    </div>
   </div>
 
   <div class="mb-8">

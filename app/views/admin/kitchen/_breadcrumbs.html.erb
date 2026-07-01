@@ -9,7 +9,8 @@
 <% kind    = local_assigns[:kind].presence %>
 <% current = local_assigns[:current].presence ||
              (kind && nyk_agent_callsign(kind, (@workspace_agents && @workspace_agents[kind.to_s]))) %>
-<nav aria-label="Breadcrumb" class="flex items-center gap-2 min-w-0 mb-6 text-base text-gray-400">
+<% wrapper_class = local_assigns[:wrapper_class].presence || "flex items-center gap-2 min-w-0 mb-6 text-base text-gray-400" %>
+<nav aria-label="Breadcrumb" class="<%= wrapper_class %>">
   <%= link_to "Workspaces", workspaces_path, class: "hover:text-orange-400 transition" %>
   <span class="text-gray-600" aria-hidden="true">/</span>
   <% if current %>
