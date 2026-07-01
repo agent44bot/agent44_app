@@ -223,32 +223,21 @@
     </div>
   <% end %>
 
-  <%# Field Roster — the agent cards. Expanded by default so the hub opens with
-      the dashboard visible, but collapsible: tap the header to fold the cards
-      away, and the choice is remembered per browser (persistKey). The header
-      keeps the agent count and any "needs attention" tally visible in both
-      states. Card ordering still floats the most-used / any failing agent
-      first (see hub_card_order). %>
+  <%# Field Roster — the agent cards. The header shows the agent count and any
+      "needs attention" tally. Background agents hide/show individually via the
+      per-user toggles above; card ordering floats the most-used / any failing
+      agent first (see hub_card_order). %>
   <%# Card show/hide is per user, not per browser: scope the localStorage key to
       the current user id so "View as" (impersonation) and shared devices don't
       leak one person's choices onto another. Current.user is the impersonated
       user during "View as". %>
-  <section data-controller="collapsible roster"
-           data-collapsible-collapsed-value="false"
-           data-collapsible-persist-key-value="nyk-roster"
-           data-collapsible-scroll-on-expand-value="true"
+  <section data-controller="roster"
            data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
-    <button type="button" data-action="click->collapsible#toggle"
-            class="group flex items-center justify-between w-full mb-4 px-1 text-left">
-      <span class="flex items-baseline gap-2 min-w-0">
-        <span class="ra-eyebrow">Field Roster</span>
-        <span class="text-sm text-gray-500"><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %><% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
-      </span>
-      <svg data-collapsible-target="icon" class="w-5 h-5 shrink-0 text-gray-500 group-hover:text-gray-300 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-      </svg>
-    </button>
-    <div data-collapsible-target="body">
+    <div class="flex items-baseline gap-2 min-w-0 mb-4 px-1">
+      <span class="ra-eyebrow">Field Roster</span>
+      <span class="text-sm text-gray-500"><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %><% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
+    </div>
+    <div>
     <%# Background agents: run on their own schedule, kept off the default board
         (Neon, Sam, Echo stay up top). Each chip toggles its card show/hide,
         scoped per user (see roster_controller + data-roster-storage-key-value). %>
