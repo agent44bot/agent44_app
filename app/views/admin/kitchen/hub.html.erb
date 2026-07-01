@@ -166,20 +166,32 @@
 %>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
-     data-controller="collapsible"
-     data-collapsible-collapsed-value="true"
-     data-collapsible-scroll-on-expand-value="true">
-  <%= render "admin/kitchen/breadcrumbs" %>
-  <%# "Track users" moved to the top nav (admin-only, all pages). %>
-  <div class="flex items-center mb-6 text-sm">
-    <%= link_to nyk_guide_path, target: "_blank", rel: "noopener",
-          class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition",
-          title: "Open the NY Kitchen how-to guide (PDF)" do %>
-      📖 How-to guide
-    <% end %>
+     data-controller="settings-modal">
+  <%# Breadcrumbs on the left; page actions (guide + settings) grouped on the
+      right so the header row stays balanced. %>
+  <div class="flex items-center justify-between gap-3 mb-6">
+    <%= render "admin/kitchen/breadcrumbs", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %>
+    <div class="flex items-center gap-2 shrink-0">
+      <%= link_to nyk_guide_path, target: "_blank", rel: "noopener",
+            class: "inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition",
+            title: "Open the NY Kitchen how-to guide (PDF)" do %>
+        📖 How-to guide
+      <% end %>
+      <% if @nyk_workspace %>
+        <button type="button"
+                data-action="click->settings-modal#open"
+                aria-label="Workspace settings"
+                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition text-sm font-medium">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+          </svg>
+          Settings
+        </button>
+      <% end %>
+    </div>
   </div>
 
-  <div class="mb-8 flex items-start justify-between gap-3">
+  <div class="mb-8">
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
       <% if @nyk_workspace&.logo&.attached? %>
         <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-12 sm:h-16 w-auto max-w-[70%] sm:max-w-none object-contain shrink-0" %>
@@ -193,62 +205,52 @@
         </p>
       </div>
     </div>
-    <% if @nyk_workspace %>
-      <button type="button"
-              data-action="click->collapsible#toggle"
-              aria-label="Workspace settings"
-              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
-        </svg>
-        Settings
-      </button>
-    <% end %>
   </div>
 
   <% if @nyk_workspace %>
-    <div data-collapsible-target="body" class="mb-8">
-      <% if @can_see_pricing %>
-        <%= link_to nyk_billing_path,
-              class: "flex items-center justify-center gap-2 w-full px-4 py-3 mb-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition" do %>
-          💵 Billing
-        <% end %>
-      <% end %>
-      <%= render "workspaces/team",
-            workspace:       @nyk_workspace,
-            memberships:     @nyk_memberships,
-            invitations:     @nyk_invitations,
-            social_accounts: @nyk_social_accounts,
-            my_role:         @nyk_my_role %>
-    </div>
+    <%# Settings live in a modal (opened by the Settings button) so they overlay
+        the page instead of pushing the roster down. Native <dialog>: ESC, the
+        close button, and a backdrop click all dismiss it. %>
+    <dialog data-settings-modal-target="dialog"
+            data-action="click->settings-modal#backdropClose"
+            class="bg-transparent backdrop:bg-black/80 p-0 w-[92vw] max-w-2xl fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
+      <div class="bg-gray-900 rounded-xl border border-gray-800 max-h-[85vh] overflow-y-auto">
+        <div class="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-800 bg-gray-900">
+          <span class="ra-eyebrow">Settings</span>
+          <button type="button" data-action="click->settings-modal#close" aria-label="Close settings"
+                  class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <div class="p-5">
+          <% if @can_see_pricing %>
+            <%= link_to nyk_billing_path,
+                  class: "flex items-center justify-center gap-2 w-full px-4 py-3 mb-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition" do %>
+              💵 Billing
+            <% end %>
+          <% end %>
+          <%= render "workspaces/team",
+                workspace:       @nyk_workspace,
+                memberships:     @nyk_memberships,
+                invitations:     @nyk_invitations,
+                social_accounts: @nyk_social_accounts,
+                my_role:         @nyk_my_role %>
+        </div>
+      </div>
+    </dialog>
   <% end %>
 
-  <%# Field Roster — the agent cards. Expanded by default so the hub opens with
-      the dashboard visible, but collapsible: tap the header to fold the cards
-      away, and the choice is remembered per browser (persistKey). The header
-      keeps the agent count and any "needs attention" tally visible in both
-      states. Card ordering still floats the most-used / any failing agent
-      first (see hub_card_order). %>
+  <%# Field Roster — the agent cards. The header shows the agent count and any
+      "needs attention" tally. Background agents hide/show individually via the
+      per-user toggles above; card ordering floats the most-used / any failing
+      agent first (see hub_card_order). %>
   <%# Card show/hide is per user, not per browser: scope the localStorage key to
       the current user id so "View as" (impersonation) and shared devices don't
       leak one person's choices onto another. Current.user is the impersonated
       user during "View as". %>
-  <section data-controller="collapsible roster"
-           data-collapsible-collapsed-value="false"
-           data-collapsible-persist-key-value="nyk-roster"
-           data-collapsible-scroll-on-expand-value="true"
+  <%# No section header here: the page header above already shows
+      "Agent 44 · Field Roster" + the agent/attention count. %>
+  <section data-controller="roster"
            data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
-    <button type="button" data-action="click->collapsible#toggle"
-            class="group flex items-center justify-between w-full mb-4 px-1 text-left">
-      <span class="flex items-baseline gap-2 min-w-0">
-        <span class="ra-eyebrow">Field Roster</span>
-        <span class="text-sm text-gray-500"><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %><% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
-      </span>
-      <svg data-collapsible-target="icon" class="w-5 h-5 shrink-0 text-gray-500 group-hover:text-gray-300 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-      </svg>
-    </button>
-    <div data-collapsible-target="body">
+    <div>
     <%# Background agents: run on their own schedule, kept off the default board
         (Neon, Sam, Echo stay up top). Each chip toggles its card show/hide,
         scoped per user (see roster_controller + data-roster-storage-key-value). %>
