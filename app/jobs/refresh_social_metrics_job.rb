@@ -116,13 +116,11 @@ class RefreshSocialMetricsJob < ApplicationJob
     hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
   end
 
-  # Who receives social engagement pushes for a workspace. If the Setting
-  # "social_engagement:recipients:<workspace_id>" holds a comma-separated list
-  # of user IDs, only those members are notified (e.g. NY Kitchen -> only Rich);
-  # otherwise every member gets them (the default).
+  # Who receives social engagement pushes: workspace members who haven't turned
+  # off "Social notifications" in their Settings (on by default; per-user, and
+  # the per-platform / per-workspace push opt-outs still apply inside notify!).
   def social_recipients(workspace)
-    ids = Setting.get("social_engagement:recipients:#{workspace.id}").to_s.split(",").map(&:strip).reject(&:blank?)
-    ids.empty? ? workspace.users : workspace.users.where(id: ids)
+    workspace.users.where(social_push_enabled: true)
   end
 
   # In-app deep link to the workspace's social page. NY Kitchen has its own

@@ -164,18 +164,17 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
     assert_equal 25, post.reload.likes, "metrics still refresh overnight; only the push is held"
   end
 
-  test "only the allowlisted recipients get the social push" do
-    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
+  test "members who turned off social notifications don't get the push (others still do)" do
+    member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com", social_push_enabled: false)
     @ws.memberships.create!(user: member, role: "editor")
-    Setting.set("social_engagement:recipients:#{@ws.id}", @owner.id.to_s) # owner only
     post = posted!(@x_acct, "x", "TID-A")
     post.update!(likes: 1, metrics_synced_at: 2.hours.ago)
     stub_x_metrics("TID-A", likes: 9)
 
     travel_to(DAYTIME) { RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true) }
 
-    assert Notification.where(source: "social_engagement", user_id: @owner.id).exists?, "owner is on the allowlist"
-    refute Notification.where(source: "social_engagement", user_id: member.id).exists?, "member is not on the allowlist"
+    assert Notification.where(source: "social_engagement", user_id: @owner.id).exists?, "owner (default on) gets it"
+    refute Notification.where(source: "social_engagement", user_id: member.id).exists?, "member opted out"
   end
 
   test "does not push on a post's first sync (no prior baseline to diff against)" do

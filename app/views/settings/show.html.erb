@@ -85,6 +85,17 @@
               class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
       </label>
 
+      <div class="pt-3 mt-1 border-t border-gray-800">
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-sm text-gray-300">
+            Social notifications
+            <span class="block text-xs text-gray-500">When your X or Bluesky posts get new likes, reposts, or replies.</span>
+          </span>
+          <%= f.check_box :social_push_enabled, checked: Current.user&.social_push_enabled,
+                class: "h-5 w-9 rounded accent-orange-600 cursor-pointer shrink-0" %>
+        </label>
+      </div>
+
       <% memberships = Current.user&.workspace_memberships&.includes(:workspace)&.sort_by { |m| m.workspace.name.downcase } %>
       <% if memberships.present? %>
         <div class="pt-3 mt-1 border-t border-gray-800 space-y-3">

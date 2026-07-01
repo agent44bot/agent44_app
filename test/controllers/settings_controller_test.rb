@@ -49,6 +49,15 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert @user.android_push_enabled
   end
 
+  test "PATCH update_notifications saves the social notifications toggle" do
+    sign_in_as @user
+    assert @user.social_push_enabled, "on by default"
+    patch update_notifications_settings_path, params: { ios_push_enabled: "1", android_push_enabled: "1", social_push_enabled: "0" }
+    assert_not @user.reload.social_push_enabled
+    patch update_notifications_settings_path, params: { ios_push_enabled: "1", android_push_enabled: "1", social_push_enabled: "1" }
+    assert @user.reload.social_push_enabled
+  end
+
   test "PATCH update_notifications redirects when unauthenticated" do
     patch update_notifications_settings_path, params: { ios_push_enabled: "1" }
     assert_redirected_to sign_in_path

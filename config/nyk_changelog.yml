@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-01
+  note: You can now turn social notifications on or off for yourself on the Settings page (under Push notifications). They are on by default, so flip the "Social notifications" switch off if you would rather not be pinged about likes, reposts, and replies.
+
+- date: 2026-07-01
   note: Tapping a social engagement notification now jumps straight to that post in Recent Posts (right platform tab, scrolled to it and briefly highlighted), where "View on X" opens the live post to reply.
 
 - date: 2026-06-30
