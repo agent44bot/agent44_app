@@ -26,6 +26,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select ".ra-card.is-hidden", { count: 5 }, "exactly the five non-core cards are hidden by default"
     assert_select ".roster-chip[data-roster-target=chip]", { count: 5 }, "a toggle chip per hideable card"
     assert_select ".roster-chip[data-action*=?]", "roster#toggle"
+    # Show/hide state is scoped per user, not per browser, so impersonation +
+    # shared devices don't leak one person's choices onto another.
+    assert_select "[data-roster-storage-key-value=?]", "nyk-roster-cards:#{@default_user.id}"
   end
 
   test "analyst page renders the admin report-engagement panel" do
