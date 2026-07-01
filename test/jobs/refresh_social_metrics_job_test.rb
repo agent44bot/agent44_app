@@ -148,6 +148,7 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
     assert_match(/\+2 likes/,   note.title) # 10 -> 12
     assert_match(/\+2 replies/, note.title) # 1 -> 3
     assert_match(/X post/,      note.title)
+    assert_match(/\?tab=x#post-#{post.id}\z/, note.url.to_s, "push deep-links to the post's tab + anchor")
   end
 
   test "no social push during quiet hours (9pm-8am local), but metrics still update" do

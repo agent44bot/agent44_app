@@ -14,6 +14,24 @@ export default class extends Controller {
     // /nykitchen?tab=tests deep-link into a specific tab.
     const initial = this.#initialIndex()
     this.#activate(initial)
+    this.#scrollToHash()
+  }
+
+  // Deep-link support: if the URL has a #hash pointing at an element inside the
+  // now-active tab (e.g. a social engagement push -> #post-123), scroll it into
+  // view and briefly highlight it. The browser can't do this itself because the
+  // target lived in a hidden panel until #activate ran just above.
+  #scrollToHash() {
+    const hash = window.location.hash
+    if (!hash || hash.length < 2) return
+    let el
+    try { el = this.element.querySelector(hash) } catch (_) { return }
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      el.classList.add("bg-orange-500/10", "ring-1", "ring-orange-500/40")
+      setTimeout(() => el.classList.remove("bg-orange-500/10", "ring-1", "ring-orange-500/40"), 2600)
+    })
   }
 
   #initialIndex() {

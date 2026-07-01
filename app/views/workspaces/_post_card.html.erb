@@ -1,5 +1,7 @@
-<%# One recent-post row. Locals: p (WorkspacePost), workspace, writer (bool). %>
-<div class="px-4 py-3">
+<%# One recent-post row. Locals: p (WorkspacePost), workspace, writer (bool).
+    id="post-<id>" is the anchor target for engagement-notification deep links
+    (/…/social?tab=<platform>#post-<id>); scroll-mt keeps it clear of the nav. %>
+<div id="post-<%= p.id %>" class="px-4 py-3 scroll-mt-24 rounded-md transition-colors duration-500">
   <div class="flex items-center justify-between mb-1 gap-3">
     <p class="text-xs text-gray-500 truncate">
       <%= p.author.display_identifier %> · <%= p.created_at.in_time_zone(workspace.timezone).strftime("%b %-d, %-l:%M %p") %>
