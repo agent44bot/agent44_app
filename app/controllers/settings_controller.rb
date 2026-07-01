@@ -55,14 +55,14 @@ class SettingsController < ApplicationController
     user = Current.user
     return redirect_to(root_path) unless user
 
-    attrs = {
-      ios_push_enabled: ActiveModel::Type::Boolean.new.cast(params[:ios_push_enabled]),
-      android_push_enabled: ActiveModel::Type::Boolean.new.cast(params[:android_push_enabled])
-    }
-    # NOT NULL + opt-out default: only touch it when the form actually sends it,
-    # so a caller that omits the field leaves the current choice intact.
-    attrs[:social_push_enabled] = ActiveModel::Type::Boolean.new.cast(params[:social_push_enabled]) if params.key?(:social_push_enabled)
-    user.update(attrs)
+    # Only write a toggle the form actually sent. These columns are NOT NULL,
+    # and the Settings page hides platform toggles the user has no device for,
+    # so an absent field must leave the stored choice intact (not nil it out).
+    attrs = {}
+    %i[ios_push_enabled android_push_enabled social_push_enabled].each do |key|
+      attrs[key] = ActiveModel::Type::Boolean.new.cast(params[key]) if params.key?(key)
+    end
+    user.update(attrs) if attrs.any?
     update_workspace_push_prefs(user)
     redirect_to settings_path, notice: "Notification settings saved."
   end
