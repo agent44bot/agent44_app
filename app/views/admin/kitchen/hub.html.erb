@@ -169,7 +169,21 @@
      data-controller="collapsible"
      data-collapsible-collapsed-value="true"
      data-collapsible-scroll-on-expand-value="true">
-  <%= render "admin/kitchen/breadcrumbs" %>
+  <%# Breadcrumbs on the left, Settings right-aligned on the same line. %>
+  <div class="flex items-start justify-between gap-3">
+    <%= render "admin/kitchen/breadcrumbs" %>
+    <% if @nyk_workspace %>
+      <button type="button"
+              data-action="click->collapsible#toggle"
+              aria-label="Workspace settings"
+              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+        </svg>
+        Settings
+      </button>
+    <% end %>
+  </div>
   <%# "Track users" moved to the top nav (admin-only, all pages). %>
   <div class="flex items-center mb-6 text-sm">
     <%= link_to nyk_guide_path, target: "_blank", rel: "noopener",
@@ -179,7 +193,7 @@
     <% end %>
   </div>
 
-  <div class="mb-8 flex items-start justify-between gap-3">
+  <div class="mb-8">
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
       <% if @nyk_workspace&.logo&.attached? %>
         <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-12 sm:h-16 w-auto max-w-[70%] sm:max-w-none object-contain shrink-0" %>
@@ -193,17 +207,6 @@
         </p>
       </div>
     </div>
-    <% if @nyk_workspace %>
-      <button type="button"
-              data-action="click->collapsible#toggle"
-              aria-label="Workspace settings"
-              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white transition shrink-0 text-sm font-medium">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
-        </svg>
-        Settings
-      </button>
-    <% end %>
   </div>
 
   <% if @nyk_workspace %>
@@ -231,12 +234,10 @@
       the current user id so "View as" (impersonation) and shared devices don't
       leak one person's choices onto another. Current.user is the impersonated
       user during "View as". %>
+  <%# No section header here: the page header above already shows
+      "Agent 44 · Field Roster" + the agent/attention count. %>
   <section data-controller="roster"
            data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
-    <div class="flex items-baseline gap-2 min-w-0 mb-4 px-1">
-      <span class="ra-eyebrow">Field Roster</span>
-      <span class="text-sm text-gray-500"><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %><% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
-    </div>
     <div>
     <%# Background agents: run on their own schedule, kept off the default board
         (Neon, Sam, Echo stay up top). Each chip toggles its card show/hide,
