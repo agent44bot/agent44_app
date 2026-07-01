@@ -14,6 +14,21 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@default_user)
   end
 
+  test "hub hides non-core agent cards behind a reveal tray" do
+    get nykitchen_path
+    assert_response :success
+
+    # Only Sam (list), Neon (display), Echo (social) show by default; the rest
+    # start hidden and appear as chips in the tray.
+    %w[analyst data test ask cellar].each do |key|
+      assert_select ".ra-card.is-hidden[data-key=?]", key
+    end
+    assert_select ".ra-card.is-hidden", { count: 5 }, "exactly the five non-core cards are hidden"
+    assert_select "[data-roster-target=tray]"
+    assert_select "[data-roster-target=chip]", { count: 5 }, "a chip per hidden card"
+    assert_match "Hidden cards", response.body
+  end
+
   test "analyst page renders the admin report-engagement panel" do
     # No send yet: panel renders its empty state without error.
     get nyk_analyst_path

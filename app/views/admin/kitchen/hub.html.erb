@@ -32,6 +32,9 @@
     border-color:color-mix(in srgb,var(--accent) 55%,transparent)}
   .ra-card:hover::before{opacity:1;width:4px}
   @keyframes ra-rise{to{opacity:1;transform:none}}
+  /* Roster reveal tray: hide a card until its chip is clicked. Higher
+     specificity than .ra-card so it wins over display:flex. */
+  .ra-card.is-hidden{display:none}
   @media(prefers-reduced-motion:reduce){.ra-card{animation:none;opacity:1;transform:none}}
   <%# Entrance stagger follows the visual (CSS order) position, set inline per card. %>
 
@@ -220,7 +223,7 @@
       keeps the agent count and any "needs attention" tally visible in both
       states. Card ordering still floats the most-used / any failing agent
       first (see hub_card_order). %>
-  <section data-controller="collapsible"
+  <section data-controller="collapsible roster"
            data-collapsible-collapsed-value="false"
            data-collapsible-persist-key-value="nyk-roster"
            data-collapsible-scroll-on-expand-value="true">
@@ -237,7 +240,7 @@
     <div data-collapsible-target="body">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr <%= "pay-on" if @can_see_pricing %>">
     <%# Analyst / Iris (no liveness dot — it's a dashboard, not a worker) %>
-    <%= link_to nyk_analyst_path, class: "ra-card", style: accent_style.call(:analyst) do %>
+    <%= link_to nyk_analyst_path, class: "ra-card is-hidden", style: accent_style.call(:analyst), data: { roster_target: "card", key: "analyst" } do %>
       <span class="ra-corner"><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:analyst) %></div>
       <p class="<%= desc_class %>">Sales &amp; revenue trends — what's sold, what's left to sell, and where the money's still on the table.</p>
@@ -422,7 +425,7 @@
     <% end %>
 
     <%# Data / Scout %>
-    <%= link_to nyk_data_path, class: "ra-card", style: accent_style.call(:data) do %>
+    <%= link_to nyk_data_path, class: "ra-card is-hidden", style: accent_style.call(:data), data: { roster_target: "card", key: "data" } do %>
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:data]) %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:data) %></div>
       <p class="<%= desc_class %>">Snapshots the calendar every three hours — feeds Sam and powers ticket-change alerts.</p>
@@ -451,7 +454,7 @@
         recording" button opens the last run's video inline (video-modal) — so
         it can't be a nested <a>. Wrapper is a div, body is the link (Carson
         pattern). %>
-    <div class="ra-card" style="<%= accent_style.call(:test) %>" data-controller="video-modal">
+    <div class="ra-card is-hidden" style="<%= accent_style.call(:test) %>" data-controller="video-modal" data-roster-target="card" data-key="test">
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:test]) %><span class="ra-chev">▶</span></span>
       <%= link_to nyk_test_path, class: "block" do %>
         <div class="ra-head"><%= agent_ident.call(:test) %></div>
@@ -514,7 +517,7 @@
 
     <%# Cellar — storage-room wine & spirits inventory. Not a roster worker (no
         codename/liveness dot); links straight to the live stock view. %>
-    <%= link_to nyk_inventory_path, class: "ra-card", style: "--accent:#be123c;#{card_order.call(:cellar)}" do %>
+    <%= link_to nyk_inventory_path, class: "ra-card is-hidden", style: "--accent:#be123c;#{card_order.call(:cellar)}", data: { roster_target: "card", key: "cellar" } do %>
       <span class="ra-corner"><span class="ra-chev">▶</span></span>
       <div class="ra-head">
         <span class="ra-avatar">🍷</span>
@@ -535,7 +538,7 @@
     <%# Super / Carson. Two click targets, not one: the card body opens a FRESH chat
         (no prompt inserted), while the suggestion/alert below is its own chip that
         auto-asks that specific question. Sibling links — never nested. %>
-    <div class="ra-card" style="<%= accent_style.call(:ask) %>">
+    <div class="ra-card is-hidden" style="<%= accent_style.call(:ask) %>" data-roster-target="card" data-key="ask">
       <span class="ra-corner"><%= agent_dot.call(:running, "Always on — ask anytime") %><span class="ra-chev">▶</span></span>
       <%= link_to nyk_ask_path, class: "block flex-1" do %>
         <div class="ra-head"><%= agent_ident.call(:ask) %></div>
@@ -558,6 +561,28 @@
     </div>
 
   </div>
+
+    <%# Hidden cards: agents kept off the default board (Sam, Neon, Echo stay
+        visible). Each chip reveals its card; roster_controller remembers reveals
+        per browser. %>
+    <% hidden_chips = [
+         [ "analyst", (@workspace_agents["analyst"]&.display_name.presence || roster["analyst"][:call]), roster["analyst"][:emoji] ],
+         [ "data",    (@workspace_agents["data"]&.display_name.presence    || roster["data"][:call]),    roster["data"][:emoji] ],
+         [ "test",    (@workspace_agents["test"]&.display_name.presence    || roster["test"][:call]),    roster["test"][:emoji] ],
+         [ "ask",     (@workspace_agents["ask"]&.display_name.presence     || roster["ask"][:call]),     roster["ask"][:emoji] ],
+         [ "cellar",  "Cellar", "🍷" ]
+       ] %>
+    <div data-roster-target="tray" class="mt-4 flex flex-wrap items-center gap-2 px-1">
+      <span class="ra-eyebrow text-gray-500 mr-1">Hidden cards</span>
+      <% hidden_chips.each do |key, label, emoji| %>
+        <button type="button" data-roster-target="chip" data-key="<%= key %>" data-action="click->roster#reveal"
+                title="Show <%= label %>"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-600 text-sm text-gray-300 hover:text-white transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <span><%= emoji %> <%= label %></span>
+        </button>
+      <% end %>
+    </div>
     </div>
   </section>
 
