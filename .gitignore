@@ -62,3 +62,6 @@ db/development.sqlite3
 
 # Playwright MCP scratch output (screenshots, snapshots, console logs)
 .playwright-mcp/
+
+# Generated NYK how-to deliverable (regen via render-pdf.js; source in .playwright-mcp/)
+/NY-Kitchen-How-To-Guide.pdf
