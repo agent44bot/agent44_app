@@ -13,6 +13,7 @@ class User < ApplicationRecord
   has_many :ai_call_logs, dependent: :nullify
   has_many :connect_chat_messages, dependent: :nullify # keep the workspace's Q&A log if the asker is deleted
   has_many :usage_events, dependent: :nullify        # metered actions this user triggered
+  has_many :kitchen_manual_classes, foreign_key: :created_by_id, dependent: :nullify # NYK camps someone added by hand
   has_many :inventory_movements, dependent: :nullify # who scanned stock in/out
   has_many :inventory_captures, dependent: :nullify  # who logged a product photo/price
   has_many :grocery_receipts, foreign_key: :created_by_id, dependent: :nullify # who uploaded a grocery receipt

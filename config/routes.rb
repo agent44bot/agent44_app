@@ -78,6 +78,8 @@ Rails.application.routes.draw do
   get "nykitchen/grocery", to: "kitchen#grocery", as: :nyk_grocery
   post "nykitchen/grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
   patch "nykitchen/grocery/portion", to: "kitchen#update_portion", as: :nyk_grocery_portion
+  post   "nykitchen/classes",     to: "kitchen#create_manual_class", as: :nyk_manual_classes
+  delete "nykitchen/classes/:id", to: "kitchen#destroy_manual_class", as: :nyk_manual_class
   get    "nykitchen/prices",     to: "kitchen#prices",       as: :nyk_prices
   patch  "nykitchen/prices/:id", to: "kitchen#update_price", as: :nyk_price
   delete "nykitchen/prices/:id", to: "kitchen#destroy_price"
