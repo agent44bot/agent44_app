@@ -163,6 +163,36 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     Bluesky::UserClient.image_fetch_stub = nil
   end
 
+  test "an oversized image_url is downscaled to fit Bluesky's 1MB limit" do
+    # Regression: a >1MB event photo used to fail Bluesky ("image > 1MB") while
+    # X posted fine. The URL path now downscales like the uploaded-image path.
+    big = Vips::Image.gaussnoise(4000, 4000, sigma: 60).cast("uchar").jpegsave_buffer(Q: 100)
+    assert big.bytesize > Bluesky::UserClient::MAX_IMAGE_BYTES, "fixture should exceed 1MB"
+
+    uploaded_size = nil
+    Bluesky::UserClient.image_fetch_stub = ->(_url) { [ big, "image/jpeg" ] }
+    Bluesky::UserClient.http_stub = ->(_method, url, payload, _bearer) {
+      if url.end_with?("uploadBlob")
+        uploaded_size = payload.bytesize
+        { status: "200", body: { "blob" => { "$type" => "blob", "ref" => { "$link" => "bafk1" }, "mimeType" => "image/jpeg", "size" => payload.bytesize } } }
+      else
+        { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/z" } }
+      end
+    }
+
+    sign_in_as(@owner)
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "big img",
+      target_platforms: %w[bluesky], image_url: "https://nykitchen.com/big.jpg")
+    result = WorkspaceDrafts::Publisher.new(draft).call
+
+    assert result.all_ok?, "publish failed: #{result.failures.inspect}"
+    assert uploaded_size, "uploadBlob was never called"
+    assert uploaded_size <= Bluesky::UserClient::MAX_IMAGE_BYTES,
+      "uploaded #{uploaded_size} bytes, still over the 1MB limit"
+  ensure
+    Bluesky::UserClient.image_fetch_stub = nil
+  end
+
   test "image fetch failure surfaces a clean error, post is not made" do
     Bluesky::UserClient.image_fetch_stub = ->(_url) { nil }
     Bluesky::UserClient.http_stub = ->(*) { raise "createRecord should not be called" }
@@ -229,15 +259,28 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     assert_equal "posted", WorkspacePost.where(platform: "bluesky").last.status
   end
 
-  test "bluesky_image_bytes re-encodes a non-jpeg attachment to a small jpeg" do
-    png   = Vips::Image.black(800, 800).pngsave_buffer
+  test "bluesky_image_bytes re-encodes an oversized non-jpeg attachment to a small jpeg" do
+    png   = Vips::Image.gaussnoise(4000, 4000, sigma: 60).cast("uchar").pngsave_buffer
+    assert png.bytesize > Bluesky::UserClient::MAX_IMAGE_BYTES, "PNG fixture should exceed 1MB"
     draft = @ws.workspace_drafts.create!(author: @owner, body: "x", target_platforms: %w[bluesky], status: "draft")
     draft.image.attach(io: StringIO.new(png), filename: "x.png", content_type: "image/png")
 
     dispatcher = WorkspacePosts::Dispatcher.new(@ws, author: @owner, body: "x", platforms: %w[bluesky], image: draft.image)
     bytes, mime = dispatcher.send(:bluesky_image_bytes)
 
-    assert_equal "image/jpeg", mime, "non-jpeg is re-encoded to jpeg"
+    assert_equal "image/jpeg", mime, "oversized non-jpeg is re-encoded to jpeg"
     assert bytes.bytesize <= Bluesky::UserClient::MAX_IMAGE_BYTES, "must fit Bluesky's 1MB blob limit"
+  end
+
+  test "bluesky_image_bytes passes an under-limit attachment through unchanged" do
+    png   = Vips::Image.black(200, 200).pngsave_buffer
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "x", target_platforms: %w[bluesky], status: "draft")
+    draft.image.attach(io: StringIO.new(png), filename: "x.png", content_type: "image/png")
+
+    dispatcher = WorkspacePosts::Dispatcher.new(@ws, author: @owner, body: "x", platforms: %w[bluesky], image: draft.image)
+    bytes, mime = dispatcher.send(:bluesky_image_bytes)
+
+    assert_equal "image/png", mime, "small PNG is left as-is (Bluesky accepts PNG)"
+    assert_equal png.bytesize, bytes.bytesize
   end
 end

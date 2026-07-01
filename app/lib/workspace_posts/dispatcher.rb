@@ -123,22 +123,10 @@ module WorkspacePosts
     end
 
     # Returns [bytes, mime] for the attached image, downscaled under Bluesky's
-    # 1MB limit. Small JPEGs pass through as-is; anything bigger (or non-JPEG)
-    # is re-encoded as a resized JPEG, dropping quality until it fits. Returns
-    # nil if it can't get under the limit, so the post still goes out as text.
+    # 1MB limit (nil if it can't fit, so the post still goes out as text).
+    # Shares the same downscaler as the URL-based image path.
     def bluesky_image_bytes
-      raw = @image.download
-      return [ raw, @image.content_type ] if @image.content_type == "image/jpeg" && raw.bytesize <= Bluesky::UserClient::MAX_IMAGE_BYTES
-
-      thumb = Vips::Image.thumbnail_buffer(raw, 1280)
-      [ 80, 60, 45, 30 ].each do |q|
-        jpeg = thumb.jpegsave_buffer(Q: q, strip: true)
-        return [ jpeg, "image/jpeg" ] if jpeg.bytesize <= Bluesky::UserClient::MAX_IMAGE_BYTES
-      end
-      nil
-    rescue => e
-      Rails.logger.warn("bluesky_image_bytes failed: #{e.class}: #{e.message}")
-      nil
+      Bluesky::ImageFit.fit(@image.download, @image.content_type)
     end
 
     def remote_id_for(platform, result)

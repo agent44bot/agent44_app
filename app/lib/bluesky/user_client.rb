@@ -176,13 +176,14 @@ module Bluesky
       end
     end
 
-    # Downloads the image, POSTs the raw bytes to uploadBlob, returns the
-    # blob ref the createRecord embed needs. Bluesky rejects images > 1MB so
-    # if we ever attach huge stuff we'll need to resize first — for now we
-    # surface the error cleanly and the post falls back to text-only.
+    # Downloads the image, downscales it under Bluesky's 1MB blob limit (event
+    # photos from a URL are often larger), then POSTs the bytes to uploadBlob
+    # and returns the blob ref the createRecord embed needs.
     def upload_image_blob(url, alt_text: nil)
       bytes, mime = fetch_image_bytes(url)
       return { ok: false, error: "could not fetch #{url}" } unless bytes
+      bytes, mime = Bluesky::ImageFit.fit(bytes, mime)
+      return { ok: false, error: "image could not be resized under Bluesky's 1MB limit" } unless bytes
       upload_blob_bytes(bytes, mime)
     rescue => e
       { ok: false, error: "#{e.class}: #{e.message}" }
