@@ -32,9 +32,15 @@
     border-color:color-mix(in srgb,var(--accent) 55%,transparent)}
   .ra-card:hover::before{opacity:1;width:4px}
   @keyframes ra-rise{to{opacity:1;transform:none}}
-  /* Roster reveal tray: hide a card until its chip is clicked. Higher
-     specificity than .ra-card so it wins over display:flex. */
+  /* Roster tray: hide a card whose chip is off. Higher specificity than
+     .ra-card so it wins over display:flex. */
   .ra-card.is-hidden{display:none}
+  /* Toggle chip: eye-off + muted when the card is hidden, eye + brighter
+     when shown. */
+  .roster-chip .chip-eye-on{display:none}
+  .roster-chip.chip-on .chip-eye-on{display:inline}
+  .roster-chip.chip-on .chip-eye-off{display:none}
+  .roster-chip.chip-on{border-color:#374151;background:#16181d;color:#e5e7eb}
   @media(prefers-reduced-motion:reduce){.ra-card{animation:none;opacity:1;transform:none}}
   <%# Entrance stagger follows the visual (CSS order) position, set inline per card. %>
 
@@ -572,13 +578,16 @@
          [ "ask",     (@workspace_agents["ask"]&.display_name.presence     || roster["ask"][:call]),     roster["ask"][:emoji] ],
          [ "cellar",  "Cellar", "🍷" ]
        ] %>
-    <div data-roster-target="tray" class="mt-4 flex flex-wrap items-center gap-2 px-1">
-      <span class="ra-eyebrow text-gray-500 mr-1">Hidden cards</span>
+    <%# Toggle chips: click to show/hide a card. The eye icon reflects state, and
+        each user's choices persist in their own browser (localStorage). %>
+    <div class="mt-4 flex flex-wrap items-center gap-2 px-1">
+      <span class="ra-eyebrow text-gray-500 mr-1">Cards</span>
       <% hidden_chips.each do |key, label, emoji| %>
-        <button type="button" data-roster-target="chip" data-key="<%= key %>" data-action="click->roster#reveal"
-                title="Show <%= label %>"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-600 text-sm text-gray-300 hover:text-white transition cursor-pointer">
-          <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        <button type="button" data-roster-target="chip" data-key="<%= key %>" data-label="<%= label %>"
+                data-action="click->roster#toggle" aria-pressed="false" title="Show <%= label %>"
+                class="roster-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-600 text-sm text-gray-400 hover:text-white transition cursor-pointer">
+          <svg class="chip-eye-off w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+          <svg class="chip-eye-on w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           <span><%= emoji %> <%= label %></span>
         </button>
       <% end %>
