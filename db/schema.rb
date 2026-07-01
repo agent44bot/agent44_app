@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_01_113725) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_01_150000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -371,6 +371,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_01_113725) do
     t.string "venue"
     t.index ["kitchen_snapshot_id", "url"], name: "index_kitchen_events_on_kitchen_snapshot_id_and_url", unique: true
     t.index ["kitchen_snapshot_id"], name: "index_kitchen_events_on_kitchen_snapshot_id"
+  end
+
+  create_table "kitchen_manual_classes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "created_by_id"
+    t.datetime "end_at"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "price"
+    t.datetime "start_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "venue"
+    t.index ["created_by_id"], name: "index_kitchen_manual_classes_on_created_by_id"
+    t.index ["start_at"], name: "index_kitchen_manual_classes_on_start_at"
   end
 
   create_table "kitchen_packet_links", force: :cascade do |t|
@@ -822,6 +836,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_01_113725) do
   add_foreign_key "job_matches", "jobs", on_delete: :cascade
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
+  add_foreign_key "kitchen_manual_classes", "users", column: "created_by_id"
   add_foreign_key "kitchen_packet_links", "kitchen_packets"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
   add_foreign_key "notifications", "users"

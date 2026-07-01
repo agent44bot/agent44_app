@@ -1,5 +1,5 @@
       <% @weeks.each_with_index do |week, week_index| %>
-        <% next if week[:events].empty? %>
+        <% next if week[:events].empty? && week[:manual_classes].blank? %>
         <section id="week-<%= week_index %>"
                  data-kitchen-filter-target="section"
                  data-controller="collapsible"
@@ -64,7 +64,7 @@
                     class="flex items-center justify-between gap-3 w-full text-left cursor-pointer hover:text-orange-400 transition">
               <span class="flex items-baseline gap-2 min-w-0">
                 <span class="text-lg font-bold text-white truncate"><%= week[:label] %></span>
-                <span class="text-gray-500 font-normal">(<%= total %>)</span>
+                <span class="text-gray-500 font-normal">(<%= total + week[:manual_classes].size %>)</span>
               </span>
               <span class="flex items-center gap-3 shrink-0">
                 <span class="text-xs font-semibold <%= sold_pct_color %>" title="<%= sold_tooltip %>"><%= sold_pct %>% sold</span>
@@ -162,6 +162,9 @@
             <% end %>
             <% week[:events].each do |e| %>
               <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
+            <% end %>
+            <% week[:manual_classes].each do |m| %>
+              <%= render "admin/kitchen/manual_class_card", manual: m, can_manage: @nyk_manager %>
             <% end %>
           </div>
         </section>

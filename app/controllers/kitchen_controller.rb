@@ -22,7 +22,7 @@ class KitchenController < ApplicationController
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
-  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report]
+  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class]
 
   # NY Kitchen how-to guide (PDF), opened from the hub's "How-to guide" link.
   # Served to signed-in users (default require_authentication; not in the
@@ -146,6 +146,44 @@ class KitchenController < ApplicationController
     receipt.image.attach(file)
     GroceryReceiptExtractionJob.perform_later(receipt.id)
     redirect_to nyk_list_path, notice: "Receipt uploaded. Reading the items now; the prices will save in a minute and sharpen future grocery estimates."
+  end
+
+  # Manager-only (Lora): add a class/camp that isn't on nykitchen.com's calendar
+  # (e.g. day kids camps). Stored in kitchen_manual_classes so the scrape can't
+  # touch it; shown in Sam's weekly list. Times are entered in Eastern.
+  def create_manual_class
+    name  = params[:name].to_s.strip
+    date  = params[:date].to_s.strip
+    start = params[:start_time].to_s.strip
+    if name.blank? || date.blank? || start.blank?
+      return redirect_to(nyk_list_path, alert: "A class needs at least a name, a date, and a start time.")
+    end
+
+    start_at = Time.zone.parse("#{date} #{start}")
+    end_at   = params[:end_time].present? ? Time.zone.parse("#{date} #{params[:end_time]}") : nil
+    if start_at.nil?
+      return redirect_to(nyk_list_path, alert: "That date/time didn't look right. Try again.")
+    end
+
+    KitchenManualClass.create!(
+      name: name, start_at: start_at, end_at: end_at,
+      price: params[:price].presence, notes: params[:notes].presence,
+      venue: params[:venue].presence, created_by: Current.user
+    )
+    redirect_to nyk_list_path, notice: "Added #{name} to the schedule."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to nyk_list_path, alert: "Could not add the class: #{e.record.errors.full_messages.to_sentence}."
+  end
+
+  def destroy_manual_class
+    mc = KitchenManualClass.find_by(id: params[:id])
+    if mc
+      # Unlink its recipe packet so a later camp that reuses this row id can't
+      # inherit it (the packet itself stays, reusable via search).
+      KitchenPacketLink.where(event_url: mc.packet_url).destroy_all
+      mc.destroy
+    end
+    redirect_to nyk_list_path, notice: "Removed from the schedule."
   end
 
   # The pantry: the latest observed price per ingredient (from receipts), which
@@ -1030,6 +1068,9 @@ class KitchenController < ApplicationController
     @show_grocery_prices = @nyk_workspace&.show_grocery_prices? || false
     @workspace_agents = @nyk_workspace ? WorkspaceAgent::KINDS.index_with { |k| @nyk_workspace.agent_for(k) } : {}
     @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
+    # Manager = site admin or NYK owner/admin (Lora). Gates the manual "Add a
+    # class" form + per-camp delete on the list.
+    @nyk_manager = @nyk_workspace&.manager?(Current.user) || false
   end
 
   # Hub cards self-organize: the agents you open most rise to the top.
@@ -1114,17 +1155,25 @@ class KitchenController < ApplicationController
       # Build dynamic weekly buckets covering all events. The current week starts
       # on Monday (not today) so its grocery button pulls the full Mon-Sun range,
       # matching every later week and Lora's request.
+      # Hand-added camps/classes (Lora), merged in for display only — they stay
+      # out of the revenue/sold-out/grocery rollups below, which read @events.
+      @manual_classes = KitchenManualClass.upcoming.to_a
+
       @weeks = []
       labels = [ "Current Week", "Next Week" ]
-      last_event_date = @events.last&.start_at&.to_date || today
+      # Extend the range so a future week that holds only a manual camp still
+      # gets a bucket.
+      last_event_date = [ @events.last&.start_at&.to_date, @manual_classes.last&.start_at&.to_date, today ].compact.max
       week_start = today.beginning_of_week(:monday)
       week_end = this_sunday
 
       while week_start <= last_event_date
-        week_events = @events.select { |e| (week_start..week_end).cover?(e.start_at.to_date) }
+        week_range   = (week_start..week_end)
+        week_events  = @events.select { |e| week_range.cover?(e.start_at.to_date) }
+        week_manual  = @manual_classes.select { |m| week_range.cover?(m.start_at.to_date) }
         label = @weeks.size < labels.size ? labels[@weeks.size] : week_start.strftime("Week of %b %-d")
-        @weeks << { label: label, events: week_events, expanded: @weeks.size < 2,
-                    start: week_start, end: week_end }
+        @weeks << { label: label, events: week_events, manual_classes: week_manual,
+                    expanded: @weeks.size < 2, start: week_start, end: week_end }
         week_start = week_end + 1
         week_end = week_start + 6
       end

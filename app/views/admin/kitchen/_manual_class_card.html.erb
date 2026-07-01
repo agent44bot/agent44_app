@@ -1,0 +1,57 @@
+<%# One hand-added camp/class in Sam's week list (locals: manual, can_manage).
+    Same recipe-packet column as a scraped class, keyed by manual.packet_url, so
+    Caitlin can build/edit a packet. No ticket/sold-out data (camps aren't
+    ticketed). A left sky rule + "Camp" tag mark it as manually added. %>
+<div data-kitchen-filter-target="card" data-status="manual"
+     data-search-text="<%= [ manual.name, manual.notes ].compact.join(" ").downcase %>"
+     class="bg-gray-900 rounded-lg p-4 flex flex-col sm:flex-row sm:items-stretch gap-3 border-l-2 border-sky-500/50">
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-sm font-semibold text-gray-300">
+        <%= manual.start_at.strftime("%a %-m/%-d %-I:%M %p") %><%= manual.end_at ? " - #{manual.end_at.strftime('%-I:%M %p')}" : "" %>
+      </span>
+      <span class="text-sm font-medium text-white break-words"><%= manual.name %></span>
+      <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300">Camp</span>
+    </div>
+    <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
+      <% if manual.price.present? %><span><%= manual.price %></span><span>&middot;</span><% end %>
+      <span><%= manual.venue_label %></span>
+      <% if manual.notes.present? %><span>&middot;</span><span class="break-words"><%= manual.notes %></span><% end %>
+    </div>
+  </div>
+
+  <div class="shrink-0 flex items-stretch justify-end divide-x divide-gray-800 border-t border-gray-800 pt-2 sm:border-t-0 sm:pt-0 sm:border-l">
+    <%# Recipe column — identical behavior to a scraped class (Edit when a packet
+        is attached, Add otherwise). Keyed by the camp's stable packet_url. %>
+    <% if defined?(@packets_by_url) && @packets_by_url %>
+      <% packet_id = @packets_by_url[manual.packet_url] %>
+      <div class="flex flex-col items-center justify-center w-16 px-1">
+        <% if packet_id %>
+          <%= link_to edit_nyk_packet_path(packet_id), title: "Edit packet (and print it from there)",
+                class: "flex flex-col items-center gap-0.5 text-emerald-400 hover:text-emerald-300 transition" do %>
+            <span class="text-2xl leading-none">📝</span>
+            <span class="text-[10px] font-medium">Edit</span>
+          <% end %>
+        <% else %>
+          <%= link_to open_nyk_packet_path(event_url: manual.packet_url, event_name: manual.name),
+                title: "Add a packet", data: { action: "recipe-loading#show" },
+                class: "flex flex-col items-center gap-0.5 text-gray-500 hover:text-gray-300 transition" do %>
+            <span class="text-2xl leading-none grayscale opacity-60">📝</span>
+            <span class="text-[10px] font-medium">Add</span>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+    <% if can_manage %>
+      <div class="flex flex-col items-center justify-center w-12 px-1">
+        <%= button_to nyk_manual_class_path(manual), method: :delete,
+              form: { data: { turbo_confirm: "Remove #{manual.name} from the schedule?" } },
+              title: "Remove this class",
+              class: "flex flex-col items-center gap-0.5 text-gray-600 hover:text-red-400 transition cursor-pointer" do %>
+          <span class="text-lg leading-none">🗑</span>
+          <span class="text-[10px] font-medium">Remove</span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

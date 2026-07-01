@@ -894,6 +894,63 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_includes subs.call, @default_user.id, "second toggle unsubscribes"
   end
 
+  # --- Manual classes (Lora's hand-added camps) ---------------------------
+
+  def ensure_nyk_workspace
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+  end
+
+  test "a manager can add a manual class and it shows in the weekly list" do
+    ensure_nyk_workspace
+    assert_difference -> { KitchenManualClass.count }, 1 do
+      post nyk_manual_classes_path, params: {
+        name: "Summer Kids Camp", date: 3.days.from_now.to_date.to_s,
+        start_time: "09:00", end_time: "12:00", price: "$45", notes: "Ages 8-12"
+      }
+    end
+    assert_redirected_to nyk_list_path
+    mc = KitchenManualClass.last
+    assert_equal "Summer Kids Camp", mc.name
+    assert_equal @default_user.id, mc.created_by_id
+    assert_equal "$45", mc.price
+
+    get nyk_list_path
+    assert_response :success
+    assert_match "Summer Kids Camp", response.body
+    assert_match "Camp", response.body
+  end
+
+  test "adding a manual class needs a name, date, and start time" do
+    ensure_nyk_workspace
+    assert_no_difference -> { KitchenManualClass.count } do
+      post nyk_manual_classes_path, params: { name: "", date: "", start_time: "" }
+    end
+    assert_redirected_to nyk_list_path
+    assert_match(/name/i, flash[:alert])
+  end
+
+  test "a non-manager cannot add or remove a manual class" do
+    ensure_nyk_workspace
+    sign_in_as(User.create!(email_address: "outsider-#{SecureRandom.hex(4)}@example.com", role: "user"))
+    post nyk_manual_classes_path, params: { name: "Sneaky", date: 2.days.from_now.to_date.to_s, start_time: "10:00" }
+    assert_response :not_found
+    assert_equal 0, KitchenManualClass.count
+  end
+
+  test "a manager can remove a manual class and it unlinks its packet" do
+    ensure_nyk_workspace
+    mc = KitchenManualClass.create!(name: "Camp", start_at: 2.days.from_now, created_by: @default_user)
+    packet = KitchenPacket.create!(title: "Camp packet", data: { "recipes" => [ { "title" => "Cookies" } ] })
+    KitchenPacketLink.create!(event_url: mc.packet_url, kitchen_packet: packet)
+
+    assert_difference -> { KitchenManualClass.count }, -1 do
+      delete nyk_manual_class_path(mc)
+    end
+    assert_redirected_to nyk_list_path
+    assert_not KitchenPacketLink.exists?(event_url: mc.packet_url), "packet link is cleaned up"
+    assert KitchenPacket.exists?(packet.id), "the packet itself is kept (reusable)"
+  end
+
   private
 
   def create_event(name, start_at, availability)

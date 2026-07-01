@@ -4,7 +4,7 @@
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10" data-controller="kitchen-filter recipe-loading">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10" data-controller="kitchen-filter recipe-loading dialog">
   <%# Shown by recipe-loading#show while a no-recipe class is drafting its recipe
       with AI (several seconds before the redirect to the editor). %>
   <div data-recipe-loading-target="overlay"
@@ -18,10 +18,65 @@
   </div>
   <%= render "admin/kitchen/breadcrumbs", kind: "list" %>
 
+  <%# Manager-only: add a class/camp that isn't on nykitchen.com's calendar.
+      Opens as a modal so the page doesn't jump; posts to create_manual_class. %>
+  <% if @nyk_manager %>
+    <dialog data-dialog-target="modal" data-action="click->dialog#backdropClose"
+            class="bg-transparent backdrop:bg-black/80 p-0 w-[92vw] max-w-lg fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
+      <div class="bg-gray-900 rounded-xl border border-gray-800">
+        <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-800">
+          <span class="text-sm font-bold text-white">Add a class</span>
+          <button type="button" data-action="click->dialog#close" aria-label="Close" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <%= form_with url: nyk_manual_classes_path, method: :post, class: "p-5 space-y-3" do %>
+          <% field_class = "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Class name</label>
+            <%= text_field_tag :name, nil, required: true, placeholder: "Summer Kids Camp", class: field_class %>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <div class="flex-1 min-w-[130px]">
+              <label class="block text-xs text-gray-400 mb-1">Date</label>
+              <%= date_field_tag :date, nil, required: true, class: field_class %>
+            </div>
+            <div class="flex-1 min-w-[105px]">
+              <label class="block text-xs text-gray-400 mb-1">Start</label>
+              <%= time_field_tag :start_time, nil, required: true, class: field_class %>
+            </div>
+            <div class="flex-1 min-w-[105px]">
+              <label class="block text-xs text-gray-400 mb-1">End <span class="text-gray-600">(optional)</span></label>
+              <%= time_field_tag :end_time, nil, class: field_class %>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <div class="flex-1 min-w-[130px]">
+              <label class="block text-xs text-gray-400 mb-1">Price <span class="text-gray-600">(optional)</span></label>
+              <%= text_field_tag :price, nil, placeholder: "$45", class: field_class %>
+            </div>
+            <div class="flex-1 min-w-[130px]">
+              <label class="block text-xs text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
+              <%= text_field_tag :notes, nil, placeholder: "Ages 8-12", class: field_class %>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button type="button" data-action="click->dialog#close" class="px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-gray-500 text-gray-200 text-sm cursor-pointer">Cancel</button>
+            <%= submit_tag "Add to schedule", class: "px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    </dialog>
+  <% end %>
+
   <div class="mb-6">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <%= render "admin/kitchen/agent_title", title: "List Agent", kind: "list" %>
       <div class="flex items-center gap-2">
+        <% if @nyk_manager %>
+          <button type="button" data-action="click->dialog#open"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition">
+            <span class="text-base leading-none">+</span><span>Add a class</span>
+          </button>
+        <% end %>
         <%= link_to nyk_prices_path,
               class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
           🥫 <span>Pantry</span>
