@@ -201,8 +201,8 @@
         </span>
       <% end %>
       <div class="min-w-0">
-        <div class="ra-eyebrow mb-1">Agent 44 · Field Roster</div>
-        <h1 class="ra-h1 text-4xl text-white">NY Kitchen</h1>
+        <div class="ra-eyebrow mb-1">Agent 44</div>
+        <h1 class="ra-h1 text-4xl text-white">Field Roster</h1>
         <p class="ra-onduty mt-2 flex items-center gap-2">
           <%= agent_dot.call(:running, "Fleet on duty") %>
           <span><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %> on duty<% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
