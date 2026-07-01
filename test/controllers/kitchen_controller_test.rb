@@ -29,6 +29,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     # Show/hide state is scoped per user, not per browser, so impersonation +
     # shared devices don't leak one person's choices onto another.
     assert_select "[data-roster-storage-key-value=?]", "nyk-roster-cards:#{@default_user.id}"
+    assert_select "span.ra-eyebrow", text: "Background agents"
   end
 
   test "analyst page renders the admin report-engagement panel" do
