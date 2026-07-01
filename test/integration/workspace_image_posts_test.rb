@@ -19,6 +19,7 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
     WorkspaceAi::Drafter.stub = nil
     X::UserClient.http_stub   = nil
     X::UserClient.media_stub  = nil
+    SocialImage.fetch_stub    = nil
   end
 
   def png_upload(type = "image/png")
@@ -101,6 +102,54 @@ class WorkspaceImagePostsTest < ActionDispatch::IntegrationTest
     assert_equal "posted",  wp.status
     assert_equal "TID-IMG", wp.remote_id
     assert wp.image.attached?, "posted row should carry the image for the history thumbnail"
+  end
+
+  test "a url image is fetched and uploaded to X as native media, not a link card" do
+    SocialImage.fetch_stub = ->(url) {
+      assert_equal "https://nykitchen.com/event.jpg", url
+      [ "FETCHED_JPEG_BYTES", "image/jpeg" ]
+    }
+    media_uploads = 0
+    X::UserClient.media_stub = ->(fields, _bearer) {
+      media_uploads += 1
+      assert_equal "tweet_image", fields["media_category"]
+      assert_equal "FETCHED_JPEG_BYTES", fields["media"][:data]
+      { status: "200", body: { "data" => { "id" => "MEDIA-URL" } } }
+    }
+    tweet_payload = nil
+    X::UserClient.http_stub = ->(_method, _url, payload, _bearer) {
+      tweet_payload = payload
+      { status: "201", body: { "data" => { "id" => "TID-URL" } } }
+    }
+
+    sign_in_as(@owner)
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "event", target_platforms: %w[x],
+      image_url: "https://nykitchen.com/event.jpg")
+    result = WorkspaceDrafts::Publisher.new(draft).call
+
+    assert result.all_ok?, "publish failed: #{result.failures.inspect}"
+    assert_equal 1, media_uploads, "the url image should be uploaded as native media"
+    assert_equal({ media_ids: [ "MEDIA-URL" ] }, tweet_payload[:media])
+    assert_equal "TID-URL", WorkspacePost.last.remote_id
+  end
+
+  test "a url image that cannot upload still posts the tweet as text" do
+    SocialImage.fetch_stub   = ->(_url) { [ "BYTES", "image/jpeg" ] }
+    X::UserClient.media_stub = ->(*) { { status: "413", body: { "detail" => "too large" } } }
+    tweet_payload = nil
+    X::UserClient.http_stub = ->(_method, _url, payload, _bearer) {
+      tweet_payload = payload
+      { status: "201", body: { "data" => { "id" => "TID-TEXT" } } }
+    }
+
+    sign_in_as(@owner)
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "event", target_platforms: %w[x],
+      image_url: "https://nykitchen.com/huge.jpg")
+    result = WorkspaceDrafts::Publisher.new(draft).call
+
+    assert result.all_ok?, "the tweet should still go out as text"
+    assert_nil tweet_payload[:media], "no media attached when upload failed"
+    assert_equal "posted", WorkspacePost.last.status
   end
 
   test "a failed media upload fails the post without tweeting" do
