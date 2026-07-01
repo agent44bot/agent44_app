@@ -133,20 +133,12 @@ class XOauthTest < ActionDispatch::IntegrationTest
     assert_equal 1, calls, "a 4xx is final, no retry"
   end
 
-  test "me retries a transient 401 then returns the profile" do
+  test "me does NOT retry a 401 (auth failure, not transient; retrying burns the rate limit)" do
     calls = 0
-    X::Oauth.http_stub = ->(_method, _url, _params, _headers) {
-      calls += 1
-      if calls == 1
-        [ "401", { "title" => "Unauthorized" } ]
-      else
-        [ "200", { "data" => { "id" => "42", "username" => "magenta", "name" => "Magenta" } } ]
-      end
-    }
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) { calls += 1; [ "401", { "title" => "Unauthorized" } ] }
     result = X::Oauth.me(access_token: "AT")
-    assert result.ok?, result.error
-    assert_equal "magenta", result.username
-    assert_equal 2, calls, "should have retried once after the 401"
+    refute result.ok?
+    assert_equal 1, calls, "a 401 is final, no retry"
   end
 
   test "me retries a transient 503 then returns the profile" do
@@ -160,15 +152,15 @@ class XOauthTest < ActionDispatch::IntegrationTest
     assert_equal 2, calls
   end
 
-  test "me gives up after the retry budget on a persistent 401" do
+  test "me gives up after the retry budget on a persistent 503" do
     calls = 0
-    X::Oauth.http_stub = ->(_method, _url, _params, _headers) { calls += 1; [ "401", { "title" => "Unauthorized" } ] }
+    X::Oauth.http_stub = ->(_method, _url, _params, _headers) { calls += 1; [ "503", {} ] }
     result = X::Oauth.me(access_token: "AT")
     refute result.ok?
     assert_equal 3, calls, "initial attempt plus two retries"
   end
 
-  test "connect callback survives a transient 401 on the profile read" do
+  test "connect callback survives a transient 503 on the profile read" do
     attempt = 0
     X::Oauth.http_stub = ->(method, url, _params, headers) {
       case [ method, url ]
@@ -177,7 +169,7 @@ class XOauthTest < ActionDispatch::IntegrationTest
                   "scope" => "tweet.read users.read offline.access", "token_type" => "bearer" } ]
       when [ :get, X::Oauth::ME_URL ]
         attempt += 1
-        attempt == 1 ? [ "401", { "title" => "Unauthorized" } ] : [ "200", { "data" => { "id" => "99", "username" => "nyk", "name" => "NYK" } } ]
+        attempt == 1 ? [ "503", {} ] : [ "200", { "data" => { "id" => "99", "username" => "nyk", "name" => "NYK" } } ]
       else
         raise "unexpected #{method} #{url}"
       end

@@ -29,15 +29,14 @@ module X
       end
     end
     UserResult  = Struct.new(:ok?, :id, :username, :name, :error, :status, keyword_init: true) do
-      # The profile read happens right after we mint a token during connect, so
-      # a 401/5xx/429/network there is treated as a transient X hiccup and
-      # retried (bounded). A genuinely bad token still settles out after the
-      # retry budget. (Looser than TokenResult#retryable?, which excludes 401,
-      # because here we already hold a freshly issued token.)
+      # Only retry genuine server hiccups: X 5xx or a network error (status
+      # nil). Do NOT retry 401 (auth) or 429 (rate limit): retrying those just
+      # hammers X and, for /2/users/me on a low tier, burns the rate budget
+      # faster, turning a blip into a persistent failure.
       def retryable?
         return false if ok?
         s = status.to_s
-        s.empty? || s.start_with?("5") || s == "429" || s == "401"
+        s.empty? || s.start_with?("5")
       end
     end
 
@@ -114,11 +113,16 @@ module X
       # GET /2/users/me, never raising: a network error becomes a transient
       # result (status nil -> retryable?) so with_token_retry retries it.
       def fetch_me(access_token)
-        status, body = get_json(ME_URL, headers: { "Authorization" => "Bearer #{access_token}" })
+        status, body, res = get_json(ME_URL, headers: { "Authorization" => "Bearer #{access_token}" })
         if status == "200"
           data = body["data"] || {}
           UserResult.new(ok?: true, status: status, id: data["id"], username: data["username"], name: data["name"])
         else
+          # Log X's rate-limit headers so a 401/429 on /2/users/me is diagnosable
+          # (low API tiers cap this endpoint hard).
+          Rails.logger.warn("[oauth/x] /users/me #{status}: body=#{body.inspect} " \
+            "rate_limit=#{res&.[]('x-rate-limit-limit')} remaining=#{res&.[]('x-rate-limit-remaining')} " \
+            "reset=#{res&.[]('x-rate-limit-reset')} user_limit_24h=#{res&.[]('x-user-limit-24hour-remaining')}")
           UserResult.new(ok?: false, status: status, error: format_error(status, body))
         end
       rescue => e
@@ -165,7 +169,7 @@ module X
         req = Net::HTTP::Get.new(uri)
         headers.each { |k, v| req[k] = v }
         res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
-        [ res.code, parse_json(res.body) ]
+        [ res.code, parse_json(res.body), res ]
       end
 
       def parse_json(body)
