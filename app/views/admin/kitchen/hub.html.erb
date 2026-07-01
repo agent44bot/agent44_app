@@ -229,10 +229,15 @@
       keeps the agent count and any "needs attention" tally visible in both
       states. Card ordering still floats the most-used / any failing agent
       first (see hub_card_order). %>
+  <%# Card show/hide is per user, not per browser: scope the localStorage key to
+      the current user id so "View as" (impersonation) and shared devices don't
+      leak one person's choices onto another. Current.user is the impersonated
+      user during "View as". %>
   <section data-controller="collapsible roster"
            data-collapsible-collapsed-value="false"
            data-collapsible-persist-key-value="nyk-roster"
-           data-collapsible-scroll-on-expand-value="true">
+           data-collapsible-scroll-on-expand-value="true"
+           data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
     <button type="button" data-action="click->collapsible#toggle"
             class="group flex items-center justify-between w-full mb-4 px-1 text-left">
       <span class="flex items-baseline gap-2 min-w-0">
