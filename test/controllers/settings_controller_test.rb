@@ -18,6 +18,32 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Settings"
   end
 
+  test "push settings show only the platforms the user has a device for" do
+    sign_in_as @user
+    DeviceToken.create!(token: "ios-only-#{SecureRandom.hex(4)}", platform: "ios", user: @user)
+    get settings_path
+    assert_select "label", text: /iPhone \(iOS\)/
+    assert_select "label", text: /Android phone/, count: 0
+  end
+
+  test "push settings show both platforms when the user has no devices yet" do
+    sign_in_as @user
+    DeviceToken.where(user_id: @user.id).delete_all
+    get settings_path
+    assert_select "label", text: /iPhone \(iOS\)/
+    assert_select "label", text: /Android phone/
+  end
+
+  test "update_notifications preserves a platform toggle whose field is omitted (hidden)" do
+    sign_in_as @user
+    @user.update!(android_push_enabled: true, ios_push_enabled: true)
+    # Android toggle hidden (iOS-only device) -> form omits android_push_enabled.
+    patch update_notifications_settings_path, params: { ios_push_enabled: "0", social_push_enabled: "1" }
+    @user.reload
+    assert_not @user.ios_push_enabled, "iOS toggle applied"
+    assert @user.android_push_enabled, "omitted Android toggle left intact, not nil'd"
+  end
+
   test "PATCH update_name sets display_name and shows success flash" do
     sign_in_as @user
     patch update_name_settings_path, params: { display_name: "Rich D" }

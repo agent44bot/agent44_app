@@ -74,16 +74,26 @@
     </div>
     <%= form_with url: update_notifications_settings_path, method: :patch, local: true,
           class: "px-5 py-4 space-y-3" do |f| %>
-      <label class="flex items-center justify-between gap-3 cursor-pointer">
-        <span class="text-sm text-gray-300">iPhone (iOS)</span>
-        <%= f.check_box :ios_push_enabled, checked: Current.user&.ios_push_enabled,
-              class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
-      </label>
-      <label class="flex items-center justify-between gap-3 cursor-pointer">
-        <span class="text-sm text-gray-300">Android phone</span>
-        <%= f.check_box :android_push_enabled, checked: Current.user&.android_push_enabled,
-              class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
-      </label>
+      <%# Only show a platform toggle for devices this user actually has (any
+          registered token for that platform). With no devices yet we can't tell,
+          so show both. Hiding a toggle preserves its stored value server-side. %>
+      <% device_platforms = DeviceToken.where(user_id: Current.user&.id).distinct.pluck(:platform) %>
+      <% show_ios     = device_platforms.empty? || device_platforms.include?("ios") %>
+      <% show_android = device_platforms.empty? || device_platforms.include?("android") %>
+      <% if show_ios %>
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-sm text-gray-300">iPhone (iOS)</span>
+          <%= f.check_box :ios_push_enabled, checked: Current.user&.ios_push_enabled,
+                class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
+        </label>
+      <% end %>
+      <% if show_android %>
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-sm text-gray-300">Android phone</span>
+          <%= f.check_box :android_push_enabled, checked: Current.user&.android_push_enabled,
+                class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
+        </label>
+      <% end %>
 
       <div class="pt-3 mt-1 border-t border-gray-800">
         <label class="flex items-center justify-between gap-3 cursor-pointer">

@@ -18,4 +18,16 @@ class ApnsPusherGatingTest < ActiveSupport::TestCase
     DeviceToken.create!(token: "ios-x", platform: "ios", user: user)
     assert_nil ApnsPusher.send_alert(Notification.create!(level: "info", source: "t", title: "T"), user: user)
   end
+
+  test "enabled_for? is false when the user muted this workspace (iOS)" do
+    user = users(:one)
+    user.update!(ios_push_enabled: true)
+    owner = User.create!(email_address: "apns-ws-#{SecureRandom.hex(4)}@example.com")
+    ws = Workspace.create!(name: "APNs WS", owner: owner)
+    m  = ws.memberships.create!(user: user, role: "editor")
+
+    assert ApnsPusher.enabled_for?(user, ws), "member with push on gets it"
+    m.update!(push_enabled: false)
+    assert_not ApnsPusher.enabled_for?(user, ws), "muting the workspace blocks iOS too"
+  end
 end
