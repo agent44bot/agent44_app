@@ -102,12 +102,26 @@ module WorkspacePosts
     # then attach it to the tweet. No image -> plain text tweet.
     def post_to_x(account, body)
       client = X::UserClient.new(account)
-      return client.post_tweet(body) unless @image
 
-      upload = client.upload_media(@image.download, @image.content_type)
-      return X::UserClient::Result.new(ok?: false, error: "image upload: #{upload.error}") unless upload.ok?
+      # Uploaded attachment: native media is the whole point, so a failed upload
+      # fails the post rather than silently dropping the image.
+      if @image
+        upload = client.upload_media(@image.download, @image.content_type)
+        return X::UserClient::Result.new(ok?: false, error: "image upload: #{upload.error}") unless upload.ok?
+        return client.post_tweet(body, media_ids: [ upload.media_id ])
+      end
 
-      client.post_tweet(body, media_ids: [ upload.media_id ])
+      # URL image (e.g. a NY Kitchen event photo): fetch it and upload as native
+      # media so X shows the image, not just a link card. If the fetch or upload
+      # fails, still post the text so the tweet goes out (X renders the link).
+      if @image_url.present? && (fetched = SocialImage.fetch(@image_url))
+        bytes, mime = fetched
+        upload = client.upload_media(bytes, mime)
+        return client.post_tweet(body, media_ids: [ upload.media_id ]) if upload.ok?
+        Rails.logger.warn("X url-image upload failed, posting text-only: #{upload.error}")
+      end
+
+      client.post_tweet(body)
     end
 
     # Bluesky takes a native blob. Prefer the attached image (downscaled to fit
