@@ -80,4 +80,26 @@ class FcmPusherTest < ActiveSupport::TestCase
     assert_equal "fcm_default", captured.dig(:message, :android, :notification, :channel_id)
     assert_equal "HIGH", captured.dig(:message, :android, :priority)
   end
+
+  test "subtitle rides in data, never in the notification object (FCM rejects it there)" do
+    user = users(:one)
+    user.update!(android_push_enabled: true)
+    DeviceToken.create!(token: "and-sub", platform: "android", user: user)
+
+    captured = nil
+    ok = Net::HTTPOK.new("1.1", "200", "OK")
+    FcmPusher.stub(:credentials, { "project_id" => "p" }) do
+      FcmPusher.stub(:access_token, "tok") do
+        FcmPusher.stub(:post_json, ->(_uri, body, _at) { captured = body; ok }) do
+          FcmPusher.send_alert(note, url: "/nykitchen/list", subtitle: "Sam · Promote", user: user)
+        end
+      end
+    end
+
+    notif = captured.dig(:message, :notification)
+    assert_equal %i[title body].sort, notif.keys.sort, "notification must only carry title/body"
+    assert_not notif.key?(:subtitle), "subtitle in the notification object makes FCM reject the message"
+    assert_equal "Sam · Promote", captured.dig(:message, :data, :subtitle)
+    assert_equal "/nykitchen/list", captured.dig(:message, :data, :url)
+  end
 end
