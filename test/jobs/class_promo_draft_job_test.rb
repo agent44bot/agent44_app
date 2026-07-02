@@ -127,6 +127,18 @@ class ClassPromoDraftJobTest < ActiveJob::TestCase
     assert_equal 1, Notification.count
   end
 
+  test "never promotes a manual camp class" do
+    # Camps live in their own table (KitchenManualClass), not kitchen_events,
+    # and must not get social promotion. With only a camp on the schedule and
+    # no scraped class, the job finds nothing to draft.
+    KitchenSnapshot.create!(taken_on: Date.current) # empty snapshot, no events
+    KitchenManualClass.create!(name: "Kids Summer Camp", start_at: 3.days.from_now,
+                               created_by: @rich)
+    run_job(force: true)
+    assert_equal 0, WorkspaceDraft.count
+    assert_equal 0, Notification.count
+  end
+
   test "nothing to promote -> no push, no draft" do
     snapshot_with(name: "Sold Out", url: "https://tock/so", availability: "SoldOut", spots_left: 0)
     run_job

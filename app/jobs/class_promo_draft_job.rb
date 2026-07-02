@@ -77,6 +77,10 @@ class ClassPromoDraftJob < ApplicationJob
   # public, and not promoted recently. Weighted so a class with open seats and
   # a nearer date outranks one that will sell itself; a small random tiebreak
   # keeps the rotation from being deterministic.
+  #
+  # Only reads scraped kitchen_events, so manually-added camp classes
+  # (KitchenManualClass, a separate table) are never promoted -- camps don't
+  # get social promotion. Don't reach into KitchenManualClass here.
   def pick_class(ws)
     snapshot = KitchenSnapshot.latest
     return nil unless snapshot
