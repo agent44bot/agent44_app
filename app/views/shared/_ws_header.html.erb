@@ -1,0 +1,26 @@
+<%# Consistent top row for every workspace page:
+
+      breadcrumbs (left)  ................  member avatars + page actions (right)
+
+    The member-avatar stack sits just left of the page's action buttons, all
+    right-aligned and vertically centered on one row, so every workspace page
+    (hub, Echo, Sam, ...) shares the same header shape.
+
+    Locals:
+      workspace   — the Workspace, for the member-avatar stack (optional; no
+                    avatars render without one or when it has no members).
+      breadcrumbs — pre-rendered breadcrumb HTML (use `capture do ... end`).
+      actions     — optional pre-rendered action-button HTML, placed to the
+                    right of the avatars.
+%>
+<% actions = local_assigns[:actions] %>
+<div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
+  <div class="min-w-0 flex items-center"><%= breadcrumbs %></div>
+  <div class="flex items-center gap-3 shrink-0">
+    <% members = Array(workspace&.memberships&.includes(:user)&.map(&:user)) %>
+    <% if members.any? %>
+      <%= render "workspaces/member_avatars", members: members, size: "h-8 w-8" %>
+    <% end %>
+    <% if actions.present? %><%= actions %><% end %>
+  </div>
+</div>

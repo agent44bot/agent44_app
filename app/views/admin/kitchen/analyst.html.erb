@@ -1,7 +1,8 @@
 <% content_for(:title, "NY Kitchen · Analyst Agent") %>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-  <%= render "admin/kitchen/breadcrumbs", kind: "analyst" %>
+  <% bc = capture do %><%= render "admin/kitchen/breadcrumbs", kind: "analyst", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %><% end %>
+  <%= render "shared/ws_header", workspace: @nyk_workspace, breadcrumbs: bc %>
 
   <div class="mb-6">
     <%= render "admin/kitchen/agent_title", title: "Analyst Agent", kind: "analyst" %>
