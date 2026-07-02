@@ -36,6 +36,20 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
     assert_equal 2, order["display"], "a failed Neon stays in position, not pinned to top"
   end
 
+  test "the field roster shows the workspace member avatars under the header" do
+    admin  = User.create!(email_address: "hubadmin-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws     = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = admin }
+    member = User.create!(email_address: "hubmember-#{SecureRandom.hex(4)}@example.com")
+    ws.memberships.find_or_create_by!(user: member) { |m| m.role = "editor" }
+
+    sign_in_as(admin)
+    get "/nykitchen"
+    assert_response :success
+    # The overlapping member-avatar stack (workspaces/_member_avatars) root.
+    assert_includes @response.body, "flex -space-x-2 shrink-0",
+                    "expected the member avatar stack on the Field Roster header"
+  end
+
   private
 
   def assigns_card_order
