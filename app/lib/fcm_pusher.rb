@@ -90,11 +90,19 @@ class FcmPusher
   end
 
   def self.deliver(creds, access_token, device_token, notification, url, subtitle)
+    # subtitle is an APNs concept; FCM's Notification object only allows
+    # title/body/image and rejects the whole message with a 400 ("Unknown name
+    # \"subtitle\"") if we add it. Carry it in the data map instead (string
+    # key/values), so it stays available to the app without breaking delivery.
+    data = {}
+    data[:url] = url.to_s if url
+    data[:subtitle] = subtitle.to_s if subtitle
+
     body = {
       message: {
         token: device_token,
         notification: { title: notification.title, body: notification.body.to_s },
-        data: url ? { url: url.to_s } : {},
+        data: data,
         # channel_id must match the channel the app creates (see the inline
         # push script in the layout). Android 8+ silently drops a notification
         # message whose channel is missing or low-importance (even on the lock
@@ -104,7 +112,6 @@ class FcmPusher
         android: { priority: "HIGH", notification: { sound: "default", channel_id: "fcm_default" } }
       }
     }
-    body[:message][:notification][:subtitle] = subtitle if subtitle
 
     uri = URI("https://fcm.googleapis.com/v1/projects/#{creds['project_id']}/messages:send")
     res = post_json(uri, body, access_token)
