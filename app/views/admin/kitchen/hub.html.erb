@@ -191,11 +191,14 @@
         <% end %>
       </div>
       <%# The real teammates on this workspace (photo or initials), same stack
-          as the Workspaces list rows. %>
+          as the Workspaces list rows, sized up a little with room to breathe
+          under the action buttons. %>
       <% if @nyk_workspace %>
         <% roster_members = @nyk_workspace.memberships.includes(:user).map(&:user) %>
         <% if roster_members.any? %>
-          <%= render "workspaces/member_avatars", members: roster_members, size: "h-7 w-7" %>
+          <div class="mt-1.5 pr-0.5">
+            <%= render "workspaces/member_avatars", members: roster_members, size: "h-9 w-9" %>
+          </div>
         <% end %>
       <% end %>
     </div>
