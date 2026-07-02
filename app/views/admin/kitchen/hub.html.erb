@@ -165,7 +165,7 @@
   attention = (@hub_agent_status || {}).values.count { |s| s == :failed }
 %>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
      data-controller="settings-modal">
   <%# Breadcrumbs on the left; page actions (guide + settings) grouped on the
       right so the header row stays balanced. %>
@@ -192,18 +192,18 @@
   <% end %>
   <%= render "shared/ws_header", workspace: @nyk_workspace, breadcrumbs: hub_crumbs, actions: hub_actions %>
 
-  <div class="mb-8">
+  <div class="mb-5 sm:mb-8">
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
       <% if @nyk_workspace&.logo&.attached? %>
         <%# Logo sits on a light chip so its dark "New York Kitchen" wordmark is
             legible on the dark hub (the uploaded artwork is near-black). %>
-        <span class="inline-flex items-center bg-white rounded-xl px-3 py-2 shrink-0 self-start">
-          <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-10 sm:h-12 w-auto max-w-[70%] sm:max-w-none object-contain" %>
+        <span class="inline-flex items-center bg-white rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 shrink-0 self-start">
+          <%= image_tag @nyk_workspace.logo, alt: "NY Kitchen logo", class: "h-8 sm:h-12 w-auto max-w-[60%] sm:max-w-none object-contain" %>
         </span>
       <% end %>
       <div class="min-w-0">
         <div class="ra-eyebrow mb-1">Agent 44</div>
-        <h1 class="ra-h1 text-4xl text-white">Field Roster</h1>
+        <h1 class="ra-h1 text-3xl sm:text-4xl text-white">Field Roster</h1>
         <p class="ra-onduty mt-2 flex items-center gap-2">
           <%= agent_dot.call(:running, "Fleet on duty") %>
           <span><%= pluralize(WorkspaceAgent::KINDS.size, "agent") %> on duty<% if attention.positive? %> · <span class="text-red-400"><%= attention %> need<%= "s" if attention == 1 %> attention</span><% end %></span>
@@ -266,12 +266,12 @@
          [ "ask",     (@workspace_agents["ask"]&.display_name.presence     || roster["ask"][:call]),     roster["ask"][:emoji] ],
          [ "cellar",  "Cellar", "🍷" ]
        ] %>
-    <div class="mb-4 flex flex-wrap items-center gap-2 px-1">
-      <span class="ra-eyebrow mr-1">Background agents</span>
+    <div class="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 px-1">
+      <span class="ra-eyebrow mr-1 w-full sm:w-auto mb-1 sm:mb-0">Background agents</span>
       <% hidden_chips.each do |key, label, emoji| %>
         <button type="button" data-roster-target="chip" data-key="<%= key %>" data-label="<%= label %>"
                 data-action="click->roster#toggle" aria-pressed="false" title="Show <%= label %>"
-                class="roster-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-600 text-sm text-gray-400 hover:text-white transition cursor-pointer">
+                class="roster-chip inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-600 text-xs sm:text-sm text-gray-400 hover:text-white transition cursor-pointer">
           <svg class="chip-eye-off w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
           <svg class="chip-eye-on w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           <span><%= emoji %> <%= label %></span>
