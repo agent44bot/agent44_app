@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-02
+  note: On phones, the little Background agents buttons (Iris, Scout, Carson and friends) now sit below your main agent cards instead of crowding the top of the screen. On a computer they stay up top as before.
+
+- date: 2026-07-02
   note: Every NY Kitchen page now has a consistent header. Your team's avatars show up top next to the page buttons (like New post and Add a class), so you can see at a glance who is on the workspace wherever you are.
 
 - date: 2026-07-02
