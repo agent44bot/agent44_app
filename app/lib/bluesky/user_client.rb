@@ -30,7 +30,9 @@ module Bluesky
 
     # image_bytes (already under the 1MB blob limit) attaches a native image;
     # image_url fetches one from a URL. image_bytes wins if both are given.
-    def post_text(text, image_url: nil, image_bytes: nil, image_content_type: nil)
+    # external ({uri:, title:, description:, image_url:}) posts a clickable link
+    # preview card instead of a native image; it takes precedence over images.
+    def post_text(text, image_url: nil, image_bytes: nil, image_content_type: nil, external: nil)
       return Result.new(ok?: false, error: "Account is not Bluesky") unless @account.platform == "bluesky"
       return Result.new(ok?: false, error: "Account needs reauth")   if @account.status != "active"
       return Result.new(ok?: false, error: "Post is empty")          if text.to_s.strip.empty?
@@ -38,20 +40,25 @@ module Bluesky
 
       ensure_fresh_token!
 
-      # Upload image first (if any) so we have the blob ref for the embed.
+      # A link card (external embed) wins over a native image. Otherwise upload
+      # the image first (if any) so we have the blob ref for the images embed.
       embed = nil
-      blob =
-        if image_bytes.present?
-          upload_blob_bytes(image_bytes, image_content_type || "image/jpeg")
-        elsif image_url.present?
-          upload_image_blob(image_url, alt_text: text.first(300))
+      if external.present?
+        embed = build_external_embed(external)
+      else
+        blob =
+          if image_bytes.present?
+            upload_blob_bytes(image_bytes, image_content_type || "image/jpeg")
+          elsif image_url.present?
+            upload_image_blob(image_url, alt_text: text.first(300))
+          end
+        if blob
+          return Result.new(ok?: false, error: "Image upload failed: #{blob[:error]}") unless blob[:ok]
+          embed = {
+            "$type" => "app.bsky.embed.images",
+            images: [ { alt: text.first(300), image: blob[:blob] } ]
+          }
         end
-      if blob
-        return Result.new(ok?: false, error: "Image upload failed: #{blob[:error]}") unless blob[:ok]
-        embed = {
-          "$type" => "app.bsky.embed.images",
-          images: [ { alt: text.first(300), image: blob[:blob] } ]
-        }
       end
 
       record = { text: text, createdAt: Time.current.utc.iso8601 }
@@ -174,6 +181,23 @@ module Bluesky
         @account.mark_needs_reauth!
         false
       end
+    end
+
+    # Builds an app.bsky.embed.external (a clickable link preview card). The
+    # thumbnail is best-effort: if the image can't be fetched/uploaded, the card
+    # still posts with just title + description, so a missing photo never fails
+    # the post. external: { uri:, title:, description:, image_url: }.
+    def build_external_embed(external)
+      card = {
+        uri:         external[:uri].to_s,
+        title:       external[:title].to_s,
+        description: external[:description].to_s
+      }
+      if external[:image_url].present?
+        blob = upload_image_blob(external[:image_url], alt_text: external[:title].to_s)
+        card[:thumb] = blob[:blob] if blob && blob[:ok]
+      end
+      { "$type" => "app.bsky.embed.external", external: card }
     end
 
     # Downloads the image, downscales it under Bluesky's 1MB blob limit (event

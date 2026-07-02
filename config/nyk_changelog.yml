@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-02
+  note: Social posts about a class now go out as a tappable preview card, so the photo and headline link straight to that class's signup page on X and Bluesky. Every class post also includes the booking link in the text.
+
 - date: 2026-07-01
   note: Sam can now draft social posts for classes that still have seats and ping your phone to review and post them, up to twice a day at random times. It stays off until you ask us to switch it on, and nothing posts on its own; you always tap to publish.
 

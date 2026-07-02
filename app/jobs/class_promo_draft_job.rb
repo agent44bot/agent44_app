@@ -114,17 +114,27 @@ class ClassPromoDraftJob < ApplicationJob
 
   def draft_for(ws, event, platforms, author)
     body = KitchenAi::ClassPromoWriter.new(user: author).write(event).presence || template_body(event)
+    body = with_booking_link(body, event.url)
     ws.workspace_drafts.create!(
       author:           author,
       body:             body,
       target_platforms: platforms,
       image_url:        event.image_url.presence,
       source_url:       event.url,
+      link_card:        true, # post as a clickable link card so the photo opens signup
       status:           "draft"
     )
   rescue => e
     Rails.logger.error("ClassPromoDraftJob draft failed: #{e.class}: #{e.message}")
     nil
+  end
+
+  # Every class post carries the signup link so people can book. It also makes
+  # X render the class page's preview card (clickable image). Appended in code
+  # rather than trusted to the model, so the URL is always correct and present.
+  def with_booking_link(body, url)
+    return body if url.blank? || body.include?(url)
+    "#{body}\n\n#{url}"
   end
 
   # Plain fallback when the AI writer returns nothing (same shape as the hub's

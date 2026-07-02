@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_01_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_02_021436) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -710,6 +710,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_01_150000) do
     t.datetime "created_at", null: false
     t.text "error"
     t.string "image_url"
+    t.boolean "link_card", default: false, null: false
     t.datetime "published_at"
     t.text "results"
     t.datetime "scheduled_for"

@@ -63,6 +63,8 @@ class CarsonNudgeJobTest < ActiveJob::TestCase
     assert_equal "draft", draft.status
     assert_match "Sweet Heat", draft.body
     assert_match "Only 1 spot left", draft.body
+    assert draft.link_card, "sellout posts go out as clickable link cards"
+    assert_includes draft.body, draft.source_url, "the sellout post carries the signup link"
     assert_equal [ "x" ], draft.target_platforms
     assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit", n.url
     assert_match "Echo", n.body

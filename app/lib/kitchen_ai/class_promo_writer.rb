@@ -64,7 +64,8 @@ module KitchenAi
         #{facts.join("\n")}
 
         Rules:
-        - Under 280 characters so it fits X and Bluesky.
+        - Under 200 characters (a booking link is added automatically after
+          your text, so leave room and do NOT include any URL or link).
         - Warm and inviting; add a little urgency when seats are limited.
         - Include the date and a clear call to book.
         - End with 2-3 relevant hashtags.
