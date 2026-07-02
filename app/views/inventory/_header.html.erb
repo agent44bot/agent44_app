@@ -2,17 +2,13 @@
     Pass `active:` as one of :stock, :receive, :remove, :import. %>
 <% active = local_assigns[:active] %>
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-  <%# Team avatars sit just left of the back button, matching every other NYK
-      agent page. The Cellar is NYK-only, so look the workspace up directly. %>
-  <div class="flex items-center justify-end gap-3 mb-4">
-    <% cellar_members = Workspace.find_by(slug: "nykitchen")&.memberships&.includes(:user)&.map(&:user) %>
-    <% if cellar_members&.any? %>
-      <%= render "workspaces/member_avatars", members: cellar_members, size: "h-8 w-8" %>
-    <% end %>
-    <%= link_to nykitchen_path, class: "inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition" do %>
-      ← NY Kitchen
-    <% end %>
-  </div>
+  <%# Same header shape as every other NYK agent page: breadcrumbs on the left
+      (the trail back to NY Kitchen), team avatars on the right. The Cellar is
+      NYK-only, so pass the workspace directly for the avatar stack. %>
+  <% bc = capture do %>
+    <%= render "admin/kitchen/breadcrumbs", current: "Cellar", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %>
+  <% end %>
+  <%= render "shared/ws_header", workspace: Workspace.find_by(slug: "nykitchen"), breadcrumbs: bc %>
 
   <div class="text-orange-500 text-[11px] font-mono tracking-[0.3em] uppercase mb-1">Agent 44 · Cellar</div>
   <h1 class="text-3xl font-black text-white">Storage Room</h1>
