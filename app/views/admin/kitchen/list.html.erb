@@ -16,7 +16,31 @@
     <p class="text-white text-base font-semibold">Agent Sam is generating a recipe for you...</p>
     <p class="text-gray-400 text-sm">This takes a few seconds. Sam is putting together the recipe, equipment items, pull sheet, and grocery list.</p>
   </div>
-  <%= render "admin/kitchen/breadcrumbs", kind: "list" %>
+  <% list_crumbs = capture do %>
+    <%= render "admin/kitchen/breadcrumbs", kind: "list", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %>
+  <% end %>
+  <% list_actions = capture do %>
+    <% if @nyk_manager %>
+      <button type="button" data-action="click->dialog#open"
+              class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition">
+        <span class="text-base leading-none">+</span><span>Add a class</span>
+      </button>
+    <% end %>
+    <%= link_to nyk_prices_path,
+          class: "flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
+      🥫 <span>Pantry</span>
+    <% end %>
+    <% if authenticated? && Current.user.admin? %>
+      <%= link_to nyk_billing_path,
+            class: "flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Billing</span>
+      <% end %>
+    <% end %>
+  <% end %>
+  <%= render "shared/ws_header", workspace: @nyk_workspace, breadcrumbs: list_crumbs, actions: list_actions %>
 
   <%# Manager-only: add a class/camp that isn't on nykitchen.com's calendar.
       Opens as a modal so the page doesn't jump; posts to create_manual_class. %>
@@ -68,30 +92,7 @@
   <% end %>
 
   <div class="mb-6">
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      <%= render "admin/kitchen/agent_title", title: "List Agent", kind: "list" %>
-      <div class="flex items-center gap-2">
-        <% if @nyk_manager %>
-          <button type="button" data-action="click->dialog#open"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition">
-            <span class="text-base leading-none">+</span><span>Add a class</span>
-          </button>
-        <% end %>
-        <%= link_to nyk_prices_path,
-              class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
-          🥫 <span>Pantry</span>
-        <% end %>
-        <% if authenticated? && Current.user.admin? %>
-          <%= link_to nyk_billing_path,
-                class: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span>Billing</span>
-          <% end %>
-        <% end %>
-      </div>
-    </div>
+    <%= render "admin/kitchen/agent_title", title: "List Agent", kind: "list" %>
     <p class="text-gray-400 mt-1">
       Cooking classes at NY Kitchen &middot;
       <%= @total %> upcoming

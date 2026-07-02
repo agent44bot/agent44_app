@@ -2,16 +2,27 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
      data-controller="composer">
-  <div class="flex items-center gap-3 mb-6 text-sm">
-    <%# Generic workspaces always show the Workspaces root; NY Kitchen keeps the
-        adaptive root (its pinned customers see NY Kitchen, not Workspaces). %>
-    <% ws_root = (@workspace.slug != "nykitchen" || show_workspaces_crumb?) ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
+  <%# Generic workspaces always show the Workspaces root; NY Kitchen keeps the
+      adaptive root (its pinned customers see NY Kitchen, not Workspaces). %>
+  <% ws_root = (@workspace.slug != "nykitchen" || show_workspaces_crumb?) ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
+  <% social_crumbs = capture do %>
     <% if @workspace.slug == "nykitchen" %>
       <%= render "shared/breadcrumbs", crumbs: ws_root + [["NY Kitchen", nykitchen_path], [nyk_agent_callsign("social", @workspace.agent_for("social")), nil]] %>
     <% else %>
       <%= render "shared/breadcrumbs", crumbs: ws_root + [[@workspace.name, workspace_path(@workspace.slug)], ["Social Agent", nil]] %>
     <% end %>
-  </div>
+  <% end %>
+  <% social_actions = capture do %>
+    <% if @writer && @connected_platforms.any? %>
+      <button type="button"
+              data-action="click->composer#toggle"
+              class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200 transition cursor-pointer">
+        <span class="text-orange-400 text-base leading-none">+</span>
+        <span>New post</span>
+      </button>
+    <% end %>
+  <% end %>
+  <%= render "shared/ws_header", workspace: @workspace, breadcrumbs: social_crumbs, actions: social_actions %>
 
   <%# Compact identity band: logo inline with the title (matches the workspace
       hub). NY Kitchen keeps its "Field Roster" callsign identity. %>
@@ -41,16 +52,6 @@
           <p class="text-xs text-gray-500 font-mono mt-0.5"><%= @workspace.name %> · /<%= @workspace.slug %> · <%= @workspace.timezone %></p>
         <% end %>
       </div>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      <% if @writer && @connected_platforms.any? %>
-        <button type="button"
-                data-action="click->composer#toggle"
-                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200 transition cursor-pointer">
-          <span class="text-orange-400 text-base leading-none">+</span>
-          <span>New post</span>
-        </button>
-      <% end %>
     </div>
   </div>
 
