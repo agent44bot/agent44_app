@@ -68,6 +68,12 @@ production:
   carson_nudge:
     class: CarsonNudgeJob
     schedule: every hour at minute 23
+  # Sam's class-promo drafts: hourly poll, but window + budget + dice roll mean
+  # it drafts a post + pushes Rich to review at most ~2x/day at random daytime
+  # hours. Off until Setting "class_promo:user_ids" names a recipient.
+  class_promo_draft:
+    class: ClassPromoDraftJob
+    schedule: every hour at minute 47
   # Hourly poll of X + Bluesky engagement on recent posts. Refreshes the
   # like/repost/reply counts and pushes members a "new engagement" alert when
   # any of them rises (see RefreshSocialMetricsJob#notify_new_engagement). The
