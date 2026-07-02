@@ -257,7 +257,10 @@
       "Agent 44 · Field Roster" + the agent/attention count. %>
   <section data-controller="roster"
            data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
-    <div>
+    <%# Flex column so the background-agents chip row can float below the cards on
+        mobile (order-2) but stay above them on desktop (sm:order-1) — the chips
+        cluttered the top of the phone view above Sam/Echo/Neon. %>
+    <div class="flex flex-col">
     <%# Background agents: run on their own schedule, kept off the default board
         (Neon, Sam, Echo stay up top). Each chip toggles its card show/hide,
         scoped per user (see roster_controller + data-roster-storage-key-value). %>
@@ -268,7 +271,7 @@
          [ "ask",     (@workspace_agents["ask"]&.display_name.presence     || roster["ask"][:call]),     roster["ask"][:emoji] ],
          [ "cellar",  "Cellar", "🍷" ]
        ] %>
-    <div class="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 px-1">
+    <div class="order-2 sm:order-1 mb-3 sm:mb-4 mt-4 sm:mt-0 flex flex-wrap items-center gap-1.5 sm:gap-2 px-1">
       <span class="ra-eyebrow mr-1 w-full sm:w-auto mb-1 sm:mb-0">Background agents</span>
       <% hidden_chips.each do |key, label, emoji| %>
         <button type="button" data-roster-target="chip" data-key="<%= key %>" data-label="<%= label %>"
@@ -280,7 +283,7 @@
         </button>
       <% end %>
     </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr <%= "pay-on" if @can_see_pricing %>">
+  <div class="order-1 sm:order-2 grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr <%= "pay-on" if @can_see_pricing %>">
     <%# Analyst / Iris (no liveness dot — it's a dashboard, not a worker) %>
     <%= link_to nyk_analyst_path, class: "ra-card is-hidden", style: accent_style.call(:analyst), data: { roster_target: "card", key: "analyst" } do %>
       <span class="ra-corner"><span class="ra-chev">▶</span></span>
