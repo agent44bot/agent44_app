@@ -14,7 +14,7 @@ class KitchenController < ApplicationController
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
-  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices]
+  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices display_settings]
   # Super Agent (admin/customer-only): once App Review approved the app, we
   # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
   # credits via the chat. Admins, the App Store reviewer account, and members
