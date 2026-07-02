@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_02_021436) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_02_195340) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -614,6 +614,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_02_021436) do
     t.index ["workspace_id"], name: "index_social_accounts_on_workspace_id"
   end
 
+  create_table "social_leads", force: :cascade do |t|
+    t.string "author"
+    t.datetime "created_at", null: false
+    t.text "draft_reply"
+    t.string "external_id", null: false
+    t.string "matched_query"
+    t.string "platform", null: false
+    t.datetime "posted_at"
+    t.string "reason"
+    t.integer "score", default: 0, null: false
+    t.string "status", default: "new", null: false
+    t.text "text", null: false
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "platform", "external_id"], name: "index_social_leads_on_ws_platform_external", unique: true
+    t.index ["workspace_id", "status"], name: "index_social_leads_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_social_leads_on_workspace_id"
+  end
+
   create_table "social_post_logs", force: :cascade do |t|
     t.datetime "copied_at"
     t.datetime "created_at", null: false
@@ -849,6 +869,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_02_021436) do
   add_foreign_key "sessions", "users", column: "impersonated_user_id"
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
+  add_foreign_key "social_leads", "workspaces"
   add_foreign_key "usage_events", "workspaces"
   add_foreign_key "workspace_agents", "workspaces"
   add_foreign_key "workspace_drafts", "users", column: "author_id"

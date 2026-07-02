@@ -1,0 +1,46 @@
+<%# Echo's social-listening leads. Locals: leads (Array<SocialLead>), workspace.
+    Each card shows the found post + an AI-drafted reply to review. A human opens
+    the post to reply, then marks it replied, or dismisses it. Nothing auto-posts. %>
+<section class="mb-8">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="ra-eyebrow">Conversations</span>
+    <span class="text-xs text-gray-500"><%= pluralize(leads.size, "worth joining") %></span>
+  </div>
+
+  <div class="space-y-3">
+    <% leads.each do |lead| %>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+        <div class="flex items-center gap-2 flex-wrap text-xs mb-2">
+          <span class="px-2 py-0.5 rounded-full <%= lead.platform == "bluesky" ? "bg-sky-900/50 text-sky-300" : "bg-orange-900/50 text-orange-300" %> font-semibold"><%= lead.platform_label %></span>
+          <span class="text-gray-400">@<%= lead.author %></span>
+          <span class="text-gray-600">·</span>
+          <span class="text-green-400 font-semibold"><%= lead.score %>/100</span>
+          <% if lead.posted_at %><span class="text-gray-600">·</span><span class="text-gray-500"><%= time_ago_in_words(lead.posted_at) %> ago</span><% end %>
+        </div>
+
+        <p class="text-sm text-gray-200 mb-2 whitespace-pre-line"><%= lead.text %></p>
+        <% if lead.reason.present? %>
+          <p class="text-xs text-gray-500 mb-3">Why: <%= lead.reason %></p>
+        <% end %>
+
+        <%# Mark-replied form carries the (editable) draft so a person can tweak
+            it before pasting it into the post, then record that they replied. %>
+        <%= form_with url: mark_sent_workspace_social_lead_path(workspace_slug: workspace.slug, id: lead.id),
+              method: :patch, class: "space-y-2" do %>
+          <label class="block text-xs text-orange-400">Suggested reply (edit, then post it on <%= lead.platform_label %>)</label>
+          <textarea name="draft_reply" rows="3"
+                    class="w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none"><%= lead.draft_reply %></textarea>
+          <div class="flex flex-wrap items-center gap-2">
+            <% if lead.url.present? %>
+              <%= link_to "Open post ↗", lead.url, target: "_blank", rel: "noopener",
+                    class: "inline-flex items-center px-3 h-8 rounded-lg bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200 transition" %>
+            <% end %>
+            <button type="submit" class="inline-flex items-center px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition">Mark replied</button>
+            <%= button_to "Dismiss", dismiss_workspace_social_lead_path(workspace_slug: workspace.slug, id: lead.id),
+                  method: :patch, class: "inline-flex items-center px-3 h-8 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-500 text-sm text-gray-400 hover:text-white transition" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>

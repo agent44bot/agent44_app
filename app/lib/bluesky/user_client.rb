@@ -156,7 +156,48 @@ module Bluesky
       Result.new(ok?: false, error: "#{e.class}: #{e.message}")
     end
 
+    # Free full-text search (app.bsky.feed.searchPosts) for the listening
+    # feature (SocialListenJob). Returns a lightweight array of
+    # {external_id:, author:, text:, url:, posted_at:} for each match, or [] on
+    # any failure (best-effort; never raises).
+    def search_posts(query, limit: 25)
+      return [] if query.to_s.strip.empty?
+      ensure_fresh_token!
+      url = "#{PDS_URL}/xrpc/app.bsky.feed.searchPosts?q=#{URI.encode_www_form_component(query)}&limit=#{limit.to_i}&sort=latest"
+      response = http_request(:get, url)
+      if response[:status] == "401"
+        return [] unless refresh_token!
+        response = http_request(:get, url)
+      end
+      return [] unless response[:status] == "200"
+      Array(response[:body]["posts"]).map { |p| parse_search_post(p) }.compact
+    rescue => e
+      Rails.logger.warn("Bluesky search_posts failed for #{query.inspect}: #{e.class}: #{e.message}")
+      []
+    end
+
     private
+
+    def parse_search_post(post)
+      handle = post.dig("author", "handle")
+      uri    = post["uri"].to_s
+      rkey   = uri.split("/").last
+      text   = post.dig("record", "text").to_s
+      return nil if text.strip.empty?
+      {
+        external_id: uri,
+        author:      handle,
+        text:        text,
+        url:         (handle.present? && rkey.present?) ? "https://bsky.app/profile/#{handle}/post/#{rkey}" : nil,
+        posted_at:   safe_time(post["indexedAt"])
+      }
+    end
+
+    def safe_time(str)
+      Time.zone.parse(str.to_s)
+    rescue ArgumentError, TypeError
+      nil
+    end
 
     def ensure_fresh_token!
       return if @account.token_expires_at.nil?

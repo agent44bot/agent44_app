@@ -199,6 +199,12 @@ Rails.application.routes.draw do
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]
+    resources :social_leads, only: [] do
+      member do
+        patch :dismiss
+        patch :mark_sent
+      end
+    end
     resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
     post "drafts/from_image", to: "workspace_drafts#from_image", as: :draft_from_image
