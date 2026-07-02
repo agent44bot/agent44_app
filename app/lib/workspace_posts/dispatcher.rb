@@ -17,7 +17,7 @@ module WorkspacePosts
 
     # image: an ActiveStorage attachment (e.g. draft.image) uploaded as native
     # media on X. image_url stays the URL-based path Bluesky/Facebook use.
-    def initialize(workspace, author:, body:, platforms:, image: nil, image_url: nil, source_url: nil)
+    def initialize(workspace, author:, body:, platforms:, image: nil, image_url: nil, source_url: nil, link_card: false)
       @workspace  = workspace
       @author     = author
       @body       = body.to_s.strip
@@ -25,6 +25,7 @@ module WorkspacePosts
       @image      = image if image.respond_to?(:attached?) && image.attached?
       @image_url  = image_url.presence
       @source_url = source_url.presence
+      @link_card  = link_card && @source_url.present?
     end
 
     def dispatch
@@ -103,6 +104,11 @@ module WorkspacePosts
     def post_to_x(account, body)
       client = X::UserClient.new(account)
 
+      # Link-card mode: post text only (the body carries source_url). X renders
+      # the page's summary_large_image card, so the image itself is clickable.
+      # A native media upload would suppress that card, so skip it.
+      return client.post_tweet(body) if @link_card
+
       # Uploaded attachment: native media is the whole point, so a failed upload
       # fails the post rather than silently dropping the image.
       if @image
@@ -129,6 +135,20 @@ module WorkspacePosts
     # only carry an image_url. No image -> plain text.
     def post_to_bluesky(account, body)
       client = Bluesky::UserClient.new(account)
+
+      # Link-card mode: build an external embed from the page's OG tags so the
+      # whole card (image included) taps through to source_url. If the card
+      # can't be fetched, fall back to plain text (the URL stays clickable).
+      if @link_card
+        if (card = SocialCard.fetch(@source_url))
+          return client.post_text(body, external: {
+            uri: @source_url, title: card.title,
+            description: card.description, image_url: card.image_url
+          })
+        end
+        return client.post_text(body)
+      end
+
       if @image
         bytes, mime = bluesky_image_bytes
         return client.post_text(body, image_bytes: bytes, image_content_type: mime) if bytes

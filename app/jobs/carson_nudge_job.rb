@@ -202,6 +202,8 @@ class CarsonNudgeJob < ApplicationJob
     lines << "\u{1F4CD} New York Kitchen, Canandaigua"
     lines << ""
     lines << "\u{1F525} Only #{event.spots_left} #{"spot".pluralize(event.spots_left)} left! This class is almost full."
+    lines << ""
+    lines << event.url # signup link + makes X render the clickable class card
 
     ws.workspace_drafts.create!(
       author:           author,
@@ -209,6 +211,7 @@ class CarsonNudgeJob < ApplicationJob
       target_platforms: platforms,
       image_url:        event.image_url.presence,
       source_url:       event.url,
+      link_card:        true,
       status:           "draft"
     )
   rescue => e

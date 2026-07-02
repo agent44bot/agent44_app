@@ -15,7 +15,8 @@ module WorkspaceDrafts
         platforms:  @draft.target_platforms,
         image:      @draft.image,
         image_url:  @draft.image_url,
-        source_url: @draft.source_url
+        source_url: @draft.source_url,
+        link_card:  @draft.link_card
       ).dispatch
 
       @draft.update!(

@@ -54,6 +54,8 @@ class ClassPromoDraftJobTest < ActiveJob::TestCase
     assert_equal [ "x" ], draft.target_platforms
     assert_equal "https://tock/wine", draft.source_url
     assert_match "Wine Country Cooking", draft.body
+    assert draft.link_card, "class promos post as clickable link cards"
+    assert_includes draft.body, "https://tock/wine", "every class post carries the signup link"
 
     n = Notification.last
     assert_equal "sam", n.source
