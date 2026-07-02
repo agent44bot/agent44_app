@@ -148,6 +148,9 @@ class WorkspacesController < ApplicationController
     @connected_platforms = [ @x_account && "x", @bluesky_account && "bluesky", @threads_account && "threads", @facebook_account && "facebook" ].compact
     @drafts           = @workspace.workspace_drafts.unscheduled.recent.limit(10)
     @scheduled_drafts = @workspace.workspace_drafts.scheduled.limit(20)
+    # Echo's social-listening leads (SocialListenJob): conversations worth
+    # joining, with an AI-drafted reply to review. Empty unless listening is on.
+    @social_leads     = @workspace.social_leads.new_leads.limit(20)
   end
 
   private
