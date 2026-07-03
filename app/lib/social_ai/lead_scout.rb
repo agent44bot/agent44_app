@@ -5,7 +5,11 @@
 # a suggestion; a human sends it.
 module SocialAi
   class LeadScout
-    MODEL      = "claude-haiku-4-5-20251001"
+    # Sonnet (not Haiku) for scoring: the relevance judgment (is this really about
+    # us / a bookable class, vs generic food chatter) needs the stronger model.
+    # Volume is tiny (a few hundred tokens per post, capped per run), so the cost
+    # is negligible. Overridable via AiModelChoice Setting "ai_model:nyk_social_scout".
+    MODEL      = "claude-sonnet-4-6"
     SOURCE     = "nyk_social_scout"
     MAX_TOKENS = 500
 
@@ -48,20 +52,36 @@ module SocialAi
     private
 
     SYSTEM_PROMPT = <<~PROMPT.freeze
-      You help a local cooking-class business decide which social media posts are
-      worth replying to, and draft a warm, human reply.
+      You screen social media posts for a local cooking-class business and decide,
+      strictly, which are genuinely worth a reply, then draft one.
 
       Reply with ONLY a JSON object, no prose, no code fences:
       {"score": 0-100, "reason": "short why", "reply": "the suggested reply"}
 
-      score = how good an engagement opportunity this post is for the business
-      (100 = clearly worth replying, 0 = irrelevant / spam / not a fit). Be
-      strict: local food, cooking, date-night, or Finger Lakes interest, or a
-      direct mention of the business, scores high; unrelated posts score low.
-      reply = a friendly, genuine reply in the brand's voice (see BRAND). Under
-      250 characters, no hard sell, sound like a real person. Do NOT use em
-      dashes or en dashes; use commas or periods. If score is under 40 the reply
-      may be an empty string.
+      Score HIGH (70-100) ONLY when the post clearly is one of:
+      - a mention of THIS business by name or handle, or a recommendation clearly
+        about it, OR
+      - a real person in or near the region asking for or interested in a
+        hands-on cooking class, a cooking date night, or a food experience they
+        could actually book.
+
+      Score LOW (under 30) when:
+      - the post is about a DIFFERENT place, event, restaurant, or festival (e.g.
+        a state fair, a specific restaurant, a concert) even if it praises "food".
+      - it is generic food / travel / news / business / marketing chatter that is
+        not about us and not someone looking for a class.
+      - you cannot tell from the text what it refers to (e.g. a short reply
+        fragment with no context). When unsure, score LOW.
+
+      Be skeptical. Most posts are NOT a fit. A wide search feeds you a lot of
+      noise and your job is to reject it. Do NOT assume a vague positive-food
+      post is about this business.
+
+      reply = only meaningful when the score is high. A friendly, genuine reply in
+      the brand's voice (see BRAND), under 250 characters, no hard sell, sounds
+      like a real person, and NEVER claims or implies the person was talking about
+      us unless they clearly were. Do NOT use em dashes or en dashes. If the score
+      is under 60, return an empty string for reply.
     PROMPT
 
     def prompt(candidate)
@@ -78,11 +98,12 @@ module SocialAi
     def brand_context
       return "" unless @workspace.slug == "nykitchen"
       " (New York Kitchen, a hands-on cooking class venue in Canandaigua in the " \
-        "Finger Lakes wine region of upstate New York. It draws food lovers from " \
-        "across upstate NY (Rochester, Buffalo, Syracuse) and travelers planning a " \
-        "Finger Lakes trip, so someone anywhere in upstate NY who is into food, " \
-        "wine, or a Finger Lakes visit is a good target. Warm, welcoming, " \
-        "community-first. Great for date nights, groups, and food lovers.)"
+        "Finger Lakes wine region of upstate New York. GOOD targets: someone who " \
+        "mentions New York Kitchen, or someone in upstate NY / the Finger Lakes " \
+        "area asking about or interested in a hands-on cooking class, a cooking " \
+        "date night, or a food experience they could book. NOT targets: general " \
+        "food, restaurant, fair, or travel chatter that is not about us and is " \
+        "not someone looking for a class. Warm, welcoming, community-first.)"
     end
 
     def parse(response)
