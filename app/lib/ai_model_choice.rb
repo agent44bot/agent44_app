@@ -22,13 +22,14 @@ module AiModelChoice
     "nyk_ask"             => "haiku",
     "nyk_team_report"     => "haiku",
     "nyk_enhance"         => "haiku",
-    "nyk_x_autopost"      => "haiku"
+    "nyk_x_autopost"      => "haiku",
+    "nyk_social_scout"    => "sonnet"
   }.freeze
 
   # Sources whose model is resolved from an in-app call site we control, so the
   # billing UI shows radios for them. Others (e.g. the X autopost draft, which
   # an external job generates) are shown read-only.
-  CONTROLLABLE = %w[nyk_grocery_list nyk_recipe_extract nyk_recipe_generate nyk_receipt_extract nyk_ask nyk_team_report nyk_enhance].freeze
+  CONTROLLABLE = %w[nyk_grocery_list nyk_recipe_extract nyk_recipe_generate nyk_receipt_extract nyk_ask nyk_team_report nyk_enhance nyk_social_scout].freeze
 
   def self.setting_key(source)
     "ai_model:#{source}"
