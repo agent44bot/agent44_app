@@ -78,8 +78,11 @@ module SocialAi
     def brand_context
       return "" unless @workspace.slug == "nykitchen"
       " (New York Kitchen, a hands-on cooking class venue in Canandaigua in the " \
-        "Finger Lakes wine region. Warm, welcoming, community-first. Great for " \
-        "date nights, groups, and food lovers.)"
+        "Finger Lakes wine region of upstate New York. It draws food lovers from " \
+        "across upstate NY (Rochester, Buffalo, Syracuse) and travelers planning a " \
+        "Finger Lakes trip, so someone anywhere in upstate NY who is into food, " \
+        "wine, or a Finger Lakes visit is a good target. Warm, welcoming, " \
+        "community-first. Great for date nights, groups, and food lovers.)"
     end
 
     def parse(response)

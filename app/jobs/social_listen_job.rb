@@ -19,9 +19,13 @@ class SocialListenJob < ApplicationJob
     "Canandaigua",
     "Finger Lakes food",
     "Finger Lakes wine",
+    "Finger Lakes weekend",
     "Rochester food",
     "Rochester date night",
-    "cooking class Finger Lakes"
+    "Buffalo food",
+    "Syracuse food",
+    "upstate New York foodie",
+    "Western New York food"
   ].freeze
 
   MIN_SCORE       = 40 # below this we don't store the lead (cuts noise)
