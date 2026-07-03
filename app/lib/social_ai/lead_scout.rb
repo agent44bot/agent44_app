@@ -5,7 +5,11 @@
 # a suggestion; a human sends it.
 module SocialAi
   class LeadScout
-    MODEL      = "claude-haiku-4-5-20251001"
+    # Sonnet (not Haiku) for scoring: the relevance judgment (is this really about
+    # us / a bookable class, vs generic food chatter) needs the stronger model.
+    # Volume is tiny (a few hundred tokens per post, capped per run), so the cost
+    # is negligible. Overridable via AiModelChoice Setting "ai_model:nyk_social_scout".
+    MODEL      = "claude-sonnet-4-6"
     SOURCE     = "nyk_social_scout"
     MAX_TOKENS = 500
 
