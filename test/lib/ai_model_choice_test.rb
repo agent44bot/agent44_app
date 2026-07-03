@@ -28,6 +28,13 @@ class AiModelChoiceTest < ActiveSupport::TestCase
     assert_not AiModelChoice.controllable?("nyk_x_autopost")
   end
 
+  test "echo social listening is a controllable feature that defaults to Sonnet" do
+    assert AiModelChoice.controllable?("nyk_social_scout")
+    assert_equal "sonnet", AiModelChoice.selected_key("nyk_social_scout")
+    assert_equal "claude-sonnet-4-6",
+                 AiModelChoice.resolve("nyk_social_scout", default: "claude-sonnet-4-6")
+  end
+
   test "every selectable model is priced in AiCallLog::RATES" do
     AiModelChoice::OPTIONS.each_value do |opt|
       assert AiCallLog::RATES.key?(opt[:id]), "#{opt[:id]} missing from RATES"
