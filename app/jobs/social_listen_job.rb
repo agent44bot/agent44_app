@@ -55,7 +55,36 @@ class SocialListenJob < ApplicationJob
                  .first(MAX_NEW_PER_RUN)
 
     scout = SocialAi::LeadScout.new(workspace: ws)
-    candidates.each { |c| store_lead(ws, scout, c) }
+    new_leads = candidates.filter_map { |c| store_lead(ws, scout, c) }
+    notify_new_leads(ws, new_leads)
+  end
+
+  # One push per run (not one per lead): tell the reviewers how many new
+  # conversations are waiting, deep-linked to the Echo page. Sends any time of
+  # day (24/7). Off until Setting "social_listen:notify_user_ids" names
+  # recipients.
+  def notify_new_leads(ws, leads)
+    return if leads.empty?
+    users = notify_users
+    return if users.empty?
+
+    top   = leads.max_by(&:score)
+    title = leads.size == 1 ? "New conversation for #{ws.name}" : "#{leads.size} new conversations for #{ws.name}"
+    body  = leads.size == 1 ? "#{top.platform_label}: #{top.text.to_s.truncate(90)}" : "Tap to review and reply on the Echo page."
+    url   = Rails.application.routes.url_helpers.nyk_social_path
+
+    users.each do |user|
+      Notification.notify!(
+        level: :info, source: "echo", title: title, body: body,
+        apns: true, apns_user: user, workspace: ws,
+        apns_url: url, apns_subtitle: "Echo · Listening"
+      )
+    end
+  end
+
+  def notify_users
+    ids = Setting.get("social_listen:notify_user_ids").to_s.split(",").map(&:strip).reject(&:blank?)
+    ids.empty? ? [] : User.where(id: ids).to_a
   end
 
   def store_lead(ws, scout, candidate)

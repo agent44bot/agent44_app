@@ -122,7 +122,7 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
 
   # 4:00 PM UTC = 12:00 PM Eastern (EDT) — a daytime hour, outside quiet hours.
   DAYTIME = Time.utc(2026, 6, 30, 16, 0, 0)
-  # 3:00 AM UTC = 11:00 PM Eastern (EDT) — inside the 9pm-8am quiet window.
+  # 3:00 AM UTC = 11:00 PM Eastern (EDT) — an overnight hour (no quiet window now).
   QUIET   = Time.utc(2026, 7, 1, 3, 0, 0)
 
   def stub_x_metrics(remote_id, likes:, replies: 0)
@@ -151,17 +151,17 @@ class RefreshSocialMetricsJobTest < ActiveSupport::TestCase
     assert_match(/\?tab=x#post-#{post.id}\z/, note.url.to_s, "push deep-links to the post's tab + anchor")
   end
 
-  test "no social push during quiet hours (9pm-8am local), but metrics still update" do
+  test "pushes overnight too (24/7 now; users mute on their device)" do
     member = User.create!(email_address: "rsm-mem-#{SecureRandom.hex(4)}@example.com")
     @ws.memberships.create!(user: member, role: "editor")
     post = posted!(@x_acct, "x", "TID-Q")
     post.update!(likes: 10, metrics_synced_at: 2.hours.ago)
     stub_x_metrics("TID-Q", likes: 25)
 
-    assert_no_difference -> { Notification.where(source: "social_engagement").count } do
-      travel_to(QUIET) { RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true) }
-    end
-    assert_equal 25, post.reload.likes, "metrics still refresh overnight; only the push is held"
+    travel_to(QUIET) { RefreshSocialMetricsJob.new.perform(workspace_id: @ws.id, force: true) }
+    assert Notification.where(source: "social_engagement", user_id: member.id).exists?,
+           "overnight engagement still pings now"
+    assert_equal 25, post.reload.likes
   end
 
   test "members who turned off social notifications don't get the push (others still do)" do

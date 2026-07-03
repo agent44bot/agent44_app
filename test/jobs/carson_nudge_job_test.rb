@@ -101,13 +101,13 @@ class CarsonNudgeJobTest < ActiveJob::TestCase
     assert_equal 0, Notification.count
   end
 
-  test "quiet outside the send window" do
+  test "sends any time of day, including overnight (users mute on their device)" do
     snapshot_with_event(spots_left: 1)
     run_job(at: Time.zone.parse("#{Date.current} 22:00"))
-    assert_equal 0, Notification.count
+    assert_equal 1, Notification.count
   end
 
-  test "force bypasses window and budget for manual prod testing" do
+  test "force bypasses the daily budget for manual prod testing" do
     snapshot_with_event(spots_left: 1)
     Setting.set("carson_nudges:sent:#{Date.current.iso8601}", "2")
     run_job(force: true, at: Time.zone.parse("#{Date.current} 22:00"))

@@ -116,13 +116,13 @@ class ClassPromoDraftJobTest < ActiveJob::TestCase
     assert_equal 0, Notification.count
   end
 
-  test "quiet outside the send window" do
+  test "sends any time of day, including overnight (users mute on their device)" do
     snapshot_with({})
     run_job(at: Time.zone.parse("#{Date.current} 22:00"))
-    assert_equal 0, Notification.count
+    assert_equal 1, Notification.count
   end
 
-  test "force bypasses window and budget for manual testing" do
+  test "force bypasses the daily budget for manual testing" do
     snapshot_with({})
     Setting.set("class_promo:sent:#{Date.current.iso8601}", "2")
     run_job(force: true, at: Time.zone.parse("#{Date.current} 23:00"))

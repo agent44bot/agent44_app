@@ -84,7 +84,6 @@ class RefreshSocialMetricsJob < ApplicationJob
 
     workspace = post.workspace
     return unless workspace
-    return if quiet_hours?(workspace) # no overnight pings (metrics still update)
 
     summary  = deltas.map { |f, n| "+#{n} #{ENGAGEMENT_FIELDS[f].pluralize(n)}" }.join(", ")
     platform = post.platform == "x" ? "X" : post.platform.titleize
@@ -103,17 +102,6 @@ class RefreshSocialMetricsJob < ApplicationJob
         workspace:     workspace
       )
     end
-  end
-
-  # Quiet hours: no social pushes from 9:00 PM to 8:00 AM in the workspace's
-  # local time (NY Kitchen is Eastern). Metrics still refresh; only the alert
-  # is held. Overnight engagement just won't ping (it shows in the counts).
-  QUIET_START_HOUR = 21 # 9 PM
-  QUIET_END_HOUR   = 8  # 8 AM
-  def quiet_hours?(workspace)
-    tz   = workspace.timezone.presence || "Eastern Time (US & Canada)"
-    hour = Time.current.in_time_zone(tz).hour
-    hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
   end
 
   # Who receives social engagement pushes: workspace members who haven't turned
