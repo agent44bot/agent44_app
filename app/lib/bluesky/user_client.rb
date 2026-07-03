@@ -160,10 +160,11 @@ module Bluesky
     # feature (SocialListenJob). Returns a lightweight array of
     # {external_id:, author:, text:, url:, posted_at:} for each match, or [] on
     # any failure (best-effort; never raises).
-    def search_posts(query, limit: 25)
+    def search_posts(query, limit: 25, since: nil)
       return [] if query.to_s.strip.empty?
       ensure_fresh_token!
       url = "#{PDS_URL}/xrpc/app.bsky.feed.searchPosts?q=#{URI.encode_www_form_component(query)}&limit=#{limit.to_i}&sort=latest"
+      url += "&since=#{URI.encode_www_form_component(since.utc.iso8601)}" if since
       response = http_request(:get, url)
       if response[:status] == "401"
         return [] unless refresh_token!

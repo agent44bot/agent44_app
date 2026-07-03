@@ -13,17 +13,19 @@ class SocialListenJobTest < ActiveJob::TestCase
                                  connected_by: @rich, access_token: "AT", refresh_token: "RT",
                                  token_expires_at: 2.hours.from_now, status: "active")
 
+    recent_iso = 2.days.ago.utc.iso8601
+    recent_utc = 3.days.ago.to_i
     Bluesky::UserClient.http_stub = lambda do |_method, _url, _payload, _bearer|
       { status: "200", body: { "posts" => [
         { "uri" => "at://did:plc:foodie/app.bsky.feed.post/1",
           "author" => { "handle" => "foodie.bsky.social" },
           "record" => { "text" => "Best cooking class near Canandaigua?" },
-          "indexedAt" => "2026-07-02T12:00:00Z" } ] } }
+          "indexedAt" => recent_iso } ] } }
     end
     Reddit::Search.http_stub = lambda do |_url|
       { "data" => { "children" => [ { "data" => {
         "name" => "t3_abc", "author" => "rocfoodie", "title" => "Date night cooking ideas?",
-        "selftext" => "in Rochester", "permalink" => "/r/Rochester/abc", "created_utc" => 1_751_000_000 } } ] } }
+        "selftext" => "in Rochester", "permalink" => "/r/Rochester/abc", "created_utc" => recent_utc } } ] } }
     end
     stub_score(80)
   end
@@ -71,12 +73,25 @@ class SocialListenJobTest < ActiveJob::TestCase
     assert_equal 0, SocialLead.count
   end
 
+  test "skips stale posts older than the recency window" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    old_iso = 40.days.ago.utc.iso8601
+    Bluesky::UserClient.http_stub = lambda do |_m, _u, _p, _b|
+      { status: "200", body: { "posts" => [
+        { "uri" => "at://old/1", "author" => { "handle" => "someone.bsky.social" },
+          "record" => { "text" => "old cooking class post" }, "indexedAt" => old_iso } ] } }
+    end
+    Reddit::Search.http_stub = ->(_url) { { "data" => { "children" => [] } } }
+    SocialListenJob.perform_now
+    assert_equal 0, SocialLead.count, "posts older than the window are not stored"
+  end
+
   test "does not surface the workspace's own bluesky posts" do
     Setting.set("social_listen:slugs", "nykitchen")
     Bluesky::UserClient.http_stub = lambda do |_m, _u, _p, _b|
       { status: "200", body: { "posts" => [
         { "uri" => "at://self/app.bsky.feed.post/9", "author" => { "handle" => "nyk.bsky.social" },
-          "record" => { "text" => "Join our class!" }, "indexedAt" => "2026-07-02T12:00:00Z" } ] } }
+          "record" => { "text" => "Join our class!" }, "indexedAt" => 1.day.ago.utc.iso8601 } ] } }
     end
     SocialListenJob.perform_now
     assert_equal 0, @nyk.social_leads.where(platform: "bluesky").count, "own posts are filtered out"
