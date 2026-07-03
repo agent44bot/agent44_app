@@ -17,6 +17,23 @@ class SocialLeadsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "hey" # the drafted reply
   end
 
+  test "a manager saves listening topics from the Echo page; they drive the job queries" do
+    Setting.set("social_listen:slugs", @ws.slug)
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+    assert_includes @response.body, "Listening topics", "manager sees the topics editor when listening is on"
+    patch listening_topics_workspace_path(@ws.slug), params: { queries: "wine tasting\nbeer tasting" }
+    assert_equal [ "wine tasting", "beer tasting" ], SocialListenJob.queries_for(@ws)
+  end
+
+  test "a non-manager cannot change listening topics" do
+    viewer = User.create!(email_address: "lt-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: viewer, role: "viewer")
+    sign_in_as(viewer)
+    patch listening_topics_workspace_path(@ws.slug), params: { queries: "hacked" }
+    assert_not_equal [ "hacked" ], SocialListenJob.queries_for(@ws)
+  end
+
   test "a writer can dismiss a lead" do
     sign_in_as(@owner)
     patch dismiss_workspace_social_lead_path(workspace_slug: @ws.slug, id: @lead.id)

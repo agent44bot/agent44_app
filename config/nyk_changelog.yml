@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-03
+  note: You can now set what Echo watches for on social media right from the Echo page. Managers see a Listening topics box (one topic per line, like wine tasting, beer tasting, cocktails, or cooking classes), and Echo searches those on Bluesky and Reddit. It now starts with your class types (cooking, wine, beer, and cocktail) instead of just generic food terms.
+
+- date: 2026-07-03
   note: Echo can now send a phone notification when it spots a new conversation worth joining, with a tap that takes you straight to the Conversations list on the Echo page to review and reply.
 
 - date: 2026-07-03

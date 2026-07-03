@@ -10,27 +10,35 @@
 class SocialListenJob < ApplicationJob
   queue_as :default
 
-  # Place-anchored queries (not narrow phrases). Bluesky search AND-matches
-  # every word, so multi-word phrases like "Finger Lakes cooking class" return
-  # almost nothing recent. Broader local terms have real recent volume; the AI
-  # scorer (SocialAi::LeadScout) filters the off-topic ones back out.
+  # Default query set. Lora's topics (what NYK actually sells: cooking classes,
+  # wine / beer / cocktail tastings), anchored to the region so results stay
+  # local, plus a couple of broad local anchors for volume. Editable without a
+  # deploy via Setting "social_listen:queries" (comma or newline separated).
+  # Bluesky AND-matches every word, so keep queries short.
   DEFAULT_QUERIES = [
     "New York Kitchen Canandaigua", # brand mention
+    "cooking class Rochester",
+    "cooking class Finger Lakes",
+    "wine tasting Finger Lakes",
+    "wine tasting Rochester",
+    "beer tasting Rochester",
+    "cocktail class Rochester",
     "Canandaigua",
-    "Finger Lakes food",
     "Finger Lakes wine",
-    "Finger Lakes weekend",
-    "Rochester food",
-    "Rochester date night",
-    "Buffalo food",
-    "Syracuse food",
-    "upstate New York foodie",
-    "Western New York food"
+    "Rochester date night"
   ].freeze
 
   MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
   MAX_NEW_PER_RUN = 15 # cap the AI calls (and cost) per run
   MAX_AGE_DAYS    = 14 # only surface recent posts (skip stale search hits)
+
+  # The topics Echo searches for this workspace. A manager edits them from the
+  # Echo page (stored in Setting "social_listen:queries:<slug>", one per line);
+  # falls back to DEFAULT_QUERIES. Public so the Echo view can show/prefill them.
+  def self.queries_for(workspace)
+    Setting.get("social_listen:queries:#{workspace.slug}").to_s
+           .split(/[\n,]/).map(&:strip).reject(&:blank?).presence || DEFAULT_QUERIES
+  end
 
   def perform
     workspace_slugs.each { |slug| listen_for(slug) }
@@ -47,7 +55,7 @@ class SocialListenJob < ApplicationJob
     return unless ws
 
     cutoff = MAX_AGE_DAYS.days.ago
-    candidates = (bluesky_candidates(ws) + reddit_candidates)
+    candidates = (bluesky_candidates(ws) + reddit_candidates(ws))
                  .uniq { |c| [ c[:platform], c[:external_id] ] }
                  .select { |c| c[:posted_at] && c[:posted_at] >= cutoff } # recent only
                  .reject { |c| ws.social_leads.exists?(platform: c[:platform], external_id: c[:external_id]) }
@@ -87,6 +95,7 @@ class SocialListenJob < ApplicationJob
     ids.empty? ? [] : User.where(id: ids).to_a
   end
 
+
   def store_lead(ws, scout, candidate)
     result = scout.evaluate(candidate)
     return unless result && result.score >= MIN_SCORE
@@ -114,15 +123,15 @@ class SocialListenJob < ApplicationJob
 
     client   = Bluesky::UserClient.new(account)
     own      = account.handle.to_s.delete_prefix("@")
-    DEFAULT_QUERIES.flat_map do |q|
+    self.class.queries_for(ws).flat_map do |q|
       client.search_posts(q, limit: 15, since: MAX_AGE_DAYS.days.ago)
             .reject { |p| p[:author].to_s == own } # don't surface our own posts
             .map { |p| p.merge(platform: "bluesky", query: q) }
     end
   end
 
-  def reddit_candidates
-    DEFAULT_QUERIES.flat_map do |q|
+  def reddit_candidates(ws)
+    self.class.queries_for(ws).flat_map do |q|
       Reddit::Search.posts(q, limit: 10).map { |p| p.merge(platform: "reddit", query: q) }
     end
   end

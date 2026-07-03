@@ -62,8 +62,8 @@ module SocialAi
       - a mention of THIS business by name or handle, or a recommendation clearly
         about it, OR
       - a real person in or near the region asking for or interested in a
-        hands-on cooking class, a cooking date night, or a food experience they
-        could actually book.
+        hands-on cooking class, a wine / beer / cocktail tasting, a cooking date
+        night, or a similar experience they could actually book.
 
       Score LOW (under 30) when:
       - the post is about a DIFFERENT place, event, restaurant, or festival (e.g.
@@ -97,13 +97,15 @@ module SocialAi
 
     def brand_context
       return "" unless @workspace.slug == "nykitchen"
-      " (New York Kitchen, a hands-on cooking class venue in Canandaigua in the " \
-        "Finger Lakes wine region of upstate New York. GOOD targets: someone who " \
-        "mentions New York Kitchen, or someone in upstate NY / the Finger Lakes " \
-        "area asking about or interested in a hands-on cooking class, a cooking " \
-        "date night, or a food experience they could book. NOT targets: general " \
-        "food, restaurant, fair, or travel chatter that is not about us and is " \
-        "not someone looking for a class. Warm, welcoming, community-first.)"
+      " (New York Kitchen, a hands-on cooking class and tasting venue in " \
+        "Canandaigua in the Finger Lakes wine region of upstate New York. It " \
+        "offers cooking classes and wine, beer, and cocktail tastings. GOOD " \
+        "targets: someone who mentions New York Kitchen, or someone in upstate " \
+        "NY / the Finger Lakes area asking about or interested in a cooking " \
+        "class, a wine / beer / cocktail tasting, or a cooking date night they " \
+        "could book. NOT targets: general food, restaurant, fair, or travel " \
+        "chatter that is not about us and is not someone looking for one of " \
+        "these experiences. Warm, welcoming, community-first.)"
     end
 
     def parse(response)

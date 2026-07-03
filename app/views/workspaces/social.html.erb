@@ -62,6 +62,24 @@
     <%= render "workspaces/social_leads", leads: @social_leads, workspace: @workspace %>
   <% end %>
 
+  <%# Manager-editable listening topics (what Echo searches for). Only shown to
+      managers when listening is on for this workspace. %>
+  <% if @is_manager && @listening_enabled %>
+    <section class="mb-8">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="ra-eyebrow">Listening topics</span>
+      </div>
+      <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+        <p class="text-xs text-gray-500 mb-2">One topic per line. Echo searches these on Bluesky and Reddit, and the AI keeps only the on-topic, local ones. Short phrases work best (each word must match).</p>
+        <%= form_with url: listening_topics_workspace_path(@workspace.slug), method: :patch, class: "space-y-2" do %>
+          <textarea name="queries" rows="7"
+                    class="w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none font-mono"><%= @listening_topics %></textarea>
+          <button type="submit" class="inline-flex items-center px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition">Save topics</button>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
   <% if @writer %>
     <% if @connected_platforms.any? %>
     <%# Start open when AI just returned a suggested draft, otherwise the
