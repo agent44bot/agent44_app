@@ -6,7 +6,7 @@
 # requires, in order:
 #   - at least one enabled recipient (Setting "carson_nudges:user_ids",
 #     comma-separated user ids — starts as just Rich, flip to add Lora)
-#   - inside the 9am-7pm ET window, under the daily budget, and a dice roll
+#   - under the daily budget and a dice roll (sends 24/7; mute on the device)
 #     (so timing feels random rather than on-the-hour)
 #   - a trigger that is actually firing and off cooldown
 #
@@ -14,7 +14,6 @@
 class CarsonNudgeJob < ApplicationJob
   queue_as :default
 
-  WINDOW_HOURS = (9..19)  # ET, matches config.time_zone
   DAILY_BUDGET = 2
   SEND_CHANCE  = 0.35     # per eligible hourly run -> roughly 1-2 sends/day
 
@@ -47,8 +46,7 @@ class CarsonNudgeJob < ApplicationJob
   end
 
   def sendable_now?
-    WINDOW_HOURS.cover?(Time.current.hour) &&
-      Setting.counter(sent_today_key) < DAILY_BUDGET &&
+    Setting.counter(sent_today_key) < DAILY_BUDGET &&
       dice_roll < SEND_CHANCE
   end
 

@@ -73,6 +73,34 @@ class SocialListenJobTest < ActiveJob::TestCase
     assert_equal 0, SocialLead.count
   end
 
+  test "pushes one review notification (deep-linked to Echo) when leads land and a recipient is set" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Setting.set("social_listen:notify_user_ids", @rich.id.to_s)
+    Notification.delete_all
+    travel_to(Time.zone.parse("#{Date.current} 14:00")) { SocialListenJob.perform_now }
+    n = Notification.where(source: "echo").last
+    assert n, "expected an Echo review notification"
+    assert_equal @rich, n.user
+    assert_equal "/nykitchen/social", n.url
+    assert_equal 1, Notification.where(source: "echo").count, "one push per run, not per lead"
+  end
+
+  test "no review push when no recipient is configured" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Notification.delete_all
+    travel_to(Time.zone.parse("#{Date.current} 14:00")) { SocialListenJob.perform_now }
+    assert_equal 0, Notification.where(source: "echo").count
+    assert @nyk.social_leads.new_leads.any?, "leads are still stored, just no push"
+  end
+
+  test "pushes 24/7, including overnight (users mute on their device)" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Setting.set("social_listen:notify_user_ids", @rich.id.to_s)
+    Notification.delete_all
+    travel_to(Time.zone.parse("#{Date.current} 02:00")) { SocialListenJob.perform_now }
+    assert_equal 1, Notification.where(source: "echo").count, "a 2am run still pushes"
+  end
+
   test "skips stale posts older than the recency window" do
     Setting.set("social_listen:slugs", "nykitchen")
     old_iso = 40.days.ago.utc.iso8601

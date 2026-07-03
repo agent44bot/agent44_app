@@ -8,7 +8,7 @@
 # least one recipient user id (comma-separated). Runs hourly via
 # config/recurring.yml; most runs send nothing. A send requires, in order:
 #   - at least one enabled recipient
-#   - inside the 9am-7pm ET window, under the daily budget (2), and a dice roll
+#   - under the daily budget (2) and a dice roll (sends 24/7; mute on the device)
 #     (so the ~2 daily sends land at random daytime hours, not on the clock)
 #   - the NYK workspace has active social accounts and a class worth promoting
 #
@@ -19,7 +19,6 @@
 class ClassPromoDraftJob < ApplicationJob
   queue_as :default
 
-  WINDOW_HOURS            = (9..19)  # ET, matches config.time_zone
   DAILY_BUDGET            = 2
   SEND_CHANCE             = 0.35     # per eligible hourly run -> roughly 2/day
   ELIGIBLE_WINDOW_DAYS    = 14       # only promote classes within two weeks
@@ -63,8 +62,7 @@ class ClassPromoDraftJob < ApplicationJob
   end
 
   def sendable_now?
-    WINDOW_HOURS.cover?(Time.current.hour) &&
-      Setting.counter(sent_today_key) < DAILY_BUDGET &&
+    Setting.counter(sent_today_key) < DAILY_BUDGET &&
       dice_roll < SEND_CHANCE
   end
 
