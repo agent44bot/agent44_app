@@ -22,6 +22,7 @@ class SocialListenJob < ApplicationJob
 
   MIN_SCORE       = 40 # below this we don't store the lead (cuts noise)
   MAX_NEW_PER_RUN = 15 # cap the AI calls (and cost) per run
+  MAX_AGE_DAYS    = 14 # only surface recent posts (skip stale search hits)
 
   def perform
     workspace_slugs.each { |slug| listen_for(slug) }
@@ -37,10 +38,12 @@ class SocialListenJob < ApplicationJob
     ws = Workspace.find_by(slug: slug)
     return unless ws
 
+    cutoff = MAX_AGE_DAYS.days.ago
     candidates = (bluesky_candidates(ws) + reddit_candidates)
                  .uniq { |c| [ c[:platform], c[:external_id] ] }
+                 .select { |c| c[:posted_at] && c[:posted_at] >= cutoff } # recent only
                  .reject { |c| ws.social_leads.exists?(platform: c[:platform], external_id: c[:external_id]) }
-                 .sort_by { |c| -(c[:posted_at]&.to_i || 0) } # freshest first
+                 .sort_by { |c| -c[:posted_at].to_i } # freshest first
                  .first(MAX_NEW_PER_RUN)
 
     scout = SocialAi::LeadScout.new(workspace: ws)
@@ -75,7 +78,7 @@ class SocialListenJob < ApplicationJob
     client   = Bluesky::UserClient.new(account)
     own      = account.handle.to_s.delete_prefix("@")
     DEFAULT_QUERIES.flat_map do |q|
-      client.search_posts(q, limit: 15)
+      client.search_posts(q, limit: 15, since: MAX_AGE_DAYS.days.ago)
             .reject { |p| p[:author].to_s == own } # don't surface our own posts
             .map { |p| p.merge(platform: "bluesky", query: q) }
     end
