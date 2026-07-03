@@ -55,6 +55,13 @@
     </div>
   </div>
 
+  <%# Echo's social-listening leads: conversations worth joining, with an
+      AI-drafted reply to review. Only writers see it, and only when there are
+      leads (empty until SocialListenJob is turned on for this workspace). %>
+  <% if @writer && @social_leads.present? %>
+    <%= render "workspaces/social_leads", leads: @social_leads, workspace: @workspace %>
+  <% end %>
+
   <% if @writer %>
     <% if @connected_platforms.any? %>
     <%# Start open when AI just returned a suggested draft, otherwise the
