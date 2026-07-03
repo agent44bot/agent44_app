@@ -10,14 +10,22 @@
 class SocialListenJob < ApplicationJob
   queue_as :default
 
-  # Curated, low-noise query set (NYK / Finger Lakes focused for now).
+  # Place-anchored queries (not narrow phrases). Bluesky search AND-matches
+  # every word, so multi-word phrases like "Finger Lakes cooking class" return
+  # almost nothing recent. Broader local terms have real recent volume; the AI
+  # scorer (SocialAi::LeadScout) filters the off-topic ones back out.
   DEFAULT_QUERIES = [
-    "New York Kitchen Canandaigua",
-    "Canandaigua cooking",
-    "Finger Lakes cooking class",
-    "Rochester cooking class",
-    "Rochester date night ideas",
-    "Finger Lakes foodie"
+    "New York Kitchen Canandaigua", # brand mention
+    "Canandaigua",
+    "Finger Lakes food",
+    "Finger Lakes wine",
+    "Finger Lakes weekend",
+    "Rochester food",
+    "Rochester date night",
+    "Buffalo food",
+    "Syracuse food",
+    "upstate New York foodie",
+    "Western New York food"
   ].freeze
 
   MIN_SCORE       = 40 # below this we don't store the lead (cuts noise)
