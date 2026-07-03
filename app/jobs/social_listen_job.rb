@@ -28,7 +28,7 @@ class SocialListenJob < ApplicationJob
     "Western New York food"
   ].freeze
 
-  MIN_SCORE       = 40 # below this we don't store the lead (cuts noise)
+  MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
   MAX_NEW_PER_RUN = 15 # cap the AI calls (and cost) per run
   MAX_AGE_DAYS    = 14 # only surface recent posts (skip stale search hits)
 
