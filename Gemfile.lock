@@ -79,7 +79,7 @@ GEM
       public_suffix (>= 2.0.2, < 8.0)
     android_key_attestation (0.3.0)
     ansi (1.6.0)
-    anthropic (1.50.0)
+    anthropic (1.55.0)
       cgi
       connection_pool
       standardwebhooks
