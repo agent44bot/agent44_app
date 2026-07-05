@@ -69,13 +69,39 @@
       <div class="flex items-center gap-2 mb-3">
         <span class="ra-eyebrow">Listening topics</span>
       </div>
-      <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
-        <p class="text-xs text-gray-500 mb-2">One topic per line. Echo searches these on Bluesky, and the AI keeps only the on-topic, local ones. Short phrases work best (each word must match). You can also use hashtags like #winetasting or #FingerLakes (they catch tagged posts a plain phrase would miss). X search is coming later.</p>
-        <%= form_with url: listening_topics_workspace_path(@workspace.slug), method: :patch, class: "space-y-2" do %>
-          <textarea name="queries" rows="14"
-                    class="w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none font-mono"><%= @listening_topics %></textarea>
-          <button type="submit" class="inline-flex items-center px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition">Save topics</button>
-        <% end %>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <%# Left: the editable topic list. %>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+          <p class="text-xs text-gray-500 mb-2">One topic per line. Echo searches these on Bluesky, and the AI keeps only the on-topic, local ones. Short phrases work best (each word must match). You can also use hashtags like #winetasting or #FingerLakes (they catch tagged posts a plain phrase would miss). X search is coming later.</p>
+          <%= form_with url: listening_topics_workspace_path(@workspace.slug), method: :patch, class: "space-y-2" do %>
+            <textarea name="queries" rows="14"
+                      class="w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none font-mono"><%= @listening_topics %></textarea>
+            <button type="submit" class="inline-flex items-center px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition">Save topics</button>
+          <% end %>
+        </div>
+
+        <%# Right: the last few conversations Echo drafted from these topics. %>
+        <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+          <p class="text-xs text-gray-500 mb-3">Recent drafts Echo generated from these topics, newest first.</p>
+          <% if @recent_leads.present? %>
+            <ul class="space-y-3">
+              <% @recent_leads.each do |lead| %>
+                <li class="border-b border-gray-800 pb-3 last:border-0 last:pb-0">
+                  <div class="flex items-center gap-2 text-xs mb-1 flex-wrap">
+                    <span class="px-1.5 py-0.5 rounded <%= lead.platform == "bluesky" ? "bg-sky-900/50 text-sky-300" : "bg-orange-900/50 text-orange-300" %> font-semibold"><%= lead.platform_label %></span>
+                    <span class="text-green-400 font-semibold"><%= lead.score %></span>
+                    <span class="text-gray-500"><%= time_ago_in_words(lead.created_at) %> ago</span>
+                    <% unless lead.status == "new" %><span class="text-gray-600 uppercase text-[10px] tracking-wide"><%= lead.status %></span><% end %>
+                  </div>
+                  <p class="text-sm text-gray-300"><%= truncate(lead.text.to_s.gsub(/\s+/, " ").strip, length: 120) %></p>
+                  <% if lead.matched_query.present? %><p class="text-[11px] text-gray-600 mt-0.5">via <%= lead.matched_query %></p><% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="text-sm text-gray-500">No drafts yet. Echo checks every few hours and lists what it finds here, newest first.</p>
+          <% end %>
+        </div>
       </div>
     </section>
   <% end %>
