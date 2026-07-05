@@ -31,7 +31,8 @@ class SocialListenJob < ApplicationJob
     # would otherwise miss. (X hashtags come when we add paid X search.)
     "#winetasting",
     "#cookingclass",
-    "#FingerLakes"
+    "#FingerLakes",
+    "#FLX" # Finger Lakes tag (quiet on Bluesky now, useful once X search lands)
   ].freeze
 
   MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
