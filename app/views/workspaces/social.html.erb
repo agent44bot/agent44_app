@@ -76,10 +76,38 @@
   <%# Manager-editable listening topics (what Echo searches for). Only shown to
       managers when listening is on for this workspace. %>
   <% if @is_manager && @listening_enabled %>
-    <section class="mb-8">
+    <section class="mb-8" data-controller="dialog">
       <div class="flex items-center gap-2 mb-3">
         <span class="ra-eyebrow">Listening topics</span>
+        <button type="button" data-action="click->dialog#open" title="How does Echo listening work?"
+                aria-label="How Echo listening works" class="text-gray-500 hover:text-orange-400 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>
       </div>
+
+      <%# Info dialog: how often Echo runs + which platforms it searches. %>
+      <dialog data-dialog-target="modal" data-action="click->dialog#backdropClose"
+              class="bg-transparent backdrop:bg-black/80 p-0 w-[92vw] max-w-lg fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
+        <div class="bg-gray-900 rounded-xl border border-gray-800 max-h-[85vh] overflow-y-auto">
+          <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-800">
+            <span class="ra-eyebrow">How Echo listening works</span>
+            <button type="button" data-action="click->dialog#close" aria-label="Close" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+          </div>
+          <div class="p-5 space-y-4 text-sm text-gray-300">
+            <p><span class="text-gray-400 font-semibold">How often:</span> Echo checks every 6 hours (about 4 times a day). Each run searches your topics, scores the fresh hits with AI, keeps the good ones, and pings your phone if it found any.</p>
+            <div>
+              <p class="text-gray-400 font-semibold mb-2">Where it searches:</p>
+              <ul class="space-y-2">
+                <li><span class="text-sky-300 font-semibold">Bluesky</span> <span class="text-green-400 text-xs uppercase tracking-wide">live</span><br>Real search of posts and hashtags. This is what actually produces drafts today.</li>
+                <li><span class="text-orange-300 font-semibold">Reddit</span> <span class="text-gray-500 text-xs uppercase tracking-wide">limited</span><br>Wired up (r/Rochester, r/FingerLakes), but Reddit blocks our server, so it returns nothing for now. A Reddit login would unblock it.</li>
+                <li><span class="text-white font-semibold">X</span> <span class="text-gray-500 text-xs uppercase tracking-wide">coming later</span><br>X's search is a paid API, so it is not turned on yet.</li>
+                <li><span class="text-white font-semibold">Instagram, Facebook, Threads</span> <span class="text-gray-500 text-xs uppercase tracking-wide">not available</span><br>Their APIs do not allow this kind of keyword search.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </dialog>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <%# Left: the editable topic list. %>
         <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
