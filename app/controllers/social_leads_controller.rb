@@ -14,6 +14,11 @@ class SocialLeadsController < ApplicationController
     redirect_back fallback_location: social_workspace_path(@workspace.slug), notice: "Marked as replied."
   end
 
+  def destroy
+    @lead.destroy
+    redirect_back fallback_location: social_workspace_path(@workspace.slug), notice: "Draft deleted."
+  end
+
   private
 
   def set_lead

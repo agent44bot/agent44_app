@@ -154,6 +154,9 @@ class WorkspacesController < ApplicationController
     @is_manager        = @workspace.manager?(current_user)
     @listening_enabled = Setting.get("social_listen:slugs").to_s.split(",").map(&:strip).include?(@workspace.slug)
     @listening_topics  = SocialListenJob.queries_for(@workspace).join("\n")
+    # Last few conversations Echo drafted from the topics (any status), newest
+    # first, shown next to the topics box as a recent-activity feed.
+    @recent_leads      = @workspace.social_leads.recent.limit(6)
   end
 
   # Manager-editable search topics for Echo's social listening (stored per
