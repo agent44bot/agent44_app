@@ -53,11 +53,14 @@ class WorkspaceDraftsTest < ActionDispatch::IntegrationTest
     ENV.delete("ANTHROPIC_API_KEY")
   end
 
-  test "composer stays collapsed on a normal visit (no suggested draft)" do
+  test "composer is always visible (it lives in the New post tab, no collapse)" do
     sign_in_as(@owner)
     get social_workspace_path(@ws.slug)
     assert_response :success
-    assert_match(/data-composer-target="body" class="[^"]*hidden/, response.body)
+    # The composer no longer collapses; it is a tab panel, shown when the New
+    # post tab is active (echo_tabs_controller), never hidden inline.
+    assert_no_match(/data-composer-target="body" class="[^"]*hidden/, response.body)
+    assert_match(/data-echo-tabs-target="panel" data-tab="newpost"/, response.body)
   end
 
   test "credentials fallback: works when ENV is blank but credentials.anthropic.api_key is set" do
