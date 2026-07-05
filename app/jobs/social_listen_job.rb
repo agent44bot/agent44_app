@@ -25,7 +25,13 @@ class SocialListenJob < ApplicationJob
     "cocktail class Rochester",
     "Canandaigua",
     "Finger Lakes wine",
-    "Rochester date night"
+    "Rochester date night",
+    # Hashtags: single compound tokens, so a phrase query like "Finger Lakes"
+    # never matches "#FingerLakes". Bluesky indexes tags; these catch a slice we
+    # would otherwise miss. (X hashtags come when we add paid X search.)
+    "#winetasting",
+    "#cookingclass",
+    "#FingerLakes"
   ].freeze
 
   MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
