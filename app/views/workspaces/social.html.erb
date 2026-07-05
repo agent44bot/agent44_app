@@ -1,7 +1,8 @@
 <% content_for :title, "#{@workspace.name} · Social Agent" %>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-     data-controller="composer">
+     data-controller="composer echo-tabs"
+     data-echo-tabs-storage-key-value="echo-tab:<%= @workspace.slug %>:<%= Current.user&.id %>">
   <%# Generic workspaces always show the Workspaces root; NY Kitchen keeps the
       adaptive root (its pinned customers see NY Kitchen, not Workspaces). %>
   <% ws_root = (@workspace.slug != "nykitchen" || show_workspaces_crumb?) ? [["Workspaces", workspaces_path(force: 1)]] : [] %>
@@ -15,7 +16,7 @@
   <% social_actions = capture do %>
     <% if @writer && @connected_platforms.any? %>
       <button type="button"
-              data-action="click->composer#toggle"
+              data-action="click->echo-tabs#show" data-show-tab="newpost"
               class="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 border border-gray-700 hover:border-orange-500 text-sm text-gray-200 transition cursor-pointer">
         <span class="text-orange-400 text-base leading-none">+</span>
         <span>New post</span>
@@ -55,10 +56,20 @@
     </div>
   </div>
 
-  <%# Echo's social-listening leads: conversations worth joining, with an
-      AI-drafted reply to review. Only writers see it, and only when there are
-      leads (empty until SocialListenJob is turned on for this workspace). %>
-  <% if @writer && @social_leads.present? %>
+  <% if @writer %>
+    <%# Echo tabs: Listen / New post / Post history. Client-side show/hide via
+        echo_tabs_controller; remembers the last tab per user. %>
+    <nav class="flex items-center gap-1 border-b border-gray-800 mb-6 overflow-x-auto" role="tablist">
+      <% [ [ "listen", "Listen" ], [ "newpost", "New post" ], [ "history", "Post history" ] ].each do |key, label| %>
+        <button type="button" role="tab" data-echo-tabs-target="tab" data-tab="<%= key %>"
+                data-action="click->echo-tabs#select"
+                class="px-3.5 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-400 hover:text-white transition whitespace-nowrap"><%= label %></button>
+      <% end %>
+    </nav>
+
+  <%# ===== Listen tab: conversations worth joining + listening topics ===== %>
+  <div data-echo-tabs-target="panel" data-tab="listen">
+  <% if @social_leads.present? %>
     <%= render "workspaces/social_leads", leads: @social_leads, workspace: @workspace %>
   <% end %>
 
@@ -119,11 +130,16 @@
     </section>
   <% end %>
 
-  <% if @writer %>
+  <% unless @social_leads.present? || (@is_manager && @listening_enabled) %>
+    <p class="text-sm text-gray-500">Nothing here yet. When Echo finds a conversation worth joining, it shows up here.</p>
+  <% end %>
+  </div><%# /listen panel %>
+
+  <%# ===== New post tab: composer + scheduled + drafts ===== %>
+  <div data-echo-tabs-target="panel" data-tab="newpost" class="hidden">
     <% if @connected_platforms.any? %>
-    <%# Start open when AI just returned a suggested draft, otherwise the
-        pre-filled draft is hidden inside the collapsed composer. %>
-    <div data-composer-target="body" class="<%= "hidden" unless flash[:draft_text].present? %> mb-6">
+    <%# The composer is always visible inside the New post tab. %>
+    <div data-composer-target="body" class="mb-6">
       <% draft_text  = flash[:draft_text].to_s %>
       <% draft_topic = flash[:draft_topic].to_s %>
       <% min_len     = @connected_platforms.include?("x") ? 280 : 300 %>
@@ -280,7 +296,10 @@
             <% end %>
           </div>
         <% end %>
+    </div><%# /newpost panel %>
 
+    <%# ===== Post history tab: recent posts ===== %>
+    <div data-echo-tabs-target="panel" data-tab="history" class="hidden">
       <%# Recent posts, tabbed by platform. Each tab shows a green check when the
           platform is connected (active account), a red dot otherwise. Connected
           tabs list their posts + a Disconnect control; unconnected tabs offer a
@@ -468,6 +487,7 @@
           </div>
         <% end %>
       </div>
-  <% end %>
+    </div><%# /history panel %>
+  <% end %><%# /@writer %>
 
 </div>
