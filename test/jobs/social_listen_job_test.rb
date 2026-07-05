@@ -22,7 +22,7 @@ class SocialListenJobTest < ActiveJob::TestCase
           "record" => { "text" => "Best cooking class near Canandaigua?" },
           "indexedAt" => recent_iso } ] } }
     end
-    Reddit::Search.http_stub = lambda do |_url|
+    Reddit::Search.http_stub = lambda do |_url, _bearer|
       { "data" => { "children" => [ { "data" => {
         "name" => "t3_abc", "author" => "rocfoodie", "title" => "Date night cooking ideas?",
         "selftext" => "in Rochester", "permalink" => "/r/Rochester/abc", "created_utc" => recent_utc } } ] } }
@@ -115,7 +115,7 @@ class SocialListenJobTest < ActiveJob::TestCase
         { "uri" => "at://old/1", "author" => { "handle" => "someone.bsky.social" },
           "record" => { "text" => "old cooking class post" }, "indexedAt" => old_iso } ] } }
     end
-    Reddit::Search.http_stub = ->(_url) { { "data" => { "children" => [] } } }
+    Reddit::Search.http_stub = ->(_url, _bearer) { { "data" => { "children" => [] } } }
     SocialListenJob.perform_now
     assert_equal 0, SocialLead.count, "posts older than the window are not stored"
   end
