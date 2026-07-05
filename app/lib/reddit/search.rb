@@ -2,17 +2,21 @@ require "net/http"
 require "uri"
 require "json"
 
-# Free, read-only Reddit search for the social-listening feature (no auth,
-# public JSON endpoints, descriptive User-Agent). Best-effort: returns [] on any
-# failure so a listening run never dies on Reddit being flaky. Stubbable via
-# Reddit::Search.http_stub in tests (never hits the network there).
+# Read-only Reddit search for the social-listening feature. Prefers authed
+# app-only OAuth (oauth.reddit.com + bearer token, see Reddit::Auth) because
+# Reddit 403s the public *.json endpoints from cloud IPs; falls back to the
+# public host when no token is configured (works from a laptop, not from Fly).
+# Best-effort: returns [] on any failure so a listening run never dies on Reddit
+# being flaky. Stubbable via Reddit::Search.http_stub in tests (no network).
 module Reddit
   module Search
     USER_AGENT         = "Agent44LabsBot/1.0 (+https://agent44labs.com)".freeze
     DEFAULT_SUBREDDITS = %w[Rochester FingerLakes].freeze
+    OAUTH_HOST         = "https://oauth.reddit.com".freeze
+    PUBLIC_HOST        = "https://www.reddit.com".freeze
 
     class << self
-      # ->(url) -> parsed JSON Hash (or nil). Set in tests to avoid the network.
+      # ->(url, bearer) -> parsed JSON Hash (or nil). Set in tests (no network).
       attr_accessor :http_stub
     end
 
@@ -27,9 +31,11 @@ module Reddit
     end
 
     def self.search_subreddit(sub, query, limit)
-      url = "https://www.reddit.com/r/#{sub}/search.json?q=#{URI.encode_www_form_component(query)}" \
-            "&restrict_sr=1&sort=new&limit=#{limit.to_i}"
-      body = fetch(url)
+      bearer = Reddit::Auth.token
+      host   = bearer ? OAUTH_HOST : PUBLIC_HOST
+      url = "#{host}/r/#{sub}/search.json?q=#{URI.encode_www_form_component(query)}" \
+            "&restrict_sr=1&sort=new&limit=#{limit.to_i}&raw_json=1"
+      body = fetch(url, bearer)
       return [] unless body
       Array(body.dig("data", "children")).map { |c| parse_post(c["data"]) }.compact
     end
@@ -47,11 +53,13 @@ module Reddit
       }
     end
 
-    def self.fetch(url)
-      return http_stub.call(url) if http_stub
+    def self.fetch(url, bearer = nil)
+      return http_stub.call(url, bearer) if http_stub
       uri = URI(url)
+      headers = { "User-Agent" => USER_AGENT }
+      headers["Authorization"] = "Bearer #{bearer}" if bearer
       res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) do |http|
-        http.get(uri.request_uri, { "User-Agent" => USER_AGENT })
+        http.get(uri.request_uri, headers)
       end
       return nil unless res.is_a?(Net::HTTPSuccess)
       JSON.parse(res.body)
