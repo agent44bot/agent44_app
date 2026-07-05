@@ -200,7 +200,7 @@ Rails.application.routes.draw do
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
     resources :social_accounts, only: [ :destroy ]
-    resources :social_leads, only: [] do
+    resources :social_leads, only: [ :destroy ] do
       member do
         patch :dismiss
         patch :mark_sent

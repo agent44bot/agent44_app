@@ -34,6 +34,21 @@ class SocialLeadsControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal [ "hacked" ], SocialListenJob.queries_for(@ws)
   end
 
+  test "a writer can delete a draft from the recent-drafts panel" do
+    sign_in_as(@owner)
+    assert_difference -> { SocialLead.count }, -1 do
+      delete workspace_social_lead_path(workspace_slug: @ws.slug, id: @lead.id)
+    end
+  end
+
+  test "a non-member cannot delete a draft" do
+    outsider = User.create!(email_address: "sld-x-#{SecureRandom.hex(4)}@example.com")
+    sign_in_as(outsider)
+    assert_no_difference -> { SocialLead.count } do
+      delete workspace_social_lead_path(workspace_slug: @ws.slug, id: @lead.id)
+    end
+  end
+
   test "a writer can dismiss a lead" do
     sign_in_as(@owner)
     patch dismiss_workspace_social_lead_path(workspace_slug: @ws.slug, id: @lead.id)
