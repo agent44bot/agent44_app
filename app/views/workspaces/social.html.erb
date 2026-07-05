@@ -93,8 +93,15 @@
                     <span class="text-gray-500"><%= time_ago_in_words(lead.created_at) %> ago</span>
                     <% unless lead.status == "new" %><span class="text-gray-600 uppercase text-[10px] tracking-wide"><%= lead.status %></span><% end %>
                   </div>
-                  <p class="text-sm text-gray-300"><%= truncate(lead.text.to_s.gsub(/\s+/, " ").strip, length: 120) %></p>
-                  <% if lead.matched_query.present? %><p class="text-[11px] text-gray-600 mt-0.5">via <%= lead.matched_query %></p><% end %>
+                  <%# The drafted reply Echo wrote (the actual draft), then the post it replies to. %>
+                  <% draft = lead.draft_reply.to_s.gsub(/\s+/, " ").strip %>
+                  <% if draft.present? %>
+                    <p class="text-sm text-gray-200"><%= truncate(draft, length: 140) %></p>
+                    <p class="text-[11px] text-gray-600 mt-1">re: <%= truncate(lead.text.to_s.gsub(/\s+/, " ").strip, length: 60) %><% if lead.matched_query.present? %> · via <%= lead.matched_query %><% end %></p>
+                  <% else %>
+                    <p class="text-sm text-gray-300"><%= truncate(lead.text.to_s.gsub(/\s+/, " ").strip, length: 120) %></p>
+                    <% if lead.matched_query.present? %><p class="text-[11px] text-gray-600 mt-0.5">via <%= lead.matched_query %></p><% end %>
+                  <% end %>
                 </li>
               <% end %>
             </ul>
