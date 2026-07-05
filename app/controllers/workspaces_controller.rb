@@ -1,8 +1,8 @@
 class WorkspacesController < ApplicationController
-  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices, :social_tabs, :connect_chats ]
+  before_action :load_workspace,    only: [ :show, :social, :update, :destroy, :refresh_metrics, :toggle_pricing, :toggle_grocery_prices, :social_tabs, :connect_chats, :update_listening_topics ]
   before_action :require_member,    only: [ :show, :social, :refresh_metrics ]
   before_action :require_admin,     only: [ :update, :toggle_grocery_prices ]
-  before_action :require_manager,   only: [ :social_tabs ]
+  before_action :require_manager,   only: [ :social_tabs, :update_listening_topics ]
   before_action :require_site_admin_view, only: [ :connect_chats ]
   before_action :require_owner,     only: [ :destroy ]
   before_action :require_site_admin, only: [ :new, :create, :toggle_pricing ]
@@ -150,7 +150,17 @@ class WorkspacesController < ApplicationController
     @scheduled_drafts = @workspace.workspace_drafts.scheduled.limit(20)
     # Echo's social-listening leads (SocialListenJob): conversations worth
     # joining, with an AI-drafted reply to review. Empty unless listening is on.
-    @social_leads     = @workspace.social_leads.new_leads.limit(20)
+    @social_leads      = @workspace.social_leads.new_leads.limit(20)
+    @is_manager        = @workspace.manager?(current_user)
+    @listening_enabled = Setting.get("social_listen:slugs").to_s.split(",").map(&:strip).include?(@workspace.slug)
+    @listening_topics  = SocialListenJob.queries_for(@workspace).join("\n")
+  end
+
+  # Manager-editable search topics for Echo's social listening (stored per
+  # workspace; the job reads them via SocialListenJob.queries_for).
+  def update_listening_topics
+    Setting.set("social_listen:queries:#{@workspace.slug}", params[:queries].to_s.strip)
+    redirect_to social_workspace_path(@workspace.slug), notice: "Listening topics updated."
   end
 
   private

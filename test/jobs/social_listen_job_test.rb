@@ -43,6 +43,12 @@ class SocialListenJobTest < ActiveJob::TestCase
     end
   end
 
+  test "queries_for defaults to DEFAULT_QUERIES, overridable per workspace (comma/newline)" do
+    assert_equal SocialListenJob::DEFAULT_QUERIES, SocialListenJob.queries_for(@nyk)
+    Setting.set("social_listen:queries:#{@nyk.slug}", "wine tasting, beer tasting\ncooking class")
+    assert_equal [ "wine tasting", "beer tasting", "cooking class" ], SocialListenJob.queries_for(@nyk)
+  end
+
   test "off by default: no slugs configured -> nothing happens" do
     SocialListenJob.perform_now
     assert_equal 0, SocialLead.count
