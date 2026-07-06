@@ -5,14 +5,7 @@
     rows are dropped on save. %>
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
   <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
-  <h1 class="text-2xl font-bold text-white mb-1"><%= @packet.ready? ? "Review the packet" : "Your packet" %></h1>
-
-  <% if @packet.building? %>
-    <%= render "building" %>
-  <% elsif @packet.failed? %>
-    <%= render "failed" %>
-  <% else %>
-
+  <h1 class="text-2xl font-bold text-white mb-1">Review the packet</h1>
   <% if @packet.extract_cost_cents.present? %>
     <p class="text-xs text-gray-500 mb-2">
       Built with the Opus model<span class="text-gray-400 font-medium"><%= @packet.extract_cost_label %></span>.
@@ -262,5 +255,4 @@
       <% end %>
     </div>
   </div><%# end tabs %>
-  <% end %><%# end ready-state branch %>
 </div>

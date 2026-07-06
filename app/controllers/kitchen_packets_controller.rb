@@ -89,39 +89,27 @@ class KitchenPacketsController < ApplicationController
       return back_to_new(event_url, "PDF is too large (10 MB max).")
     end
 
-    source_url  = params[:recipe_url].to_s.strip.presence
-    source_text = params[:recipe_text].presence
-    if pdf.blank? && source_url.blank? && source_text.blank?
-      return back_to_new(event_url, "Paste a recipe, add a recipe URL, or attach a PDF.")
-    end
-
-    # Extraction (Opus, tens of seconds) runs in the background so the upload
-    # returns immediately. The packet is created "building" with its source
-    # stored; ExtractRecipeJob fills in the recipes and the editor polls for it.
-    packet = KitchenPacket.new(
-      title:       params[:event_name].presence || KitchenPacket::BUILDING_TITLE,
-      status:      "building",
-      data:        {},
-      source_url:  source_url,
-      source_text: source_text,
-      source_kind: source_kind_for(pdf: pdf, url: source_url)
+    source_url = params[:recipe_url].to_s.strip.presence
+    result = KitchenAi::RecipeExtractor.new(user: Current.user).extract(
+      text: params[:recipe_text].presence,
+      pdf: pdf&.read,
+      url: source_url
     )
-    packet.source_document.attach(pdf) if pdf
-    packet.save!
+    return back_to_new(event_url, result.error) unless result.ok?
+
+    packet = KitchenPacket.create!(
+      title: params[:event_name].presence || result.recipes.first["title"],
+      data: { "recipes" => result.recipes },
+      source_url: source_url,
+      source_kind: source_kind_for(pdf: pdf, url: source_url),
+      extract_cost_cents: result.cost_cents
+    )
     # Manual attach replaces any existing (e.g. auto) recipe on this class, which
     # is the "replace with my own PDF" override path.
     packet.attach_to!(event_url) if event_url.present?
-    ExtractRecipeJob.perform_later(packet.id, Current.user&.id)
 
     redirect_to edit_nyk_packet_path(packet),
-                notice: "Building your recipe with the Opus model. This page updates when it is ready."
-  end
-
-  # Poll target for the editor's "building" state: returns the packet's build
-  # status as JSON so the page can reload itself once extraction finishes.
-  def status
-    packet = KitchenPacket.find(params[:id])
-    render json: { status: packet.status }
+                notice: "Recipes built with the Opus model#{packet.extract_cost_label}. Review them against the preview, then save."
   end
 
   def edit

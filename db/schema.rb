@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_193247) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_02_195340) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -401,12 +401,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_193247) do
     t.datetime "created_at", null: false
     t.json "data", default: {}, null: false
     t.integer "extract_cost_cents"
-    t.text "extract_error"
     t.string "source_kind"
-    t.text "source_text"
     t.string "source_url"
     t.string "station_label", default: "Single station", null: false
-    t.string "status", default: "ready", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
   end

@@ -6,13 +6,7 @@
 #
 default: &default
   adapter: sqlite3
-  # Sized above the machine's worker count, not equal to it: puma web threads
-  # AND the in-puma SolidQueue workers share this primary pool, so tying it to
-  # RAILS_MAX_THREADS meant a few background jobs could consume every connection
-  # and starve web requests. Give comfortable headroom (SQLite connections are
-  # cheap; only writes serialize).
-  pool: <%= ENV.fetch("DB_POOL") { 12 } %>
-  max_connections: <%= ENV.fetch("DB_POOL") { 12 } %>
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   timeout: 5000
 
 development:

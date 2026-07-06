@@ -95,34 +95,4 @@ class KitchenPacketTest < ActiveSupport::TestCase
     assert_equal 1, cat.count { |e| e.downcase == "whisk" }, "case-insensitive de-dupe"
     assert_equal cat.sort_by(&:downcase), cat, "sorted case-insensitively"
   end
-
-  # ----- build state (background extraction) -----
-
-  test "a building packet is valid with no recipes yet" do
-    p = KitchenPacket.new(title: "Chef's Table", status: "building", data: {})
-    assert p.valid?, p.errors.full_messages.to_sentence
-    assert p.building?
-  end
-
-  test "a ready packet must carry well-formed recipes" do
-    p = KitchenPacket.new(title: "Chef's Table", status: "ready", data: {})
-    assert_not p.valid?
-    assert p.errors[:data].any?
-  end
-
-  test "a failed packet is valid with no recipes (it never got any)" do
-    p = KitchenPacket.new(title: "Chef's Table", status: "failed", data: {}, extract_error: "too long")
-    assert p.valid?, p.errors.full_messages.to_sentence
-    assert p.failed?
-  end
-
-  test "status must be one of the build statuses" do
-    p = KitchenPacket.new(title: "x", status: "weird", data: { "recipes" => RECIPES })
-    assert_not p.valid?
-    assert p.errors[:status].any?
-  end
-
-  test "a normally-created packet defaults to ready" do
-    assert make("Pasta").ready?
-  end
 end
