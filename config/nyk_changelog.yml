@@ -9,9 +9,6 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-06
-  note: Uploading a recipe now returns right away instead of making you wait on a spinning screen. The recipe builds in the background and the page fills itself in when it is ready, so you can move on and come back. If a build fails, you now get a clear reason and a one tap way to try again.
-
-- date: 2026-07-06
   note: Uploading a large multi-recipe menu PDF (like a Chef's Table) now imports reliably. Before, long menus could get cut off partway and fail to build. If a big import takes a while, the screen now tells you it is still working instead of just spinning.
 
 - date: 2026-07-05
