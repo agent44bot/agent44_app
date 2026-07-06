@@ -55,20 +55,20 @@
   <% end %>
 
   <div class="mt-10" data-controller="recipe-filter">
-    <h2 class="text-sm font-semibold text-gray-400 mb-3">Or copy an existing recipe</h2>
+    <h2 class="text-sm font-semibold text-gray-400 mb-3">Or copy an existing packet</h2>
 
     <% if @existing.any? %>
-      <%# Live, client-side filter (recipe-filter), same as the Recipe Library:
-          all recipes are on the page and typing narrows them instantly, no
+      <%# Live, client-side filter (recipe-filter), same as the packet library:
+          all packets are on the page and typing narrows them instantly, no
           Search button and no page reload. %>
       <input type="search"
              data-recipe-filter-target="query"
              data-action="input->recipe-filter#search"
-             placeholder="Search all recipes (name or ingredient)…"
-             autocomplete="off" aria-label="Search recipes to copy"
+             placeholder="Search all packets (name or ingredient)…"
+             autocomplete="off" aria-label="Search packets to copy"
              class="w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none">
-      <p class="text-xs text-gray-500 mt-3 mb-2" data-recipe-filter-target="count"><%= pluralize(@existing.size, "recipe") %></p>
-      <p data-recipe-filter-target="empty" class="hidden text-sm text-gray-500 mb-2">No recipes match that search.</p>
+      <p class="text-xs text-gray-500 mt-3 mb-2" data-recipe-filter-target="count"><%= pluralize(@existing.size, "packet") %></p>
+      <p data-recipe-filter-target="empty" class="hidden text-sm text-gray-500 mb-2">No packets match that search.</p>
       <div class="space-y-2">
         <% @existing.each do |h| %>
           <div data-recipe-filter-target="card" data-search-text="<%= h.search_text %>"
@@ -81,7 +81,7 @@
         <% end %>
       </div>
     <% else %>
-      <p class="text-sm text-gray-500">No recipes to copy yet.</p>
+      <p class="text-sm text-gray-500">No packets to copy yet.</p>
     <% end %>
   </div>
 </div>

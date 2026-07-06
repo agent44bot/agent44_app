@@ -17,7 +17,12 @@ module KitchenAi
     # AI generate-from-scratch is billed separately from import/extract so it
     # shows as its own line (and gets its own model toggle) on /billing.
     GENERATE_SOURCE = "nyk_recipe_generate"
-    MAX_TOKENS = 4000
+    # A multi-recipe menu PDF (e.g. a 6-page Chef's Table) emits well over 4000
+    # tokens of structured JSON; too small a cap truncates the reply mid-object,
+    # so parse fails and the user sees a misleading "could not find a recipe".
+    # Give extraction generous headroom (max_tokens only caps, it does not pad
+    # small extractions).
+    MAX_TOKENS = 16000
     # Generated recipes (multi-component dishes) run longer than extractions, so
     # give them more headroom to avoid a truncated, unparseable response.
     GENERATE_MAX_TOKENS = 8000
@@ -68,7 +73,13 @@ module KitchenAi
       cost_cents = log&.cost_cents&.round
 
       recipes = parse(response)
-      return Result.new(ok?: false, error: "Could not find a recipe in that text. Try pasting just the recipe.") if recipes.blank?
+      if recipes.blank?
+        # A truncated reply (hit the token cap) parses to nothing. Say so plainly
+        # instead of the misleading "could not find a recipe", so the user knows
+        # the fix is a shorter document, not a different one.
+        return Result.new(ok?: false, error: too_long_error) if truncated?(response)
+        return Result.new(ok?: false, error: "Could not find a recipe in that text. Try pasting just the recipe.")
+      end
 
       Result.new(ok?: true, recipes: recipes, cost_cents: cost_cents)
     rescue Anthropic::Errors::APIError => e
@@ -215,6 +226,17 @@ module KitchenAi
     end
 
     private
+
+    # True when the model stopped because it hit the token cap (so the JSON is
+    # cut off). Guarded with respond_to? so the test stub (a plain struct) is safe.
+    def truncated?(response)
+      response.respond_to?(:stop_reason) && response.stop_reason.to_s == "max_tokens"
+    end
+
+    def too_long_error
+      "That document was too long to import in one pass. Try splitting the menu " \
+      "into two shorter PDFs (a few recipes each), or paste the recipes as text."
+    end
 
     # Run the API call, retrying once on a transient Anthropic error (overload /
     # rate limit / 5xx / timeout) before letting it bubble to the rescue.
