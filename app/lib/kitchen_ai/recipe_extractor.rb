@@ -17,7 +17,12 @@ module KitchenAi
     # AI generate-from-scratch is billed separately from import/extract so it
     # shows as its own line (and gets its own model toggle) on /billing.
     GENERATE_SOURCE = "nyk_recipe_generate"
-    MAX_TOKENS = 4000
+    # A multi-recipe menu PDF (e.g. a 6-page Chef's Table) emits well over 4000
+    # tokens of structured JSON; too small a cap truncates the reply mid-object,
+    # so parse fails and the user sees a misleading "could not find a recipe".
+    # Give extraction generous headroom (max_tokens only caps, it does not pad
+    # small extractions).
+    MAX_TOKENS = 16000
     # Generated recipes (multi-component dishes) run longer than extractions, so
     # give them more headroom to avoid a truncated, unparseable response.
     GENERATE_MAX_TOKENS = 8000
