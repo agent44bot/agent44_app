@@ -10,6 +10,7 @@ module X
     POST_URL   = "https://api.x.com/2/tweets"
     TWEET_URL  = "https://api.x.com/2/tweets" # /:id appended at call site
     MEDIA_URL  = "https://api.x.com/2/media/upload"
+    SEARCH_URL = "https://api.x.com/2/tweets/search/recent"
     MAX_TWEET_LENGTH = 280
     TCO_URL_LENGTH   = 23 # X wraps every link in a t.co shortlink of this fixed length
     URL_RE           = %r{https?://\S+}
@@ -129,6 +130,40 @@ module X
       nil
     end
 
+    # Recent-search (last ~7 days) for social listening: returns candidate
+    # hashes { external_id, author, text, url, posted_at } or [] on any failure.
+    # Recent search is a PAID X API endpoint (not on the free tier), so this
+    # degrades to [] gracefully when the tier lacks it (403) or the token is
+    # dead, letting a listening run contribute no X candidates rather than
+    # crashing. `query` uses X's search syntax (OR-groups, "exact phrase",
+    # -exclusions), so the caller can express local-place intent in one query.
+    def search_recent(query, max_results: 25)
+      return [] if query.to_s.strip.empty?
+      return [] unless @account.platform == "x" && @account.status == "active"
+      ensure_fresh_token!
+
+      params = {
+        "query"        => query,
+        "max_results"  => max_results.to_i.clamp(10, 100),
+        "tweet.fields" => "created_at",
+        "expansions"   => "author_id",
+        "user.fields"  => "username"
+      }
+      url      = "#{SEARCH_URL}?#{URI.encode_www_form(params)}"
+      response = http_request(:get, url)
+
+      if response[:status] == "401"
+        return [] unless refresh_token!
+        response = http_request(:get, url)
+      end
+      return [] unless response[:status] == "200"
+
+      parse_search(response[:body])
+    rescue => e
+      Rails.logger.warn("X search_recent failed for #{query.inspect}: #{e.class}: #{e.message}")
+      []
+    end
+
     def delete_tweet(tweet_id)
       return Result.new(ok?: false, error: "Account is not X")    unless @account.platform == "x"
       return Result.new(ok?: false, error: "Missing tweet id")    if tweet_id.to_s.strip.empty?
@@ -163,6 +198,32 @@ module X
     end
 
     private
+
+    # Turns a /2/tweets/search/recent body into candidate hashes. The tweet
+    # objects carry only author_id, so we resolve handles from includes.users.
+    def parse_search(body)
+      handles = {}
+      Array(body.dig("includes", "users")).each { |u| handles[u["id"]] = u["username"] }
+
+      Array(body["data"]).filter_map do |t|
+        text = t["text"].to_s
+        next if text.strip.empty?
+        handle = handles[t["author_id"]]
+        {
+          external_id: t["id"].to_s,
+          author:      handle,
+          text:        text,
+          url:         handle.present? ? "https://x.com/#{handle}/status/#{t['id']}" : nil,
+          posted_at:   safe_time(t["created_at"])
+        }
+      end
+    end
+
+    def safe_time(str)
+      Time.zone.parse(str.to_s)
+    rescue ArgumentError, TypeError
+      nil
+    end
 
     def ensure_fresh_token!
       return if @account.token_expires_at.nil?

@@ -98,9 +98,9 @@
             <div>
               <p class="text-gray-400 font-semibold mb-2">Where it searches:</p>
               <ul class="space-y-2">
-                <li><span class="text-sky-300 font-semibold">Bluesky</span> <span class="text-green-400 text-xs uppercase tracking-wide">live</span><br>Real search of posts and hashtags. This is what actually produces drafts today.</li>
+                <li><span class="text-white font-semibold">X</span> <span class="text-green-400 text-xs uppercase tracking-wide">live</span><br>Real search of recent tweets (last 7 days). X has the most local volume, and its search understands OR groups and exact phrases, so a topic like (cooking class OR wine tasting) (Rochester OR Finger Lakes) works.</li>
+                <li><span class="text-sky-300 font-semibold">Bluesky</span> <span class="text-green-400 text-xs uppercase tracking-wide">live</span><br>Real search of posts and hashtags. Lower local volume than X, but it adds mentions X can miss.</li>
                 <li><span class="text-orange-300 font-semibold">Reddit</span> <span class="text-gray-500 text-xs uppercase tracking-wide">limited</span><br>Wired up (r/Rochester, r/FingerLakes), but Reddit blocks our server, so it returns nothing for now. A Reddit login would unblock it.</li>
-                <li><span class="text-white font-semibold">X</span> <span class="text-gray-500 text-xs uppercase tracking-wide">coming later</span><br>X's search is a paid API, so it is not turned on yet.</li>
                 <li><span class="text-white font-semibold">Instagram, Facebook, Threads</span> <span class="text-gray-500 text-xs uppercase tracking-wide">not available</span><br>Their APIs do not allow this kind of keyword search.</li>
               </ul>
             </div>
@@ -111,7 +111,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <%# Left: the editable topic list. %>
         <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
-          <p class="text-xs text-gray-500 mb-2">One topic per line. Echo searches these on Bluesky, and the AI keeps only the on-topic, local ones. Short phrases work best (each word must match). You can also use hashtags like #winetasting or #FingerLakes (they catch tagged posts a plain phrase would miss). X search is coming later.</p>
+          <p class="text-xs text-gray-500 mb-2">One topic per line. Echo searches these on X and Bluesky, and the AI keeps only the on-topic, local ones. Short phrases work best (each word must match). On X you can also use OR groups and exact phrases, like (cooking class OR wine tasting) (Rochester OR "Finger Lakes"), and hashtags like #winetasting or #FingerLakes catch tagged posts a plain phrase would miss.</p>
           <%= form_with url: listening_topics_workspace_path(@workspace.slug), method: :patch, class: "space-y-2" do %>
             <textarea name="queries" rows="14"
                       class="w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none font-mono"><%= @listening_topics %></textarea>

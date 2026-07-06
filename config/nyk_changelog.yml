@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-06
+  note: Echo now listens on X too, alongside Bluesky. X has far more local conversation, so Echo can surface more people near you looking for cooking classes, tastings, and date-night ideas. Your listening topics work on both, and on X you can use OR groups like (cooking class OR wine tasting) to widen the net.
+
+- date: 2026-07-06
   note: Uploading a recipe now builds in the background. The upload returns you to Sam's list right away, and a progress bar at the top of the app follows you as you keep working (reading the file, writing the recipe, adding the equipment list). When it is done the bar turns green with a link straight to the finished packet.
 
 - date: 2026-07-06

@@ -1,8 +1,8 @@
 require "test_helper"
 require "ostruct"
 
-# SocialListenJob searches Bluesky + Reddit, scores fresh posts, and stores the
-# good ones as SocialLeads. All network + AI is stubbed (nothing leaves the
+# SocialListenJob searches Bluesky + X + Reddit, scores fresh posts, and stores
+# the good ones as SocialLeads. All network + AI is stubbed (nothing leaves the
 # process).
 class SocialListenJobTest < ActiveJob::TestCase
   setup do
@@ -32,8 +32,24 @@ class SocialListenJobTest < ActiveJob::TestCase
 
   teardown do
     Bluesky::UserClient.http_stub = nil
+    X::UserClient.http_stub = nil
     Reddit::Search.http_stub = nil
     SocialAi::LeadScout.stub = nil
+  end
+
+  # Adds an active X account and stubs recent-search to return one tweet by
+  # `author` with `text`. Returns the account.
+  def add_x_account(author: "flxfoodie", text: "any good cooking class in the Finger Lakes?")
+    acct = @nyk.social_accounts.create!(platform: "x", external_id: "111", handle: "@nykitchen_roc",
+                                        connected_by: @rich, access_token: "AT", refresh_token: "RT",
+                                        token_expires_at: 2.hours.from_now, status: "active")
+    X::UserClient.http_stub = lambda do |_method, _url, _payload, _bearer|
+      { status: "200", body: {
+        "data" => [ { "id" => "9001", "text" => text, "author_id" => "42", "created_at" => 2.days.ago.utc.iso8601 } ],
+        "includes" => { "users" => [ { "id" => "42", "username" => author } ] }
+      } }
+    end
+    acct
   end
 
   def stub_score(score, reply: "Come cook with us!")
@@ -118,6 +134,28 @@ class SocialListenJobTest < ActiveJob::TestCase
     Reddit::Search.http_stub = ->(_url, _bearer) { { "data" => { "children" => [] } } }
     SocialListenJob.perform_now
     assert_equal 0, SocialLead.count, "posts older than the window are not stored"
+  end
+
+  test "stores scored X leads with handle-based url for an enabled workspace" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Reddit::Search.http_stub = ->(_url, _bearer) { { "data" => { "children" => [] } } }
+    add_x_account
+    SocialListenJob.perform_now
+    lead = @nyk.social_leads.find_by(platform: "x")
+    assert lead, "expected an X lead"
+    assert_equal "9001", lead.external_id
+    assert_equal "flxfoodie", lead.author
+    assert_equal "https://x.com/flxfoodie/status/9001", lead.url
+    assert_equal 80, lead.score
+    assert_equal "X", lead.platform_label
+  end
+
+  test "does not surface the workspace's own X posts" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Reddit::Search.http_stub = ->(_url, _bearer) { { "data" => { "children" => [] } } }
+    add_x_account(author: "nykitchen_roc", text: "Join our class!")
+    SocialListenJob.perform_now
+    assert_equal 0, @nyk.social_leads.where(platform: "x").count, "own tweets are filtered out"
   end
 
   test "does not surface the workspace's own bluesky posts" do

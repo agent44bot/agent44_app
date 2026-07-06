@@ -11,7 +11,8 @@
     <% leads.each do |lead| %>
       <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
         <div class="flex items-center gap-2 flex-wrap text-xs mb-2">
-          <span class="px-2 py-0.5 rounded-full <%= lead.platform == "bluesky" ? "bg-sky-900/50 text-sky-300" : "bg-orange-900/50 text-orange-300" %> font-semibold"><%= lead.platform_label %></span>
+          <% badge = { "bluesky" => "bg-sky-900/50 text-sky-300", "x" => "bg-gray-700 text-gray-100", "reddit" => "bg-orange-900/50 text-orange-300" } %>
+          <span class="px-2 py-0.5 rounded-full <%= badge[lead.platform] || "bg-gray-700 text-gray-200" %> font-semibold"><%= lead.platform_label %></span>
           <span class="text-gray-400">@<%= lead.author %></span>
           <span class="text-gray-600">·</span>
           <span class="text-green-400 font-semibold"><%= lead.score %>/100</span>

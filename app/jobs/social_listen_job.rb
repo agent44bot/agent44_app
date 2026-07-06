@@ -1,4 +1,4 @@
-# Echo's social listening. A few times a day, searches Bluesky + Reddit for
+# Echo's social listening. A few times a day, searches Bluesky + X + Reddit for
 # local food / cooking conversations and mentions, scores each fresh post with
 # SocialAi::LeadScout, and stores the good ones as SocialLeads for a human to
 # review on the Echo page. Nothing is auto-replied.
@@ -38,6 +38,7 @@ class SocialListenJob < ApplicationJob
   MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
   MAX_NEW_PER_RUN = 15 # cap the AI calls (and cost) per run
   MAX_AGE_DAYS    = 14 # only surface recent posts (skip stale search hits)
+  MAX_X_QUERIES   = 12 # cap recent-search calls per run (X read-budget guard; recent search is metered)
 
   # The topics Echo searches for this workspace. A manager edits them from the
   # Echo page (stored in Setting "social_listen:queries:<slug>", one per line);
@@ -62,7 +63,7 @@ class SocialListenJob < ApplicationJob
     return unless ws
 
     cutoff = MAX_AGE_DAYS.days.ago
-    candidates = (bluesky_candidates(ws) + reddit_candidates(ws))
+    candidates = (bluesky_candidates(ws) + x_candidates(ws) + reddit_candidates(ws))
                  .uniq { |c| [ c[:platform], c[:external_id] ] }
                  .select { |c| c[:posted_at] && c[:posted_at] >= cutoff } # recent only
                  .reject { |c| ws.social_leads.exists?(platform: c[:platform], external_id: c[:external_id]) }
@@ -134,6 +135,25 @@ class SocialListenJob < ApplicationJob
       client.search_posts(q, limit: 15, since: MAX_AGE_DAYS.days.ago)
             .reject { |p| p[:author].to_s == own } # don't surface our own posts
             .map { |p| p.merge(platform: "bluesky", query: q) }
+    end
+  end
+
+  # X (recent search). X's query language is richer than Bluesky's every-word-AND
+  # matching (OR-groups, exact phrases, exclusions), so each topic line is passed
+  # through as-is with "-is:retweet lang:en" appended to cut noise. Geo is done by
+  # place-name text (in the topics), not coordinates: X's point_radius/has:geo
+  # only match the rare geotagged tweet and cap at 25mi, so they surface almost
+  # nothing here. Capped at MAX_X_QUERIES because recent search is metered.
+  def x_candidates(ws)
+    account = ws.social_accounts.active.for_platform("x").first
+    return [] unless account
+
+    client = X::UserClient.new(account)
+    own    = account.handle.to_s.delete_prefix("@").downcase
+    self.class.queries_for(ws).first(MAX_X_QUERIES).flat_map do |q|
+      client.search_recent("#{q} -is:retweet lang:en", max_results: 20)
+            .reject { |p| p[:author].to_s.downcase == own } # don't surface our own tweets
+            .map { |p| p.merge(platform: "x", query: q) }
     end
   end
 
