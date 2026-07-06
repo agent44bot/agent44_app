@@ -77,6 +77,27 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal "building", JSON.parse(response.body)["status"]
   end
 
+  test "the editor renders the building state with the status poller" do
+    packet = KitchenPacket.create!(title: "Chef's Table", status: "building", data: {})
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_select "[data-controller~=packet-build]"
+    assert_match(/Building your recipe/i, response.body)
+  end
+
+  test "the editor renders the failed state with the reason and a retry" do
+    packet = KitchenPacket.create!(title: "Chef's Table", status: "failed", data: {}, extract_error: "That document was too long to import in one pass.")
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_match(/could not build this recipe/i, response.body)
+    assert_match(/too long to import/i, response.body)
+    assert_select "a", text: /Try again/i
+  end
+
+  test "extraction runs on its own low-concurrency queue" do
+    assert_equal "extraction", ExtractRecipeJob.new.queue_name
+  end
+
   test "create with empty input bounces back with an error" do
     post nyk_packets_path, params: { event_url: EVENT_URL, event_name: "X", recipe_text: "" }
     assert_redirected_to new_nyk_packet_path(event_url: EVENT_URL, event_name: "X")
