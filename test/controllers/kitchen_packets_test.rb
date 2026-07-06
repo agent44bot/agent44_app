@@ -5,6 +5,8 @@ require "ostruct"
 # by event URL from Sam's list page. The extractor is stubbed (never hit the
 # Anthropic API in tests).
 class KitchenPacketsTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   EXTRACTED = [
     {
       "title" => "Fresh Pasta",
@@ -34,20 +36,45 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     }
   end
 
-  test "create extracts recipes, saves the packet, and links the class" do
-    stub_extractor_success
-    post nyk_packets_path, params: {
-      event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
-      recipe_text: "Fresh Pasta... 2 1/2 c flour..."
-    }
+  test "create enqueues background extraction, creates a building packet, and links the class" do
+    assert_enqueued_with(job: ExtractRecipeJob) do
+      post nyk_packets_path, params: {
+        event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
+        recipe_text: "Fresh Pasta... 2 1/2 c flour..."
+      }
+    end
 
     packet = KitchenPacket.last
     assert_redirected_to edit_nyk_packet_path(packet)
+    assert packet.building?, "returns immediately with a building packet (no synchronous AI wait)"
     assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", packet.title
-    assert_equal "1¼ c", packet.recipes.first["ingredients"].first["station_qty"]
     assert_equal packet, KitchenPacket.for_event_url(EVENT_URL)
+
+    # Running the enqueued job (stubbed AI) fills in the recipes and cost.
+    stub_extractor_success
+    perform_enqueued_jobs
+    packet.reload
+    assert packet.ready?
+    assert_equal "1¼ c", packet.recipes.first["ingredients"].first["station_qty"]
     assert packet.extract_cost_cents.to_i.positive?, "captures the Opus extraction cost"
-    assert_match(/cost \$/, packet.extract_cost_label)
+  end
+
+  test "create with a PDF attaches the source document and builds in the background" do
+    pdf = fixture_file_upload("sample_recipe.pdf", "application/pdf")
+    assert_enqueued_with(job: ExtractRecipeJob) do
+      post nyk_packets_path, params: { event_url: EVENT_URL, event_name: "Chef's Table", pdf: pdf }
+    end
+    packet = KitchenPacket.last
+    assert packet.building?
+    assert packet.source_document.attached?, "stores the PDF for the job to read"
+    assert_equal "pdf", packet.source_kind
+  end
+
+  test "status endpoint reports the packet build status as JSON" do
+    packet = KitchenPacket.create!(title: "Chef's Table", status: "building", data: {})
+    get status_nyk_packet_path(packet)
+    assert_response :success
+    assert_equal "building", JSON.parse(response.body)["status"]
   end
 
   test "create with empty input bounces back with an error" do
