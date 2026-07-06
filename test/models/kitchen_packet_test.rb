@@ -95,4 +95,39 @@ class KitchenPacketTest < ActiveSupport::TestCase
     assert_equal 1, cat.count { |e| e.downcase == "whisk" }, "case-insensitive de-dupe"
     assert_equal cat.sort_by(&:downcase), cat, "sorted case-insensitively"
   end
+
+  # ----- build state (background extraction + navbar bar) -----
+
+  test "a building packet is valid with no recipes yet" do
+    p = KitchenPacket.new(title: "Chef's Table", status: "building", build_stage: "recipes", data: {})
+    assert p.valid?, p.errors.full_messages.to_sentence
+    assert p.building?
+  end
+
+  test "a ready packet must carry well-formed recipes; a failed one need not" do
+    assert_not KitchenPacket.new(title: "x", status: "ready", data: {}).valid?
+    assert KitchenPacket.new(title: "x", status: "failed", data: {}, extract_error: "boom").valid?
+  end
+
+  test "status must be one of the build statuses" do
+    p = KitchenPacket.new(title: "x", status: "weird", data: { "recipes" => RECIPES })
+    assert_not p.valid?
+    assert p.errors[:status].any?
+  end
+
+  test "a normally-created packet defaults to ready" do
+    assert make("Pasta").ready?
+  end
+
+  test "active_builds returns building packets and ones finished in the last few minutes" do
+    building = KitchenPacket.create!(title: "Building", status: "building", build_stage: "recipes", data: {})
+    just_done = make("Just Done"); just_done.update_columns(status: "ready", build_stage: "ready", updated_at: 1.minute.ago)
+    make("Old Ready") # a normal ready packet, build_stage nil -> excluded
+    stale = make("Stale"); stale.update_columns(status: "ready", build_stage: "ready", updated_at: 10.minutes.ago)
+
+    ids = KitchenPacket.active_builds.pluck(:id)
+    assert_includes ids, building.id
+    assert_includes ids, just_done.id
+    assert_not_includes ids, stale.id, "past the recent window"
+  end
 end

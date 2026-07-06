@@ -24,9 +24,35 @@
 # them in review, so ranges ("2-3 cloves") and "to taste" lines just work.
 class KitchenPacket < ApplicationRecord
   has_many :links, class_name: "KitchenPacketLink", dependent: :destroy
+  # The uploaded PDF source, kept only until ExtractRecipeJob consumes it.
+  has_one_attached :source_document
+
+  # Extraction runs in the background (ExtractRecipeJob) with a navbar progress
+  # bar, so a packet is "building" until its recipes land, then "ready" (or
+  # "failed" with an error). build_stage tracks how far the job has gotten.
+  BUILD_STATUSES = %w[building ready failed].freeze
+  BUILD_STAGES   = %w[queued reading recipes equipment ready].freeze
+  # Placeholder title for a building packet whose real title comes from the
+  # extracted recipe (used when the class name was not provided up front).
+  BUILDING_TITLE = "Building recipe".freeze
+
+  # Packets still building, plus ones that finished in the last few minutes, so
+  # the navbar bar can show progress and then a "ready" link before it clears.
+  scope :active_builds, -> {
+    where(status: "building")
+      .or(where(status: %w[ready failed]).where.not(build_stage: nil).where(updated_at: 5.minutes.ago..))
+      .order(:created_at)
+  }
 
   validates :title, presence: true
-  validate :recipes_must_be_well_formed
+  validates :status, inclusion: { in: BUILD_STATUSES }
+  # Only a finished packet must carry well-formed recipes; a building one has
+  # none yet, and a failed one never got any.
+  validate :recipes_must_be_well_formed, if: :ready?
+
+  def building? = status == "building"
+  def ready?    = status == "ready"
+  def failed?   = status == "failed"
 
   # Library search: match the packet title and the recipe contents. SQLite
   # stores `data` as JSON text, so a LIKE over it also matches ingredient and

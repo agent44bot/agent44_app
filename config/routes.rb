@@ -113,6 +113,7 @@ Rails.application.routes.draw do
   # created/attached from Sam's list page.
   post   "nykitchen/equipment_tags/hide", to: "kitchen_packets#hide_equipment", as: :nyk_hide_equipment_tag
   get    "nykitchen/packets/open",      to: "kitchen_packets#open",   as: :open_nyk_packet
+  get    "nykitchen/packets/active_builds", to: "kitchen_packets#active_builds", as: :nyk_active_builds
   get    "nykitchen/packets/new",       to: "kitchen_packets#new",    as: :new_nyk_packet
   post   "nykitchen/packets",           to: "kitchen_packets#create", as: :nyk_packets
   get    "nykitchen/packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet

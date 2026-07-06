@@ -330,6 +330,37 @@
     </div>
   </nav>
 
+  <%# Global recipe-build progress bar. data-turbo-permanent keeps it (and its
+      polling) alive across Turbo navigation, so a user can upload a recipe and
+      then roam the app while this tracks the background job and links to the
+      finished packet. Renders for signed-in users; the controller only shows it
+      when a build is active or just finished. %>
+  <% if authenticated? %>
+    <div id="recipe-build-bar" data-turbo-permanent
+         data-controller="packet-build-bar"
+         data-packet-build-bar-url-value="<%= nyk_active_builds_path %>"
+         class="hidden sticky top-16 z-40 border-b border-orange-900/60 bg-gray-950/95 backdrop-blur">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        <div class="flex items-center gap-3">
+          <svg data-packet-build-bar-target="spinner" class="animate-spin w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <div class="min-w-0 flex-1">
+            <p data-packet-build-bar-target="label" class="text-xs text-gray-200 truncate">Building your recipe...</p>
+            <div class="mt-1 h-1 w-full rounded bg-gray-800 overflow-hidden">
+              <div data-packet-build-bar-target="fill" class="h-full bg-orange-500 transition-all duration-700 ease-out" style="width:0%"></div>
+            </div>
+          </div>
+          <%= link_to "Open packet →", "#", data: { packet_build_bar_target: "link" },
+                class: "hidden shrink-0 text-xs font-semibold text-orange-400 hover:text-orange-300 whitespace-nowrap" %>
+          <button type="button" data-action="packet-build-bar#dismiss" data-packet-build-bar-target="dismiss"
+                  class="hidden shrink-0 text-gray-500 hover:text-gray-200 text-sm leading-none" aria-label="Dismiss">✕</button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Email verification banner -->
   <% if !Rails.env.development? && authenticated? && Current.user.email_address.present? && !Current.user.email_verified? %>
     <div class="bg-amber-900/30 border-b border-amber-700">

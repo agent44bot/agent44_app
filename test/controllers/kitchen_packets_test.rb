@@ -5,6 +5,8 @@ require "ostruct"
 # by event URL from Sam's list page. The extractor is stubbed (never hit the
 # Anthropic API in tests).
 class KitchenPacketsTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   EXTRACTED = [
     {
       "title" => "Fresh Pasta",
@@ -34,20 +36,54 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     }
   end
 
-  test "create extracts recipes, saves the packet, and links the class" do
-    stub_extractor_success
-    post nyk_packets_path, params: {
-      event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
-      recipe_text: "Fresh Pasta... 2 1/2 c flour..."
-    }
+  test "create enqueues a background build, returns to Sam's list, and links the class" do
+    assert_enqueued_with(job: ExtractRecipeJob) do
+      post nyk_packets_path, params: {
+        event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
+        recipe_text: "Fresh Pasta... 2 1/2 c flour..."
+      }
+    end
 
     packet = KitchenPacket.last
-    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_redirected_to nyk_list_path, "returns to the list so the user can keep working"
+    assert packet.building?, "no synchronous AI wait"
     assert_equal "Fresh Pasta: Ravioli Workshop 8/6/26", packet.title
-    assert_equal "1¼ c", packet.recipes.first["ingredients"].first["station_qty"]
     assert_equal packet, KitchenPacket.for_event_url(EVENT_URL)
-    assert packet.extract_cost_cents.to_i.positive?, "captures the Opus extraction cost"
-    assert_match(/cost \$/, packet.extract_cost_label)
+
+    # Running the enqueued job (stubbed AI) fills the recipe in.
+    stub_extractor_success
+    perform_enqueued_jobs
+    packet.reload
+    assert packet.ready?
+    assert_equal "1¼ c", packet.recipes.first["ingredients"].first["station_qty"]
+  end
+
+  test "active_builds returns building + just-finished packets as JSON for the navbar" do
+    building = KitchenPacket.create!(title: "Building One", status: "building", build_stage: "recipes", data: {})
+    get nyk_active_builds_path
+    assert_response :success
+    ids = JSON.parse(response.body)["builds"].map { |b| b["id"] }
+    assert_includes ids, building.id
+    b = JSON.parse(response.body)["builds"].find { |x| x["id"] == building.id }
+    assert_equal "recipes", b["stage"]
+    assert_includes b["edit_url"], "/packets/#{building.id}/edit"
+  end
+
+  test "the editor renders the building state with the reload fallback" do
+    packet = KitchenPacket.create!(title: "Building", status: "building", build_stage: "recipes", data: {})
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_select "[data-controller~=build-reload]"
+    assert_match(/still building/i, response.body)
+  end
+
+  test "the editor renders the failed state with the reason and a retry" do
+    packet = KitchenPacket.create!(title: "Failed", status: "failed", data: {}, extract_error: "That document was too long to import in one pass.")
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_match(/could not build this recipe/i, response.body)
+    assert_match(/too long to import/i, response.body)
+    assert_select "a", text: /Try again/i
   end
 
   test "create with empty input bounces back with an error" do
@@ -465,14 +501,16 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_match(/Carlito/, response.body, "expected the Carlito font to be embedded")
   end
 
-  test "create from a recipe URL builds and links a packet" do
-    stub_extractor_success
-    post nyk_packets_path, params: {
-      event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
-      recipe_url: "https://example.com/recipes/fresh-pasta"
-    }
+  test "create from a recipe URL builds and links a packet in the background" do
+    assert_enqueued_with(job: ExtractRecipeJob) do
+      post nyk_packets_path, params: {
+        event_url: EVENT_URL, event_name: "Fresh Pasta: Ravioli Workshop 8/6/26",
+        recipe_url: "https://example.com/recipes/fresh-pasta"
+      }
+    end
     packet = KitchenPacket.last
-    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_redirected_to nyk_list_path
+    assert packet.building?
     assert_equal "url", packet.source_kind
     assert_equal "https://example.com/recipes/fresh-pasta", packet.source_url
     assert_equal packet, KitchenPacket.for_event_url(EVENT_URL)
