@@ -116,7 +116,6 @@ Rails.application.routes.draw do
   get    "nykitchen/packets/new",       to: "kitchen_packets#new",    as: :new_nyk_packet
   post   "nykitchen/packets",           to: "kitchen_packets#create", as: :nyk_packets
   get    "nykitchen/packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet
-  get    "nykitchen/packets/:id/status", to: "kitchen_packets#status", as: :status_nyk_packet
   post   "nykitchen/packets/:id/regenerate", to: "kitchen_packets#regenerate", as: :regenerate_nyk_packet
   patch  "nykitchen/packets/:id",       to: "kitchen_packets#update", as: :nyk_packet
   patch  "nykitchen/packets/:id/equipment", to: "kitchen_packets#update_equipment", as: :nyk_packet_equipment
