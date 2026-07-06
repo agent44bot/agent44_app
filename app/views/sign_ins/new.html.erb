@@ -26,6 +26,27 @@
         </div>
       </div>
 
+      <% if Rails.env.development? %>
+        <% dev_users = User.where.not(email_address: nil).where(role: "admin").order(:id).limit(6).to_a %>
+        <% if dev_users.any? %>
+          <div class="mb-6 bg-amber-950/40 border border-amber-800/60 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white">Dev only</span>
+              <span class="text-xs text-amber-300">Click to sign in without a code (localhost only)</span>
+            </div>
+            <div class="grid grid-cols-1 gap-2">
+              <% dev_users.each do |u| %>
+                <%= button_to dev_login_as_path(u.id), method: :post, form_class: "contents",
+                      class: "w-full text-left px-3 py-2 bg-gray-900/80 hover:bg-gray-800 border border-gray-800 rounded-lg text-sm text-gray-200 transition flex items-center justify-between gap-3" do %>
+                  <span class="truncate"><%= u.email_address %></span>
+                  <span class="text-[10px] font-semibold uppercase text-amber-400">admin →</span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
       <%= form_with url: sign_in_path, method: :post, class: "space-y-5" do %>
         <div>
           <label for="email_address" class="block text-sm font-medium text-gray-300 mb-1">Email address</label>

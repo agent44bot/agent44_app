@@ -89,27 +89,45 @@ class KitchenPacketsController < ApplicationController
       return back_to_new(event_url, "PDF is too large (10 MB max).")
     end
 
-    source_url = params[:recipe_url].to_s.strip.presence
-    result = KitchenAi::RecipeExtractor.new(user: Current.user).extract(
-      text: params[:recipe_text].presence,
-      pdf: pdf&.read,
-      url: source_url
-    )
-    return back_to_new(event_url, result.error) unless result.ok?
+    source_url  = params[:recipe_url].to_s.strip.presence
+    source_text = params[:recipe_text].presence
+    if pdf.blank? && source_url.blank? && source_text.blank?
+      return back_to_new(event_url, "Paste a recipe, add a recipe URL, or attach a PDF.")
+    end
 
-    packet = KitchenPacket.create!(
-      title: params[:event_name].presence || result.recipes.first["title"],
-      data: { "recipes" => result.recipes },
-      source_url: source_url,
-      source_kind: source_kind_for(pdf: pdf, url: source_url),
-      extract_cost_cents: result.cost_cents
+    # Build it in the background (ExtractRecipeJob) so the upload returns now and
+    # the navbar progress bar tracks it while the user roams the app. The packet
+    # is created "building" with its source stored; the job fills it in.
+    packet = KitchenPacket.new(
+      title:       params[:event_name].presence || KitchenPacket::BUILDING_TITLE,
+      status:      "building",
+      build_stage: "queued",
+      data:        {},
+      source_url:  source_url,
+      source_text: source_text,
+      source_kind: source_kind_for(pdf: pdf, url: source_url)
     )
+    packet.source_document.attach(pdf) if pdf
+    packet.save!
     # Manual attach replaces any existing (e.g. auto) recipe on this class, which
     # is the "replace with my own PDF" override path.
     packet.attach_to!(event_url) if event_url.present?
+    ExtractRecipeJob.perform_later(packet.id, Current.user&.id)
 
-    redirect_to edit_nyk_packet_path(packet),
-                notice: "Recipes built with the Opus model#{packet.extract_cost_label}. Review them against the preview, then save."
+    redirect_to nyk_list_path,
+                notice: "Building your recipe in the background. Watch the bar at the top; you can keep working, and it will link you to the packet when it is ready."
+  end
+
+  # JSON feed for the navbar progress bar (packet-build-bar controller): packets
+  # currently building, plus ones that just finished so the bar can show a
+  # "ready" link before it clears.
+  def active_builds
+    builds = KitchenPacket.active_builds.map do |p|
+      { id: p.id, title: (p.title == KitchenPacket::BUILDING_TITLE ? "your recipe" : p.title),
+        status: p.status, stage: p.build_stage, error: p.extract_error,
+        edit_url: edit_nyk_packet_path(p) }
+    end
+    render json: { builds: builds }
   end
 
   def edit

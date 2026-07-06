@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-06
+  note: Uploading a recipe now builds in the background. The upload returns you to Sam's list right away, and a progress bar at the top of the app follows you as you keep working (reading the file, writing the recipe, adding the equipment list). When it is done the bar turns green with a link straight to the finished packet.
+
+- date: 2026-07-06
   note: Uploading a large multi-recipe menu PDF (like a Chef's Table) now imports reliably. Before, long menus could get cut off partway and fail to build. If a big import takes a while, the screen now tells you it is still working instead of just spinning.
 
 - date: 2026-07-05
