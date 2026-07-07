@@ -127,6 +127,13 @@ class KitchenPacketsController < ApplicationController
         status: p.status, stage: p.build_stage, error: p.extract_error,
         edit_url: edit_nyk_packet_path(p) }
     end
+    # Background grocery builds ride the same navbar bar: surface the current
+    # user's in-flight (or just-finished) list build alongside recipe builds.
+    if (g = GroceryBuildStatus.current(Current.user&.id))
+      builds << { id: "grocery-#{g[:token]}", title: g[:title], status: g[:status],
+                  stage: "grocery", error: g[:error], edit_url: g[:url],
+                  done_label: "Open grocery list →" }
+    end
     render json: { builds: builds }
   end
 

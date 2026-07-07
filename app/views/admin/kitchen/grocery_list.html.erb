@@ -19,6 +19,9 @@
     Turbo replaces only the frame's inner HTML on a lazy load and keeps the
     shell frame's attributes, so a controller on the frame tag never attaches. %>
 <%= turbo_frame_tag "grocery_list" do %>
+  <% if @building %>
+    <%= render "admin/kitchen/grocery_building" %>
+  <% else %>
   <div data-controller="recipe-popover" data-recipe-popover-recipes-value="<%= (@recipe_by_tag || {}).to_json %>">
   <p class="text-sm text-gray-400 mb-6">
     <% if single && single_event %>
@@ -218,4 +221,5 @@
     </div>
   <% end %>
   </div>
+  <% end %><%# end @building else %>
 <% end %>

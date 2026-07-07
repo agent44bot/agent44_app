@@ -1,0 +1,12 @@
+<%# Shown in the grocery frame while BuildGroceryListJob aggregates the list off
+    the request. The grocery-poll controller reloads this frame every few
+    seconds until the cached list lands (then this placeholder is gone). %>
+<div class="flex flex-col items-center justify-center py-24 text-gray-500"
+     data-controller="grocery-poll">
+  <svg class="animate-spin w-8 h-8 text-orange-500 mb-3" viewBox="0 0 24 24" fill="none">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+  </svg>
+  <p class="text-sm">Building your grocery list...</p>
+  <p class="text-xs text-gray-600 mt-1 max-w-xs text-center">Combining every class's recipe into one shopping list. This can take up to a minute; it fills in here on its own. Feel free to move around the app, the bar up top tracks it and links back when it's ready.</p>
+</div>

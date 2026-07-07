@@ -1052,7 +1052,43 @@ class KitchenController < ApplicationController
     end
     return if @with_recipe.empty?
 
-    @result, @from_cache = svc.fetch(@with_recipe)
+    # Read the cache only. If the list is not built yet, kick off a background
+    # build (once) and let the frame poll, so the slow, paid Claude aggregation
+    # never blocks the request into a timeout (the "caught spinning" case).
+    @result, @from_cache = svc.fetch(@with_recipe, write: false)
+    return if @result
+
+    @building = true
+    key    = KitchenAi::GroceryList.cache_key(@with_recipe, svc.observed_prices)
+    marker = "#{key}:building"
+    if Rails.cache.write(marker, true, expires_in: 3.minutes, unless_exist: true)
+      # Register the build so the app-wide navbar bar can track it and link back
+      # here when it finishes, letting the user roam while it builds.
+      GroceryBuildStatus.start(user_id: Current.user&.id, token: key,
+                               title: grocery_build_title, url: request.fullpath)
+      BuildGroceryListJob.perform_later(grocery_scope_params, Current.user&.id)
+    end
+  end
+
+  # The scope the background build reconstructs the same event set from (so it
+  # writes the exact cache key this request will then read).
+  def grocery_scope_params
+    if @single_class
+      { "event_url" => @event_url }
+    else
+      { "from" => @range.begin.to_s, "to" => @range.end.to_s }
+    end
+  end
+
+  # Human label for the navbar build bar while the list is building.
+  def grocery_build_title
+    if @single_class
+      "Pull sheet: #{@event_name.presence || 'class'}"
+    elsif @week_mode
+      "Grocery list (#{@range.first.strftime('%b %-d')} to #{@range.last.strftime('%b %-d')})"
+    else
+      "Grocery list"
+    end
   end
 
   def set_common_view_state
