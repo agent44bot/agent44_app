@@ -38,7 +38,9 @@ class SocialListenJob < ApplicationJob
   MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
   MAX_NEW_PER_RUN = 15 # cap the AI calls (and cost) per run
   MAX_AGE_DAYS    = 14 # only surface recent posts (skip stale search hits)
-  MAX_X_QUERIES   = 12 # cap recent-search calls per run (X read-budget guard; recent search is metered)
+  MAX_X_QUERIES   = 14 # cap recent-search calls per run (X read-budget guard; recent search is metered).
+  # Covers the full DEFAULT_QUERIES set so the X-relevant hashtag topics (#FingerLakes,
+  # #FLX) aren't silently truncated; a longer custom list is capped in the manager's own order.
 
   # The topics Echo searches for this workspace. A manager edits them from the
   # Echo page (stored in Setting "social_listen:queries:<slug>", one per line);

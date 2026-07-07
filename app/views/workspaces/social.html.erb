@@ -126,8 +126,9 @@
             <ul class="space-y-3">
               <% @recent_leads.each do |lead| %>
                 <li class="border-b border-gray-800 pb-3 last:border-0 last:pb-0">
+                  <% badge = { "bluesky" => "bg-sky-900/50 text-sky-300", "x" => "bg-gray-700 text-gray-100", "reddit" => "bg-orange-900/50 text-orange-300" } %>
                   <div class="flex items-center gap-2 text-xs mb-1 flex-wrap">
-                    <span class="px-1.5 py-0.5 rounded <%= lead.platform == "bluesky" ? "bg-sky-900/50 text-sky-300" : "bg-orange-900/50 text-orange-300" %> font-semibold"><%= lead.platform_label %></span>
+                    <span class="px-1.5 py-0.5 rounded <%= badge[lead.platform] || "bg-gray-700 text-gray-200" %> font-semibold"><%= lead.platform_label %></span>
                     <span class="text-green-400 font-semibold"><%= lead.score %></span>
                     <span class="text-gray-500"><%= time_ago_in_words(lead.created_at) %> ago</span>
                     <% unless lead.status == "new" %><span class="text-gray-600 uppercase text-[10px] tracking-wide"><%= lead.status %></span><% end %>
