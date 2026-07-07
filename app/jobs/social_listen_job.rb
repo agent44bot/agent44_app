@@ -23,7 +23,12 @@ class SocialListenJob < ApplicationJob
     "wine tasting Rochester",
     "beer tasting Rochester",
     "cocktail class Rochester",
-    "Canandaigua",
+    # Locality + intent, not a bare place name: bare "Canandaigua" pulled ~20
+    # off-topic hits per X run (concerts, church, political noise) that the AI
+    # scorer then had to reject, burning metered recent-search budget. AND-gating
+    # the town to an intent OR-group cut that to ~3 while still catching real
+    # local class/tasting posts. (On Bluesky this term returns ~nothing either way.)
+    "Canandaigua (dinner OR restaurant OR \"date night\" OR \"cooking class\" OR \"wine tasting\" OR event OR class)",
     "Finger Lakes wine",
     "Rochester date night",
     # Hashtags: single compound tokens, so a phrase query like "Finger Lakes"
