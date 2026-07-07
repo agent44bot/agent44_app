@@ -160,11 +160,15 @@
                 <% end %>
               </div>
             <% end %>
-            <% week[:events].each do |e| %>
-              <%= render partial: "admin/kitchen/event_card", locals: { event: e, show_date: true } %>
-            <% end %>
-            <% week[:manual_classes].each do |m| %>
-              <%= render "admin/kitchen/manual_class_card", manual: m, can_manage: @nyk_manager %>
+            <%# Scraped events and manual classes (e.g. day camps) share the week
+                in date order, so a Tuesday camp sits above a Friday class instead
+                of being shoved to the bottom. Both respond to start_at. %>
+            <% (week[:events] + week[:manual_classes]).sort_by { |i| i.start_at || Time.zone.at(0) }.each do |item| %>
+              <% if item.is_a?(KitchenManualClass) %>
+                <%= render "admin/kitchen/manual_class_card", manual: item, can_manage: @nyk_manager %>
+              <% else %>
+                <%= render partial: "admin/kitchen/event_card", locals: { event: item, show_date: true } %>
+              <% end %>
             <% end %>
           </div>
         </section>

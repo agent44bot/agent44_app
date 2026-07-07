@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-07
+  note: Classes you add by hand (like the day camps) now show up in date order within the week, mixed in with the scraped classes, instead of being listed all together at the bottom of the week.
+
 - date: 2026-07-06
   note: Uploading a recipe now builds in the background. The upload returns you to Sam's list right away, and a progress bar at the top of the app follows you as you keep working (reading the file, writing the recipe, adding the equipment list). When it is done the bar turns green with a link straight to the finished packet.
 
