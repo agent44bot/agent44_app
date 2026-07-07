@@ -132,6 +132,20 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-search-text*='korean bbq']"
   end
 
+  test "manual classes sort into the week by date, not shoved to the bottom" do
+    mon = Date.today.next_week(:monday).to_time # next week is expanded
+    create_event("Late Wine Class", mon + 4.days + 18.hours, "InStock") # Fri 6pm
+    KitchenManualClass.create!(name: "Early Kids Camp", start_at: mon + 1.day + 11.hours, created_by: @default_user) # Tue 11am
+
+    get nyk_list_path
+    assert_response :success
+    camp_pos = response.body.index("Early Kids Camp")
+    wine_pos = response.body.index("Late Wine Class")
+    assert camp_pos, "the manual class should render in the week"
+    assert wine_pos, "the scraped event should render in the week"
+    assert camp_pos < wine_pos, "the Tuesday camp must appear before the Friday class, not at the bottom"
+  end
+
   test "the current week's grocery button pulls the full Mon-Sun range" do
     create_event("Pasta 101", 1.hour.from_now, "InStock")
     KitchenPacket.create!(title: "Pasta 101", data: { "recipes" => [
