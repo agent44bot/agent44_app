@@ -60,11 +60,19 @@
 
 ## Deploys — READ BEFORE `fly deploy`
 
-- **Serialize deploys: only ONE agent runs `fly deploy` at a time.** This app
-  runs on a **single Fly machine**. Concurrent deploys fight over that machine's
-  lease and leave prod **stopped** — the proxy logs `lease currently held by
-  …@tokens.fly.io` / `rate limit exceeded` and requests return **HTTP 000**. If
-  more than one agent might deploy, coordinate so they never overlap.
+- **Merging to `main` auto-deploys. Don't manually `fly deploy` after a merge.**
+  `.github/workflows/fly-deploy.yml` runs `flyctl deploy --remote-only` on every
+  push to `main`, so a squash-merge ships itself. The default path is therefore
+  **merge → let the action deploy → verify prod** (200 + `SolidQueue::Process.count > 0`).
+  Run a manual `fly deploy` only when the action is disabled/failing, or to ship
+  an un-merged branch.
+- **Serialize deploys: only ONE deploy runs at a time.** This app runs on a
+  **single Fly machine**. Concurrent deploys fight over that machine's lease and
+  leave prod **stopped** — the proxy logs `lease currently held by
+  …@tokens.fly.io` / `rate limit exceeded` and requests return **HTTP 000**. The
+  action's `concurrency: deploy-group` only serializes *GitHub-triggered* runs, so
+  a manual `fly deploy` can still collide with an in-flight action run — before
+  deploying by hand, check `fly status` shows no `replacing`/`pending` machine.
 - **Recover a stuck machine** (HTTP 000/502 after a contended deploy):
   `fly machine start <id>` (get `<id>` from `fly status`), then confirm
   `https://agent44labs.com/` returns 200.
@@ -73,4 +81,5 @@
   A second machine gets its own volume → split-brain data. Multi-machine /
   true zero-downtime deploys would require migrating to a shared DB
   (Fly Postgres or LiteFS) first — a separate project, not a one-liner.
-- Default deploy path is `fly deploy` from `main`.
+- Manual fallback path: `fly deploy` from a fresh `origin/main` worktree (see
+  "Deploy from a worktree" note), used only when the auto-deploy action is down.
