@@ -233,19 +233,20 @@ class KitchenPacketPdf
   # ---- footer ----
 
   def footer(doc)
-    logo_h = 22
-    y = FOOTER_BAND - 6 # top edge of the logos, measured from the content bottom
+    logo_h   = 18
+    center_y = 12 # shared vertical center: the logos sit on the same line as the address
 
     if File.exist?(LEFT_LOGO)
-      doc.image LEFT_LOGO.to_s, at: [ doc.bounds.left, y ], height: logo_h
+      doc.image LEFT_LOGO.to_s, at: [ doc.bounds.left, center_y + logo_h / 2.0 ], height: logo_h
     end
     if File.exist?(RIGHT_LOGO)
       w = scaled_image_width(RIGHT_LOGO, logo_h)
-      doc.image RIGHT_LOGO.to_s, at: [ doc.bounds.right - w, y ], height: logo_h
+      doc.image RIGHT_LOGO.to_s, at: [ doc.bounds.right - w, center_y + logo_h / 2.0 ], height: logo_h
     end
 
-    doc.text_box FOOTER, at: [ doc.bounds.left, y - logo_h + 4 ], width: doc.bounds.width,
-                         height: logo_h, align: :center, valign: :center, size: 7, color: "555555"
+    box_h = 16
+    doc.text_box FOOTER, at: [ doc.bounds.left, center_y + box_h / 2.0 ], width: doc.bounds.width,
+                         height: box_h, align: :center, valign: :center, size: 7, color: "555555"
   end
 
   # Width a PNG occupies when scaled to a target height (to right-align the
