@@ -26,6 +26,9 @@ class KitchenPacketPdf
   # present, so the PDF still builds (address only) without them.
   LEFT_LOGO   = Rails.root.join("app/assets/images/nyk/iloveny.png").freeze
   RIGHT_LOGO  = Rails.root.join("app/assets/images/nyk/tasteny.png").freeze
+  # NY Kitchen's own header lockup (NK mark + wordmark). Drawn as a vector
+  # fallback if the file is missing so the PDF always builds.
+  HEADER_LOGO = Rails.root.join("app/assets/images/nyk/nyk_header.png").freeze
   FOOTER_BAND = 40 # points reserved at the page bottom for the footer
 
   # Label for the full-quantity pages (the station amount is half, so the full
@@ -120,6 +123,14 @@ class KitchenPacketPdf
   end
 
   def brand(doc)
+    if File.exist?(HEADER_LOGO)
+      h = 26
+      doc.image HEADER_LOGO.to_s, at: [ doc.bounds.left, doc.bounds.top ], height: h
+      doc.move_down h # doc.image with at: does not advance the cursor
+      return
+    end
+
+    # Vector fallback (NK circle + wordmark) if the logo file is missing.
     doc.float do
       r = 9
       doc.fill_color "111111"
