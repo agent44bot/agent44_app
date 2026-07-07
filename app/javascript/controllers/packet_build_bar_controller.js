@@ -15,6 +15,7 @@ export default class extends Controller {
     reading:   [25, "Reading the document..."],
     recipes:   [65, "Writing the recipe..."],
     equipment: [88, "Adding the equipment list..."],
+    grocery:   [60, "Combining every class's recipe into one list..."],
     ready:     [100, "Ready"],
   }
 
@@ -92,7 +93,7 @@ export default class extends Controller {
     } else {
       this.fillTarget.classList.add("bg-emerald-500")
       this.labelTarget.textContent = `✓ ${b.title} is ready`
-      this.linkTarget.textContent = "Open packet →"
+      this.linkTarget.textContent = b.done_label || "Open packet →"
     }
     this.linkTarget.href = b.edit_url
     this.linkTarget.classList.remove("hidden")

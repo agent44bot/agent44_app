@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-07
+  note: The grocery list now builds in the background, so it no longer spins and hangs while it works. The progress bar at the top of the app follows you as you keep working, and turns green with a link straight to the finished list when it is ready.
+
+- date: 2026-07-07
   note: Classes you add by hand (like the day camps) now show up in date order within the week, mixed in with the scraped classes, instead of being listed all together at the bottom of the week.
 
 - date: 2026-07-06
