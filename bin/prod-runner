@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# bin/prod-runner — run a Ruby script on the PROD Fly machine via rails runner.
+#
+# Why this exists: `fly ssh console -C "..."` runs the command through TWO
+# shells, so quotes, newlines and `#` in an inline `rails runner "..."` get
+# mangled (this once garbled a sample email). This ships the script as base64
+# so it survives both shells untouched, decodes it on the machine, and runs it
+# with `rails runner`.
+#
+# Usage:
+#   bin/prod-runner path/to/script.rb        # run a local .rb file in prod
+#   bin/prod-runner -e 'puts User.count'     # run an inline snippet
+#   echo 'puts User.count' | bin/prod-runner # read the script from stdin
+#   bin/prod-runner -                        # same as stdin (explicit)
+#
+# Env:
+#   FLY_APP   Fly app name (default: agent44-app)
+#
+# SAFETY: this executes against LIVE PRODUCTION. Prefer read-only probes; know
+# which lines write rows or send notifications before you run them. See the
+# "how do we test in production" playbook: escalate read-only -> instrument ->
+# full job, and gate anything that reaches a human (Echo pushes are off unless
+# the `social_listen:notify_user_ids` Setting names recipients).
+set -euo pipefail
+
+FLY_APP="${FLY_APP:-agent44-app}"
+
+usage() {
+  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+# Gather the script into $SRC from a file, -e, or stdin.
+if [ "$#" -eq 0 ]; then
+  # No args: read from stdin if it's piped, otherwise show usage.
+  [ -t 0 ] && usage 1
+  SRC="$(cat)"
+elif [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  usage 0
+elif [ "$1" = "-e" ]; then
+  [ "$#" -ge 2 ] || { echo "prod-runner: -e needs an argument" >&2; exit 1; }
+  SRC="$2"
+elif [ "$1" = "-" ]; then
+  SRC="$(cat)"
+elif [ -f "$1" ]; then
+  SRC="$(cat "$1")"
+elif [ -t 0 ]; then
+  echo "prod-runner: '$1' is not a file (use -e for an inline snippet)" >&2
+  exit 1
+else
+  # Non-flag arg that isn't a file and stdin is piped: treat stdin as the script.
+  SRC="$(cat)"
+fi
+
+# base64 with no line wrapping. macOS `base64` has no -w; GNU needs -w0. `tr -d`
+# strips newlines either way so we don't care which one we're on.
+B64="$(printf '%s' "$SRC" | base64 | tr -d '\n')"
+
+REMOTE="echo $B64 | base64 -d > /tmp/prod-runner.rb && /rails/bin/rails runner /tmp/prod-runner.rb"
+
+echo "prod-runner: running on $FLY_APP ($(printf '%s' "$SRC" | wc -l | tr -d ' ') lines)" >&2
+exec fly ssh console --app "$FLY_APP" -C "/bin/sh -c '$REMOTE'"
