@@ -14,6 +14,7 @@ module Trackable
     return if %w[OPTIONS HEAD].include?(request.method)
     return if controller_path.start_with?("api", "rails")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
+    return if POLL_PATHS.include?(request.path)
     return if bot_request?
     return if EXCLUDED_IPS.include?(client_ip)
 
@@ -46,6 +47,16 @@ module Trackable
   # PageView analytics (grouped by :path). Every other page records bare
   # request.path so pagination/filter params don't fragment the grouping.
   QUERY_TRACKED_PATHS = [ "/nykitchen/display/print" ].freeze
+
+  # Background XHR poll endpoints that fire on a timer, not on a user action, so
+  # counting them as page views inflates engagement: an idle open tab looks
+  # identically "active" to someone working. The navbar build-progress bar
+  # (packet_build_bar_controller) polls /nykitchen/packets/active_builds every
+  # ~9s on every page for as long as any tab is open, which is why a left-open
+  # tab racked up hundreds of hits with zero real activity. These sit under the
+  # kitchen controller (not /api), so the api/rails skip above misses them; list
+  # each poll path explicitly. (agent_status polls /api/*, already excluded.)
+  POLL_PATHS = [ "/nykitchen/packets/active_builds" ].freeze
 
   def tracked_path
     QUERY_TRACKED_PATHS.include?(request.path) ? request.fullpath : request.path
