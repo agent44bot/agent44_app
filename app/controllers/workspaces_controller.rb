@@ -154,6 +154,11 @@ class WorkspacesController < ApplicationController
     @is_manager        = @workspace.manager?(current_user)
     @listening_enabled = Setting.get("social_listen:slugs").to_s.split(",").map(&:strip).include?(@workspace.slug)
     @listening_topics  = SocialListenJob.queries_for(@workspace).join("\n")
+    # Whether this workspace has its own saved topics, or is still showing the
+    # built-in defaults. Once saved, queries_for stops falling back to code, so
+    # future default tweaks no longer reach this workspace (surfaced as a hint).
+    @listening_topics_saved = Setting.get("social_listen:queries:#{@workspace.slug}").present?
+    @x_query_cap            = SocialListenJob::MAX_X_QUERIES
     # Last few conversations Echo drafted from the topics (any status), newest
     # first, shown next to the topics box as a recent-activity feed.
     @recent_leads      = @workspace.social_leads.recent.limit(6)

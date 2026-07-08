@@ -12,32 +12,33 @@ class SocialListenJob < ApplicationJob
 
   # Default query set. Lora's topics (what NYK actually sells: cooking classes,
   # wine / beer / cocktail tastings), anchored to the region so results stay
-  # local, plus a couple of broad local anchors for volume. Editable without a
-  # deploy via Setting "social_listen:queries" (comma or newline separated).
-  # Bluesky AND-matches every word, so keep queries short.
+  # local. Editable without a deploy via Setting "social_listen:queries" (one
+  # per line). Tuned for X, which is the only productive source right now:
+  # X search understands OR-groups and exact phrases, so each line is an
+  # intent-group AND-gated to a locality-group, which the prod probes showed
+  # is far higher-signal than bare place names or global hashtags. Bluesky
+  # AND-matches every word so these OR-group lines match ~nothing there, but
+  # per the X-listening work Bluesky already returned ~0 local cooking intent,
+  # so that trade is intentional; Reddit is dormant (no creds).
+  #
+  # Each figure below is live-X hit counts from the 2026-07-07 prod probe
+  # (before the AI scorer, which keeps only on-topic local ones).
   DEFAULT_QUERIES = [
-    "New York Kitchen Canandaigua", # brand mention
-    "cooking class Rochester",
-    "cooking class Finger Lakes",
-    "wine tasting Finger Lakes",
-    "wine tasting Rochester",
-    "beer tasting Rochester",
-    "cocktail class Rochester",
-    # Locality + intent, not a bare place name: bare "Canandaigua" pulled ~20
-    # off-topic hits per X run (concerts, church, political noise) that the AI
-    # scorer then had to reject, burning metered recent-search budget. AND-gating
-    # the town to an intent OR-group cut that to ~3 while still catching real
-    # local class/tasting posts. (On Bluesky this term returns ~nothing either way.)
-    "Canandaigua (dinner OR restaurant OR \"date night\" OR \"cooking class\" OR \"wine tasting\" OR event OR class)",
-    "Finger Lakes wine",
-    "Rochester date night",
-    # Hashtags: single compound tokens, so a phrase query like "Finger Lakes"
-    # never matches "#FingerLakes". Bluesky indexes tags; these catch a slice we
-    # would otherwise miss. (X hashtags come when we add paid X search.)
-    "#winetasting",
-    "#cookingclass",
-    "#FingerLakes",
-    "#FLX" # Finger Lakes tag (quiet on Bluesky now, useful once X search lands)
+    # Brand mention, either place spelling.
+    "(\"New York Kitchen\") (Canandaigua OR \"Finger Lakes\")",
+    # Class / tasting intent, AND-gated to the region. The core query.
+    "(\"cooking class\" OR \"cocktail class\" OR \"wine tasting\" OR \"beer tasting\") (Rochester OR \"Finger Lakes\" OR Canandaigua)",
+    # Canandaigua local activity: town AND an intent word (bare "Canandaigua"
+    # pulled ~20 junk hits/run; this cut it to ~3 and still catches real classes).
+    "Canandaigua (dinner OR restaurant OR \"date night\" OR event OR class)",
+    # Date-night / tasting intent across the two big place names. Dropped a bare
+    # "restaurant" token here: it pulled ~17 generic-restaurant-chatter hits.
+    "(\"Finger Lakes\" OR Rochester) (\"date night\" OR \"wine tasting\")",
+    # Regional hashtags. #FLX/#FingerLakes are local tags a plain phrase misses.
+    "#FLX OR #FingerLakes",
+    # Generic foodie hashtags are global (national franchise spam), so require a
+    # locality term alongside them: cut ~20 spam hits to ~1 real local post.
+    "(#winetasting OR #cookingclass OR #cocktails) (Rochester OR \"Finger Lakes\" OR Canandaigua)"
   ].freeze
 
   MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
