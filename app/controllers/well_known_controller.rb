@@ -17,7 +17,14 @@ class WellKnownController < ApplicationController
   # Paths that open the native app when tapped on a device that has it
   # installed. "/nykitchen/*" covers every agent page the report links to
   # (analyst, test, data, list, ...).
-  APP_LINK_PATHS = [ "/sign_in/*", "/get", "/nykitchen/*" ].freeze
+  #
+  # EXCEPTION: "/nykitchen/r/*" (the printed-flyer QR scan redirects) must NOT
+  # open the app. Those bounce (302) to nykitchen.com to book a class; if iOS
+  # opened our app instead, the customer would land in agent44labs and never
+  # reach the class page. The "NOT" rule must precede "/nykitchen/*" — the
+  # legacy matcher takes the first match. (Modern iOS uses the components list
+  # below, which marks the same path exclude: true.)
+  APP_LINK_PATHS = [ "/sign_in/*", "/get", "NOT /nykitchen/r/*", "/nykitchen/*" ].freeze
 
   def apple_app_site_association
     render json: {
@@ -31,6 +38,7 @@ class WellKnownController < ApplicationController
             "components" => [
               { "/" => "/sign_in/*", "comment" => "passwordless magic link opens the app" },
               { "/" => "/get", "comment" => "QR smart-link opens the app if installed (needs app build claiming /get)" },
+              { "/" => "/nykitchen/r/*", "exclude" => true, "comment" => "flyer QR scan redirects must open in the browser so they follow the 302 to nykitchen.com, not the app" },
               { "/" => "/nykitchen/*", "comment" => "in-app deep links (report buttons) open the app" }
             ]
           }
