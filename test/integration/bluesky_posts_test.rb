@@ -193,16 +193,43 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     Bluesky::UserClient.image_fetch_stub = nil
   end
 
-  test "image fetch failure surfaces a clean error, post is not made" do
+  test "image fetch failure still posts text without an image embed" do
     Bluesky::UserClient.image_fetch_stub = ->(_url) { nil }
-    Bluesky::UserClient.http_stub = ->(*) { raise "createRecord should not be called" }
+    captured_payload = nil
+    Bluesky::UserClient.http_stub = ->(_method, url, payload, _bearer) {
+      assert url.end_with?("createRecord"), "should skip uploadBlob when the image cannot be fetched"
+      captured_payload = payload
+      { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/noimage" } }
+    }
 
     sign_in_as(@owner)
     draft = @ws.workspace_drafts.create!(author: @owner, body: "x",
       target_platforms: %w[bluesky], image_url: "https://bad.example/missing.jpg")
     result = WorkspaceDrafts::Publisher.new(draft).call
-    assert result.all_bad?
-    assert_match /Image upload failed/, result.failures.first
+    assert result.all_ok?, "publish failed: #{result.failures.inspect}"
+    assert_nil captured_payload[:record][:embed]
+  ensure
+    Bluesky::UserClient.image_fetch_stub = nil
+  end
+
+  test "non-image image_url response still posts text without uploading html" do
+    Bluesky::UserClient.image_fetch_stub = ->(_url) { [ "<html>not an image</html>", "text/html" ] }
+    captured_urls = []
+    captured_payload = nil
+    Bluesky::UserClient.http_stub = ->(_method, url, payload, _bearer) {
+      captured_urls << url
+      captured_payload = payload
+      { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/html" } }
+    }
+
+    sign_in_as(@owner)
+    draft = @ws.workspace_drafts.create!(author: @owner, body: "html image",
+      target_platforms: %w[bluesky], image_url: "https://nykitchen.com/photo.jpg")
+    result = WorkspaceDrafts::Publisher.new(draft).call
+    assert result.all_ok?, "publish failed: #{result.failures.inspect}"
+    assert_equal 1, captured_urls.size
+    assert captured_urls.first.end_with?("createRecord")
+    assert_nil captured_payload[:record][:embed]
   ensure
     Bluesky::UserClient.image_fetch_stub = nil
   end
