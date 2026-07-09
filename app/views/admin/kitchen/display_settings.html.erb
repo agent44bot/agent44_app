@@ -127,6 +127,57 @@
     <% end %>
   </div>
 
+  <%# QR scan report: only rendered for managers (controller sets these). %>
+  <% if defined?(@scan_total_30d) && @scan_total_30d %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+      <div class="flex items-baseline justify-between mb-4">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">QR scans</h2>
+        <span class="text-xs text-gray-600">Last 30 days · flyer and poster codes</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
+        <div>
+          <div class="text-2xl font-black text-white tabular-nums"><%= @scan_total_month.to_i %></div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">This month</div>
+        </div>
+        <div>
+          <div class="text-2xl font-black text-white tabular-nums"><%= @scan_total_30d.to_i %></div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">Last 30 days</div>
+        </div>
+        <div class="col-span-2 sm:col-span-1">
+          <div class="text-sm text-gray-300 tabular-nums leading-relaxed">
+            <% if @scan_devices.present? %>
+              <% @scan_devices.sort_by { |_, n| -n }.each do |bucket, n| %>
+                <div><span class="text-white font-semibold"><%= n %></span> <%= bucket %></div>
+              <% end %>
+            <% else %>
+              <span class="text-gray-600">No devices yet</span>
+            <% end %>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">By device</div>
+        </div>
+      </div>
+
+      <% if @scan_by_url.present? %>
+        <div class="border-t border-gray-800 pt-4">
+          <span class="text-xs uppercase tracking-wide text-gray-500 block mb-3">Most scanned classes</span>
+          <ul class="space-y-2">
+            <% @scan_by_url.each do |url, count| %>
+              <li class="flex items-center justify-between gap-3 text-sm">
+                <span class="min-w-0 truncate text-gray-300"><%= @scan_names[url].presence || url %></span>
+                <span class="tabular-nums text-white font-semibold shrink-0"><%= count %></span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-500 border-t border-gray-800 pt-4">
+          No scans yet. Print flyers and the QR codes will track scans here.
+        </p>
+      <% end %>
+    </div>
+  <% end %>
+
   <%# Preview %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
     <div class="flex items-baseline justify-between mb-3">

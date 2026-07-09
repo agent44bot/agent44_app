@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_205855) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_09_160000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -439,6 +439,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_205855) do
     t.index ["key"], name: "index_kv_settings_on_key", unique: true
   end
 
+  create_table "link_scans", force: :cascade do |t|
+    t.string "referrer"
+    t.datetime "scanned_at", null: false
+    t.integer "tracked_link_id", null: false
+    t.string "user_agent"
+    t.index ["scanned_at"], name: "index_link_scans_on_scanned_at"
+    t.index ["tracked_link_id"], name: "index_link_scans_on_tracked_link_id"
+  end
+
   create_table "login_codes", force: :cascade do |t|
     t.integer "attempt_count", default: 0, null: false
     t.string "code_digest", null: false
@@ -666,6 +675,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_205855) do
     t.index ["token"], name: "index_subscribers_on_token", unique: true
   end
 
+  create_table "tracked_links", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.integer "workspace_id"
+    t.index ["token"], name: "index_tracked_links_on_token", unique: true
+    t.index ["workspace_id"], name: "index_tracked_links_on_workspace_id"
+  end
+
   create_table "usage_events", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "kind", null: false
@@ -864,6 +883,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_205855) do
   add_foreign_key "kitchen_manual_classes", "users", column: "created_by_id"
   add_foreign_key "kitchen_packet_links", "kitchen_packets"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
+  add_foreign_key "link_scans", "tracked_links"
   add_foreign_key "notifications", "users"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
@@ -874,6 +894,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_205855) do
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
   add_foreign_key "social_leads", "workspaces"
+  add_foreign_key "tracked_links", "workspaces"
   add_foreign_key "usage_events", "workspaces"
   add_foreign_key "workspace_agents", "workspaces"
   add_foreign_key "workspace_drafts", "users", column: "author_id"

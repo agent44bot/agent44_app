@@ -10,7 +10,7 @@ class KitchenController < ApplicationController
   # in Safari (the only place iOS shows a print dialog — the in-app WKWebView
   # can't) without a login wall. Same public class data as :display, no
   # Claude/AI, so anonymous access is safe.
-  allow_unauthenticated_access only: [ :hub, :display, :display_heartbeat, :display_print ]
+  allow_unauthenticated_access only: [ :hub, :display, :display_heartbeat, :display_print, :scan_redirect ]
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
@@ -520,6 +520,7 @@ class KitchenController < ApplicationController
     @workspace = Workspace.find_by(slug: "nykitchen")
     @my_workspace_role = @workspace&.role_for(Current.user)
     @workspace_agents = WorkspaceAgent::KINDS.index_with { |k| @workspace&.agent_for(k) }
+    load_qr_scan_report if @workspace&.manager?(Current.user)
     render "admin/kitchen/display_settings", layout: "application"
   end
 
@@ -578,6 +579,24 @@ class KitchenController < ApplicationController
     Setting.touch_time("nyk_flyer_prints:last_at") # CarsonNudgeJob no_flyers trigger
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
     render template, layout: false
+  end
+
+  # Public QR landing: log the scan (anonymous: counts + device/referrer only),
+  # then 302 onward to the real class page. 302 not 301 so repeat scans keep
+  # hitting us instead of being served from the browser cache. An unknown token
+  # (stale flyer, mistyped) falls back to the calendar rather than 404ing a
+  # walk-in customer.
+  def scan_redirect
+    link = TrackedLink.find_by(token: params[:token].to_s)
+    if link
+      link.link_scans.create(
+        scanned_at: Time.current,
+        user_agent: request.user_agent.to_s.first(500).presence,
+        referrer:   request.referer.to_s.first(500).presence
+      )
+    end
+    redirect_to(link&.url.presence || "https://nykitchen.com/calendar/",
+                allow_other_host: true, status: :found)
   end
 
   def rotate_display_token
@@ -1163,6 +1182,26 @@ class KitchenController < ApplicationController
     user.workspaces.find { |w| w.slug.to_s.include?("kitchen") || w.name.to_s.downcase.include?("kitchen") }
   end
 
+  # QR-scan readout for the Display settings page (managers only). Last 30 days:
+  # a total, a per-class leaderboard, and a coarse device split. Class names
+  # come from the latest snapshot (TrackedLink only stores the URL), falling
+  # back to the URL for a class that's aged out of the calendar.
+  def load_qr_scan_report
+    since = 30.days.ago
+    scans = LinkScan.for_workspace(@workspace).since(since)
+    @scan_total_month = LinkScan.for_workspace(@workspace).this_month.count
+    @scan_total_30d   = scans.count
+    @scan_by_url = scans.joins(:tracked_link)
+                        .group("tracked_links.url")
+                        .order(Arel.sql("COUNT(*) DESC"))
+                        .limit(15)
+                        .count
+    @scan_devices = scans.group(:user_agent).count
+                        .each_with_object(Hash.new(0)) { |(ua, n), h| h[LinkScan.device_bucket(ua)] += n }
+    latest = KitchenSnapshot.latest
+    @scan_names = latest ? latest.kitchen_events.pluck(:url, :name).to_h : {}
+  end
+
   # Loads the locals needed by workspaces/_team partial when rendering on
   # the NYK hub. Only called when @nyk_workspace is present (i.e. the
   # signed-in user is a member of the NY Kitchen workspace).
@@ -1418,8 +1457,13 @@ class KitchenController < ApplicationController
     @hub_scrape_churn = KitchenSnapshot.calendar_churn(Date.current.beginning_of_week(:monday))
     @hub_scrape_changes = @hub_scrape_churn.values.sum
 
-    # Neon flyer/poster print count — admin-only readout on the Display card.
-    @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total") if Current.user&.admin?
+    # Neon flyer/poster print count + QR scans this month — admin-only readouts
+    # on the Display card. Scans measure the payoff of the printed flyers.
+    if Current.user&.admin?
+      @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total")
+      nyk = @nyk_workspace || Workspace.find_by(slug: "nykitchen")
+      @hub_qr_scans = LinkScan.for_workspace(nyk).this_month.count if nyk
+    end
 
     # Echo's last published post (any connected account) — shows the card is
     # actually broadcasting. nil when nothing's been posted yet.
