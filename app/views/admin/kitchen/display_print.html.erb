@@ -145,7 +145,7 @@
         <% if page_idx == pages.size - 1 %>
           <div class="footer">
             <div class="footer-cta">
-              <span class="footer-qr"><%= qr_svg("https://nykitchen.com/calendar/") %></span>
+              <span class="footer-qr"><%= nyk_scan_qr_url("https://nykitchen.com/calendar/", workspace: @display_workspace) %></span>
               <span class="lead">
                 Check out other New York Kitchen classes<br>
                 @ <span class="url">nykitchen.com/calendar/</span>
