@@ -79,7 +79,7 @@ class KitchenController < ApplicationController
     # many people scanned that class's printed flyer. One grouped query for
     # every visible class; managers/admins only.
     @scan_counts_by_url = {}
-    if @nyk_workspace&.manager?(Current.user)
+    if @nyk_workspace&.member?(Current.user)
       urls = @weeks.flat_map { |w| w[:events] }.map(&:url).compact.uniq
       @scan_counts_by_url = LinkScan.joins(:tracked_link)
                                     .where(tracked_links: { url: urls })
@@ -530,7 +530,7 @@ class KitchenController < ApplicationController
     @workspace = Workspace.find_by(slug: "nykitchen")
     @my_workspace_role = @workspace&.role_for(Current.user)
     @workspace_agents = WorkspaceAgent::KINDS.index_with { |k| @workspace&.agent_for(k) }
-    load_qr_scan_report if @workspace&.manager?(Current.user)
+    load_qr_scan_report if @workspace&.member?(Current.user)
     render "admin/kitchen/display_settings", layout: "application"
   end
 
@@ -1480,12 +1480,13 @@ class KitchenController < ApplicationController
     @hub_scrape_churn = KitchenSnapshot.calendar_churn(Date.current.beginning_of_week(:monday))
     @hub_scrape_changes = @hub_scrape_churn.values.sum
 
-    # Neon flyer/poster print count + QR scans this month — admin-only readouts
-    # on the Display card. Scans measure the payoff of the printed flyers.
-    if Current.user&.admin?
-      @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total")
-      nyk = @nyk_workspace || Workspace.find_by(slug: "nykitchen")
-      @hub_qr_scans = LinkScan.for_workspace(nyk).this_month.count if nyk
+    # Neon flyer/poster print count — admin-only internal readout on the Display
+    # card (our metric, not the customer's).
+    @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total") if Current.user&.admin?
+    # QR scans this month — visible to every NY Kitchen member (owner through
+    # viewer), so the whole team can see the flyers' payoff.
+    if @nyk_workspace&.member?(Current.user)
+      @hub_qr_scans = LinkScan.for_workspace(@nyk_workspace).this_month.count
     end
 
     # Echo's last published post (any connected account) — shows the card is
