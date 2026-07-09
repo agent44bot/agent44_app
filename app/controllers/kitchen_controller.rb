@@ -590,6 +590,13 @@ class KitchenController < ApplicationController
     Setting.increment("nyk_flyer_prints:total")
     Setting.increment("nyk_flyer_prints:#{@variant}")
     Setting.touch_time("nyk_flyer_prints:last_at") # CarsonNudgeJob no_flyers trigger
+    # Monetize the print click: 44 cents per open, billed to the workspace
+    # (owner/admin see the revenue on the billing page + Neon card).
+    if @display_workspace
+      UsageEvent.record!(workspace: @display_workspace, user: Current.user,
+                         kind: UsageEvent::FLYER_PRINT, unit_cents: UsageEvent::FLYER_UNIT_CENTS,
+                         metadata: { variant: @variant })
+    end
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
     render template, layout: false
   end
@@ -609,6 +616,14 @@ class KitchenController < ApplicationController
         user_agent: request.user_agent.to_s.first(500).presence,
         referrer:   request.referer.to_s.first(500).presence
       )
+      # Monetize the scan: 44 cents, billed to the link's workspace (public
+      # endpoint, so no user). Only real (known-token) scans are billable.
+      scan_ws = link.workspace || Workspace.find_by(slug: "nykitchen")
+      if scan_ws
+        UsageEvent.record!(workspace: scan_ws, kind: UsageEvent::FLYER_SCAN,
+                           unit_cents: UsageEvent::FLYER_UNIT_CENTS,
+                           metadata: { token: link.token })
+      end
     end
     redirect_to(safe_scan_target(link&.url),
                 allow_other_host: true, status: :found)
@@ -1503,6 +1518,10 @@ class KitchenController < ApplicationController
     # viewer), so the whole team can see the flyers' payoff.
     if @nyk_workspace&.member?(Current.user)
       @hub_qr_scans = LinkScan.for_workspace(@nyk_workspace).this_month.count
+    end
+    # Flyer + scan revenue this month — owner/admin only (a billing figure).
+    if @nyk_workspace&.manager?(Current.user)
+      @hub_flyer_revenue = UsageEvent.flyer_revenue_dollars(@nyk_workspace, Time.current.beginning_of_month..Time.current)
     end
 
     # Echo's last published post (any connected account) — shows the card is
