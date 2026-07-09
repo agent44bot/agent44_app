@@ -247,9 +247,9 @@ module Bluesky
     # and returns the blob ref the createRecord embed needs.
     def upload_image_blob(url, alt_text: nil)
       bytes, mime = fetch_image_bytes(url)
-      return { ok: false, error: "could not fetch #{url}" } unless bytes
+      return nil unless bytes
       bytes, mime = Bluesky::ImageFit.fit(bytes, mime)
-      return { ok: false, error: "image could not be resized under Bluesky's 1MB limit" } unless bytes
+      return nil unless bytes
       upload_blob_bytes(bytes, mime)
     rescue => e
       { ok: false, error: "#{e.class}: #{e.message}" }
@@ -276,7 +276,7 @@ module Bluesky
 
     def fetch_image_bytes(url)
       if self.class.image_fetch_stub
-        return self.class.image_fetch_stub.call(url)
+        return validate_image_fetch(self.class.image_fetch_stub.call(url))
       end
       uri = URI(url)
       return nil unless %w[http https].include?(uri.scheme)
@@ -285,7 +285,15 @@ module Bluesky
         http.get(uri.request_uri, { "User-Agent" => "Agent44LabsBot/1.0 (+https://agent44labs.com)" })
       end
       return nil unless res.is_a?(Net::HTTPSuccess)
-      [ res.body, res["Content-Type"] || guess_mime(url) ]
+      mime = res["Content-Type"].to_s.split(";").first.presence || guess_mime(url)
+      validate_image_fetch([ res.body, mime ])
+    end
+
+    def validate_image_fetch(fetch)
+      bytes, mime = fetch
+      mime = mime.to_s.split(";").first
+      return nil if bytes.blank? || !mime.start_with?("image/")
+      [ bytes, mime ]
     end
 
     def guess_mime(url)
