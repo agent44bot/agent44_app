@@ -468,6 +468,12 @@
             📱 <%= @hub_qr_scans.to_i %> QR <%= "scan".pluralize(@hub_qr_scans.to_i) %> this month
           </div>
         <% end %>
+        <%# Flyer + scan revenue this month, owner/admin only (a billing figure). %>
+        <% if @hub_flyer_revenue %>
+          <div class="text-xs text-amber-400/80 tabular-nums" title="Flyer prints + QR scans billed this month at $0.44 each (owner/admin only)">
+            💰 $<%= sprintf("%.2f", @hub_flyer_revenue) %> this month
+          </div>
+        <% end %>
       </div>
 
       <div class="<%= stats_class %>">

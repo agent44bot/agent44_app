@@ -57,6 +57,20 @@ class NykBillingController < ApplicationController
     @customer_total    = (@customer_subtotal - @discount_amount).round(2)
     @month_total       = @customer_view ? @customer_total : @raw_total
 
+    # Flyer monetization (44 cents per print click + per QR scan). A flat
+    # pass-through, added after AI markup + discount.
+    period = @month_start..now
+    if @workspace
+      usage = UsageEvent.where(workspace: @workspace).in_period(period)
+      @flyer_print_count = usage.of_kind(UsageEvent::FLYER_PRINT).sum(:quantity).to_i
+      @flyer_scan_count  = usage.of_kind(UsageEvent::FLYER_SCAN).sum(:quantity).to_i
+    else
+      @flyer_print_count = @flyer_scan_count = 0
+    end
+    @flyer_unit_price   = UsageEvent::FLYER_UNIT_CENTS / 100.0
+    @flyer_scan_revenue = UsageEvent.flyer_revenue_dollars(@workspace, period)
+    @month_total        = (@month_total + @flyer_scan_revenue).round(2)
+
     @invoices = @workspace ? Invoice.where(workspace_id: @workspace.id).recent.to_a : []
   end
 

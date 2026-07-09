@@ -16,6 +16,20 @@ class UsageEvent < ApplicationRecord
   scope :in_period, ->(range) { where(created_at: range) }
   scope :of_kind,   ->(kind) { where(kind: kind) }
 
+  # Flyer monetization: 44 cents per print-page open and per QR scan (Agent 44).
+  FLYER_PRINT      = "flyer.print".freeze
+  FLYER_SCAN       = "flyer.scan".freeze
+  FLYER_KINDS      = [ FLYER_PRINT, FLYER_SCAN ].freeze
+  FLYER_UNIT_CENTS = 44
+
+  # Total flyer/scan revenue (dollars) for a workspace in a period.
+  def self.flyer_revenue_dollars(workspace, range)
+    return 0.0 unless workspace
+    cents = where(workspace: workspace, kind: FLYER_KINDS).in_period(range)
+              .sum(Arel.sql("quantity * unit_cents"))
+    cents.to_i / 100.0
+  end
+
   # Log one metered action. Defaults to a single penny so "track, don't charge
   # yet" still records the intended price for when billing turns on.
   def self.record!(workspace:, kind:, user: nil, quantity: 1, unit_cents: 1, metadata: {})
