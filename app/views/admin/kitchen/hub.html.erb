@@ -111,7 +111,9 @@
     html << %(<span class="ra-sep">·</span><span class="ra-code">#{ERB::Util.h(code)}</span>) if code
     html << %(</span>) # /ra-meta
     # Per-agent "salary" — this month's tokens + cost. Owner/admin only (Lora).
-    if @can_see_pricing && @hub_salary && (s = @hub_salary[kind.to_s])
+    # Neon (display) makes no AI calls, so its salary is always $0.00 — skip the
+    # badge rather than show a permanent zero.
+    if @can_see_pricing && @hub_salary && kind.to_s != "display" && (s = @hub_salary[kind.to_s])
       toks = s[:tokens].to_i.positive? ? "#{fmt_tok.call(s[:tokens])} tok · " : ""
       html << %(<span style="position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2" title="This month's token usage + cost">💰 #{toks}$#{format('%.2f', s[:cost])}/mo</span>)
     end
