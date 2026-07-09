@@ -255,6 +255,14 @@
       user during "View as". %>
   <%# No section header here: the page header above already shows
       "Agent 44 · Field Roster" + the agent/attention count. %>
+  <%# Flyer QR scan-chain health alarm (NykQrHealthCheckJob). Managers only. %>
+  <% if @qr_health_alert %>
+    <div class="mb-4 rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-300">
+      <span class="font-semibold">⚠️ Flyer QR codes need attention.</span>
+      <%= @qr_health_alert %>
+    </div>
+  <% end %>
+
   <section data-controller="roster"
            data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
     <%# Flex column so the background-agents chip row can float below the cards on

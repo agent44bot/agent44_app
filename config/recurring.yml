@@ -59,6 +59,13 @@ production:
   nyk_smoke_freshness_check:
     class: NykSmokeFreshnessCheckJob
     schedule: every hour at minute 17
+  # Verify the flyer-QR -> scan-redirect -> nykitchen.com chain is intact and
+  # alert (iOS push + hub banner) if scans would not reach the ticket page.
+  # In-process checks only, so it's cheap; 3x/day is plenty. Cron form to stay
+  # a valid Fugit::Cron (guarded by recurring_schedule_test).
+  nyk_qr_health_check:
+    class: NykQrHealthCheckJob
+    schedule: "0 8,13,17 * * *"
   refresh_x_tokens:
     class: RefreshXTokensJob
     schedule: every 30 minutes

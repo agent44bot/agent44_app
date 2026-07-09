@@ -43,6 +43,9 @@ class KitchenController < ApplicationController
     end
     load_hub_summary
     @smoke_alert  = smoke_alert_for(Current.user)
+    # QR scan-chain health (set by NykQrHealthCheckJob). Shown to managers so the
+    # team knows if flyer scans are failing to reach nykitchen.com.
+    @qr_health_alert = qr_health_alert_for(Current.user)
     @daily_prompt = morning_prompt_for(Current.user)
     @nyk_workspace = nyk_workspace_for(Current.user)
     # Cellar (storage-room inventory) card stats — live bottle count + low flags.
@@ -983,6 +986,16 @@ class KitchenController < ApplicationController
   # user's Super Agent card is promoted to an alert offering to draft a note to
   # the developer. Takes priority over the morning question. Returns
   # { count:, prompt: } or nil.
+  # Banner text when the QR scan chain is unhealthy (NykQrHealthCheckJob sets the
+  # flag). Managers only, so Lora's team sees it; nil when healthy.
+  def qr_health_alert_for(user)
+    return nil unless Setting.time(NykQrHealthCheckJob::FAILED_AT)
+    ws = @nyk_workspace || Workspace.find_by(slug: "nykitchen")
+    return nil unless user&.admin? || ws&.member?(user)
+    Setting.get(NykQrHealthCheckJob::MESSAGE).presence ||
+      "Flyer QR scans may not be reaching nykitchen.com."
+  end
+
   def smoke_alert_for(user)
     return nil unless daily_prompt_trial?(user)
     n = KitchenAi::SmokeEscalation.streak
