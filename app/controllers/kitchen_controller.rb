@@ -115,6 +115,29 @@ class KitchenController < ApplicationController
       @range = Date.current.beginning_of_week(:monday)..Date.current.end_of_week(:monday)
     end
 
+    if params[:download].present?
+      load_grocery_data
+      single_event = @single_class ? @with_recipe.first&.dig(:event) : nil
+      filename = if @single_class && single_event
+        "ny-kitchen-pull-sheet-#{single_event.start_at.strftime('%Y-%m-%d')}.pdf"
+      else
+        "ny-kitchen-grocery-list-#{@range.first.iso8601}-#{@range.last.iso8601}.pdf"
+      end
+
+      return send_data KitchenGroceryPdf.new(
+        result: @result,
+        with_recipe: @with_recipe,
+        range: @range,
+        total_headcount: @total_headcount,
+        single: @single_class,
+        single_event: single_event,
+        show_prices: @show_grocery_prices
+      ).render,
+                       filename: filename,
+                       type: "application/pdf",
+                       disposition: "attachment"
+    end
+
     # The aggregation is a slow + paid Opus call, so the heavy work runs in a
     # lazy turbo frame (spinner while it loads) and the result is cached by the
     # recipe set, so a reload or range switch doesn't re-bill Claude.
