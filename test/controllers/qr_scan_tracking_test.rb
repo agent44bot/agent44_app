@@ -57,4 +57,26 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     get nyk_scan_path(link.token)
     assert_response :redirect # not bounced to a login wall
   end
+
+  test "Sam's class list badges each class with its scan count for managers" do
+    manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = manager }
+    link = TrackedLink.for_url(@event.url)
+    3.times { link.link_scans.create!(scanned_at: Time.current, user_agent: "iPhone") }
+
+    sign_in_as(manager)
+    get nyk_list_path
+    assert_response :success
+    assert_select "span[title=?]", "3 scans of this class's flyer QR code", text: /👁\s*3/
+  end
+
+  test "a class with no scans shows no scan badge" do
+    manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = manager }
+
+    sign_in_as(manager)
+    get nyk_list_path
+    assert_response :success
+    assert_select "span[title*=?]", "flyer QR code", count: 0
+  end
 end

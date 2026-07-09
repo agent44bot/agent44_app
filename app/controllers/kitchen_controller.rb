@@ -75,6 +75,16 @@ class KitchenController < ApplicationController
     @receipt_by_week_start = GroceryReceipt.recent_first.where.not(week_start: nil)
                                            .group_by(&:week_start).transform_values(&:first)
     load_events_data
+    # QR scan count per class (keyed by event URL) so each row can badge how
+    # many people scanned that class's printed flyer. One grouped query for
+    # every visible class; managers/admins only.
+    @scan_counts_by_url = {}
+    if @nyk_workspace&.manager?(Current.user)
+      urls = @weeks.flat_map { |w| w[:events] }.map(&:url).compact.uniq
+      @scan_counts_by_url = LinkScan.joins(:tracked_link)
+                                    .where(tracked_links: { url: urls })
+                                    .group("tracked_links.url").count if urls.any?
+    end
     # Estimated grocery $ total per week for the orange "Grocery list" card.
     # Read from cache ONLY (never bills Opus on a list render). The figure
     # appears once someone has opened that week's grocery page (which builds +
