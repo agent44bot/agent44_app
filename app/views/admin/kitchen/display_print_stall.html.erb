@@ -119,7 +119,7 @@
           </div>
           <% if event.url.present? %>
             <div class="qr">
-              <%= qr_svg(event.url) %>
+              <%= nyk_scan_qr(event, workspace: @display_workspace) %>
               <div class="qr-cap">Scan to reserve</div>
             </div>
           <% end %>

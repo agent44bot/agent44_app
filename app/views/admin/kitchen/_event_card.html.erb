@@ -100,6 +100,15 @@
           <%= event.capacity ? "#{event.spots_left} of #{event.capacity} left" : "#{event.spots_left} left" %>
         </span>
       <% end %>
+      <%# QR scan count for this class's printed flyer (managers only; controller
+          leaves @scan_counts_by_url empty otherwise). Hidden at zero so it only
+          appears once a flyer has actually been scanned. %>
+      <% scans = (@scan_counts_by_url || {})[event.url].to_i %>
+      <% if scans.positive? %>
+        <span class="text-xs text-gray-500 tabular-nums" title="<%= pluralize(scans, "scan") %> of this class's flyer QR code">
+          👁 <%= scans %>
+        </span>
+      <% end %>
     </div>
   </div>
   </div>

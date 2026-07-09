@@ -109,6 +109,9 @@ Rails.application.routes.draw do
   post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
   # Printer-friendly list of the same N classes the display cycles. Admin-only.
   get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
+  # Trackable QR redirect: logs the scan, then 302s to the real class page.
+  # Public (walk-ins scan it with no login); short path so the QR stays dense.
+  get   "nykitchen/r/:token",       to: "kitchen#scan_redirect",  as: :nyk_scan
   # Class packets: a per-class bundle (recipes + equipment + pull sheet),
   # created/attached from Sam's list page.
   post   "nykitchen/equipment_tags/hide", to: "kitchen_packets#hide_equipment", as: :nyk_hide_equipment_tag

@@ -14,6 +14,7 @@ class Workspace < ApplicationRecord
   has_many :workspace_posts,   dependent: :destroy
   has_many :workspace_drafts,  dependent: :destroy
   has_many :social_leads,      dependent: :destroy
+  has_many :tracked_links,     dependent: :nullify # QR redirects; keep scan history if a workspace is deleted
   has_many :workspace_agents,  dependent: :destroy
   has_many :usage_events,      dependent: :destroy # metered billable actions
   has_many :ai_call_logs,      dependent: :nullify # keep usage history if a workspace is deleted
