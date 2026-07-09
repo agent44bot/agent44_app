@@ -67,7 +67,7 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     sign_in_as(manager)
     get nyk_list_path
     assert_response :success
-    assert_select "span[title=?]", "3 scans of this class's flyer QR code", text: /👁\s*3/
+    assert_select "span[title=?]", "3 scans of this class's flyer QR code", text: /📱\s*3/
   end
 
   test "a class with no scans shows no scan badge" do

@@ -106,7 +106,7 @@
       <% scans = (@scan_counts_by_url || {})[event.url].to_i %>
       <% if scans.positive? %>
         <span class="text-xs text-gray-500 tabular-nums" title="<%= pluralize(scans, "scan") %> of this class's flyer QR code">
-          👁 <%= scans %>
+          📱 <%= scans %>
         </span>
       <% end %>
     </div>
