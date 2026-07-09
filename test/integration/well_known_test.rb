@@ -20,5 +20,14 @@ class WellKnownTest < ActionDispatch::IntegrationTest
     # In-app deep links (the report's "Open the ..." buttons) must open the app.
     assert_includes legacy["paths"], "/nykitchen/*"
     assert_includes modern["components"].flat_map(&:values), "/nykitchen/*"
+
+    # But the printed-flyer QR scan redirects (/nykitchen/r/*) must NOT open the
+    # app — they 302 to nykitchen.com. Legacy: a "NOT" rule ordered before the
+    # broad /nykitchen/* include. Modern: the same path marked exclude: true.
+    assert_includes legacy["paths"], "NOT /nykitchen/r/*"
+    assert legacy["paths"].index("NOT /nykitchen/r/*") < legacy["paths"].index("/nykitchen/*"),
+           "the NOT exclusion must precede /nykitchen/* (first match wins)"
+    excluded = modern["components"].find { |c| c["exclude"] }
+    assert_equal "/nykitchen/r/*", excluded["/"]
   end
 end
