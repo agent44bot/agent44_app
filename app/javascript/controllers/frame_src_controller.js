@@ -24,15 +24,23 @@ export default class extends Controller {
   update(event) {
     if (!this.hasFrameTarget) return
     this.frameTarget.src = event.target.value
-    if (this.hasLinkTarget) {
-      // Standalone print page: same URL without the embedded flag, plus print=1
-      // so the page auto-opens the print dialog once the sheet loads.
-      const base = event.target.value.replace(/[?&]embedded=1/, "")
-      this.linkTarget.href = base + (base.includes("?") ? "&" : "?") + "print=1"
-    }
+    this.#updateLinks(event.target.value)
   }
 
   #url() {
     return this.hasSelectTarget ? this.selectTarget.value : this.frameTarget.dataset.defaultSrc
+  }
+
+  #updateLinks(url) {
+    if (!this.hasLinkTarget) return
+
+    // Standalone sheet page: same URL without the embedded flag. Print and
+    // Download both open the browser sheet flow; Download is labeled for users
+    // who intend to save as PDF.
+    const base = url.replace(/[?&]embedded=1/, "")
+    this.linkTargets.forEach((link) => {
+      const mode = link.dataset.mode || "print"
+      link.href = base + (base.includes("?") ? "&" : "?") + `${mode}=1`
+    })
   }
 }

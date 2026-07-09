@@ -14,6 +14,14 @@
 <% single = @single_class %>
 <% single_event = single ? @with_recipe.first&.dig(:event) : nil %>
 <% sheet_title = single ? "NY Kitchen Pull Sheet" : "NY Kitchen Grocery List" %>
+<% action_params =
+     if single
+       { event_url: @event_url, name: @event_name }
+     elsif @week_mode
+       { from: @range.first.iso8601, to: @range.last.iso8601 }
+     else
+       { days: @days || @default_days }
+     end %>
 
 <%# data-controller goes on a wrapper INSIDE the frame, not on the frame tag:
     Turbo replaces only the frame's inner HTML on a lazy load and keeps the
@@ -44,6 +52,18 @@
       <% end %>
     </div>
   <% elsif @result&.ok? %>
+    <% unless params[:embedded] %>
+      <div class="mb-4 -mt-2 flex items-center justify-end gap-2 no-print">
+        <%= link_to "Download",
+              nyk_grocery_path(action_params.merge(download: 1)),
+              data: { turbo_frame: "_top" },
+              class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800/70 text-sm font-semibold whitespace-nowrap" %>
+        <button type="button"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-emerald-600 text-emerald-300 hover:bg-emerald-600/10 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                id="grocery-print-btn">🖨 Print</button>
+      </div>
+    <% end %>
+
     <%# Legend: which color is which class. Skipped on a single-class pull sheet. %>
     <% unless single %>
       <div class="flex flex-wrap gap-2 mb-4 no-print">
@@ -174,13 +194,7 @@
       </div>
     </div>
 
-    <%# Embedded in the packet's Pull sheet tab: the print handler/CSS live in
-        the standalone grocery shell, not here, so hide the dead Print button.
-        That tab links out to the full page for printing. %>
     <div class="mt-4 flex items-center gap-4 no-print">
-      <% unless params[:embedded] %>
-        <button type="button" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg border border-emerald-600 text-emerald-300 hover:bg-emerald-600/10 font-semibold cursor-pointer" id="grocery-print-btn">🖨 Print</button>
-      <% end %>
       <% if @from_cache %>
         <span class="text-xs text-gray-500">Saved list (no new AI cost)</span>
       <% elsif @result.cost_cents %>
