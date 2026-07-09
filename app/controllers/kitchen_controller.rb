@@ -63,6 +63,10 @@ class KitchenController < ApplicationController
     @sendable_workspaces = sendable_workspaces_for(Current.user)
     # Recipe packet per class (keyed by event URL) for the card row action.
     @packets_by_url = KitchenPacketLink.pluck(:event_url, :kitchen_packet_id).to_h
+    packets_by_id = KitchenPacket.where(id: @packets_by_url.values).index_by(&:id)
+    @packet_search_text_by_url = @packets_by_url.transform_values do |packet_id|
+      packets_by_id[packet_id]&.search_text.to_s
+    end
     # URLs whose packet was auto-attached (by class-name match) so the card can
     # badge them and Lora knows the system, not she, linked it.
     @auto_packet_urls = KitchenPacketLink.where(auto: true).pluck(:event_url).to_set
