@@ -39,6 +39,10 @@
     {
       "fingerprint": "f6215ab675941c7fae32a1eff8985003b200bcb575a36252da83ee4a80ceecf3",
       "note": "Safe — reviewed 2026-04-21"
+    },
+    {
+      "fingerprint": "3b12ec11ed6128aebae8e3800a369469fe6e866e9b98035ee8a9bc1bff05f8e4",
+      "note": "Safe (reviewed 2026-07-09): scan_redirect target is a TrackedLink.url written server-side from scraped class URLs, not user input, and safe_scan_target restricts it to http(s)."
     }
   ],
   "updated": "2026-05-19",

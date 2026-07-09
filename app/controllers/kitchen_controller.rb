@@ -581,6 +581,8 @@ class KitchenController < ApplicationController
     render template, layout: false
   end
 
+  NYK_CALENDAR_URL = "https://nykitchen.com/calendar/".freeze
+
   # Public QR landing: log the scan (anonymous: counts + device/referrer only),
   # then 302 onward to the real class page. 302 not 301 so repeat scans keep
   # hitting us instead of being served from the browser cache. An unknown token
@@ -595,7 +597,7 @@ class KitchenController < ApplicationController
         referrer:   request.referer.to_s.first(500).presence
       )
     end
-    redirect_to(link&.url.presence || "https://nykitchen.com/calendar/",
+    redirect_to(safe_scan_target(link&.url),
                 allow_other_host: true, status: :found)
   end
 
@@ -1180,6 +1182,17 @@ class KitchenController < ApplicationController
   def nyk_workspace_for(user)
     return nil unless user
     user.workspaces.find { |w| w.slug.to_s.include?("kitchen") || w.name.to_s.downcase.include?("kitchen") }
+  end
+
+  # Redirect target for a scanned QR. Only ever fed a TrackedLink.url, which is
+  # written server-side from scraped class URLs (never user input), but we still
+  # hard-restrict to http(s) so a malformed/hostile value can't turn the public
+  # /r/:token endpoint into an open redirect to javascript:/data:/etc. Anything
+  # that isn't a plain web URL falls back to the calendar.
+  def safe_scan_target(url)
+    url = url.to_s
+    scheme = (URI.parse(url).scheme rescue nil)&.downcase
+    scheme.in?(%w[http https]) ? url : NYK_CALENDAR_URL
   end
 
   # QR-scan readout for the Display settings page (managers only). Last 30 days:
