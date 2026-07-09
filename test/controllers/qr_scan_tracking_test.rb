@@ -70,6 +70,20 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     assert_select "span[title=?]", "3 scans of this class's flyer QR code", text: /📱\s*3/
   end
 
+  test "a non-manager NYK member (editor/viewer) also sees the scan badge" do
+    owner = User.create!(email_address: "own-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = owner }
+    viewer = User.create!(email_address: "view-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: viewer, role: "viewer")
+    link = TrackedLink.for_url(@event.url)
+    5.times { link.link_scans.create!(scanned_at: Time.current, user_agent: "iPhone") }
+
+    sign_in_as(viewer)
+    get nyk_list_path
+    assert_response :success
+    assert_select "span[title*=?]", "flyer QR code", text: /📱\s*5/
+  end
+
   test "a class with no scans shows no scan badge" do
     manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "admin")
     Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = manager }
