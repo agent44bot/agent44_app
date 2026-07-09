@@ -22,6 +22,12 @@
         <span class="text-xs text-gray-500"><%= p.status %></span>
       <% end %>
       <% if writer %>
+        <% if p.failed? %>
+          <%= button_to "Retry", retry_workspace_post_path(workspace_slug: workspace.slug, id: p.id),
+              method: :post,
+              class: "text-xs text-orange-400 hover:text-orange-300 cursor-pointer",
+              title: "Retry post to #{p.platform.titleize}" %>
+        <% end %>
         <%= button_to workspace_post_path(workspace_slug: workspace.slug, id: p.id),
             method: :delete,
             form: { data: { turbo_confirm: p.posted? ? "Delete this post from #{p.platform.titleize} and remove it from the list?" : "Remove this row?" } },

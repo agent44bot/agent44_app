@@ -207,7 +207,11 @@ Rails.application.routes.draw do
         patch :mark_sent
       end
     end
-    resources :posts, only: [ :create, :destroy ], controller: "workspace_posts"
+    resources :posts, only: [ :create, :destroy ], controller: "workspace_posts" do
+      member do
+        post :retry
+      end
+    end
     post "drafts/suggest", to: "workspace_drafts#suggest", as: :draft_suggest
     post "drafts/from_image", to: "workspace_drafts#from_image", as: :draft_from_image
     post "ai_chat", to: "workspace_ai_chats#create", as: :ai_chat

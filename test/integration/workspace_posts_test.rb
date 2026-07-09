@@ -123,6 +123,39 @@ class WorkspacePostsTest < ActionDispatch::IntegrationTest
     refute called, "X should NOT be hit for a failed row"
   end
 
+  test "failed row can be retried and updates the same post" do
+    wp = @ws.workspace_posts.create!(author: @owner, social_account: @acct, platform: "x",
+      body: "try again", status: "failed", error: "temporary")
+    X::UserClient.http_stub = ->(method, _url, payload, _bearer) {
+      assert_equal :post, method
+      assert_equal "try again", payload[:text]
+      { status: "201", body: { "data" => { "id" => "TID-RETRY" } } }
+    }
+
+    sign_in_as(@owner)
+    assert_no_difference -> { WorkspacePost.count } do
+      post retry_workspace_post_path(workspace_slug: @ws.slug, id: wp.id)
+    end
+
+    assert_redirected_to social_workspace_path(@ws.slug)
+    wp.reload
+    assert_equal "posted", wp.status
+    assert_nil wp.error
+    assert_equal "TID-RETRY", wp.remote_id
+    assert_equal "https://x.com/magenta/status/TID-RETRY", wp.remote_url
+    assert wp.posted_at.present?
+  end
+
+  test "failed row shows retry button to writers" do
+    @ws.workspace_posts.create!(author: @owner, social_account: @acct, platform: "x",
+      body: "try again", status: "failed", error: "temporary")
+
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+
+    assert_select "form[action*='/retry'] button", text: "Retry"
+  end
+
   test "X delete failure keeps the row and warns the user" do
     wp = @ws.workspace_posts.create!(author: @owner, social_account: @acct, platform: "x",
       body: "stays", status: "posted", remote_id: "K-1",

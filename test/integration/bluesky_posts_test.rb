@@ -234,6 +234,34 @@ class BlueskyPostsTest < ActionDispatch::IntegrationTest
     Bluesky::UserClient.image_fetch_stub = nil
   end
 
+  test "retrying failed Bluesky post with non-image image_url posts text-only on the same row" do
+    wp = @ws.workspace_posts.create!(author: @owner, social_account: @bsky, platform: "bluesky",
+      body: "retry html image", image_url: "https://nykitchen.com/photo.jpg",
+      status: "failed", error: "Expected image/* got text/html")
+
+    Bluesky::UserClient.image_fetch_stub = ->(_url) { [ "<html>not an image</html>", "text/html" ] }
+    captured_payload = nil
+    Bluesky::UserClient.http_stub = ->(_method, url, payload, _bearer) {
+      assert url.end_with?("createRecord")
+      captured_payload = payload
+      { status: "200", body: { "uri" => "at://did:plc:abc/app.bsky.feed.post/retryhtml" } }
+    }
+
+    sign_in_as(@owner)
+    assert_no_difference -> { WorkspacePost.count } do
+      post retry_workspace_post_path(workspace_slug: @ws.slug, id: wp.id)
+    end
+
+    assert_nil captured_payload[:record][:embed]
+    wp.reload
+    assert_equal "posted", wp.status
+    assert_nil wp.error
+    assert_equal "retryhtml", wp.remote_id
+    assert_equal "https://bsky.app/profile/agent44.bsky.social/post/retryhtml", wp.remote_url
+  ensure
+    Bluesky::UserClient.image_fetch_stub = nil
+  end
+
   test "post text gets facets attached so URLs and hashtags render clickable" do
     captured_payload = nil
     Bluesky::UserClient.http_stub = ->(_method, _url, payload, _bearer) {

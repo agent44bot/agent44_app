@@ -2,6 +2,17 @@ class WorkspacePostsController < ApplicationController
   before_action :load_workspace
   before_action :require_writer
 
+  def retry
+    post = @workspace.workspace_posts.find(params[:id])
+    result = WorkspacePosts::Retrier.new(post).call
+
+    if result.ok?
+      redirect_to social_workspace_path(@workspace.slug), notice: "Retried #{post.platform.titleize} post."
+    else
+      redirect_to social_workspace_path(@workspace.slug), alert: "Retry failed — #{result.error}"
+    end
+  end
+
   def destroy
     post = @workspace.workspace_posts.find(params[:id])
 
