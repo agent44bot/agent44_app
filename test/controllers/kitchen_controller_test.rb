@@ -125,11 +125,27 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the class list renders a search box and per-card search text" do
-    create_event("Korean BBQ Class", 1.hour.from_now, "InStock")
+    event = create_event("Korean BBQ Class", 1.hour.from_now, "InStock")
+    packet = KitchenPacket.create!(
+      title: "Sauce packet",
+      data: {
+        "recipes" => [
+          {
+            "title" => "Gochujang Marinade",
+            "ingredients" => [ { "item" => "Asian pear" } ],
+            "directions" => []
+          }
+        ]
+      }
+    )
+    KitchenPacketLink.create!(event_url: event.url, kitchen_packet: packet)
+
     get nyk_list_path
     assert_response :success
     assert_select "input[data-kitchen-filter-target='query']"
     assert_select "[data-search-text*='korean bbq']"
+    assert_select "[data-search-text*='gochujang marinade']"
+    assert_select "[data-search-text*='asian pear']"
   end
 
   test "manual classes sort into the week by date, not shoved to the bottom" do
