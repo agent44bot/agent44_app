@@ -32,6 +32,18 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     assert_equal TrackedLink.token_for(@event.url), link.token
   end
 
+  test "the footer 'all classes' calendar QR is also tracked" do
+    calendar = "https://nykitchen.com/calendar/"
+    refute TrackedLink.exists?(url: calendar)
+    get nyk_display_print_path
+    assert_response :success
+    link = TrackedLink.find_by(url: calendar)
+    assert link, "footer render should register a TrackedLink for the calendar link"
+    # and scanning it redirects to the calendar
+    get nyk_scan_path(link.token)
+    assert_redirected_to calendar
+  end
+
   test "scanning logs a scan with device and referrer, then 302s to the class" do
     link = TrackedLink.for_url(@event.url)
     assert_difference -> { link.link_scans.count }, 1 do

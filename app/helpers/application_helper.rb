@@ -107,15 +107,21 @@ module ApplicationHelper
   end
 
   # QR for a class that resolves through our trackable redirect (/nykitchen/r/:token)
-  # so we can count scans, instead of encoding the raw class URL. Falls back to a
-  # plain QR if anything goes wrong: a flyer must always print a working code.
+  # so we can count scans, instead of encoding the raw class URL.
   def nyk_scan_qr(event, workspace: nil)
-    return qr_svg(event.url) if event.url.blank?
-    link = TrackedLink.for_url(event.url, workspace: workspace)
+    nyk_scan_qr_url(event.url, workspace: workspace)
+  end
+
+  # Trackable QR for any destination URL (e.g. the footer "all classes" calendar
+  # link, not just a single class). Falls back to a plain QR if anything goes
+  # wrong: a flyer must always print a working code.
+  def nyk_scan_qr_url(url, workspace: nil)
+    return qr_svg(url) if url.blank?
+    link = TrackedLink.for_url(url, workspace: workspace)
     qr_svg(nyk_scan_url(link.token))
   rescue => e
-    Rails.logger.warn("nyk_scan_qr fell back to raw url: #{e.class}: #{e.message}")
-    qr_svg(event.url)
+    Rails.logger.warn("nyk_scan_qr_url fell back to raw url: #{e.class}: #{e.message}")
+    qr_svg(url)
   end
 
   # Time-of-day greeting for the Super Agent hub card, computed in Eastern time

@@ -1223,6 +1223,9 @@ class KitchenController < ApplicationController
                         .each_with_object(Hash.new(0)) { |(ua, n), h| h[LinkScan.device_bucket(ua)] += n }
     latest = KitchenSnapshot.latest
     @scan_names = latest ? latest.kitchen_events.pluck(:url, :name).to_h : {}
+    # The footer "all classes" calendar QR isn't a class, so give it a label
+    # instead of showing the raw URL in the report.
+    @scan_names[NYK_CALENDAR_URL] = "All classes (calendar QR)"
   end
 
   # Loads the locals needed by workspaces/_team partial when rendering on
