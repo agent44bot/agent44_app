@@ -64,6 +64,29 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://nykitchen.com/calendar/"
   end
 
+  test "repeat scans of the same token each log a new scan (302, not cached)" do
+    link = TrackedLink.for_url(@event.url)
+    assert_difference -> { link.link_scans.count }, 3 do
+      3.times { get nyk_scan_path(link.token) }
+    end
+    assert_equal 302, response.status # never a 301 the browser would cache
+  end
+
+  test "a link with a non-web scheme never open-redirects: falls back to the calendar" do
+    # Defense in depth: even if a hostile/malformed target were ever stored, the
+    # scan must not bounce a customer to javascript:/data:/etc.
+    link = TrackedLink.create!(token: TrackedLink.token_for("x"), url: "javascript:alert(1)")
+    get nyk_scan_path(link.token)
+    assert_redirected_to "https://nykitchen.com/calendar/"
+  end
+
+  test "a scan never redirects a customer back to an agent44labs host" do
+    link = TrackedLink.for_url(@event.url)
+    get nyk_scan_path(link.token)
+    assert_response :redirect
+    refute_includes response.location.to_s, "agent44labs", "scan must leave our domain for nykitchen.com"
+  end
+
   test "the redirect is reachable without authentication" do
     link = TrackedLink.for_url(@event.url)
     get nyk_scan_path(link.token)
@@ -94,6 +117,20 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     get nyk_list_path
     assert_response :success
     assert_select "span[title*=?]", "flyer QR code", text: /📱\s*5/
+  end
+
+  test "hub shows the QR health banner when the check has flagged a problem" do
+    manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = manager }
+    Setting.touch_time(NykQrHealthCheckJob::FAILED_AT)
+    Setting.set(NykQrHealthCheckJob::MESSAGE, "Flyer scans may not be reaching nykitchen.com.")
+    sign_in_as(manager)
+    get "/nykitchen"
+    assert_response :success
+    assert_match "Flyer QR codes need attention", response.body
+  ensure
+    Setting.delete_key(NykQrHealthCheckJob::FAILED_AT)
+    Setting.delete_key(NykQrHealthCheckJob::MESSAGE)
   end
 
   test "a class with no scans shows no scan badge" do
