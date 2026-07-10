@@ -111,7 +111,7 @@
           <% @summary.sort_by { |_, v| -v[:cost_dollars] }.each do |source, v| %>
             <% avg = v[:calls].to_i.positive? ? v[:cost_dollars] / v[:calls] : 0 %>
             <% hl = @highlight_sources&.include?(source) %>
-            <tr class="<%= "opacity-40" if @highlight_sources && !hl %>"<%= " style=\"background:#{nyk_agent_meta(@highlight_agent)[:accent]}1f\"".html_safe if hl %>>
+            <tr class="<%= "opacity-40" if @highlight_sources && !hl %>" style="<%= "background:#{nyk_agent_meta(@highlight_agent)[:accent]}1f" if hl %>">
               <td class="px-4 py-2 <%= hl ? "text-white font-semibold" : "text-gray-200" %>">
                 <%= case source
                     when "nyk_enhance"        then "Enhance with AI button"
