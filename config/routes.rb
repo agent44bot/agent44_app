@@ -107,6 +107,8 @@ Rails.application.routes.draw do
   get   "nykitchen/display/settings", to: "kitchen#display_settings",        as: :nyk_display_settings
   patch "nykitchen/display/settings", to: "kitchen#update_display_settings"
   post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
+  # Owner-editable flyer print/scan rate, changed inline from Neon's cost dialog.
+  patch "nykitchen/flyer_rate", to: "kitchen#update_flyer_rate", as: :nyk_flyer_rate
   # Printer-friendly list of the same N classes the display cycles. Admin-only.
   get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
   # Trackable QR redirect: logs the scan, then 302s to the real class page.

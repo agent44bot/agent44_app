@@ -89,10 +89,23 @@ class Workspace < ApplicationRecord
     pricing_visible_to_members? && member?(user)
   end
 
+  # The workspace owner (or a site admin). The tightest tier: managers see the
+  # money + cost-info dialogs, but only an owner may change the rates in them.
+  def owner?(user)
+    return false unless user
+    user.admin? || role_for(user) == "owner"
+  end
+
   # Per-workspace cost rate for browser smoke/test runs ($/min). Falls back to
   # the app default when unset. Set by the site admin on the billing page.
   def effective_test_rate
     test_cost_per_minute || SmokeTestRun::COST_PER_MINUTE
+  end
+
+  # Per-workspace price (cents) billed per flyer print + QR scan. Falls back to
+  # the app default when unset. Set by the owner from Neon's cost info dialog.
+  def effective_flyer_unit_cents
+    (flyer_unit_cents.presence || UsageEvent::FLYER_UNIT_CENTS).to_i
   end
 
   # Flat monthly platform fee for this workspace, or 0 when waived. Falls back to

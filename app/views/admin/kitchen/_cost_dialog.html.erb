@@ -1,0 +1,52 @@
+<%# Cost-formula dialog for one agent card. Locals: kind, can_edit, unit_cents.
+    Opened by id (cost-dialog-<kind>) from the card's (i) trigger. %>
+<% meta = nyk_agent_meta(kind) %>
+<dialog id="cost-dialog-<%= kind %>" data-action="click->cost-info#backdropClose" class="cost-dialog">
+  <div class="cost-dialog-inner" style="--accent: <%= meta[:accent] %>">
+    <div class="cost-dialog-head">
+      <span class="cost-dialog-title"><%= meta[:emoji] %> <%= meta[:call] %> · how this is figured</span>
+      <span role="button" tabindex="0" class="cost-dialog-x"
+            data-action="click->cost-info#close keydown.enter->cost-info#close" aria-label="Close">&#10005;</span>
+    </div>
+
+    <% case kind %>
+    <% when "display" %>
+      <p>Neon makes no AI calls, so it has no compute cost. This figure is <strong>revenue</strong>: every flyer print and QR scan this month, times your rate.</p>
+      <p class="cost-eq">(prints + scans this month) &times; rate = revenue</p>
+      <p class="cost-track">Each print and scan is logged the moment it happens. Changing the rate only affects future prints and scans, past ones keep the rate they were billed at.</p>
+      <% if can_edit %>
+        <%= form_with url: nyk_flyer_rate_path, method: :patch, data: { turbo: false }, class: "cost-form" do |f| %>
+          <label>Rate per print and scan</label>
+          <div class="cost-form-row">
+            <span>$</span>
+            <%= f.number_field :flyer_rate_dollars, value: format("%.2f", unit_cents / 100.0),
+                  step: 0.01, min: 0.01, max: 100, inputmode: "decimal" %>
+            <%= f.submit "Save" %>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="cost-readonly">Current rate: <strong>$<%= format("%.2f", unit_cents / 100.0) %></strong> per print and scan. Only the workspace owner can change it.</p>
+      <% end %>
+
+    <% when "test", "data" %>
+      <p><%= meta[:call] %> <%= kind == "data" ? "snapshots the calendar every three hours" : "round-trips your printed schedules to catch broken pages" %>. Cost is this month's run time times the test rate.</p>
+      <p class="cost-eq">run minutes this month &times; test rate ($/min)</p>
+      <p class="cost-track">Tracked per run in the smoke-test log. The $/min test rate is set on the billing page.</p>
+
+    <% else %>
+      <% opus = kind == "list" %>
+      <% blurb = { "list" => "builds your grocery list and imports recipes",
+                   "social" => "drafts and posts to your connected social accounts",
+                   "analyst" => "writes your weekly sales report",
+                   "ask" => "answers your questions and daily briefings" }[kind] %>
+      <p><%= meta[:call] %> <%= blurb %> on <%= opus ? "Claude Opus" : "Claude Haiku" %>. Cost is this month's Anthropic token bill for those runs.</p>
+      <p class="cost-eq">(input tokens &times; rate) + (output tokens &times; rate), summed this month</p>
+      <p class="cost-track">Tracked per call in the AI usage log. Rates follow Anthropic's published <%= opus ? "Opus" : "Haiku" %> prices.</p>
+    <% end %>
+
+    <% billing_anchor = case kind when "display" then "flyer" when "test", "data" then "smoke" else "ai-usage" end %>
+    <% billing_opts = { anchor: billing_anchor } %>
+    <% billing_opts[:agent] = kind if AiCallLog::AGENT_SOURCES.key?(kind) %>
+    <p class="cost-more"><%= link_to "See full billing →", nyk_billing_path(billing_opts), class: "cost-link", data: { turbo: false } %></p>
+  </div>
+</dialog>

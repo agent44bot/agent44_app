@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-10
+  note: Each agent card's monthly dollar amount now has an info icon (owner and admin only) that opens a plain-language explainer of how that figure is worked out, with a link straight to the matching billing section. On Neon, the owner can also change the per-print and per-scan flyer rate right there, no digging through settings.
+
+- date: 2026-07-10
   note: Scout (the calendar watcher) now has a permanent card on the Field Roster board instead of hiding behind a toggle. The top agents read Sam, Neon, Scout, Echo, left to right.
 
 - date: 2026-07-10
