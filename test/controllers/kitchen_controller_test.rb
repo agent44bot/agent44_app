@@ -18,13 +18,13 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     get nykitchen_path
     assert_response :success
 
-    # Only Sam (list), Neon (display), Echo (social) show by default; the rest
-    # start hidden and are controlled by toggle chips.
-    %w[analyst data test ask cellar].each do |key|
+    # Only Sam (list), Neon (display), Scout (data), Echo (social) show by
+    # default; the rest start hidden and are controlled by toggle chips.
+    %w[analyst test ask cellar].each do |key|
       assert_select ".ra-card.is-hidden[data-key=?]", key
     end
-    assert_select ".ra-card.is-hidden", { count: 5 }, "exactly the five non-core cards are hidden by default"
-    assert_select ".roster-chip[data-roster-target=chip]", { count: 5 }, "a toggle chip per hideable card"
+    assert_select ".ra-card.is-hidden", { count: 4 }, "exactly the four non-core cards are hidden by default"
+    assert_select ".roster-chip[data-roster-target=chip]", { count: 4 }, "a toggle chip per hideable card"
     assert_select ".roster-chip[data-action*=?]", "roster#toggle"
     # Show/hide state is scoped per user, not per browser, so impersonation +
     # shared devices don't leak one person's choices onto another.

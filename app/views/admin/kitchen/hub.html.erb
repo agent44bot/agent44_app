@@ -276,11 +276,10 @@
         cluttered the top of the phone view above Sam/Echo/Neon. %>
     <div class="flex flex-col">
     <%# Background agents: run on their own schedule, kept off the default board
-        (Neon, Sam, Echo stay up top). Each chip toggles its card show/hide,
-        scoped per user (see roster_controller + data-roster-storage-key-value). %>
+        (Sam, Neon, Scout, Echo stay up top). Each chip toggles its card
+        show/hide, scoped per user (see roster_controller + data-roster-storage-key-value). %>
     <% hidden_chips = [
          [ "analyst", (@workspace_agents["analyst"]&.display_name.presence || roster["analyst"][:call]), roster["analyst"][:emoji] ],
-         [ "data",    (@workspace_agents["data"]&.display_name.presence    || roster["data"][:call]),    roster["data"][:emoji] ],
          [ "test",    (@workspace_agents["test"]&.display_name.presence    || roster["test"][:call]),    roster["test"][:emoji] ],
          [ "ask",     (@workspace_agents["ask"]&.display_name.presence     || roster["ask"][:call]),     roster["ask"][:emoji] ],
          [ "cellar",  "Cellar", "🍷" ]
@@ -491,7 +490,7 @@
     <% end %>
 
     <%# Data / Scout %>
-    <%= link_to nyk_data_path, class: "ra-card is-hidden", style: accent_style.call(:data), data: { roster_target: "card", key: "data" } do %>
+    <%= link_to nyk_data_path, class: "ra-card", style: accent_style.call(:data) do %>
       <span class="ra-corner"><%= agent_dot.call(@hub_agent_status[:data]) %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:data) %></div>
       <p class="<%= desc_class %>">Snapshots the calendar every three hours — feeds Sam and powers ticket-change alerts.</p>
