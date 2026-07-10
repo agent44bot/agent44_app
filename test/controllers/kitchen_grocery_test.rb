@@ -313,28 +313,32 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 0, @agg_calls
   end
 
-  test "the pull sheet lists the recipe's per-station equipment" do
+  test "the pull sheet lists per-station AND to-purchase equipment" do
     url = add_class("Ravioli", "groc-rav", 1, booked: 12)
     h = KitchenPacket.for_event_url(url)
     h.equipment = [ "Large stockpot", "Wooden spoon" ]
+    h.purchase_equipment = [ "Pasta machine" ]
     h.save!
     frame_grocery(event_url: url, name: "Ravioli")
     assert_response :success
     assert_match "Equipment per station", response.body
     assert_match "Large stockpot", response.body
-    assert_match "Wooden spoon", response.body
+    assert_match "Equipment to purchase", response.body
+    assert_match "Pasta machine", response.body
   end
 
-  test "the week grocery list also shows equipment, grouped by class" do
+  test "the week grocery list shows equipment to purchase, not per-station gear" do
     url = add_class("Ravioli", "groc-rav", 1, booked: 12)
     h = KitchenPacket.for_event_url(url)
-    h.equipment = [ "Large stockpot" ]
+    h.equipment = [ "Large stockpot" ]        # per-station: pull sheet only
+    h.purchase_equipment = [ "Pasta machine" ] # to buy: also the grocery list
     h.save!
     frame_grocery(from: Date.current.iso8601, to: (Date.current + 7).iso8601)
     assert_response :success
-    assert_match "Equipment per station", response.body
-    assert_match "Large stockpot", response.body
-    assert_match "Ravioli", response.body # class label on the grouped week view
+    assert_match "Equipment to purchase", response.body
+    assert_match "Pasta machine", response.body
+    refute_match "Equipment per station", response.body
+    refute_match "Large stockpot", response.body
   end
 
   test "the pull sheet hides per-item prices and the estimated total" do

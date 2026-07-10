@@ -4,7 +4,7 @@ require "ostruct"
 
 class KitchenGroceryXlsxTest < ActiveSupport::TestCase
   Event  = Struct.new(:name, :start_at)
-  Packet = Struct.new(:equipment)
+  Packet = Struct.new(:equipment, :purchase_equipment)
 
   def result_double(ok: true)
     OpenStruct.new(
@@ -32,9 +32,9 @@ class KitchenGroceryXlsxTest < ActiveSupport::TestCase
   def with_recipe
     [
       { event: Event.new("Knife Skills", Time.zone.local(2026, 7, 12, 18)), headcount: 12, stations: 3,
-        packet: Packet.new([ "Chef knife", "Cutting board" ]) },
+        packet: Packet.new([ "Chef knife", "Cutting board" ], [ "Pizza stone" ]) },
       { event: Event.new("Pasta Night", Time.zone.local(2026, 7, 13, 18)), headcount: 8, stations: 2,
-        packet: Packet.new([]) }
+        packet: Packet.new([], []) }
     ]
   end
 
@@ -59,17 +59,26 @@ class KitchenGroceryXlsxTest < ActiveSupport::TestCase
     assert_includes text, "Knife Skills"
     assert_includes text, "Sun Jul 12"
     assert_includes text, "Pasta Night"
-    # Grocery + equipment sections carry through.
     assert_includes text, "Yellow onion"
-    assert_includes text, "Equipment per station"
-    assert_includes text, "Chef knife"
   end
 
-  test "single-class pull sheet skips the classes table (header already names it)" do
+  test "grocery list shows equipment to purchase but not per-station gear" do
+    text = workbook_text(build) # multi-class
+    assert_includes text, "Equipment to purchase"
+    assert_includes text, "Pizza stone"
+    assert_not_includes text, "Equipment per station"
+    assert_not_includes text, "Chef knife", "per-station gear stays off the grocery list"
+  end
+
+  test "single-class pull sheet shows both station and purchase equipment" do
     ev = Event.new("Knife Skills", Time.zone.local(2026, 7, 12, 18))
     text = workbook_text(build(single: true, single_event: ev, with_recipe: [ with_recipe.first ], show_prices: false))
     assert_includes text, "NY Kitchen Pull Sheet"
     assert_includes text, "Knife Skills"
     assert_not_includes text, "Classes in this list"
+    assert_includes text, "Equipment per station"
+    assert_includes text, "Chef knife"
+    assert_includes text, "Equipment to purchase"
+    assert_includes text, "Pizza stone"
   end
 end

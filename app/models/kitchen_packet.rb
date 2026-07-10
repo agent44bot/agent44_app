@@ -104,6 +104,18 @@ class KitchenPacket < ApplicationRecord
     self.data = data.merge("equipment" => list)
   end
 
+  # Equipment the kitchen needs to BUY (not just set up): flows to the pull
+  # sheet AND the aggregate grocery list, so it lands on the shopping run.
+  # Kept separate from per-station equipment, which only prints on the pull
+  # sheet. (Lora's split.)
+  def purchase_equipment
+    Array(data["purchase_equipment"])
+  end
+
+  def purchase_equipment=(list)
+    self.data = data.merge("purchase_equipment" => list)
+  end
+
   # A starter palette of common station equipment so the tag picker isn't empty
   # on day one. Lora/Caitlin grow the real vocabulary just by adding items.
   STARTER_EQUIPMENT = [

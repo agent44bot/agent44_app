@@ -125,6 +125,7 @@ Rails.application.routes.draw do
   post   "nykitchen/packets/:id/regenerate", to: "kitchen_packets#regenerate", as: :regenerate_nyk_packet
   patch  "nykitchen/packets/:id",       to: "kitchen_packets#update", as: :nyk_packet
   patch  "nykitchen/packets/:id/equipment", to: "kitchen_packets#update_equipment", as: :nyk_packet_equipment
+  patch  "nykitchen/packets/:id/purchase_equipment", to: "kitchen_packets#update_purchase_equipment", as: :nyk_packet_purchase_equipment
   post   "nykitchen/packets/:id/suggest_equipment", to: "kitchen_packets#suggest_equipment", as: :nyk_suggest_equipment
   delete "nykitchen/packets/:id",       to: "kitchen_packets#destroy"
   get    "nykitchen/packets/:id/print", to: "kitchen_packets#print",  as: :print_nyk_packet

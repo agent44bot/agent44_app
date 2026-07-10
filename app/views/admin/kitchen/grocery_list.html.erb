@@ -163,22 +163,14 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1">To taste / on hand</h2>
         <p class="text-sm text-gray-600"><%= @result.to_taste.join(", ") %></p>
       <% end %>
-      <%# Gear to set up at each station before class. On a single-class pull
-          sheet it's just the list; on the multi-class week list it's grouped by
-          class. Read straight off each recipe packet (no AI), so it follows
-          every run. %>
-      <% equip_classes = @with_recipe.select { |c| Array(c[:packet]&.equipment).any? } %>
-      <% if equip_classes.any? %>
+      <%# Gear per station (owned, just set up): pull sheet ONLY. Read straight
+          off the packet (no AI). Grouped by class on a multi-class list. %>
+      <% station_classes = single ? @with_recipe.select { |c| Array(c[:packet]&.equipment).any? } : [] %>
+      <% if station_classes.any? %>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-5 mb-1">
-          Equipment per station<%= single && equip_classes.first[:stations] ? " (set up at each of #{pluralize(equip_classes.first[:stations], "station")})" : "" %>
+          Equipment per station<%= station_classes.first[:stations] ? " (set up at each of #{pluralize(station_classes.first[:stations], "station")})" : "" %>
         </h2>
-        <% equip_classes.each do |c| %>
-          <% unless single %>
-            <p class="text-xs font-semibold text-gray-700 mt-2 mb-1 flex items-center gap-2">
-              <span class="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border <%= chip.call(c[:tag]) %>"><%= c[:tag] %></span>
-              <span><%= c[:event].name %><%= c[:stations] ? " (set up at each of #{pluralize(c[:stations], "station")})" : "" %></span>
-            </p>
-          <% end %>
+        <% station_classes.each do |c| %>
           <ul class="mb-2">
             <% Array(c[:packet].equipment).each do |eq| %>
               <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
@@ -188,6 +180,20 @@
             <% end %>
           </ul>
         <% end %>
+      <% end %>
+      <%# Gear to BUY: pull sheet AND grocery list. Deduped union across the
+          classes in view, so it lands on the shopping run once. %>
+      <% purchase = @with_recipe.flat_map { |c| Array(c[:packet]&.purchase_equipment) }.map { |e| e.to_s.strip }.reject(&:blank?).uniq { |e| e.downcase } %>
+      <% if purchase.any? %>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-5 mb-1">Equipment to purchase</h2>
+        <ul class="mb-2">
+          <% purchase.each do |eq| %>
+            <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
+              <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
+              <span class="flex-1 min-w-0"><%= eq %></span>
+            </li>
+          <% end %>
+        </ul>
       <% end %>
       <% if @show_grocery_prices && !single && est_total > 0 %>
         <div class="mt-5 pt-3 border-t-2 border-gray-900 flex items-baseline justify-between">
