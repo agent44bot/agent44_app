@@ -1,9 +1,10 @@
 require "test_helper"
 
-# Hub cards render in a fixed, curated CSS order: the core three (Sam=list,
-# Neon=display, Echo=social) lead — Sam top-left, Neon top-right, Echo below
-# Sam — then the background agents. The order no longer floats by usage or pins
-# failed agents; it's deterministic for every user.
+# Hub cards render in a fixed, curated CSS order: the core four (Sam=list,
+# Neon=display, Scout=data, Echo=social) lead, left-to-right then top-to-bottom
+# (Sam, Neon on the top row; Scout, Echo on the second), then the background
+# agents. The order no longer floats by usage or pins failed agents; it's
+# deterministic for every user.
 class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
   DEFAULT = KitchenController::HUB_CARD_DEFAULT_ORDER
 
@@ -11,14 +12,15 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
     @user = User.create!(email_address: "hub-#{SecureRandom.hex(4)}@example.com", role: "user")
   end
 
-  test "the core three lead: Sam, Neon, Echo" do
-    assert_equal %w[list display social], DEFAULT.first(3)
+  test "the core four lead: Sam, Neon, Scout, Echo" do
+    assert_equal %w[list display data social], DEFAULT.first(4)
     get "/nykitchen"
     assert_response :success
     order = assigns_card_order
     assert_equal 0, order["list"],    "Sam is first (top-left)"
     assert_equal 1, order["display"], "Neon is second (top-right)"
-    assert_equal 2, order["social"],  "Echo is third (below Sam)"
+    assert_equal 2, order["data"],    "Scout is third (bottom-left)"
+    assert_equal 3, order["social"],  "Echo is fourth (bottom-right)"
   end
 
   test "the order is fixed regardless of usage" do

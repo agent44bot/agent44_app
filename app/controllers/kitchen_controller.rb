@@ -1197,10 +1197,11 @@ class KitchenController < ApplicationController
   # Hub cards self-organize: the agents you open most rise to the top.
   # The default order doubles as the layout for anonymous viewers and the
   # tie-break, so rarely-used cards never shuffle among themselves.
-  # The core three (Sam=list, Echo=social, Neon=display) lead in a fixed layout:
-  # Sam top-left, Neon top-right, Echo below Sam. The rest (background agents)
-  # follow. Grid paints by CSS order (see hub_card_order).
-  HUB_CARD_DEFAULT_ORDER = %w[list display social analyst data test cellar ask].freeze
+  # The core four (Sam=list, Neon=display, Scout=data, Echo=social) lead in a
+  # fixed layout, left-to-right then top-to-bottom: Sam, Neon on the top row,
+  # Scout, Echo on the second. The rest (background agents) follow. Grid paints
+  # by CSS order (see hub_card_order).
+  HUB_CARD_DEFAULT_ORDER = %w[list display data social analyst test cellar ask].freeze
 
   # kind => CSS order index. A fixed, curated order so the board doesn't
   # reshuffle. (We used to float most-opened cards up and pin failed ones to the
