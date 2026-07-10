@@ -50,7 +50,7 @@ class FlyerMonetizationTest < ActionDispatch::IntegrationTest
     sign_in_as(admin)
     get "/nykitchen"
     assert_response :success
-    assert_match(/\$0\.44 this month/, response.body)
+    assert_match(/\$0\.44\/mo/, response.body)
 
     viewer = User.create!(email_address: "view-#{SecureRandom.hex(4)}@example.com", role: "user")
     @ws.memberships.create!(user: viewer, role: "viewer")

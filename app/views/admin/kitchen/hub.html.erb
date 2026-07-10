@@ -110,10 +110,14 @@
     html = +%(#{workspace_agent_avatar_tag(a)}<span class="ra-id"><span class="ra-call">#{ERB::Util.h(call)}</span><span class="ra-meta"><span class="ra-tag">#{ERB::Util.h(m[:tag])}</span>)
     html << %(<span class="ra-sep">·</span><span class="ra-code">#{ERB::Util.h(code)}</span>) if code
     html << %(</span>) # /ra-meta
-    # Per-agent "salary" — this month's tokens + cost. Owner/admin only (Lora).
-    # Neon (display) makes no AI calls, so its salary is always $0.00 — skip the
-    # badge rather than show a permanent zero.
-    if @can_see_pricing && @hub_salary && kind.to_s != "display" && (s = @hub_salary[kind.to_s])
+    # Bottom-right billing badge. For the AI agents it's their "salary" (this
+    # month's tokens + cost). Neon (display) makes no AI calls, so it shows the
+    # flyer/scan revenue it earns instead — same corner, same style as the rest.
+    if kind.to_s == "display"
+      if @hub_flyer_revenue
+        html << %(<span style="position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2" title="Flyer prints + QR scans billed this month at $0.44 each">💰 $#{format('%.2f', @hub_flyer_revenue)}/mo</span>)
+      end
+    elsif @can_see_pricing && @hub_salary && (s = @hub_salary[kind.to_s])
       toks = s[:tokens].to_i.positive? ? "#{fmt_tok.call(s[:tokens])} tok · " : ""
       html << %(<span style="position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2" title="This month's token usage + cost">💰 #{toks}$#{format('%.2f', s[:cost])}/mo</span>)
     end
@@ -459,23 +463,6 @@
               class="w-full justify-center inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition cursor-pointer">
           🖨 Print flyers
         </span>
-        <% if Current.user&.admin? %>
-          <div class="text-xs text-gray-500 mt-1.5 tabular-nums" title="Total flyer/poster print-page opens (admin only)">
-            🖨 <%= @hub_flyer_prints.to_i %> <%= "print".pluralize(@hub_flyer_prints.to_i) %> all-time
-          </div>
-        <% end %>
-        <%# QR scans visible to every NY Kitchen member, not just admins. %>
-        <% if @hub_qr_scans %>
-          <div class="text-xs text-gray-500 <%= "mt-1.5" unless Current.user&.admin? %> tabular-nums" title="QR scans on printed flyers this month (opens the scan report)">
-            📱 <%= @hub_qr_scans.to_i %> QR <%= "scan".pluralize(@hub_qr_scans.to_i) %> this month
-          </div>
-        <% end %>
-        <%# Flyer + scan revenue this month, owner/admin only (a billing figure). %>
-        <% if @hub_flyer_revenue %>
-          <div class="text-xs text-amber-400/80 tabular-nums" title="Flyer prints + QR scans billed this month at $0.44 each (owner/admin only)">
-            💰 $<%= sprintf("%.2f", @hub_flyer_revenue) %> this month
-          </div>
-        <% end %>
       </div>
 
       <div class="<%= stats_class %>">
@@ -488,6 +475,18 @@
           <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
+        <%# Flyer/scan readouts right-aligned so they stack above the $/mo total
+            in the corner (prints admin-only; QR scans visible to every NYK member). %>
+        <% if Current.user&.admin? %>
+          <div class="text-gray-500 tabular-nums text-right" title="Total flyer/poster print-page opens (admin only)">
+            🖨 <%= @hub_flyer_prints.to_i %> <%= "print".pluralize(@hub_flyer_prints.to_i) %> all-time
+          </div>
+        <% end %>
+        <% if @hub_qr_scans %>
+          <div class="text-gray-500 tabular-nums text-right" title="QR scans on printed flyers this month (opens the scan report)">
+            📱 <%= @hub_qr_scans.to_i %> QR <%= "scan".pluralize(@hub_qr_scans.to_i) %> this month
+          </div>
+        <% end %>
       </div>
     <% end %>
 
