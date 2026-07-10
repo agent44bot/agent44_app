@@ -23,6 +23,11 @@ class NykBillingController < ApplicationController
                               .where("created_at >= ?", @month_start)
                               .order(created_at: :desc).to_a
     @summary = AiCallLog.summary_by_source(nyk_logs_month)
+    # Arriving from an agent's cost dialog (?agent=list): highlight that agent's
+    # rows in the AI usage table and dim the rest.
+    @highlight_agent   = params[:agent].to_s.presence
+    @highlight_sources = AiCallLog::AGENT_SOURCES[@highlight_agent]
+    @highlight_agent   = nil unless @highlight_sources
     @model_summary = AiCallLog.summary_by_model(nyk_logs_month)
     # The selected model key per feature, for the radios in the AI usage table.
     @feature_model_keys = @summary.keys.index_with { |source| AiModelChoice.selected_key(source) }
@@ -67,7 +72,7 @@ class NykBillingController < ApplicationController
     else
       @flyer_print_count = @flyer_scan_count = 0
     end
-    @flyer_unit_price   = UsageEvent::FLYER_UNIT_CENTS / 100.0
+    @flyer_unit_price   = (@workspace&.effective_flyer_unit_cents || UsageEvent::FLYER_UNIT_CENTS) / 100.0
     @flyer_scan_revenue = UsageEvent.flyer_revenue_dollars(@workspace, period)
     @month_total        = (@month_total + @flyer_scan_revenue).round(2)
 

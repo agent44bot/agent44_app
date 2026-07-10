@@ -29,6 +29,17 @@ class AiCallLog < ApplicationRecord
   # Used for the hub "ask" salary badge (internal view, shows both).
   SUPER_AGENT_SOURCES = %w[nyk_ask nyk_agent].freeze
 
+  # Which AI-usage sources belong to each hub agent, so the billing page can
+  # highlight one agent's rows when arriving from its cost dialog. Mirrors the
+  # source sets hub_salary_by_agent bills each agent for, so the highlighted
+  # rows add up to the $/mo shown on that agent's card.
+  AGENT_SOURCES = {
+    "list"    => LIST_AGENT_SOURCES,
+    "social"  => %w[nyk_enhance nyk_x_autopost],
+    "analyst" => %w[nyk_team_report],
+    "ask"     => SUPER_AGENT_SOURCES
+  }.freeze
+
   scope :nyk,           -> { where(source: NYK_SOURCES) }
   scope :super_agent,   -> { where(source: SUPER_AGENT_SOURCES) }
   scope :this_month,    -> { where("created_at >= ?", Time.zone.now.beginning_of_month) }

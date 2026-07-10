@@ -29,8 +29,8 @@
     </div>
   </div>
 
-  <%# Flyer + QR scan revenue: 44 cents per print click and per scan. %>
-  <h2 class="text-base font-semibold text-white mb-3">Flyer prints &amp; QR scans</h2>
+  <%# Flyer + QR scan revenue: per-print + per-scan rate (Neon). %>
+  <h2 id="flyer" style="scroll-margin-top:84px" class="text-base font-semibold text-white mb-3">Flyer prints &amp; QR scans</h2>
   <% if @flyer_print_count.to_i.zero? && @flyer_scan_count.to_i.zero? %>
     <p class="text-sm text-gray-500 italic mb-8">No flyer prints or scans yet this month.</p>
   <% else %>
@@ -85,7 +85,14 @@
     <% end %>
   </div>
 
-  <h2 class="text-base font-semibold text-white mb-3">AI usage</h2>
+  <h2 id="ai-usage" style="scroll-margin-top:84px" class="text-base font-semibold text-white mb-3">AI usage</h2>
+  <% if @highlight_agent %>
+    <% hmeta = nyk_agent_meta(@highlight_agent) %>
+    <p class="text-sm text-gray-400 mb-3">
+      Highlighting <span class="font-semibold" style="color:<%= hmeta[:accent] %>"><%= hmeta[:emoji] %> <%= hmeta[:call] %></span>'s features.
+      <%= link_to "Show all", nyk_billing_path(anchor: "ai-usage"), class: "text-orange-400 hover:underline ml-1", data: { turbo: false } %>
+    </p>
+  <% end %>
   <% if @summary.empty? %>
     <p class="text-sm text-gray-500 italic mb-8">No AI usage yet this month.</p>
   <% else %>
@@ -103,8 +110,9 @@
         <tbody class="divide-y divide-gray-800">
           <% @summary.sort_by { |_, v| -v[:cost_dollars] }.each do |source, v| %>
             <% avg = v[:calls].to_i.positive? ? v[:cost_dollars] / v[:calls] : 0 %>
-            <tr>
-              <td class="px-4 py-2 text-gray-200">
+            <% hl = @highlight_sources&.include?(source) %>
+            <tr class="<%= "opacity-40" if @highlight_sources && !hl %>" style="<%= "background:#{nyk_agent_meta(@highlight_agent)[:accent]}1f" if hl %>">
+              <td class="px-4 py-2 <%= hl ? "text-white font-semibold" : "text-gray-200" %>">
                 <%= case source
                     when "nyk_enhance"        then "Enhance with AI button"
                     when "nyk_x_autopost"     then "Daily X autopost draft"
@@ -246,7 +254,7 @@
     </div>
   <% end %>
 
-  <h2 class="text-base font-semibold text-white mt-8 mb-3">Smoke tests</h2>
+  <h2 id="smoke" style="scroll-margin-top:84px" class="text-base font-semibold text-white mt-8 mb-3">Smoke tests</h2>
   <p class="text-xs text-gray-500 mb-3">
     Browser-driven calendar checks (cron-driven, ~3×/day).
     Billed at $<%= sprintf("%.5f", @test_rate) %>/min of CI runtime.

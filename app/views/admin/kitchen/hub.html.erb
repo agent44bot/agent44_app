@@ -61,6 +61,38 @@
   .ra-chev{color:#5b606b;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;
     transition:color .18s,transform .18s}
   .ra-card:hover .ra-chev{color:var(--accent);transform:translateX(2px)}
+  /* (i) cost-info trigger sitting next to the $/mo badge (managers only). */
+  .ra-info{display:inline-flex;align-items:center;justify-content:center;margin-left:5px;
+    width:15px;height:15px;border-radius:50%;font-size:12px;line-height:1;color:#9096a1;
+    cursor:pointer;transition:color .15s;vertical-align:middle}
+  .ra-info:hover{color:#f59e0b}
+  /* Cost-info dialog. Native <dialog>; rendered outside the card links. */
+  .cost-dialog{border:none;background:transparent;padding:0;max-width:92vw;color:#e5e7eb;
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);margin:0}
+  .cost-dialog::backdrop{background:rgba(0,0,0,.72)}
+  .cost-dialog-inner{width:420px;max-width:92vw;background:#15171c;border:1px solid #2a2e37;
+    border-top:3px solid var(--accent);border-radius:14px;padding:18px 20px 20px}
+  .cost-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .cost-dialog-title{font-weight:700;font-size:14px;color:#fff}
+  .cost-dialog-x{cursor:pointer;color:#7b818c;font-size:15px;line-height:1;padding:2px 4px}
+  .cost-dialog-x:hover{color:#e5e7eb}
+  .cost-dialog-inner p{font-size:13px;line-height:1.5;color:#c3c8d1;margin:0 0 10px}
+  .cost-dialog-inner .cost-eq{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;
+    color:#f59e0b;background:#0e0f13;border:1px solid #23262d;border-radius:8px;padding:9px 11px}
+  .cost-dialog-inner .cost-track{color:#8b909b;font-size:12px}
+  .cost-more{margin:12px 0 0!important;padding-top:12px;border-top:1px solid #23262d}
+  .cost-link{color:var(--accent);font-size:12px;font-weight:600;text-decoration:none}
+  .cost-link:hover{text-decoration:underline}
+  .cost-readonly{color:#c3c8d1}
+  .cost-form{margin-top:6px}
+  .cost-form label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#8b909b;margin-bottom:6px}
+  .cost-form-row{display:flex;align-items:center;gap:7px}
+  .cost-form-row span{color:#c3c8d1}
+  .cost-form-row input[type=number]{width:90px;background:#0e0f13;border:1px solid #2a2e37;border-radius:8px;
+    padding:8px 10px;color:#fff;font-size:16px}
+  .cost-form-row input[type=submit]{margin-left:auto;background:#16a34a;border:none;border-radius:8px;
+    padding:8px 14px;color:#fff;font-weight:600;font-size:13px;cursor:pointer}
+  .cost-form-row input[type=submit]:hover{background:#22b356}
 </style>
 
 <%
@@ -113,13 +145,26 @@
     # Bottom-right billing badge. For the AI agents it's their "salary" (this
     # month's tokens + cost). Neon (display) makes no AI calls, so it shows the
     # flyer/scan revenue it earns instead — same corner, same style as the rest.
+    # Managers (owner/admin) also get an (i) that opens a cost-formula dialog
+    # (rendered outside the card link; opened by id, see cost_info_controller).
+    badge_style = "position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2"
+    amount_inner = tip = nil
     if kind.to_s == "display"
       if @hub_flyer_revenue
-        html << %(<span style="position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2" title="Flyer prints + QR scans billed this month at $0.44 each">💰 $#{format('%.2f', @hub_flyer_revenue)}/mo</span>)
+        amount_inner = "$#{format('%.2f', @hub_flyer_revenue)}/mo"
+        tip = "Flyer prints + QR scans billed this month"
       end
     elsif @can_see_pricing && @hub_salary && (s = @hub_salary[kind.to_s])
       toks = s[:tokens].to_i.positive? ? "#{fmt_tok.call(s[:tokens])} tok · " : ""
-      html << %(<span style="position:absolute;right:18px;bottom:14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f59e0b;letter-spacing:.04em;z-index:2" title="This month's token usage + cost">💰 #{toks}$#{format('%.2f', s[:cost])}/mo</span>)
+      amount_inner = "#{toks}$#{format('%.2f', s[:cost])}/mo"
+      tip = "This month's token usage + cost"
+    end
+    if amount_inner
+      info = ""
+      if @nyk_is_manager
+        info = %( <span role="button" tabindex="0" class="ra-info" data-action="click->cost-info#open keydown.enter->cost-info#open" data-cost-info-id-param="cost-dialog-#{kind}" aria-label="How this cost is calculated" title="How this is calculated">&#9432;</span>)
+      end
+      html << %(<span style="#{badge_style}" title="#{tip}">💰 #{amount_inner}#{info}</span>)
     end
     html << %(</span>) # /ra-id
     html.html_safe
@@ -269,7 +314,7 @@
     </div>
   <% end %>
 
-  <section data-controller="roster"
+  <section data-controller="roster cost-info"
            data-roster-storage-key-value="nyk-roster-cards:<%= Current.user&.id %>">
     <%# Flex column so the background-agents chip row can float below the cards on
         mobile (order-2) but stay above them on desktop (sm:order-1) — the chips
@@ -627,6 +672,15 @@
 
   </div>
     </div>
+
+    <%# Cost-formula dialogs for each agent's $/mo badge. Rendered here, outside
+        the card links (invalid to nest a <dialog>/form in an <a>), and opened by
+        id from the card's (i) trigger. Managers only. %>
+    <% if @nyk_is_manager %>
+      <% %w[list display data social analyst test ask].each do |ck| %>
+        <%= render "admin/kitchen/cost_dialog", kind: ck, can_edit: @nyk_can_edit_rate, unit_cents: @nyk_flyer_unit_cents %>
+      <% end %>
+    <% end %>
   </section>
 
 </div>

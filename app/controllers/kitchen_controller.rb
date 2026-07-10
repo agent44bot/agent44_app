@@ -48,6 +48,12 @@ class KitchenController < ApplicationController
     @qr_health_alert = qr_health_alert_for(Current.user)
     @daily_prompt = morning_prompt_for(Current.user)
     @nyk_workspace = nyk_workspace_for(Current.user)
+    # Cost-info dialogs on the agent cards: managers (owner/admin) see the (i)
+    # icon + formula dialog; only an owner may edit the flyer rate inside it.
+    pricing_ws           = @nyk_workspace || Workspace.find_by(slug: "nykitchen")
+    @nyk_is_manager      = pricing_ws&.manager?(Current.user) || false
+    @nyk_can_edit_rate   = pricing_ws&.owner?(Current.user) || false
+    @nyk_flyer_unit_cents = pricing_ws&.effective_flyer_unit_cents || UsageEvent::FLYER_UNIT_CENTS
     # Cellar (storage-room inventory) card stats — live bottle count + low flags.
     inv_on_hand = InventoryItem.on_hand_by_item
     @hub_inventory_units = inv_on_hand.values.sum
@@ -560,6 +566,22 @@ class KitchenController < ApplicationController
     redirect_to nyk_display_settings_path, notice: "Display settings saved."
   end
 
+  # Change the per-workspace flyer print/scan rate from Neon's cost info dialog.
+  # Owner-only (site admins included); managers see the dialog but can't POST here.
+  def update_flyer_rate
+    workspace = Workspace.find_by(slug: "nykitchen")
+    unless workspace&.owner?(Current.user)
+      redirect_to nykitchen_path, alert: "Only the workspace owner can change the flyer rate." and return
+    end
+    dollars = params[:flyer_rate_dollars].to_s.strip.sub(/\A\$/, "").to_f
+    cents = (dollars * 100).round
+    if cents <= 0 || cents > 100_00
+      redirect_to nykitchen_path, alert: "Enter a flyer rate between $0.01 and $100.00." and return
+    end
+    workspace.update!(flyer_unit_cents: cents)
+    redirect_to nykitchen_path, notice: "Flyer rate updated to $#{format('%.2f', cents / 100.0)} per print and scan."
+  end
+
   # Printable packets of the next N non-sold-out classes. Two layouts (Lora's
   # request), both fed by the same upcoming-classes data:
   #   flyer (default) — grab-and-go front-desk packet, 18 classes laid out 9
@@ -594,7 +616,8 @@ class KitchenController < ApplicationController
     # (owner/admin see the revenue on the billing page + Neon card).
     if @display_workspace
       UsageEvent.record!(workspace: @display_workspace, user: Current.user,
-                         kind: UsageEvent::FLYER_PRINT, unit_cents: UsageEvent::FLYER_UNIT_CENTS,
+                         kind: UsageEvent::FLYER_PRINT,
+                         unit_cents: @display_workspace.effective_flyer_unit_cents,
                          metadata: { variant: @variant })
     end
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
@@ -621,7 +644,7 @@ class KitchenController < ApplicationController
       scan_ws = link.workspace || Workspace.find_by(slug: "nykitchen")
       if scan_ws
         UsageEvent.record!(workspace: scan_ws, kind: UsageEvent::FLYER_SCAN,
-                           unit_cents: UsageEvent::FLYER_UNIT_CENTS,
+                           unit_cents: scan_ws.effective_flyer_unit_cents,
                            metadata: { token: link.token })
       end
     end
