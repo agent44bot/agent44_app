@@ -456,6 +456,22 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{data-social-post-workspace-slug-value="#{k.slug}"}, response.body
   end
 
+  test "the promote button is hidden on private events" do
+    user = User.create!(email_address: "priv-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.create!(name: "NY Kitchen Co", owner: user)
+    ws.social_accounts.create!(platform: "x", connected_by: user, handle: "@k", external_id: "9",
+      access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
+    create_event("Pasta 101", 2.days.from_now, "InStock")
+    create_event("Classroom Reserved for Private Event", 3.days.from_now, "InStock")
+
+    sign_in_as(user)
+    get nyk_list_path
+    assert_response :success
+    # Exactly one promote (📣) button: the public class, not the private event.
+    assert_select "button[data-action='social-post#sendToWorkspace']", 1
+    assert_match "Private Event", response.body # the class still lists, just no promote
+  end
+
   # --- Agents hub coverage --------------------------------------------------
 
   test "anonymous visitor sees the hub (shareable)" do

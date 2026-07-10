@@ -36,8 +36,9 @@
           <%= event.name %>
         </a>
         <%# Small inline "promote" affordance next to the name (a marketing action,
-            kept separate from the recipe column in the rail). Non-sold-out only. %>
-        <% if !event.sold_out? && default_ws %>
+            kept separate from the recipe column in the rail). Non-sold-out only,
+            and never on private events (we don't promote those). %>
+        <% if !event.sold_out? && !event.private_event? && default_ws %>
           <button data-action="social-post#sendToWorkspace"
                   data-social-post-target="sendToWorkspaceBtn"
                   title="Draft a social post to Echo"
