@@ -57,7 +57,11 @@
   <% elsif @result&.ok? %>
     <% unless params[:embedded] %>
       <div class="mb-4 -mt-2 flex items-center justify-end gap-2 no-print">
-        <%= link_to "Download",
+        <%= link_to "⬇ Excel",
+              nyk_grocery_path(action_params.merge(download: 1, xlsx: 1)),
+              data: { turbo_frame: "_top" },
+              class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800/70 text-sm font-semibold whitespace-nowrap" %>
+        <%= link_to "⬇ PDF",
               nyk_grocery_path(action_params.merge(download: 1)),
               data: { turbo_frame: "_top" },
               class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800/70 text-sm font-semibold whitespace-nowrap" %>
