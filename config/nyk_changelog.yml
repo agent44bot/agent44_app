@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-09
+  note: On the Field Roster board, the Neon (in-store screen) card now sits top-right next to Sam, with Echo (social posts) just below, so the two agents you touch most are side by side.
+
+- date: 2026-07-09
   note: The QR codes on your printed flyers and stall posters now count how many people scan them, including the footer "all classes" code. Each class on Sam's list shows a phone badge with its own scan count, the Display settings page shows a full scan report (this month, last 30 days, most scanned classes, and phone type), and the Neon card shows this month's scan total at a glance.
 
 - date: 2026-07-07
