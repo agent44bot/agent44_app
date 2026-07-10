@@ -42,7 +42,12 @@ class NykChangelogTest < ActiveSupport::TestCase
   end
 
   test "committed changelog links are app-relative paths with labels" do
-    NykChangelog.recent(since: Date.new(2000, 1, 1), limit: 50).each do |e|
+    # Scan every committed entry, not just the recent window: as unlinked notes
+    # accumulate, the linked ones age out of any capped `recent` slice, which
+    # would leave this test asserting nothing ("missing assertions").
+    entries = NykChangelog.entries
+    assert entries.any?, "expected the committed config/nyk_changelog.yml to have entries"
+    entries.each do |e|
       next unless e[:link]
       assert e[:link].start_with?("/"), "link must be app-relative: #{e[:link]}"
       assert e[:link_label].present?, "a linked entry needs a label"

@@ -1,7 +1,7 @@
 require "test_helper"
 
 # Hub cards render in a fixed, curated CSS order: the core three (Sam=list,
-# Echo=social, Neon=display) lead — Sam top-left, Echo top-right, Neon below
+# Neon=display, Echo=social) lead — Sam top-left, Neon top-right, Echo below
 # Sam — then the background agents. The order no longer floats by usage or pins
 # failed agents; it's deterministic for every user.
 class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
@@ -11,14 +11,14 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
     @user = User.create!(email_address: "hub-#{SecureRandom.hex(4)}@example.com", role: "user")
   end
 
-  test "the core three lead: Sam, Echo, Neon" do
-    assert_equal %w[list social display], DEFAULT.first(3)
+  test "the core three lead: Sam, Neon, Echo" do
+    assert_equal %w[list display social], DEFAULT.first(3)
     get "/nykitchen"
     assert_response :success
     order = assigns_card_order
     assert_equal 0, order["list"],    "Sam is first (top-left)"
-    assert_equal 1, order["social"],  "Echo is second (top-right)"
-    assert_equal 2, order["display"], "Neon is third (below Sam)"
+    assert_equal 1, order["display"], "Neon is second (top-right)"
+    assert_equal 2, order["social"],  "Echo is third (below Sam)"
   end
 
   test "the order is fixed regardless of usage" do
@@ -33,7 +33,7 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
     controller.instance_variable_set(:@hub_agent_status, { display: :failed })
     order = controller.send(:hub_card_order)
     assert_equal DEFAULT.each_with_index.to_h, order
-    assert_equal 2, order["display"], "a failed Neon stays in position, not pinned to top"
+    assert_equal 1, order["display"], "a failed Neon stays in position, not pinned to top"
   end
 
   test "the field roster shows the workspace member avatars under the header" do
