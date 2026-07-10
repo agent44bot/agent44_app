@@ -176,35 +176,61 @@
     <%# ===== Equipment Items tab: the per-station setup list. Auto-saves on
         every add/remove (own controller) and prints on the pull sheet. ===== %>
     <div data-tabs-target="panel" class="hidden">
-      <div class="max-w-3xl mx-auto" data-controller="equipment-tags"
-           data-equipment-tags-catalog-value="<%= @equipment_catalog.to_json %>"
-           data-equipment-tags-selected-value="<%= @packet.equipment.to_json %>"
-           data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>"
-           data-equipment-tags-save-url-value="<%= nyk_packet_equipment_path(@packet) %>">
-        <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment to set up at each station</label>
-        <p class="text-xs text-gray-500 mb-3">Tap a tag to add it to this packet; tap an added one to remove it. Changes save automatically. Type to highlight matching tags. New items become reusable tags; tap a tag's minus to delete it from the list for good. These items print on the pull sheet as a per-station setup checklist.</p>
-        <%# Let Agent Sam read the recipe and fill in the gear it needs. Merges
-            with whatever is already set, so it never wipes manual additions. %>
-        <div data-controller="form-spinner" data-form-spinner-message-value="Agent Sam is reading the recipe…"
-             class="mb-4 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
-          <%= button_to "✨ Ask Agent Sam to update equipment items",
-                nyk_suggest_equipment_path(@packet), method: :post,
-                data: { action: "form-spinner#show" },
-                class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
-          <p class="text-xs text-purple-200/70 mt-2">Sam reads this packet's recipe and adds the equipment each station needs. Review and tweak the tags below.</p>
+      <div class="max-w-3xl mx-auto space-y-10">
+        <%# --- Equipment per station: prints on the pull sheet only. --- %>
+        <div data-controller="equipment-tags"
+             data-equipment-tags-catalog-value="<%= @equipment_catalog.to_json %>"
+             data-equipment-tags-selected-value="<%= @packet.equipment.to_json %>"
+             data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>"
+             data-equipment-tags-save-url-value="<%= nyk_packet_equipment_path(@packet) %>">
+          <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment per station</label>
+          <p class="text-xs text-gray-500 mb-3">Gear each station already has and just sets up (knives, bowls, spoons). Tap a tag to add it; tap an added one to remove it. Changes save automatically. These items print on the <strong>pull sheet only</strong>, as a per-station setup checklist.</p>
+          <%# Let Agent Sam read the recipe and fill in the gear it needs. Merges
+              with whatever is already set, so it never wipes manual additions. %>
+          <div data-controller="form-spinner" data-form-spinner-message-value="Agent Sam is reading the recipe…"
+               class="mb-4 rounded-xl border border-purple-800/60 bg-purple-900/10 p-4">
+            <%= button_to "✨ Ask Agent Sam to update equipment items",
+                  nyk_suggest_equipment_path(@packet), method: :post,
+                  data: { action: "form-spinner#show" },
+                  class: "px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold cursor-pointer" %>
+            <p class="text-xs text-purple-200/70 mt-2">Sam reads this packet's recipe and adds the per-station equipment it needs. Review and tweak the tags below.</p>
+          </div>
+          <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
+          <div class="flex gap-2 mb-4">
+            <input type="text" data-equipment-tags-target="input"
+                   data-action="keydown.enter->equipment-tags#addNew input->equipment-tags#filter"
+                   placeholder="Add equipment (e.g. cast iron skillet)"
+                   class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none">
+            <%= button_tag "Add", type: "button", data: { action: "equipment-tags#addNew" },
+                  class: "shrink-0 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold cursor-pointer" %>
+          </div>
+          <p class="text-xs text-gray-500 mb-1" data-equipment-tags-target="paletteLabel">Tap to add:</p>
+          <div data-equipment-tags-target="catalog" class="flex flex-wrap gap-2"></div>
+          <textarea data-equipment-tags-target="field" class="hidden"></textarea>
         </div>
-        <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
-        <div class="flex gap-2 mb-4">
-          <input type="text" data-equipment-tags-target="input"
-                 data-action="keydown.enter->equipment-tags#addNew input->equipment-tags#filter"
-                 placeholder="Add equipment (e.g. cast iron skillet)"
-                 class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none">
-          <%= button_tag "Add", type: "button", data: { action: "equipment-tags#addNew" },
-                class: "shrink-0 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold cursor-pointer" %>
+
+        <%# --- Equipment to purchase: flows to the pull sheet AND the grocery
+            list, so it lands on the shopping run. Its own picker + save URL. --- %>
+        <div class="border-t border-gray-800 pt-8" data-controller="equipment-tags"
+             data-equipment-tags-catalog-value="<%= @equipment_catalog.to_json %>"
+             data-equipment-tags-selected-value="<%= @packet.purchase_equipment.to_json %>"
+             data-equipment-tags-hide-url-value="<%= nyk_hide_equipment_tag_path %>"
+             data-equipment-tags-save-url-value="<%= nyk_packet_purchase_equipment_path(@packet) %>">
+          <label class="block text-sm font-semibold text-gray-300 mb-1">Equipment to purchase</label>
+          <p class="text-xs text-gray-500 mb-3">Gear you still need to <strong>buy</strong> for this class. These items print on the <strong>pull sheet and the grocery list</strong>, so they show up on the shopping run. Tap to add or remove; changes save automatically.</p>
+          <div data-equipment-tags-target="selected" class="flex flex-wrap gap-2 mb-3"></div>
+          <div class="flex gap-2 mb-4">
+            <input type="text" data-equipment-tags-target="input"
+                   data-action="keydown.enter->equipment-tags#addNew input->equipment-tags#filter"
+                   placeholder="Add equipment to buy (e.g. pizza stone)"
+                   class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none">
+            <%= button_tag "Add", type: "button", data: { action: "equipment-tags#addNew" },
+                  class: "shrink-0 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold cursor-pointer" %>
+          </div>
+          <p class="text-xs text-gray-500 mb-1" data-equipment-tags-target="paletteLabel">Tap to add:</p>
+          <div data-equipment-tags-target="catalog" class="flex flex-wrap gap-2"></div>
+          <textarea data-equipment-tags-target="field" class="hidden"></textarea>
         </div>
-        <p class="text-xs text-gray-500 mb-1" data-equipment-tags-target="paletteLabel">Tap to add:</p>
-        <div data-equipment-tags-target="catalog" class="flex flex-wrap gap-2"></div>
-        <textarea data-equipment-tags-target="field" class="hidden"></textarea>
       </div>
     </div>
 

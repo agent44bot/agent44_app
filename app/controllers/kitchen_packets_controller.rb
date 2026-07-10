@@ -179,6 +179,15 @@ class KitchenPacketsController < ApplicationController
     head :ok
   end
 
+  # Auto-save the "equipment to purchase" list (its own tag picker posts here on
+  # every add/remove). Only touches data["purchase_equipment"]; this list also
+  # flows to the aggregate grocery list, not just the pull sheet.
+  def update_purchase_equipment
+    packet = KitchenPacket.find(params[:id])
+    packet.update!(data: packet.data.merge("purchase_equipment" => parse_equipment))
+    head :ok
+  end
+
   # POST /nykitchen/packets/:id/suggest_equipment  — Agent Sam reads this
   # packet's recipe and adds the per-station equipment it needs, merged with
   # whatever is already set (so it never wipes manual additions). Lands back on

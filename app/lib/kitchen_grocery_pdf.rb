@@ -89,24 +89,34 @@ class KitchenGroceryPdf
   end
 
   def equipment(doc)
-    equip_classes = @with_recipe.select { |c| Array(c[:packet]&.equipment).any? }
-    return if equip_classes.empty?
+    station_equipment(doc)
+    purchase_equipment(doc)
+  end
+
+  # Owned gear, just set up: pull sheet ONLY (single-class run).
+  def station_equipment(doc)
+    return unless @single
+
+    c = @with_recipe.first
+    items = Array(c&.dig(:packet)&.equipment)
+    return if items.empty?
 
     label = "Equipment per station"
-    if @single && equip_classes.first[:stations]
-      label += " (set up at each of #{plural(equip_classes.first[:stations], 'station')})"
-    end
+    label += " (set up at each of #{plural(c[:stations], 'station')})" if c[:stations]
     section(doc, label)
+    table(doc, items.map { |eq| [ checkbox, tidy(eq) ] }, [ 18, doc.bounds.width - 18 ])
+    doc.move_down 4
+  end
 
-    equip_classes.each do |c|
-      unless @single
-        doc.text "#{c[:event].name}#{c[:stations] ? " (set up at each of #{plural(c[:stations], 'station')})" : ""}", size: 11, style: :bold
-        doc.move_down 3
-      end
-      rows = Array(c[:packet].equipment).map { |eq| [ checkbox, tidy(eq) ] }
-      table(doc, rows, [ 18, doc.bounds.width - 18 ])
-      doc.move_down 4
-    end
+  # Gear to buy: pull sheet AND grocery list. Deduped union across the classes.
+  def purchase_equipment(doc)
+    items = @with_recipe.flat_map { |c| Array(c[:packet]&.purchase_equipment) }
+                        .map { |e| e.to_s.strip }.reject(&:blank?).uniq { |e| e.downcase }
+    return if items.empty?
+
+    section(doc, "Equipment to purchase")
+    table(doc, items.map { |eq| [ checkbox, tidy(eq) ] }, [ 18, doc.bounds.width - 18 ])
+    doc.move_down 4
   end
 
   def total(doc)

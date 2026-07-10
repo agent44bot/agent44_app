@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-10
+  note: A packet's equipment now splits into two lists. "Equipment per station" is gear you already have and just set up, and it prints on the pull sheet only. "Equipment to purchase" is gear you still need to buy, and it prints on the pull sheet and the grocery list, so it lands on the shopping run.
+
+- date: 2026-07-10
   note: The grocery list and pull sheet can now download as an Excel spreadsheet, not just a PDF. The Excel file leads with the class names and dates in the list, then the groceries by category, so you can sort, tweak, or price it in Excel.
 
 - date: 2026-07-10

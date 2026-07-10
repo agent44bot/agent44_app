@@ -319,6 +319,27 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal 1, packet.recipes.size # recipes untouched
   end
 
+  test "update_purchase_equipment saves the buy list without touching station gear" do
+    packet = KitchenPacket.create!(title: "Packet",
+      data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ], "purchase_equipment" => [ "Pizza stone" ] })
+    patch nyk_packet_purchase_equipment_path(packet), params: { equipment: "Pizza stone\nSheet pan" }
+    assert_response :success
+    packet.reload
+    assert_equal [ "Pizza stone", "Sheet pan" ], packet.purchase_equipment
+    assert_equal [ "Whisk" ], packet.equipment, "per-station list is untouched"
+  end
+
+  test "the edit page renders both the per-station and to-purchase pickers" do
+    packet = KitchenPacket.create!(title: "Packet",
+      data: { "recipes" => EXTRACTED, "equipment" => [ "Wooden spoon" ], "purchase_equipment" => [ "Pizza stone" ] })
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_select "[data-controller='equipment-tags']", 2, "one picker per list"
+    assert_match "Equipment per station", response.body
+    assert_match "Equipment to purchase", response.body
+    assert_match CGI.escapeHTML(nyk_packet_purchase_equipment_path(packet)), response.body
+  end
+
   test "the Add-recipe page wires the loading spinner on generate and build" do
     get new_nyk_packet_path(event_url: EVENT_URL, event_name: "Macarons")
     assert_response :success

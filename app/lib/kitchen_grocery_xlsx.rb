@@ -112,18 +112,30 @@ class KitchenGroceryXlsx
   end
 
   def equipment_section
-    equip_classes = @with_recipe.select { |c| Array(c[:packet]&.equipment).any? }
-    return if equip_classes.empty?
+    station_equipment_section
+    purchase_equipment_section
+  end
+
+  # Owned gear, just set up: pull sheet ONLY (single-class run).
+  def station_equipment_section
+    return unless @single
+
+    items = Array(@with_recipe.first&.dig(:packet)&.equipment)
+    return if items.empty?
 
     row [ "Equipment per station" ], style: @s[:section]
-    row [ "Class", "Equipment" ], style: @s[:head]
-    equip_classes.each do |c|
-      label = @single ? "" : c[:event].name.to_s
-      Array(c[:packet].equipment).each do |eq|
-        row [ label, eq.to_s ]
-        label = "" # only label the first row of each class
-      end
-    end
+    items.each { |eq| row [ eq.to_s ] }
+    row []
+  end
+
+  # Gear to buy: pull sheet AND grocery list. Deduped union across the classes.
+  def purchase_equipment_section
+    items = @with_recipe.flat_map { |c| Array(c[:packet]&.purchase_equipment) }
+                        .map { |e| e.to_s.strip }.reject(&:blank?).uniq { |e| e.downcase }
+    return if items.empty?
+
+    row [ "Equipment to purchase" ], style: @s[:section]
+    items.each { |eq| row [ eq.to_s ] }
     row []
   end
 
