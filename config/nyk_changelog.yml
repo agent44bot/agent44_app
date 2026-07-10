@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-10
+  note: Private events no longer show the promote (megaphone) button on Sam's class list, since we don't market those.
+
+- date: 2026-07-10
   note: A packet's equipment now splits into two lists. "Equipment per station" is gear you already have and just set up, and it prints on the pull sheet only. "Equipment to purchase" is gear you still need to buy, and it prints on the pull sheet and the grocery list, so it lands on the shopping run.
 
 - date: 2026-07-10
