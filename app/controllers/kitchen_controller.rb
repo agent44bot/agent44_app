@@ -141,22 +141,26 @@ class KitchenController < ApplicationController
     if params[:download].present?
       load_grocery_data
       single_event = @single_class ? @with_recipe.first&.dig(:event) : nil
-      filename = if @single_class && single_event
-        "ny-kitchen-pull-sheet-#{single_event.start_at.strftime('%Y-%m-%d')}.pdf"
+      base = if @single_class && single_event
+        "ny-kitchen-pull-sheet-#{single_event.start_at.strftime('%Y-%m-%d')}"
       else
-        "ny-kitchen-grocery-list-#{@range.first.iso8601}-#{@range.last.iso8601}.pdf"
+        "ny-kitchen-grocery-list-#{@range.first.iso8601}-#{@range.last.iso8601}"
+      end
+      doc_args = {
+        result: @result, with_recipe: @with_recipe, range: @range,
+        total_headcount: @total_headcount, single: @single_class,
+        single_event: single_event, show_prices: @show_grocery_prices
+      }
+
+      if params[:xlsx].present?
+        return send_data KitchenGroceryXlsx.new(**doc_args).render,
+                         filename: "#{base}.xlsx",
+                         type: KitchenGroceryXlsx::CONTENT_TYPE,
+                         disposition: "attachment"
       end
 
-      return send_data KitchenGroceryPdf.new(
-        result: @result,
-        with_recipe: @with_recipe,
-        range: @range,
-        total_headcount: @total_headcount,
-        single: @single_class,
-        single_event: single_event,
-        show_prices: @show_grocery_prices
-      ).render,
-                       filename: filename,
+      return send_data KitchenGroceryPdf.new(**doc_args).render,
+                       filename: "#{base}.pdf",
                        type: "application/pdf",
                        disposition: "attachment"
     end

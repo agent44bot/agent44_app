@@ -66,6 +66,8 @@ gem "rqrcode", "~> 2.2"
 # wkhtmltopdf binary) so it adds nothing to the single-machine prod image.
 gem "prawn", "~> 2.5"
 gem "prawn-table", "~> 0.2"
+# Grocery list / pull sheet as a real .xlsx download (Lora edits it in Excel).
+gem "caxlsx", "~> 4.1"
 
 # Passkeys / Face ID sign-in (WebAuthn ceremonies)
 gem "webauthn", "~> 3.1"

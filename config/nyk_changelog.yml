@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-10
+  note: The grocery list and pull sheet can now download as an Excel spreadsheet, not just a PDF. The Excel file leads with the class names and dates in the list, then the groceries by category, so you can sort, tweak, or price it in Excel.
+
+- date: 2026-07-10
   note: Each agent card's monthly dollar amount now has an info icon (owner and admin only) that opens a plain-language explainer of how that figure is worked out, with a link straight to the matching billing section. On Neon, the owner can also change the per-print and per-scan flyer rate right there, no digging through settings.
 
 - date: 2026-07-10
