@@ -9,6 +9,12 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-11
+  note: The Grocery list and Upload receipt buttons now sit once at the top of Sam's list (right under the search box) instead of repeating inside every week. The grocery button opens the list where you can pick any date range.
+
+- date: 2026-07-11
+  note: The grocery date picker now defaults the From date to today (instead of the Monday of the week), so a shopping list starts from today forward.
+
+- date: 2026-07-11
   note: The grocery list now has a From and To date picker, so you can build a shopping list for any window (say today through two weeks out), then download or print it. The Current week, Next week, and Next 2 weeks buttons are still there as quick shortcuts.
 
 - date: 2026-07-10

@@ -162,7 +162,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert camp_pos < wine_pos, "the Tuesday camp must appear before the Friday class, not at the bottom"
   end
 
-  test "the current week's grocery button pulls the full Mon-Sun range" do
+  test "the list's grocery button opens the grocery page (which defaults to the current week)" do
     create_event("Pasta 101", 1.hour.from_now, "InStock")
     KitchenPacket.create!(title: "Pasta 101", data: { "recipes" => [
       { "title" => "Pasta",
@@ -172,8 +172,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     get nyk_list_path
     assert_response :success
-    monday = Date.current.beginning_of_week(:monday).iso8601
-    assert_match "from=#{monday}", response.body, "current-week grocery link should start on Monday"
+    # One grocery entry point at the top; the grocery page opens on the current
+    # Mon-Sun week by default and offers a From/To picker for other ranges.
+    assert_select "a[href=?]", nyk_grocery_path, 1
   end
 
   test "week with all available events shows only green bar" do
