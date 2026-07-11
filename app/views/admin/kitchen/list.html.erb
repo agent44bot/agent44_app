@@ -120,6 +120,68 @@
       <p data-kitchen-filter-target="empty" class="hidden text-sm text-gray-500 mt-2">No classes match your search.</p>
     </div>
 
+    <%# Grocery list + Upload receipt, lifted out of the per-week sections so
+        they sit right under the search box. Grocery opens the list defaulted to
+        this week; the From/To picker there covers any other range. Receipt
+        tracks real prices for the current week. %>
+    <% groc_mon = Date.current.beginning_of_week(:monday) %>
+    <% groc_sun = Date.current.end_of_week(:monday) %>
+    <% groc_receipt = @receipt_by_week_start && @receipt_by_week_start[groc_mon] %>
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <%= link_to nyk_grocery_path,
+            title: "Open the grocery list",
+            class: "flex-1 group flex items-center gap-3 px-4 py-3 rounded-lg border border-orange-500/40 bg-gradient-to-r from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10 transition" do %>
+        <span class="flex items-center justify-center w-9 h-9 rounded-full bg-orange-500/20 text-orange-300 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </span>
+        <span class="flex flex-col min-w-0">
+          <span class="text-sm font-semibold text-orange-200">Grocery list</span>
+          <span class="text-xs text-orange-300/70">Combined shopping list, pick any date range</span>
+        </span>
+        <%# This week's estimated grocery $ (read from cache; only once the list
+            has been built and price estimates are on). %>
+        <% groc_total = @grocery_total_by_week_start && @grocery_total_by_week_start[groc_mon] %>
+        <% show_est = @show_grocery_prices && groc_total && groc_total > 0 %>
+        <% if show_est %>
+          <span class="ml-auto shrink-0 text-right leading-tight">
+            <span class="block text-base font-extrabold text-orange-200">~<%= number_to_currency(groc_total, precision: 0) %></span>
+            <span class="block text-[10px] uppercase tracking-wide text-orange-300/60">est. total</span>
+          </span>
+        <% end %>
+        <svg class="w-5 h-5 text-orange-400/60 <%= show_est ? "ml-2" : "ml-auto" %> shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      <% end %>
+
+      <%= form_with url: nyk_grocery_receipts_path, method: :post, multipart: true,
+            data: { controller: "receipt-upload" }, class: "flex-1 flex" do %>
+        <%= hidden_field_tag :from, groc_mon.iso8601 %>
+        <%= hidden_field_tag :to, groc_sun.iso8601 %>
+        <%= file_field_tag :receipt, accept: "image/*,application/pdf", class: "hidden",
+              data: { action: "change->receipt-upload#submit" } %>
+        <button type="button" data-action="receipt-upload#open"
+                class="w-full group flex items-center gap-3 px-4 py-3 rounded-lg border border-sky-500/40 bg-gradient-to-r from-sky-500/15 to-sky-500/5 hover:from-sky-500/25 hover:to-sky-500/10 transition text-left">
+          <span class="flex items-center justify-center w-9 h-9 rounded-full bg-sky-500/20 text-sky-300 shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12l-4 4m4-4l4 4"/>
+            </svg>
+          </span>
+          <span class="flex flex-col min-w-0">
+            <span class="text-sm font-semibold text-sky-200">Upload receipt</span>
+            <% if groc_receipt&.parsed? %>
+              <span class="text-xs text-sky-300/70">Saved<%= groc_receipt.total_dollars ? " (#{number_to_currency(groc_receipt.total_dollars, precision: 0)})" : "" %>, sharpening future estimates</span>
+            <% elsif groc_receipt && !groc_receipt.failed? %>
+              <span class="text-xs text-sky-300/70">Reading the last receipt now</span>
+            <% else %>
+              <span class="text-xs text-sky-300/70">Snap your store receipt to track real prices</span>
+            <% end %>
+          </span>
+        </button>
+      <% end %>
+    </div>
+
     <%= render "admin/kitchen/list_panel" %>
   <% end %>
 </div>

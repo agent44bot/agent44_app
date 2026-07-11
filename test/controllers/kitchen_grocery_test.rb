@@ -85,6 +85,12 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_select "form[method=get] button[type=submit]", text: /Generate/
   end
 
+  test "the picker defaults From to today, not the past Monday of the week" do
+    get nyk_grocery_path # default current-week view (range starts Monday)
+    assert_response :success
+    assert_select "input[name=from][value=?]", Date.current.iso8601
+  end
+
   test "a custom from/to range fills the picker with those dates" do
     from = Date.current.iso8601
     to   = (Date.current + 10).iso8601
@@ -426,6 +432,17 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_no_match "est. total", response.body
   ensure
     Rails.cache = original
+  end
+
+  test "grocery + receipt tools sit once at the top, not once per week" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)  # current week
+    add_class("Tacos",   "groc-tac", 8, booked: 10)  # next week
+    get nyk_list_path
+    assert_response :success
+    # One grocery entry point and one receipt uploader for the whole page.
+    assert_select "a[href=?]", nyk_grocery_path, 1
+    assert_select "form[action=?]", nyk_grocery_receipts_path, 1
+    assert_match "Combined shopping list, pick any date range", response.body
   end
 
   # --- Click-only billing: the card total appears only after a grocery visit ---
