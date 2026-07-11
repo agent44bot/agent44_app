@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-11
+  note: Recipes now have their own library page (the new Recipes button at the top of Sam's list). Search every recipe by name or ingredient in one place, and open, print, or delete any of them. The Add a packet page no longer lists every recipe at the bottom, it is now a quick search to copy one, with a link to the full library.
+
+- date: 2026-07-11
   note: The Grocery list and Upload receipt buttons now sit once at the top of Sam's list (right under the search box) instead of repeating inside every week. The grocery button opens the list where you can pick any date range.
 
 - date: 2026-07-11

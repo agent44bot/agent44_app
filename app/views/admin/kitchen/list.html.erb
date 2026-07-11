@@ -26,6 +26,10 @@
         <span class="text-base leading-none">+</span><span>Add a class</span>
       </button>
     <% end %>
+    <%= link_to nyk_recipes_path,
+          class: "flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
+      📖 <span>Recipes</span>
+    <% end %>
     <%= link_to nyk_prices_path,
           class: "flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white text-sm font-medium transition" do %>
       🥫 <span>Pantry</span>

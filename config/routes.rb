@@ -129,9 +129,10 @@ Rails.application.routes.draw do
   post   "nykitchen/packets/:id/suggest_equipment", to: "kitchen_packets#suggest_equipment", as: :nyk_suggest_equipment
   delete "nykitchen/packets/:id",       to: "kitchen_packets#destroy"
   get    "nykitchen/packets/:id/print", to: "kitchen_packets#print",  as: :print_nyk_packet
-  # Legacy redirects: old /handouts URLs and the removed /recipes library page
-  # (search/reuse now lives at the bottom of the new-packet page).
-  get "nykitchen/recipes",            to: redirect("/nykitchen/list")
+  # The recipe/packet library: browse + search every packet on its own page
+  # (moved off the bottom of the new-packet page as the library grew).
+  get "nykitchen/recipes",            to: "kitchen_packets#library", as: :nyk_recipes
+  # Legacy redirects: old /handouts URLs.
   get "nykitchen/handouts/new",       to: redirect("/nykitchen/packets/new")
   get "nykitchen/handouts/:id/edit",  to: redirect("/nykitchen/packets/%{id}/edit")
   get "nykitchen/handouts/:id/print", to: redirect("/nykitchen/packets/%{id}/print")

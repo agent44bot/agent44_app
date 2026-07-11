@@ -23,6 +23,13 @@ class KitchenPacketsController < ApplicationController
     @existing = KitchenPacket.order(updated_at: :desc).to_a
   end
 
+  # The recipe/packet library: a standalone page listing every packet with the
+  # same live search, so it doesn't pile up at the bottom of the new-packet page
+  # as the collection grows. Browse + manage (open, print, delete).
+  def library
+    @packets = KitchenPacket.includes(:links).order(updated_at: :desc).to_a
+  end
+
   # Open a class's recipe lazily (the "+ recipe" icon on Sam's list points here).
   # Decided in order, so AI only fires when there's genuinely nothing to carry
   # forward and it's worth the cost:
