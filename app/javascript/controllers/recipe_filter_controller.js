@@ -7,23 +7,31 @@ import { Controller } from "@hotwired/stimulus"
 // so "ginger" filters to packets that use it with no server round-trip.
 export default class extends Controller {
   static targets = ["card", "query", "empty", "count"]
+  // hideEmpty: on the compact "copy an existing packet" box, keep the list
+  // hidden until the user types, so it doesn't dump every packet up front.
+  // The full library page leaves it false and shows everything.
+  static values = { hideEmpty: Boolean }
+
+  connect() { this.search() }
 
   search() {
     const q = (this.hasQueryTarget ? this.queryTarget.value : "").trim().toLowerCase()
+    const hideAll = this.hideEmptyValue && q === ""
 
     let visible = 0
     this.cardTargets.forEach(card => {
-      const match = q === "" || (card.dataset.searchText || "").includes(q)
+      const match = !hideAll && (q === "" || (card.dataset.searchText || "").includes(q))
       card.classList.toggle("hidden", !match)
       if (match) visible++
     })
 
     if (this.hasEmptyTarget) {
-      this.emptyTarget.classList.toggle("hidden", visible !== 0)
+      // Only flag "no matches" once the user has actually typed something.
+      this.emptyTarget.classList.toggle("hidden", hideAll || visible !== 0)
     }
     if (this.hasCountTarget) {
-      this.countTarget.textContent = q === ""
-        ? `${visible} ${visible === 1 ? "recipe" : "recipes"}`
+      this.countTarget.textContent = hideAll ? ""
+        : q === "" ? `${visible} ${visible === 1 ? "recipe" : "recipes"}`
         : `${visible} matching "${q}"`
     }
   }

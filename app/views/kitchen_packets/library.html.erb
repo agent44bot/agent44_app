@@ -1,0 +1,51 @@
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-10" data-controller="recipe-filter">
+  <div class="flex items-center justify-between gap-3 mb-3">
+    <h1 class="text-2xl font-bold text-white">Recipe library</h1>
+    <%= back_button "← Back to Sam's list", nyk_list_path %>
+  </div>
+  <p class="text-sm text-gray-400 mb-5">Every recipe packet in one place. Search by name or ingredient, then open to edit or print. To add a recipe to a class, use the <span class="text-orange-400">+ recipe</span> button on that class in Sam's list.</p>
+
+  <% if @packets.any? %>
+    <%# Live client-side filter (recipe-filter): all packets are on the page and
+        typing narrows them instantly, no Search button, no reload. %>
+    <input type="search"
+           data-recipe-filter-target="query"
+           data-action="input->recipe-filter#search"
+           placeholder="Search recipes (name or ingredient)…"
+           autocomplete="off" aria-label="Search recipes"
+           class="w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2.5 focus:border-orange-500 focus:outline-none">
+    <p class="text-xs text-gray-500 mt-3 mb-2" data-recipe-filter-target="count"><%= pluralize(@packets.size, "recipe") %></p>
+    <p data-recipe-filter-target="empty" class="hidden text-sm text-gray-500 mb-2">No recipes match that search.</p>
+
+    <div class="space-y-2">
+      <% @packets.each do |packet| %>
+        <% recipe_titles = Array(packet.recipes).map { |r| r["title"] }.compact_blank %>
+        <% used = packet.links.size %>
+        <div data-recipe-filter-target="card" data-search-text="<%= packet.search_text %>"
+             class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
+          <%= link_to edit_nyk_packet_path(packet), class: "min-w-0 flex-1 group" do %>
+            <span class="block text-sm font-semibold text-gray-200 group-hover:text-orange-300 truncate"><%= packet.title %></span>
+            <% if recipe_titles.any? %>
+              <span class="block text-xs text-gray-500 truncate"><%= recipe_titles.join(" · ") %></span>
+            <% end %>
+            <span class="block text-[11px] text-gray-600 mt-0.5">
+              <%= used.zero? ? "Not on a class yet" : "On #{pluralize(used, "class")}" %> · updated <%= packet.updated_at.strftime("%b %-d") %>
+            </span>
+          <% end %>
+          <div class="flex items-center gap-2 shrink-0">
+            <%= link_to "Open", edit_nyk_packet_path(packet),
+                  class: "text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300" %>
+            <%= link_to "Print", print_nyk_packet_path(packet), target: "_blank", rel: "noopener",
+                  class: "text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300" %>
+            <%= button_to "Delete", nyk_packet_path(packet), method: :delete,
+                  params: { return_to: nyk_recipes_path },
+                  form: { data: { turbo_confirm: "Delete \"#{packet.title}\"? This can't be undone." } },
+                  class: "text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-red-900/40 text-gray-400 hover:text-red-300 cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-sm text-gray-500">No recipes yet. Add one from a class on <%= link_to "Sam's list", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>.</p>
+  <% end %>
+</div>

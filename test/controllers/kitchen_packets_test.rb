@@ -310,6 +310,33 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_match "data-equipment-tags-save-url-value", response.body # equipment auto-save wired
   end
 
+  test "the recipe library lists every packet with search and manage actions" do
+    p1 = KitchenPacket.create!(title: "Sushi Rolls", data: { "recipes" => EXTRACTED })
+    p2 = KitchenPacket.create!(title: "Macarons", data: { "recipes" => EXTRACTED })
+    get nyk_recipes_path
+    assert_response :success
+    assert_select "input[data-recipe-filter-target='query']", 1, "the library has its own search"
+    assert_match "Sushi Rolls", response.body
+    assert_match "Macarons", response.body
+    assert_select "a[href=?]", edit_nyk_packet_path(p1)   # Open/edit
+    assert_select "a[href=?]", print_nyk_packet_path(p1)  # Print
+    assert_select "form[action=?]", nyk_packet_path(p1)   # Delete (button_to)
+  end
+
+  test "Sam's list links to the recipe library" do
+    get nyk_list_path
+    assert_response :success
+    assert_select "a[href=?]", nyk_recipes_path
+  end
+
+  test "the add-a-packet page links to the library and defers the copy list until typed" do
+    KitchenPacket.create!(title: "Sushi Rolls", data: { "recipes" => EXTRACTED })
+    get new_nyk_packet_path
+    assert_response :success
+    assert_select "a[href=?]", nyk_recipes_path                       # Browse all recipes
+    assert_select "[data-recipe-filter-hide-empty-value='true']", 1   # list hidden until typed
+  end
+
   test "update_equipment auto-saves the equipment list without touching recipes" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ] })
     patch nyk_packet_equipment_path(packet), params: { equipment: "Whisk\nCast iron skillet" }
