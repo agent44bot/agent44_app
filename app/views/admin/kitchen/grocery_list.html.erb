@@ -14,13 +14,13 @@
 <% single = @single_class %>
 <% single_event = single ? @with_recipe.first&.dig(:event) : nil %>
 <% sheet_title = single ? "NY Kitchen Pull Sheet" : "NY Kitchen Grocery List" %>
+<%# Carry the exact window the page is showing onto the download/print links.
+    from/to covers the week pills AND a custom date range; @range is always set. %>
 <% action_params =
      if single
        { event_url: @event_url, name: @event_name }
-     elsif @week_mode
-       { from: @range.first.iso8601, to: @range.last.iso8601 }
      else
-       { days: @days || @default_days }
+       { from: @range.first.iso8601, to: @range.last.iso8601 }
      end %>
 
 <%# data-controller goes on a wrapper INSIDE the frame, not on the frame tag:
