@@ -77,6 +77,23 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal 0, @agg_calls, "shell must not call the aggregator"
   end
 
+  test "the grocery shell offers a custom From/To date range picker" do
+    get nyk_grocery_path
+    assert_response :success
+    assert_select "input[type=date][name=from]"
+    assert_select "input[type=date][name=to]"
+    assert_select "form[method=get] button[type=submit]", text: /Generate/
+  end
+
+  test "a custom from/to range fills the picker with those dates" do
+    from = Date.current.iso8601
+    to   = (Date.current + 10).iso8601
+    get nyk_grocery_path(from: from, to: to)
+    assert_response :success
+    assert_select "input[name=from][value=?]", from
+    assert_select "input[name=to][value=?]", to
+  end
+
   # --- Background build: the frame never blocks on the slow Claude call --------
 
   test "a cold frame kicks off one background build and shows the building state" do
