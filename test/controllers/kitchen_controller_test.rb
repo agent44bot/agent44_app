@@ -619,6 +619,20 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "Class 6", response.body
   end
 
+  test "display: shows the workspace logo in the slim header when one is attached" do
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
+    ws.logo.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")),
+                   filename: "logo.png", content_type: "image/png")
+    create_event("Logo Class", 3.days.from_now, "InStock")
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    assert_select "header.header img.brand-logo"
+    # The title text and status line stay hidden; only the logo and underline remain.
+    refute_match "What's Coming Up", response.body.split("</head>").last.to_s
+    refute_match(/Next \d+ of \d+ available/, response.body)
+  end
+
   test "display: private mode returns 404 without a token" do
     create_event("Hidden Class", 3.days.from_now, "InStock")
     nyk_display_agent.update_settings(visibility: "private")

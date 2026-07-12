@@ -187,8 +187,17 @@
 </head>
 <body>
   <div class="page">
-    <%# Header (logo, "What's Coming Up" title, and the "Next X of Y available"
-        status) hidden so the tasting-room screen is just the cycling classes. %>
+    <%# Slim header: just the logo and the underline. The "What's Coming Up"
+        title and the "Next X of Y available" status are hidden so the screen is
+        mostly the cycling classes. %>
+    <header class="header">
+      <div class="brand-row">
+        <% if @display_workspace&.logo&.attached? %>
+          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
+        <% end %>
+      </div>
+    </header>
+
     <main class="stage">
       <% if @events.any? %>
         <% @events.each_with_index do |event, i| %>
