@@ -107,18 +107,19 @@ module ApplicationHelper
   end
 
   # QR for a class that resolves through our trackable redirect (/nykitchen/r/:token)
-  # so we can count scans, instead of encoding the raw class URL.
-  def nyk_scan_qr(event, workspace: nil)
-    nyk_scan_qr_url(event.url, workspace: workspace)
+  # so we can count scans, instead of encoding the raw class URL. Pass source:
+  # "display" for the tasting-room screen so those scans are tracked but not billed.
+  def nyk_scan_qr(event, workspace: nil, source: nil)
+    nyk_scan_qr_url(event.url, workspace: workspace, source: source)
   end
 
   # Trackable QR for any destination URL (e.g. the footer "all classes" calendar
   # link, not just a single class). Falls back to a plain QR if anything goes
   # wrong: a flyer must always print a working code.
-  def nyk_scan_qr_url(url, workspace: nil)
+  def nyk_scan_qr_url(url, workspace: nil, source: nil)
     return qr_svg(url) if url.blank?
     link = TrackedLink.for_url(url, workspace: workspace)
-    qr_svg(nyk_scan_url(link.token))
+    qr_svg(nyk_scan_url(link.token, **{ src: source.presence }.compact))
   rescue => e
     Rails.logger.warn("nyk_scan_qr_url fell back to raw url: #{e.class}: #{e.message}")
     qr_svg(url)

@@ -640,15 +640,20 @@ class KitchenController < ApplicationController
   def scan_redirect
     link = TrackedLink.find_by(token: params[:token].to_s)
     if link
+      # "display" = a scan off the tasting-room screen (src=display on the QR);
+      # anything else is a printed flyer/poster scan.
+      source = params[:src].to_s.presence
       link.link_scans.create(
         scanned_at: Time.current,
         user_agent: request.user_agent.to_s.first(500).presence,
-        referrer:   request.referer.to_s.first(500).presence
+        referrer:   request.referer.to_s.first(500).presence,
+        source:     source
       )
-      # Monetize the scan: 44 cents, billed to the link's workspace (public
-      # endpoint, so no user). Only real (known-token) scans are billable.
+      # Monetize the scan, billed to the link's workspace (public endpoint, so no
+      # user). Flyer scans bill; display-screen scans are tracked only, never
+      # billed (Chris's TV shouldn't run up NYK's tab).
       scan_ws = link.workspace || Workspace.find_by(slug: "nykitchen")
-      if scan_ws
+      if scan_ws && source != "display"
         UsageEvent.record!(workspace: scan_ws, kind: UsageEvent::FLYER_SCAN,
                            unit_cents: scan_ws.effective_flyer_unit_cents,
                            metadata: { token: link.token })
@@ -1270,7 +1275,11 @@ class KitchenController < ApplicationController
   def load_qr_scan_report
     since = 30.days.ago
     scans = LinkScan.for_workspace(@workspace).since(since)
-    @scan_total_month = LinkScan.for_workspace(@workspace).this_month.count
+    month = LinkScan.for_workspace(@workspace).this_month
+    @scan_total_month   = month.count
+    # Split this month's scans: display-screen scans are tracked but not billed.
+    @scan_display_month = month.where(source: "display").count
+    @scan_flyer_month   = @scan_total_month - @scan_display_month
     @scan_total_30d   = scans.count
     @scan_by_url = scans.joins(:tracked_link)
                         .group("tracked_links.url")

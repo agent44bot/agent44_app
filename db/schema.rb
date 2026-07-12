@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_12_020000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -442,6 +442,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_120000) do
   create_table "link_scans", force: :cascade do |t|
     t.string "referrer"
     t.datetime "scanned_at", null: false
+    t.string "source"
     t.integer "tracked_link_id", null: false
     t.string "user_agent"
     t.index ["scanned_at"], name: "index_link_scans_on_scanned_at"

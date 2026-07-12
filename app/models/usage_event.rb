@@ -23,11 +23,15 @@ class UsageEvent < ApplicationRecord
   FLYER_UNIT_CENTS = 44
 
   # Total flyer/scan revenue (dollars) for a workspace in a period.
+  # Revenue = prints + scans in the period times the workspace's CURRENT rate,
+  # so changing the flyer rate re-prices the whole period immediately (NYK sets
+  # one rate; we don't honor each row's rate-at-the-time). Display-screen scans
+  # never create a UsageEvent, so they're excluded here automatically.
   def self.flyer_revenue_dollars(workspace, range)
     return 0.0 unless workspace
-    cents = where(workspace: workspace, kind: FLYER_KINDS).in_period(range)
-              .sum(Arel.sql("quantity * unit_cents"))
-    cents.to_i / 100.0
+    qty  = where(workspace: workspace, kind: FLYER_KINDS).in_period(range).sum(:quantity)
+    rate = workspace.effective_flyer_unit_cents
+    (qty.to_i * rate.to_i) / 100.0
   end
 
   # Log one metered action. Defaults to a single penny so "track, don't charge
