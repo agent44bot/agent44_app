@@ -187,16 +187,14 @@
 </head>
 <body>
   <div class="page">
+    <%# Slim header: just the logo and the underline. The "What's Coming Up"
+        title and the "Next X of Y available" status are hidden so the screen is
+        mostly the cycling classes. %>
     <header class="header">
       <div class="brand-row">
         <% if @display_workspace&.logo&.attached? %>
-          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="">
+          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
         <% end %>
-        <div class="brand">New York Kitchen · What's Coming Up</div>
-      </div>
-      <div class="meta">
-        <span class="pulse"></span>
-        <span>Next <%= @events.size %> of <%= @available_total %> available<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></span>
       </div>
     </header>
 
