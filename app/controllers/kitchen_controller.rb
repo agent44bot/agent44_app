@@ -529,7 +529,9 @@ class KitchenController < ApplicationController
       head :not_found and return
     end
     snapshot = KitchenSnapshot.latest
-    available = snapshot ? snapshot.kitchen_events.upcoming.reject(&:sold_out?) : []
+    # Skip sold-out and private events (we don't promote private bookings on the
+    # walk-in screen, same as the printed flyer).
+    available = snapshot ? snapshot.kitchen_events.upcoming.reject { |e| e.sold_out? || e.private_event? } : []
     @events = available.first(@agent.setting(:slide_count).to_i)
     @available_total = available.size
     @last_updated = snapshot&.taken_on
