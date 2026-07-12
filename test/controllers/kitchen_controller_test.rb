@@ -107,6 +107,13 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to nyk_test_path(status: "failed")
   end
 
+  test "the layout warms nykitchen.com and wires the native-links controller" do
+    get nyk_list_path
+    assert_response :success
+    assert_select "link[rel=preconnect][href=?]", "https://nykitchen.com"
+    assert_select "body[data-controller~='native-links']"
+  end
+
   test "week headers show availability bar with red and green only" do
     # Create events this week: 2 available, 1 sold out, 1 limited
     # Limited rolls into "available" for the binary bar.

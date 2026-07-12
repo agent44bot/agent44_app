@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-12
+  note: In the iPhone app, tapping a class opens the nykitchen.com page in a fast in-app browser (with a Done button) instead of kicking out to Safari, which was slow to hand off. The app also pre-warms the connection to nykitchen.com so pages start loading sooner.
+
+- date: 2026-07-12
   note: QR scans from the tasting room screen are now tracked separately and are not billed, only printed flyer and poster scans are billed. The Display settings scan report shows the flyer vs screen split.
 
 - date: 2026-07-12
