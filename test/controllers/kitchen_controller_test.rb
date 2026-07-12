@@ -633,6 +633,16 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match(/Next \d+ of \d+ available/, response.body)
   end
 
+  test "display: hides private events from the slideshow" do
+    create_event("Public Sushi Class", 2.days.from_now, "InStock")
+    create_event("Classroom Reserved for Private Event", 3.days.from_now, "InStock")
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    assert_match "Public Sushi Class", response.body
+    refute_match "Private Event", response.body
+  end
+
   test "display: private mode returns 404 without a token" do
     create_event("Hidden Class", 3.days.from_now, "InStock")
     nyk_display_agent.update_settings(visibility: "private")
