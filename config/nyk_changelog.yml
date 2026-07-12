@@ -9,6 +9,12 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-12
+  note: QR scans from the tasting room screen are now tracked separately and are not billed, only printed flyer and poster scans are billed. The Display settings scan report shows the flyer vs screen split.
+
+- date: 2026-07-12
+  note: Changing the per-print/scan flyer rate now updates the current month's total right away. The whole month is priced at your current rate, instead of locking each scan at the rate it happened.
+
+- date: 2026-07-12
   note: The tasting room screen (Neon display) no longer shows private events, since we don't promote those to walk-ins. This matches the printed flyer, which already skips them.
 
 - date: 2026-07-12

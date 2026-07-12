@@ -226,7 +226,7 @@
               <% end %>
               <% if @agent.setting(:show_qr) && event.url.present? %>
                 <div class="qr-block">
-                  <div class="qr-code"><%= nyk_scan_qr(event, workspace: @display_workspace) %></div>
+                  <div class="qr-code"><%= nyk_scan_qr(event, workspace: @display_workspace, source: "display") %></div>
                   <div class="qr-cap">Scan to reserve</div>
                 </div>
               <% end %>

@@ -37,10 +37,24 @@ class FlyerMonetizationTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "flyer_revenue_dollars sums prints + scans at 44 cents" do
+  test "a display-screen scan is tracked but not billed" do
+    link = TrackedLink.for_url(@event.url, workspace: @ws)
+    assert_no_difference -> { UsageEvent.count } do
+      assert_difference -> { link.link_scans.count }, 1 do
+        get nyk_scan_path(link.token, src: "display")
+      end
+    end
+    assert_equal "display", link.link_scans.order(:id).last.source
+  end
+
+  test "flyer_revenue_dollars = prints + scans at the workspace's CURRENT rate" do
     3.times { UsageEvent.record!(workspace: @ws, kind: UsageEvent::FLYER_PRINT, unit_cents: 44) }
     5.times { UsageEvent.record!(workspace: @ws, kind: UsageEvent::FLYER_SCAN, unit_cents: 44) }
     assert_in_delta 3.52, UsageEvent.flyer_revenue_dollars(@ws, 1.day.ago..Time.current), 0.001
+    # Changing the rate re-prices the whole period, even though the rows were
+    # logged at 44 cents.
+    @ws.update!(flyer_unit_cents: 4)
+    assert_in_delta 0.32, UsageEvent.flyer_revenue_dollars(@ws, 1.day.ago..Time.current), 0.001
   end
 
   test "Neon card shows revenue to a manager but not to a plain member" do
