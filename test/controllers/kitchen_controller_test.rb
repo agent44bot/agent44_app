@@ -612,12 +612,11 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     delete session_path
     get nyk_display_path
     assert_response :success
-    # 3 slides actually rendered; "Class 6" exists but should be omitted.
+    # Exactly 3 slides rendered; "Class 6" exists but should be omitted.
+    assert_select "article.slide", 3
     assert_match "Class 0", response.body
     assert_match "Class 2", response.body
     refute_match "Class 6", response.body
-    # Header should show "Next 3 of 7"
-    assert_match(/Next 3 of 7/, response.body)
   end
 
   test "display: private mode returns 404 without a token" do
@@ -666,16 +665,6 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "190.00",  response.body
   end
 
-  test "display: shows the workspace logo in the header when one is attached" do
-    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
-    ws.logo.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")),
-                   filename: "logo.png", content_type: "image/png")
-    create_event("Logo Class", 3.days.from_now, "InStock")
-    delete session_path
-    get nyk_display_path
-    assert_response :success
-    assert_select "img.brand-logo"
-  end
 
   test "display: footer points to the calendar to reserve" do
     create_event("Footer Class", 3.days.from_now, "InStock")

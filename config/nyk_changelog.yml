@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-12
+  note: The tasting room screen (Neon display) now shows just the cycling classes. The logo, the "What's Coming Up" title, and the "Next X of Y available" status line at the top are hidden for a cleaner full-screen look on the TV.
+
 - date: 2026-07-11
   note: Recipes now have their own library page (the new Recipes button at the top of Sam's list). Search every recipe by name or ingredient in one place, and open, print, or delete any of them. The Add a packet page no longer lists every recipe at the bottom, it is now a quick search to copy one, with a link to the full library.
 

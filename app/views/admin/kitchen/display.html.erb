@@ -187,19 +187,8 @@
 </head>
 <body>
   <div class="page">
-    <header class="header">
-      <div class="brand-row">
-        <% if @display_workspace&.logo&.attached? %>
-          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="">
-        <% end %>
-        <div class="brand">New York Kitchen · What's Coming Up</div>
-      </div>
-      <div class="meta">
-        <span class="pulse"></span>
-        <span>Next <%= @events.size %> of <%= @available_total %> available<% if @last_updated %> · updated <%= @last_updated.strftime("%b %-d") %><% end %></span>
-      </div>
-    </header>
-
+    <%# Header (logo, "What's Coming Up" title, and the "Next X of Y available"
+        status) hidden so the tasting-room screen is just the cycling classes. %>
     <main class="stage">
       <% if @events.any? %>
         <% @events.each_with_index do |event, i| %>

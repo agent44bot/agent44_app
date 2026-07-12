@@ -23,7 +23,6 @@ class DisplaySystemTest < SystemTestCase
     @display.visit
 
     assert_equal 200, @display.response_status
-    assert_match(/NY Kitchen/i, @display.header_text)
     assert @display.slides.size > 0, "Expected at least one slide on the display"
   end
 
