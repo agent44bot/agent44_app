@@ -818,6 +818,30 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_in_delta Time.current, seen, 5.seconds
   end
 
+  test "display_heartbeat resolves the screen's city, once per changed IP" do
+    nyk_display_agent.update_settings(visibility: "private")
+    token = nyk_display_agent.share_token_or_generate!
+
+    assert_enqueued_with(job: ResolveDisplayLocationJob) do
+      post nyk_display_heartbeat_path, params: { token: token }
+    end
+    # A second beat from the same IP does not re-run the lookup.
+    assert_no_enqueued_jobs only: ResolveDisplayLocationJob do
+      post nyk_display_heartbeat_path, params: { token: token }
+    end
+  end
+
+  test "hub shows the located city on the Neon card when the carousel is live" do
+    nyk_display_agent.update_settings(visibility: "private")
+    Setting.touch_time("nyk_display:last_seen_at")
+    Setting.set("nyk_display:city", "Rochester, NY")
+
+    get nykitchen_path
+    assert_response :success
+    assert_match "Carousel live at Rochester, NY", response.body
+    assert_no_match "Carousel live at NY Kitchen", response.body
+  end
+
   test "display_heartbeat ignores a wrong or blank token" do
     nyk_display_agent.update_settings(visibility: "private")
     nyk_display_agent.share_token_or_generate!
@@ -837,7 +861,9 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     get nykitchen_path
     assert_response :success
-    assert_match "Carousel live at NY Kitchen", response.body
+    # No located city yet: shows the plain live state, without over-claiming NYK.
+    assert_match "Carousel live", response.body
+    assert_no_match "Carousel live at", response.body
   end
 
   test "hub shows the Display Agent red when private but no recent heartbeat" do
@@ -846,7 +872,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     get nykitchen_path
     assert_response :success
-    assert_match "Not running at NY Kitchen", response.body
+    assert_match "Not running", response.body
     assert_match "bg-red-500", response.body
   end
 

@@ -489,7 +489,7 @@
 
     <%# Display / Neon %>
     <%= link_to nyk_display_settings_path, class: "ra-card", style: accent_style.call(:display) do %>
-      <span class="ra-corner"><% if @hub_agent_status[:display] %><%= agent_dot.call(@hub_agent_status[:display], @hub_agent_status[:display] == :running ? "Carousel live at NY Kitchen" : "Carousel NOT running at NY Kitchen") %><% end %><span class="ra-chev">▶</span></span>
+      <span class="ra-corner"><% if @hub_agent_status[:display] %><%= agent_dot.call(@hub_agent_status[:display], @hub_agent_status[:display] == :running ? "Carousel live#{" at #{@hub_display_city}" if @hub_display_city}" : "Carousel NOT running") %><% end %><span class="ra-chev">▶</span></span>
       <div class="ra-head"><%= agent_ident.call(:display) %></div>
       <% display_agent = @workspace_agents["display"] %>
       <p class="<%= desc_class %>">Cycles your live classes on a screen for walk-in customers — sold-out classes drop off automatically. Also prints a paper schedule for the front desk.</p>
@@ -514,9 +514,9 @@
             Red = the carousel isn't playing on the NY Kitchen screen. %>
         <% case @hub_agent_status[:display] %>
         <% when :running %>
-          <div class="text-green-400 font-semibold">● Carousel live at NY Kitchen</div>
+          <div class="text-green-400 font-semibold">● Carousel live<%= " at #{@hub_display_city}" if @hub_display_city %></div>
         <% when :failed %>
-          <div class="text-red-400 font-semibold">⚠ Not running at NY Kitchen<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
+          <div class="text-red-400 font-semibold">⚠ Not running<%= " · last seen #{time_ago_in_words(@hub_display_last_seen)} ago" if @hub_display_last_seen %></div>
         <% end %>
         <div class="text-gray-300"><span class="font-semibold text-white"><%= display_agent&.setting(:slide_count) || 5 %></span> slides · <%= display_agent&.setting(:advance_seconds) || 10 %>s each</div>
         <%# Flyer/scan readouts right-aligned so they stack above the $/mo total

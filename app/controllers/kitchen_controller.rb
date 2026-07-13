@@ -682,6 +682,14 @@ class KitchenController < ApplicationController
     if token.present? && ActiveSupport::SecurityUtils.secure_compare(params[:token].to_s, token)
       Setting.touch_time("nyk_display:last_seen_at")
       DisplayHeartbeat.record! # per-day presence for Neon's weekly uptime brief
+      # Resolve the screen's city (off the request) so the hub can show where the
+      # carousel actually is. Only when the client IP changes, so we don't churn
+      # a lookup on every 60s beat. Fly's edge exposes the real IP in a header.
+      ip = request.headers["Fly-Client-IP"].presence || request.remote_ip
+      if ip.present? && Setting.get("nyk_display:last_ip") != ip
+        Setting.set("nyk_display:last_ip", ip)
+        ResolveDisplayLocationJob.perform_later(ip)
+      end
     end
     head :no_content
   end
@@ -1587,6 +1595,9 @@ class KitchenController < ApplicationController
     @hub_dow_avg = KitchenSnapshot.tickets_sold_by_wday
 
     @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
+    # Geolocated "City, ST" of the screen's last heartbeat (set by
+    # ResolveDisplayLocationJob). nil until the first located beat lands.
+    @hub_display_city = Setting.get("nyk_display:city").presence
     @hub_agent_status = {
       list:    list_agent_status,
       test:    test_agent_status,
