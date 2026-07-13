@@ -1178,6 +1178,17 @@ class KitchenController < ApplicationController
     @result, @from_cache = svc.fetch(@with_recipe, write: false)
     return if @result
 
+    # Not built yet. The build is a slow, paid Opus call, so the main grocery
+    # list waits for the user to hit "Generate" (params[:generate]) instead of
+    # billing on a plain page visit. A cached list still renders on its own
+    # above. Pull sheets (@single_class) and downloads/prints build on demand as
+    # before. When there is nothing to show yet, offer the Generate button.
+    unless @single_class || params[:generate].present? ||
+           params[:download].present? || params[:print].present?
+      @needs_generate = true
+      return
+    end
+
     @building = true
     key    = KitchenAi::GroceryList.cache_key(@with_recipe, svc.observed_prices)
     marker = "#{key}:building"
