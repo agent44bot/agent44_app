@@ -225,8 +225,10 @@
         </div>
 
         <!-- Right: Auth -->
+        <% nav_unread = authenticated? ? Current.user.notifications.unread.count : 0 %>
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
+            <%= render "shared/notifications_bell", unread: nav_unread %>
             <% if Current.user.admin? %>
               <%= link_to admin_track_path(range: "today"),
                     class: "inline-flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:text-amber-300 transition" do %>
@@ -303,6 +305,12 @@
           <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
         <% end %>
         <% if authenticated? %>
+          <%= link_to notifications_path, class: "flex items-center justify-between px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" do %>
+            <span>🔔 Notifications</span>
+            <% if nav_unread.positive? %>
+              <span class="notif-badge min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-600 text-white text-xs font-bold"><%= nav_unread > 99 ? "99+" : nav_unread %></span>
+            <% end %>
+          <% end %>
           <%= link_to "Workspaces", workspaces_path(force: 1), class: "block px-3 py-2 rounded-md text-base font-medium text-orange-500 hover:bg-gray-800" %>
         <% end %>
         <% if authenticated? && Current.user.admin? %>
