@@ -12,6 +12,9 @@
   note: Fixed a bug where a class happening that evening could drop off Sam's list between 8pm and midnight (a time-zone rollover on the server). Tonight's classes now stay visible until they actually start.
 
 - date: 2026-07-12
+  note: Added a bell icon in the top bar that opens your Notifications page, with a count showing how many you have not read yet. It was there before but only reachable by tapping an alert; now there is always a way to find it.
+
+- date: 2026-07-12
   note: In the iPhone app, tapping a class opens the nykitchen.com page in a fast in-app browser (with a Done button) instead of kicking out to Safari, which was slow to hand off. The app also pre-warms the connection to nykitchen.com so pages start loading sooner.
 
 - date: 2026-07-12
