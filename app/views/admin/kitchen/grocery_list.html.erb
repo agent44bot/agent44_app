@@ -29,6 +29,19 @@
 <%= turbo_frame_tag "grocery_list" do %>
   <% if @building %>
     <%= render "admin/kitchen/grocery_building" %>
+  <% elsif @needs_generate %>
+    <%# The list isn't built yet and this is a plain visit: don't auto-bill the
+        Opus call. Let the user kick it off. Clicking navigates this same frame
+        with generate=1, which enqueues the build and swaps in the spinner. %>
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <p class="text-gray-300 text-sm mb-1"><%= pluralize(@with_recipe.size, "class") %> with recipes, <%= pluralize(@total_headcount, "person") %> booked</p>
+      <p class="text-gray-500 text-xs mb-5 max-w-xs">Combine every class's recipe into one shopping list for <%= @range.first.strftime("%b %-d") %> to <%= @range.last.strftime("%b %-d") %>. This runs the Opus model and takes up to a minute.</p>
+      <%= link_to nyk_grocery_path(action_params.merge(generate: 1)),
+            data: { turbo_frame: "grocery_list" },
+            class: "px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" do %>
+        Generate grocery list
+      <% end %>
+    </div>
   <% else %>
   <div data-controller="recipe-popover" data-recipe-popover-recipes-value="<%= (@recipe_by_tag || {}).to_json %>">
   <p class="text-sm text-gray-400 mb-6">

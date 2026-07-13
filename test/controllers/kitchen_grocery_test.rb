@@ -63,7 +63,9 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
   # next frame request renders the finished list. This helper runs that whole
   # cycle and leaves `response` on the final, built list.
   def frame_grocery(**params)
-    get nyk_grocery_path(**params), headers: FRAME
+    # The main list waits for a Generate click before billing, so trigger the
+    # build explicitly (generate: 1). Pull sheets (event_url) build on their own.
+    get nyk_grocery_path(**params.merge(generate: 1)), headers: FRAME
     perform_enqueued_jobs
     get nyk_grocery_path(**params), headers: FRAME
   end
@@ -102,10 +104,22 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
 
   # --- Background build: the frame never blocks on the slow Claude call --------
 
-  test "a cold frame kicks off one background build and shows the building state" do
+  test "a cold frame waits for Generate and never bills on a plain visit" do
+    add_class("Ravioli", "groc-rav", 1, booked: 12)
+    assert_no_enqueued_jobs do
+      get nyk_grocery_path, headers: FRAME
+    end
+    assert_response :success
+    assert_match "Generate grocery list", response.body
+    assert_no_match "Building your grocery list", response.body
+    assert_no_match "NY Kitchen Grocery List", response.body
+    assert_equal 0, @agg_calls, "a plain visit never calls the aggregator"
+  end
+
+  test "hitting Generate kicks off one background build and shows the building state" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
     assert_enqueued_with(job: BuildGroceryListJob) do
-      get nyk_grocery_path, headers: FRAME
+      get nyk_grocery_path(generate: 1), headers: FRAME
     end
     assert_response :success
     assert_match "Building your grocery list", response.body
@@ -117,14 +131,14 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
   test "polling the frame before the build finishes enqueues only one job" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
     assert_enqueued_jobs 1, only: BuildGroceryListJob do
-      get nyk_grocery_path, headers: FRAME
-      get nyk_grocery_path, headers: FRAME # a poll arriving before the job runs
+      get nyk_grocery_path(generate: 1), headers: FRAME
+      get nyk_grocery_path(generate: 1), headers: FRAME # a poll before the job runs
     end
   end
 
   test "the background build caches the list the next poll renders" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
-    get nyk_grocery_path, headers: FRAME  # building; enqueues the job
+    get nyk_grocery_path(generate: 1), headers: FRAME  # building; enqueues the job
     assert_match "Building your grocery list", response.body
     perform_enqueued_jobs                  # the job aggregates + caches
     assert_equal 1, @agg_calls
@@ -135,7 +149,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
 
   test "a cold frame registers the build so the navbar bar can track it" do
     add_class("Ravioli", "groc-rav", 1, booked: 12)
-    get nyk_grocery_path, headers: FRAME
+    get nyk_grocery_path(generate: 1), headers: FRAME
     g = GroceryBuildStatus.current(@user.id)
     assert g, "the build should be registered for the app-wide navbar bar"
     assert_equal "building", g[:status]
