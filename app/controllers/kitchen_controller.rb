@@ -1316,7 +1316,11 @@ class KitchenController < ApplicationController
     snapshot = KitchenSnapshot.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming.order(:start_at)
-      today = Date.today
+      # Use the app's zone (Eastern), NOT Date.today (the server's UTC date). On
+      # the UTC-hosted prod machine, Date.today rolls to "tomorrow" at 8pm ET, so
+      # a Sunday-evening class would fall before this Monday's week bucket and
+      # vanish from the list until midnight ET. Date.current is zone-aware.
+      today = Date.current
       days_until_sunday = (7 - today.cwday) % 7
       this_sunday = today + days_until_sunday
 

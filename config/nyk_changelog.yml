@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-13
+  note: Fixed a bug where a class happening that evening could drop off Sam's list between 8pm and midnight (a time-zone rollover on the server). Tonight's classes now stay visible until they actually start.
+
 - date: 2026-07-12
   note: In the iPhone app, tapping a class opens the nykitchen.com page in a fast in-app browser (with a Done button) instead of kicking out to Safari, which was slow to hand off. The app also pre-warms the connection to nykitchen.com so pages start loading sooner.
 
