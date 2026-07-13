@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-13
+  note: The Neon card now shows the city where the carousel is actually playing (from the screen's internet connection) instead of always saying "at NY Kitchen", so you can tell a real tasting-room screen from a stray browser tab open somewhere else.
+
+- date: 2026-07-13
   note: Fixed a bug where a class happening that evening could drop off Sam's list between 8pm and midnight (a time-zone rollover on the server). Tonight's classes now stay visible until they actually start.
 
 - date: 2026-07-12
