@@ -56,7 +56,17 @@ module Trackable
   # tab racked up hundreds of hits with zero real activity. These sit under the
   # kitchen controller (not /api), so the api/rails skip above misses them; list
   # each poll path explicitly. (agent_status polls /api/*, already excluded.)
-  POLL_PATHS = [ "/nykitchen/packets/active_builds" ].freeze
+  # The in-store Neon display is a left-open kiosk tab, not a visitor: a
+  # <meta refresh> reloads /nykitchen/display and JS POSTs the heartbeat every
+  # 60s, forever. Left in, a single always-on screen dominates the anonymous
+  # visitor stats (hundreds of hits/day, phantom "sessions"). Skip both. The
+  # heartbeat still updates the hub's liveness dot + city via the controller
+  # action; it just no longer writes a PageView.
+  POLL_PATHS = [
+    "/nykitchen/packets/active_builds",
+    "/nykitchen/display",
+    "/nykitchen/display/heartbeat"
+  ].freeze
 
   def tracked_path
     QUERY_TRACKED_PATHS.include?(request.path) ? request.fullpath : request.path

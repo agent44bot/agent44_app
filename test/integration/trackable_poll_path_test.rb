@@ -18,6 +18,22 @@ class TrackablePollPathTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the always-on Neon display page is not tracked" do
+    assert_no_difference -> { PageView.count } do
+      perform_enqueued_jobs do
+        get "/nykitchen/display", headers: { "User-Agent" => UA }
+      end
+    end
+  end
+
+  test "the display heartbeat ping is not tracked" do
+    assert_no_difference -> { PageView.count } do
+      perform_enqueued_jobs do
+        post "/nykitchen/display/heartbeat", headers: { "User-Agent" => UA }
+      end
+    end
+  end
+
   test "a real page load on the same prefix is still tracked" do
     perform_enqueued_jobs do
       get "/nykitchen", headers: { "User-Agent" => UA }
