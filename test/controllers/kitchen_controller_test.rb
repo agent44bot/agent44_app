@@ -772,9 +772,19 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     patch nyk_display_settings_path, params: { settings: { slide_count: 99 } }
     assert_redirected_to nyk_display_settings_path
-    assert_equal "Only workspace admins can change Display settings.", flash[:alert]
+    assert_equal "Viewers can't change Display settings. Ask a workspace owner or admin for editor access.", flash[:alert]
 
     assert_equal original, nyk_display_agent.reload.setting(:slide_count)
+  end
+
+  test "update_display_settings: editor can save" do
+    editor = User.create!(email_address: "kc-ed-#{SecureRandom.hex(4)}@example.com")
+    nyk_workspace.memberships.create!(user: editor, role: "editor")
+    sign_in_as(editor)
+
+    patch nyk_display_settings_path, params: { settings: { advance_seconds: 45 } }
+    assert_redirected_to nyk_display_settings_path
+    assert_equal 45, nyk_display_agent.reload.setting(:advance_seconds)
   end
 
   test "update_display_settings: flipping to private generates a share token" do
