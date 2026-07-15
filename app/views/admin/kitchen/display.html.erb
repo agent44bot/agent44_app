@@ -196,29 +196,38 @@
       .slide.with-image.active {
         display: flex;
         flex-direction: column;
-        gap: 3vh;
+        gap: 2.4vh;
         text-align: left;
       }
+      /* Vertical budget is tuned so the photo, text, and QR all fit on one
+         9:16 screen even when the title runs long: image ~30vh up top, text
+         fills the middle, QR pinned at the bottom via margin-top:auto. The
+         text wrapper clips rather than pushing the QR off the screen. */
       .slide.with-image .hero-image {
         order: 1;
         width: 100%;
-        max-height: 44vh;
+        max-height: 30vh;
       }
       .slide.with-image > div {
         order: 2;
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 2.2vh;
+        gap: 1.6vh;
         min-height: 0;
+        overflow: hidden;
       }
       .slide.with-image .name {
-        font-size: clamp(38px, 5.4vh, 92px);
+        font-size: clamp(30px, 4vh, 66px);
         margin-bottom: 0;
         -webkit-line-clamp: 3;
         line-clamp: 3;
       }
-      .slide.with-image .qr-block { margin-top: auto; }
+      .slide.with-image .blurb {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+      }
+      .slide.with-image .qr-block { margin-top: auto; padding-top: 1vh; }
 
       /* Non-image slides: center and fill the tall screen instead of
          sitting up top. */
@@ -230,18 +239,18 @@
       }
       .slide:not(.with-image) .name { font-size: clamp(40px, 6vh, 104px); }
 
-      .when  { font-size: clamp(20px, 2.7vh, 44px); }
-      .price { font-size: clamp(24px, 3vh, 52px); }
+      .when  { font-size: clamp(20px, 2.6vh, 42px); }
+      .price { font-size: clamp(24px, 3vh, 50px); }
       .where { font-size: clamp(16px, 2vh, 32px); }
       .blurb {
-        font-size: clamp(18px, 2.5vh, 38px);
+        font-size: clamp(18px, 2.4vh, 36px);
         max-width: none;
         -webkit-line-clamp: 4;
         line-clamp: 4;
       }
       .qr-code svg {
-        width: clamp(150px, 20vh, 240px);
-        height: clamp(150px, 20vh, 240px);
+        width: clamp(120px, 14vh, 190px);
+        height: clamp(120px, 14vh, 190px);
       }
     }
   </style>
