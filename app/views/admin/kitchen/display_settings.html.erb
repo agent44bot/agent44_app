@@ -12,7 +12,7 @@
     </p>
   </div>
 
-  <% can_edit = @workspace && %w[owner admin].include?(@my_workspace_role) %>
+  <% can_edit = @workspace && %w[owner admin editor].include?(@my_workspace_role) %>
 
   <%# Share URL — private mode bakes the token into the URL %>
   <% is_private = @agent.setting(:visibility) == "private" %>
@@ -122,7 +122,7 @@
       <% end %>
     <% else %>
       <p class="text-sm text-gray-500">
-        Only workspace owners and admins can change Display settings.
+        Viewers can see Display settings but not change them. Ask a workspace owner or admin for editor access.
       </p>
     <% end %>
   </div>

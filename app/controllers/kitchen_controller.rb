@@ -551,8 +551,8 @@ class KitchenController < ApplicationController
 
   def update_display_settings
     workspace = Workspace.find_by(slug: "nykitchen")
-    unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
-      redirect_to nyk_display_settings_path, alert: "Only workspace admins can change Display settings." and return
+    unless workspace && %w[owner admin editor].include?(workspace.role_for(Current.user))
+      redirect_to nyk_display_settings_path, alert: "Viewers can't change Display settings. Ask a workspace owner or admin for editor access." and return
     end
     agent = workspace.agent_for("display")
     permitted = params.require(:settings).permit(
