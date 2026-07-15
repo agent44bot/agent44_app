@@ -52,18 +52,18 @@
     left_meta_html = left_meta.empty? ? "" : %Q(<div style="font-size:12px;color:#666;margin-top:2px">#{left_meta.join(' &middot; ')}</div>)
     spots_html = spots.(e).empty? ? "" : %Q(<div style="margin-top:4px">#{spots.(e)}</div>)
     %Q(<li style="padding:10px 0;border-bottom:1px solid #eee;list-style:none">
-         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-           <div>
+         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+           <td style="vertical-align:top">
              <strong style="color:#111">#{fmt.(e[:start_at])}</strong>
              &nbsp;
              <a href="#{e[:url]}" style="color:#0a58ca;text-decoration:none">#{e[:name]}</a>
              #{left_meta_html}
-           </div>
-           <div style="text-align:right;flex-shrink:0">
+           </td>
+           <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:8px">
              #{label.(e[:availability])}
              #{spots_html}
-           </div>
-         </div>
+           </td>
+         </tr></table>
        </li>)
   end
 %>
@@ -104,8 +104,8 @@
   <% else %>
     <ul style="padding:0;margin:0"><% events.each do |e| %>
       <li style="padding:8px 0;border-bottom:1px solid #eee;list-style:none">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+          <td style="vertical-align:top">
             <strong style="color:#111"><%= e[:start_at].strftime("%a %-m/%-d %-I:%M %p") %></strong>
             &nbsp;
             <a href="<%= e[:url] %>" style="color:#0a58ca;text-decoration:none"><%= e[:name] %></a>
@@ -115,15 +115,15 @@
             <% if left_meta.any? %>
               <div style="font-size:12px;color:#666;margin-top:2px"><%= left_meta.join(" &middot; ").html_safe %></div>
             <% end %>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
+          </td>
+          <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:8px">
             <%= label.(e[:availability]).html_safe %>
             <% s = spots.(e) %>
             <% if s.present? %>
               <div style="margin-top:4px"><%= s.html_safe %></div>
             <% end %>
-          </div>
-        </div>
+          </td>
+        </tr></table>
       </li>
     <% end %></ul>
   <% end %>
