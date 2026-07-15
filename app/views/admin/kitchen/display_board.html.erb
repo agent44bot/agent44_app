@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <%# Pull fresh data every N minutes. The board itself is static per page, so
+      a signage player that snapshots the page still captures several classes
+      at once (that is the whole point of this layout). %>
+  <meta http-equiv="refresh" content="<%= @agent.setting(:refresh_minutes).to_i * 60 %>">
+  <title>New York Kitchen · What's Coming Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --navy: #1b1e34; --ink: #1b1e34; --muted: #6b7280; --body: #374151; }
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #ffffff;
+      color: var(--ink);
+      font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    .page-wrap { height: 100vh; display: flex; flex-direction: column; padding: 3.5vh 5vw; }
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 1.6vh; border-bottom: 2px solid var(--navy); flex-shrink: 0;
+    }
+    .brand-row { display: flex; align-items: center; gap: clamp(10px, 1.2vw, 20px); min-width: 0; }
+    .brand-logo { height: clamp(30px, 3.4vh, 60px); width: auto; display: block; }
+    .header .title {
+      font-size: clamp(14px, 2.2vh, 30px); font-weight: 700; letter-spacing: 0.02em;
+      color: var(--navy); text-transform: uppercase;
+    }
+
+    .stage { flex: 1; position: relative; min-height: 0; }
+    /* Each .board is one screenful of classes. Pages cycle for live viewers;
+       a snapshot of any page still shows the whole page of classes. */
+    .board { display: none; height: 100%; flex-direction: column; }
+    .board.active { display: flex; animation: fade 0.5s ease-out; }
+    @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+    .row {
+      flex: 1; display: flex; align-items: center; gap: 2.4vw;
+      padding: 1.4vh 0; border-bottom: 1px solid #eef0f2; min-height: 0;
+    }
+    .row:last-child { border-bottom: none; }
+    .thumb {
+      height: 11vh; aspect-ratio: 1 / 1; flex-shrink: 0;
+      object-fit: cover; border-radius: 10px; background: #f3f4f6;
+    }
+    .info { min-width: 0; display: flex; flex-direction: column; gap: 0.5vh; }
+    .name {
+      font-size: clamp(18px, 2.7vh, 40px); font-weight: 700; line-height: 1.1;
+      color: var(--navy); text-transform: uppercase;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+    }
+    .meta { display: flex; align-items: baseline; gap: 1.6vw; flex-wrap: wrap; }
+    .when { font-size: clamp(13px, 1.9vh, 26px); font-weight: 500; color: var(--navy); text-transform: uppercase; letter-spacing: 0.01em; }
+    .price { font-size: clamp(15px, 2.1vh, 30px); font-weight: 700; color: var(--navy); }
+    .spots { font-size: clamp(12px, 1.7vh, 22px); font-weight: 500; color: var(--muted); }
+
+    .footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 3vw;
+      padding-top: 1.8vh; border-top: 1px solid #e5e7eb; flex-shrink: 0;
+    }
+    .footer-cta { display: flex; align-items: center; gap: 2vw; min-width: 0; }
+    .qr-code { background: #fff; padding: 0.8vh; border: 1px solid #e5e7eb; border-radius: 10px; line-height: 0; flex-shrink: 0; }
+    .qr-code svg { width: clamp(80px, 11vh, 150px); height: clamp(80px, 11vh, 150px); display: block; }
+    .cta-text .lead { font-size: clamp(15px, 2.1vh, 30px); font-weight: 700; color: var(--navy); }
+    .cta-text .sub  { font-size: clamp(12px, 1.6vh, 22px); color: var(--muted); }
+    .footer .stamp { font-size: clamp(11px, 1.4vh, 18px); color: var(--muted); text-align: right; flex-shrink: 0; }
+    .footer .stamp strong { color: var(--navy); }
+    .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 6px; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+    .empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); font-size: clamp(22px, 3vh, 44px); }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="header">
+      <div class="brand-row">
+        <% if @display_workspace&.logo&.attached? %>
+          <img class="brand-logo" src="<%= url_for(@display_workspace.logo) %>" alt="New York Kitchen">
+        <% end %>
+      </div>
+      <div class="title">Upcoming Classes</div>
+    </header>
+
+    <main class="stage">
+      <% if @events.any? %>
+        <% @events.each_slice(6).with_index do |page_events, page_i| %>
+          <section class="board<%= ' active' if page_i == 0 %>">
+            <% page_events.each do |event| %>
+              <% start = event.start_at %>
+              <% when_str = "#{start.strftime('%a, %b %-d')} @ #{start.strftime('%-l:%M %p')}" %>
+              <% show_image = @agent.setting(:show_image) && event.image_url.present? %>
+              <div class="row">
+                <% if show_image %>
+                  <img class="thumb" src="<%= event.image_url %>" alt="" loading="lazy">
+                <% end %>
+                <div class="info">
+                  <div class="name"><%= event.name.presence || "Class at New York Kitchen" %></div>
+                  <div class="meta">
+                    <span class="when"><%= when_str %></span>
+                    <% if @agent.setting(:show_price) && event.price.present? %>
+                      <% price = event.price.to_s.strip %>
+                      <% price = "$#{price}" unless price.match?(/[$£€]/) %>
+                      <span class="price"><%= price %></span>
+                    <% end %>
+                    <% if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0 %>
+                      <span class="spots"><%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left</span>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </section>
+        <% end %>
+      <% else %>
+        <div class="empty">New classes coming soon.<br>Check back at nykitchen.com.</div>
+      <% end %>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-cta">
+        <% if @agent.setting(:show_qr) %>
+          <div class="qr-code"><%= nyk_scan_qr_url("https://nykitchen.com/calendar", workspace: @display_workspace, source: "display") %></div>
+        <% end %>
+        <div class="cta-text">
+          <div class="lead">Scan for the full schedule</div>
+          <div class="sub">nykitchen.com/calendar</div>
+        </div>
+      </div>
+      <div class="stamp"><span class="pulse"></span>Live · auto-refreshes every <%= @agent.setting(:refresh_minutes) %> min</div>
+    </footer>
+  </div>
+
+  <%= javascript_tag nonce: true do %>
+    // Cycle the board pages (each page is a screenful of classes). A snapshot
+    // of any page still shows several classes, so this survives signage
+    // players that screenshot rather than run the page live.
+    (function() {
+      var pages = document.querySelectorAll('.board');
+      if (pages.length < 2) return;
+      var i = 0;
+      setInterval(function() {
+        pages[i].classList.remove('active');
+        i = (i + 1) % pages.length;
+        pages[i].classList.add('active');
+      }, <%= @agent.setting(:advance_seconds).to_i * 1000 %>);
+    })();
+
+    // Liveness heartbeat (private mode only, when a share token is present).
+    (function() {
+      var token = new URLSearchParams(location.search).get('token');
+      if (!token) return;
+      function beat() {
+        fetch('<%= nyk_display_heartbeat_path %>', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'token=' + encodeURIComponent(token),
+          keepalive: true
+        }).catch(function() {});
+      }
+      beat();
+      setInterval(beat, 60000);
+    })();
+  <% end %>
+</body>
+</html>

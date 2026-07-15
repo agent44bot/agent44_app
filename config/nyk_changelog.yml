@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-15
+  note: Added a Board layout option for the tasting-room display that shows several classes on one screen at once, with a Carousel or Board choice in Display settings. Board is best for TV signage that snapshots the page instead of playing it live.
+
+- date: 2026-07-15
   note: Redesigned the tasting-room display for the vertical screen. Each class now shows with the photo on top and larger text below, filling the whole screen instead of leaving the bottom empty.
 
 - date: 2026-07-15

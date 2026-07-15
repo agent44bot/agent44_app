@@ -74,6 +74,22 @@
           </div>
         </div>
 
+        <div>
+          <span class="text-xs uppercase tracking-wide text-gray-500">Layout</span>
+          <div class="mt-2 flex gap-2">
+            <% [["carousel", "🎠 Carousel — one class at a time"], ["board", "🗂 Board — several classes per screen"]].each do |val, label| %>
+              <label class="flex-1 cursor-pointer">
+                <%= radio_button_tag "settings[layout]", val, @agent.setting(:layout) == val,
+                      class: "peer sr-only" %>
+                <span class="block px-3 py-2 rounded-md border border-gray-700 text-sm text-gray-300 text-center peer-checked:border-orange-500 peer-checked:bg-orange-950/40 peer-checked:text-white transition">
+                  <%= label %>
+                </span>
+              </label>
+            <% end %>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">Board is best for TV signage players (like Mood) that snapshot the page instead of running the carousel live.</p>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <label class="block">
             <span class="text-xs uppercase tracking-wide text-gray-500">Slides to show</span>

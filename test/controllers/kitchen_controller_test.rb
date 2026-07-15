@@ -626,6 +626,20 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "Class 6", response.body
   end
 
+  test "display: board layout renders a multi-class board, not carousel slides" do
+    8.times { |i| create_event("Board Class #{i}", (i + 1).days.from_now, "InStock") }
+    nyk_display_agent.update_settings(layout: "board", slide_count: 8)
+
+    delete session_path
+    get nyk_display_path
+    assert_response :success
+    # Board pages (chunks of 6) instead of one-class-per carousel slides.
+    assert_select "section.board"
+    assert_select "article.slide", 0
+    assert_match "Board Class 0", response.body
+    assert_match "Scan for the full schedule", response.body
+  end
+
   test "display: shows the workspace logo in the slim header when one is attached" do
     ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
     ws.logo.attach(io: File.open(Rails.root.join("test/fixtures/files/sample_bottle.png")),

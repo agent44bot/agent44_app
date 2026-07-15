@@ -11,6 +11,10 @@ class WorkspaceAgent < ApplicationRecord
     "display" => {
       "visibility"       => "public",
       "share_token"      => nil,
+      # "carousel" = one class per screen, cycling. "board" = several classes
+      # on one screen at once (snapshot-proof for signage players like Mood
+      # that screenshot the page instead of running its carousel live).
+      "layout"           => "carousel",
       "slide_count"      => 5,
       "advance_seconds"  => 10,
       "refresh_minutes"  => 10,

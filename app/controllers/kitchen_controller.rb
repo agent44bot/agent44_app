@@ -536,7 +536,10 @@ class KitchenController < ApplicationController
     @available_total = available.size
     @last_updated = snapshot&.taken_on
     @display_workspace = Workspace.find_by(slug: "nykitchen")
-    render "admin/kitchen/display", layout: false
+    # Board layout shows several classes per screen (snapshot-proof); carousel
+    # shows one at a time. Both share the same @events and heartbeat.
+    template = @agent.setting(:layout) == "board" ? "display_board" : "display"
+    render "admin/kitchen/#{template}", layout: false
   end
 
   # Display Agent settings: configuration form + share URL + preview.
@@ -556,10 +559,11 @@ class KitchenController < ApplicationController
     end
     agent = workspace.agent_for("display")
     permitted = params.require(:settings).permit(
-      :visibility, :slide_count, :advance_seconds, :refresh_minutes,
+      :visibility, :layout, :slide_count, :advance_seconds, :refresh_minutes,
       :show_price, :show_spots, :show_end_time, :show_image, :show_qr
     ).to_h
     permitted["visibility"] = "public" unless %w[public private].include?(permitted["visibility"])
+    permitted["layout"] = "carousel" unless %w[carousel board].include?(permitted["layout"])
     %w[show_price show_spots show_end_time show_image show_qr].each do |k|
       permitted[k] = ActiveModel::Type::Boolean.new.cast(permitted[k]) if permitted.key?(k)
     end
