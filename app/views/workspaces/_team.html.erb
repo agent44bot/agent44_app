@@ -11,6 +11,11 @@
       my_role          — workspace.role_for(current_user)
 %>
 <% admin = %w[owner admin].include?(my_role) %>
+<% can_invite = my_role.present? || Current.user&.admin? %>
+<%# Everyone in a workspace can invite, but never at a role above their own. %>
+<% role_rank = { "viewer" => 1, "editor" => 2, "admin" => 3, "owner" => 4 } %>
+<% my_rank = Current.user&.admin? ? 4 : (role_rank[my_role] || 0) %>
+<% invite_roles = [["editor", "editor"], ["admin", "admin"], ["viewer", "viewer"]].select { |_, r| role_rank[r] <= my_rank } %>
 
 <h2 class="text-base font-bold text-white mt-12 mb-4">People</h2>
 
@@ -34,13 +39,13 @@
   </div>
 </section>
 
-<% if admin %>
+<% if can_invite %>
   <section class="mb-10">
     <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Invite a teammate</h3>
     <%= form_with url: workspace_invitations_path(workspace_slug: workspace.slug), local: true, class: "flex flex-wrap gap-2" do |f| %>
       <%= f.email_field :email, required: true, placeholder: "boss@magenta.com",
           class: "flex-1 min-w-[220px] rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 focus:border-orange-500 focus:outline-none" %>
-      <%= f.select :role, [["editor","editor"],["admin","admin"],["viewer","viewer"]], {},
+      <%= f.select :role, invite_roles, {},
           class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2" %>
       <%= f.submit "Send invite", class: "inline-flex items-center px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
     <% end %>
@@ -60,7 +65,7 @@
       </div>
     </dl>
 
-    <% if invitations.any? %>
+    <% if admin && invitations.any? %>
       <div class="mt-4 rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
         <% invitations.each do |inv| %>
           <div class="flex items-center justify-between px-4 py-3 gap-3">
@@ -81,7 +86,9 @@
       </div>
     <% end %>
   </section>
+<% end %>
 
+<% if admin %>
   <% unless workspace.slug == "nykitchen" %>
     <h2 class="text-base font-bold text-white mt-12 mb-4">Billing</h2>
     <%= link_to billing_workspace_path(workspace.slug),

@@ -71,12 +71,16 @@ class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
     assert_select "select[name=?]", "workspace[timezone]"
   end
 
-  test "an editor sees Members but not the invite form or danger zone" do
+  test "an editor sees Members and can invite, but not admin role or danger zone" do
     sign_in_as(@editor)
     get workspace_path(@ws.slug)
     assert_response :success
     assert_includes response.body, "Members"
-    assert_select "input[value=?]", "Send invite", false
+    # Editors can now invite teammates...
+    assert_select "input[value=?]", "Send invite"
+    assert_select "select[name=?] option[value=?]", "role", "editor"
+    # ...but only up to their own role (no admin option) and no danger zone.
+    assert_select "select[name=?] option[value=?]", "role", "admin", false
     assert_select "input[value=?]", "Delete workspace", false
   end
 
