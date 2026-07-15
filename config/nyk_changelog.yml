@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-15
+  note: Redesigned the tasting-room display for the vertical screen. Each class now shows with the photo on top and larger text below, filling the whole screen instead of leaving the bottom empty.
+
+- date: 2026-07-15
   note: Fixed the layout of the daily class email so the availability tags (Sold Out, Available, spots left) line up neatly next to each class instead of scattering down the page in some email apps.
 
 - date: 2026-07-13
