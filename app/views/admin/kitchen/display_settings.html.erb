@@ -84,7 +84,7 @@
           <label class="block">
             <span class="text-xs uppercase tracking-wide text-gray-500">Seconds per slide</span>
             <%= select_tag "settings[advance_seconds]",
-                  options_for_select([5, 8, 10, 15, 20, 30], @agent.setting(:advance_seconds)),
+                  options_for_select([5, 8, 10, 15, 20, 25, 30, 35, 45, 55], @agent.setting(:advance_seconds)),
                   class: "mt-1 w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
           </label>
           <label class="block">
