@@ -21,11 +21,39 @@ class WorkspaceInvitationsIntegrationTest < ActionDispatch::IntegrationTest
     assert_match /Invite sent to new@example.com/, flash[:notice]
   end
 
-  test "editor (non-admin) cannot create an invitation" do
+  test "editor can create an invitation (capped to editor)" do
     sign_in_as(@editor)
+    assert_difference -> { WorkspaceInvitation.count }, 1 do
+      post workspace_invitations_path(workspace_slug: @ws.slug),
+           params: { email: "byeditor@example.com", role: "editor" }
+    end
+    assert_equal "editor", WorkspaceInvitation.find_by(email: "byeditor@example.com").role
+  end
+
+  test "editor cannot grant a role above their own (admin clamps to editor)" do
+    sign_in_as(@editor)
+    post workspace_invitations_path(workspace_slug: @ws.slug),
+         params: { email: "wannabe-admin@example.com", role: "admin" }
+    assert_equal "editor", WorkspaceInvitation.find_by(email: "wannabe-admin@example.com").role
+  end
+
+  test "viewer can invite but only at viewer role" do
+    viewer = User.create!(email_address: "winv-v-#{SecureRandom.hex(4)}@example.com")
+    @ws.memberships.create!(user: viewer, role: "viewer")
+    sign_in_as(viewer)
+    assert_difference -> { WorkspaceInvitation.count }, 1 do
+      post workspace_invitations_path(workspace_slug: @ws.slug),
+           params: { email: "byviewer@example.com", role: "admin" }
+    end
+    assert_equal "viewer", WorkspaceInvitation.find_by(email: "byviewer@example.com").role
+  end
+
+  test "a non-member cannot invite" do
+    outsider = User.create!(email_address: "winv-out-#{SecureRandom.hex(4)}@example.com")
+    sign_in_as(outsider)
     assert_no_difference -> { WorkspaceInvitation.count } do
       post workspace_invitations_path(workspace_slug: @ws.slug),
-           params: { email: "blocked@example.com", role: "editor" }
+           params: { email: "nope@example.com", role: "editor" }
     end
   end
 
