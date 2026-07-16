@@ -39,7 +39,7 @@
               </div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-              <%= render "member_avatars", members: ws.memberships.map(&:user) %>
+              <%= render "member_avatars", members: ws.memberships.reject(&:owner?).map(&:user) %>
               <span class="text-xs uppercase tracking-wide text-gray-500"><%= role %></span>
             </div>
           <% end %>

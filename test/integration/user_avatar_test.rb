@@ -59,10 +59,13 @@ class WorkspacesAvatarStackTest < ActionDispatch::IntegrationTest
   end
 
   test "each workspace row shows its member avatars, not a header bot" do
-    Workspace.create!(name: "Neo WS", owner: @user)
+    ws = Workspace.create!(name: "Neo WS", owner: @user)
+    # Owners are excluded from the avatar stack, so assert against a non-owner member.
+    member = User.create!(email_address: "trinity-#{SecureRandom.hex(4)}@example.com")
+    ws.memberships.create!(user: member, role: "editor")
     get workspaces_path(force: 1)
     assert_response :success
-    assert_select "span[title=?]", @user.display_identifier      # member avatar chip on the row
+    assert_select "span[title=?]", member.display_identifier     # a member avatar chip on the row
     assert_select "img[alt=?]", "Agent helper", false            # decorative header bot removed
   end
 end
