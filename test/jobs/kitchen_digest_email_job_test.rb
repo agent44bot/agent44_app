@@ -22,6 +22,14 @@ class KitchenDigestEmailJobTest < ActiveSupport::TestCase
       assert_match "NY Kitchen", mail.subject
       assert_no_match WEEKLY_MARKER, mail.body.to_s
       assert_nil Setting.time("nyk_weekly_report:last_sent_at")
+
+      body = mail.body.to_s
+      # Opt-out line links to Settings; the old duplicate footer is gone and the
+      # digest renders inside the shared layout (no nested <html>).
+      assert_match "turn off", body
+      assert_match "/settings", body
+      assert_no_match "Sent by Agent44 Labs", body
+      assert_equal 1, body.scan("<html").size, "digest should not nest a second <html>"
     end
   end
 

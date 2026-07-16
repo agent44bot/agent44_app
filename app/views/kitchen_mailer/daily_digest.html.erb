@@ -67,7 +67,7 @@
        </li>)
   end
 %>
-<html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:auto;color:#222;background:#fafafa;padding:20px">
+<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:auto;color:#222;background:#fafafa;padding:20px">
 <%# Mondays only: the Carson weekly team report, prepended above the class
     list so it's one email. Other days @weekly_report is nil. %>
 <% if @weekly_report %>
@@ -144,6 +144,11 @@
 <ul style="padding:0;margin:0"><% @newly_sold_out.each do |e| %><%= event_row.(e).html_safe %><% end %></ul>
 <% end %>
 
-<p style="color:#aaa;font-size:11px;margin-top:28px;text-align:center">Sent by Agent44 Labs &middot; scraped from nykitchen.com/calendar</p>
+<p style="color:#aaa;font-size:11px;margin-top:28px;text-align:center;line-height:1.6">
+  Data scraped from nykitchen.com/calendar.<br>
+  You're getting this as a member of the NY Kitchen workspace. To stop, open
+  <a href="https://agent44labs.com/settings" style="color:#888">your Settings</a>,
+  go to Push notifications, and turn off "NY Kitchen daily digest".
+</p>
 </div>
-</body></html>
+</div>
