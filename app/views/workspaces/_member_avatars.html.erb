@@ -15,6 +15,8 @@
     <%= user_avatar_tag u, size: size %>
   <% end %>
   <% if members.size > limit %>
-    <span class="<%= size %> rounded-full bg-gray-800 text-gray-300 ring-2 ring-gray-950 inline-flex items-center justify-center text-xs font-semibold shrink-0">+<%= members.size - limit %></span>
+    <%# Hover the +N chip to see who's hidden. %>
+    <span title="<%= members[limit..].map(&:display_identifier).join(", ") %>"
+          class="<%= size %> rounded-full bg-gray-800 text-gray-300 ring-2 ring-gray-950 inline-flex items-center justify-center text-xs font-semibold shrink-0 cursor-default">+<%= members.size - limit %></span>
   <% end %>
 </div>
