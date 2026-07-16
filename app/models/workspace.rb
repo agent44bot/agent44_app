@@ -59,6 +59,20 @@ class Workspace < ApplicationRecord
     role_for(user).present?
   end
 
+  # Workspaces that receive an automated daily digest email. Only NY Kitchen
+  # has one today; members opt out via WorkspaceMembership#daily_digest_enabled.
+  def daily_digest?
+    slug == "nykitchen"
+  end
+
+  # Emails of members who still want this workspace's daily digest.
+  def daily_digest_recipients
+    memberships.where(daily_digest_enabled: true)
+               .includes(:user)
+               .filter_map { |m| m.user&.email_address }
+               .uniq
+  end
+
   # WorkspaceAgent row for the given kind ("list", "social", "data",
   # "test"), auto-assigning a random unused 3-digit ID on first access.
   # Subsequent calls return the same row, so the badge number is stable.

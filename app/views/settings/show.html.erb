@@ -123,6 +123,23 @@
         </div>
       <% end %>
 
+      <% digest_memberships = memberships&.select { |m| m.workspace.daily_digest? } %>
+      <% if digest_memberships.present? %>
+        <div class="pt-3 mt-1 border-t border-gray-800 space-y-3">
+          <p class="text-xs text-gray-500">
+            Daily digest email. Turn off to stop the 10am summary for this workspace.
+          </p>
+          <% digest_memberships.each do |m| %>
+            <label class="flex items-center justify-between gap-3 cursor-pointer">
+              <span class="text-sm text-gray-300"><%= m.workspace.name %> daily digest</span>
+              <%= hidden_field_tag "workspace_digest[#{m.workspace_id}]", "0" %>
+              <%= check_box_tag "workspace_digest[#{m.workspace_id}]", "1", m.daily_digest_enabled,
+                    class: "h-5 w-9 rounded accent-orange-600 cursor-pointer" %>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="pt-1">
         <%= f.submit "Save",
               class: "px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>

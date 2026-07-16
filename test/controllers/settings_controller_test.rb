@@ -137,6 +137,48 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "span", text: "NY Kitchen"
   end
 
+  test "PATCH update_notifications flips the per-workspace daily-digest toggle" do
+    ws = Workspace.create!(name: "WS", slug: "set-#{SecureRandom.hex(4)}",
+                           owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    membership = ws.memberships.find_by(user_id: @user.id)
+    sign_in_as @user
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", workspace_digest: { ws.id.to_s => "0" }
+    }
+    assert_redirected_to settings_path
+    assert_not membership.reload.daily_digest_enabled, "digest opt-out persisted"
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", workspace_digest: { ws.id.to_s => "1" }
+    }
+    assert membership.reload.daily_digest_enabled, "digest re-enabled persisted"
+  end
+
+  test "PATCH update_notifications can't flip another member's digest pref" do
+    other = User.create!(email_address: "other-#{SecureRandom.hex(4)}@example.com")
+    ws = Workspace.create!(name: "Theirs", slug: "set-#{SecureRandom.hex(4)}",
+                           owner_id: other.id, timezone: "Eastern Time (US & Canada)")
+    membership = ws.memberships.find_by(user_id: other.id)
+    sign_in_as @user
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", workspace_digest: { ws.id.to_s => "0" }
+    }
+    assert membership.reload.daily_digest_enabled, "another member's digest pref is untouched"
+  end
+
+  test "settings page renders a digest toggle only for digest workspaces" do
+    nyk = Workspace.create!(name: "NY Kitchen", slug: "nykitchen",
+                            owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    other = Workspace.create!(name: "Other", slug: "set-#{SecureRandom.hex(4)}",
+                              owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    sign_in_as @user
+    get settings_path
+    assert_select "input[type=checkbox][name=?]", "workspace_digest[#{nyk.id}]"
+    assert_select "input[type=checkbox][name=?]", "workspace_digest[#{other.id}]", count: 0
+  end
+
   test "POST verify_password returns 204 for matching password" do
     sign_in_as @user
     post verify_password_settings_path,
