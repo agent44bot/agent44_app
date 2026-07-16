@@ -93,8 +93,8 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <label class="block">
             <span class="text-xs uppercase tracking-wide text-gray-500">Slides to show</span>
-            <%= select_tag "settings[slide_count]",
-                  options_for_select([3, 5, 7, 10, 15], @agent.setting(:slide_count)),
+            <%= number_field_tag "settings[slide_count]", @agent.setting(:slide_count),
+                  min: 1, max: 100, step: 1, inputmode: "numeric",
                   class: "mt-1 w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" %>
           </label>
           <label class="block">

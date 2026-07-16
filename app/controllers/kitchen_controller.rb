@@ -570,6 +570,9 @@ class KitchenController < ApplicationController
     %w[slide_count advance_seconds refresh_minutes].each do |k|
       permitted[k] = permitted[k].to_i if permitted.key?(k)
     end
+    # slide_count is a free-text number field now; keep it in a sane range so a
+    # blank/0/negative can't blank the carousel and an absurd value can't run away.
+    permitted["slide_count"] = permitted["slide_count"].clamp(1, 100) if permitted.key?("slide_count")
     agent.update_settings(permitted)
     # First-time toggle to private without a token: generate one now.
     agent.share_token_or_generate! if permitted["visibility"] == "private"
