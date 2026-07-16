@@ -37,4 +37,23 @@ class KitchenDigestEmailJobTest < ActiveSupport::TestCase
         "Monday send should stamp the weekly report engagement timestamp"
     end
   end
+
+  test "recipients are the opted-in NY Kitchen members; opt-outs excluded" do
+    owner = User.create!(email_address: "owner@example.com")
+    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen",
+                           owner_id: owner.id, timezone: "Eastern Time (US & Canada)")
+    kept    = User.create!(email_address: "kept@example.com")
+    dropped = User.create!(email_address: "dropped@example.com")
+    ws.memberships.create!(user: kept,    role: "editor")                               # default on
+    ws.memberships.create!(user: dropped, role: "editor", daily_digest_enabled: false)  # opted out
+
+    recips = KitchenDigestEmailJob.recipients
+    assert_includes recips, "owner@example.com",   "owner (default on) included"
+    assert_includes recips, "kept@example.com",    "opted-in member included"
+    assert_not_includes recips, "dropped@example.com", "opted-out member excluded"
+  end
+
+  test "recipients fall back to the core list when the workspace is missing" do
+    assert_equal KitchenDigestEmailJob::FALLBACK_RECIPIENTS, KitchenDigestEmailJob.recipients
+  end
 end

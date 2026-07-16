@@ -64,6 +64,7 @@ class SettingsController < ApplicationController
     end
     user.update(attrs) if attrs.any?
     update_workspace_push_prefs(user)
+    update_workspace_digest_prefs(user)
     redirect_to settings_path, notice: "Notification settings saved."
   end
 
@@ -122,6 +123,18 @@ class SettingsController < ApplicationController
     bool = ActiveModel::Type::Boolean.new
     user.workspace_memberships.where(workspace_id: prefs.keys).find_each do |membership|
       membership.update(push_enabled: bool.cast(prefs[membership.workspace_id.to_s]))
+    end
+  end
+
+  # Apply the per-workspace daily-digest toggles. Scoped to the user's own
+  # memberships so a forged workspace_id can't flip another member's choice.
+  def update_workspace_digest_prefs(user)
+    prefs = params[:workspace_digest]
+    return unless prefs.respond_to?(:each_pair)
+
+    bool = ActiveModel::Type::Boolean.new
+    user.workspace_memberships.where(workspace_id: prefs.keys).find_each do |membership|
+      membership.update(daily_digest_enabled: bool.cast(prefs[membership.workspace_id.to_s]))
     end
   end
 end

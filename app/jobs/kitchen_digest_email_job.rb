@@ -1,7 +1,15 @@
 class KitchenDigestEmailJob < ApplicationJob
   queue_as :default
 
-  RECIPIENTS = [ "botwhisperer@hey.com", "lora.downie@nykitchen.com" ]
+  # Fallback if the NY Kitchen workspace or its members can't be resolved, so a
+  # data hiccup never silently drops the digest for the two core recipients.
+  FALLBACK_RECIPIENTS = [ "botwhisperer@hey.com", "lora.downie@nykitchen.com" ].freeze
+
+  # Members of the NY Kitchen workspace who still have the daily digest on.
+  # New members get it by default; anyone can opt out in Settings.
+  def self.recipients
+    Workspace.find_by(slug: "nykitchen")&.daily_digest_recipients.presence || FALLBACK_RECIPIENTS
+  end
 
   def perform
     today    = Date.today
@@ -43,13 +51,14 @@ class KitchenDigestEmailJob < ApplicationJob
       WeeklySalesEmailJob.build_summary(snapshot)
     end
 
-    KitchenMailer.daily_digest(digest, recipients: RECIPIENTS, weekly_report: weekly).deliver_now
+    recipients = self.class.recipients
+    KitchenMailer.daily_digest(digest, recipients: recipients, weekly_report: weekly).deliver_now
 
     # Stamp the weekly report's send time so the Analyst dashboard's recipient
     # engagement panel keeps measuring dashboard visits after Monday's report.
     Setting.touch_time("nyk_weekly_report:last_sent_at") if weekly
 
-    Rails.logger.info("KitchenDigestEmailJob: sent to #{RECIPIENTS} (snapshot #{snapshot.taken_on}, weekly_report: #{!weekly.nil?})")
+    Rails.logger.info("KitchenDigestEmailJob: sent to #{recipients} (snapshot #{snapshot.taken_on}, weekly_report: #{!weekly.nil?})")
   rescue => e
     Notification.notify!(
       level: "error",
