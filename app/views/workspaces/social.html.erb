@@ -2,6 +2,7 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
      data-controller="composer echo-tabs"
+     data-echo-tabs-default-value="history"
      data-echo-tabs-storage-key-value="echo-tab:<%= @workspace.slug %>:<%= Current.user&.id %>">
   <%# Generic workspaces always show the Workspaces root; NY Kitchen keeps the
       adaptive root (its pinned customers see NY Kitchen, not Workspaces). %>
@@ -60,7 +61,7 @@
     <%# Echo tabs: Listen / New post / Post history. Client-side show/hide via
         echo_tabs_controller; remembers the last tab per user. %>
     <nav class="flex items-center gap-1 border-b border-gray-800 mb-6 overflow-x-auto" role="tablist">
-      <% [ [ "listen", "Listen" ], [ "newpost", "New post" ], [ "history", "Post history" ] ].each do |key, label| %>
+      <% [ [ "history", "Post history" ], [ "newpost", "New post" ], [ "listen", "Listen" ] ].each do |key, label| %>
         <button type="button" role="tab" data-echo-tabs-target="tab" data-tab="<%= key %>"
                 data-action="click->echo-tabs#select"
                 class="px-3.5 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-400 hover:text-white transition whitespace-nowrap"><%= label %></button>
@@ -68,7 +69,7 @@
     </nav>
 
   <%# ===== Listen tab: conversations worth joining + listening topics ===== %>
-  <div data-echo-tabs-target="panel" data-tab="listen">
+  <div data-echo-tabs-target="panel" data-tab="listen" class="hidden">
   <% if @social_leads.present? %>
     <%= render "workspaces/social_leads", leads: @social_leads, workspace: @workspace %>
   <% end %>
@@ -340,7 +341,7 @@
     </div><%# /newpost panel %>
 
     <%# ===== Post history tab: recent posts ===== %>
-    <div data-echo-tabs-target="panel" data-tab="history" class="hidden">
+    <div data-echo-tabs-target="panel" data-tab="history">
       <%# Recent posts, tabbed by platform. Each tab shows a green check when the
           platform is connected (active account), a red dot otherwise. Connected
           tabs list their posts + a Disconnect control; unconnected tabs offer a
