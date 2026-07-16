@@ -207,6 +207,7 @@ Rails.application.routes.draw do
       get :connect_chats
     end
     resources :invitations, only: [ :create, :destroy ], controller: "workspace_invitations"
+    resources :memberships, only: [ :destroy ], controller: "workspace_memberships"
     resources :social_accounts, only: [ :destroy ]
     resources :social_leads, only: [ :destroy ] do
       member do

@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-16
+  note: Workspace admins can now remove a teammate from the People settings (a Remove button next to each member), not just invite them.
+
+- date: 2026-07-16
   note: Each NY Kitchen team member can now turn the daily 10am digest email on or off for themselves in Settings, so everyone who wants the morning summary gets it and anyone who does not can opt out.
 
 - date: 2026-07-15
