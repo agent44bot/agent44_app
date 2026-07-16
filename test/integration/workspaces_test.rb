@@ -182,12 +182,12 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert_match %r{href="/workspaces/#{ws.slug}/social"}, response.body
   end
 
-  test "show renders ny-kitchen at its own workspace URL (no redirect to /nykitchen)" do
+  test "show 301-redirects ny-kitchen to /nykitchen so there's one NYK destination" do
     ws = Workspace.create!(name: "NY Kitchen", owner: @owner, slug: "nykitchen")
     sign_in_as(@owner)
     get workspace_path(ws.slug)
-    assert_response :success
-    assert_select "h1", text: "NY Kitchen"
+    assert_redirected_to nykitchen_path
+    assert_equal 301, response.status
   end
 
   test "site admin can toggle pricing visibility on a workspace" do
