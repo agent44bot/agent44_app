@@ -105,7 +105,7 @@ module Trackable
   # request.remote_ip (which is fly's edge proxy). Residential IPs can
   # change; update here if owner traffic starts showing up again.
   EXCLUDED_IPS = Set[
-    "8.47.103.237" # owner (botwhisperer / Penfield)
+    "8.47.103.35" # owner (botwhisperer / Penfield)
   ].freeze
 
   # The true client address. Fly's edge proxy is what remote_ip sees (the
