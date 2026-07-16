@@ -12,7 +12,7 @@ module Trackable
     # OPTIONS (CORS preflights) and HEAD (link prefetches) which aren't
     # meaningful user actions.
     return if %w[OPTIONS HEAD].include?(request.method)
-    return if controller_path.start_with?("api", "rails")
+    return if controller_path.start_with?("api", "rails", "impersonations")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
     return if POLL_PATHS.include?(request.path)
     return if bot_request?
@@ -23,6 +23,12 @@ module Trackable
     # tracked as anonymous on /, /nykitchen, etc. Resume it ourselves so
     # attribution works on every page.
     resume_session if Current.session.blank?
+
+    # Don't record page views while an admin is impersonating ("View as"): the
+    # browsing is the admin's, and it would be attributed to Current.user (the
+    # impersonated user), polluting that user's real activity feed. The
+    # impersonations controller itself is already skipped above.
+    return if Current.session&.impersonating?
 
     session_id = cookies[:visitor_sid]
     unless session_id.present?
