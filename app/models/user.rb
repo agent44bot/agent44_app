@@ -122,9 +122,11 @@ class User < ApplicationRecord
   # One or two uppercase letters for the initials fallback shown when no avatar
   # is uploaded. Two letters when there's a multi-word display name, else one.
   def avatar_initials
-    src = display_name.presence || email_address.presence || "?"
-    parts = src.split(/\s+/)
-    letters = parts.size >= 2 ? "#{parts[0][0]}#{parts[1][0]}" : src[0, 1]
+    # First + last initial. From the display name when set, else from the email
+    # local part (before @), which is usually first.last / first_last.
+    src   = display_name.presence || email_address.to_s.split("@").first.presence || "?"
+    parts = src.split(/[\s._]+/).reject(&:blank?)
+    letters = parts.size >= 2 ? "#{parts.first[0]}#{parts.last[0]}" : (parts.first || src)[0, 1]
     letters.to_s.upcase
   end
 

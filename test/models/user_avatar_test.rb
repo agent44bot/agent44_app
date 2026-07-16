@@ -14,6 +14,11 @@ class UserAvatarTest < ActiveSupport::TestCase
     assert_equal "Z", build_user(display_name: nil, email_address: "zoe-#{SecureRandom.hex(3)}@example.com").avatar_initials
   end
 
+  test "initials use first + last from a first.last style email local part" do
+    assert_equal "CS", build_user(display_name: nil, email_address: "chris.schmitt@nykitchen.com").avatar_initials
+    assert_equal "DW", build_user(display_name: nil, email_address: "dakota_wells@nykitchen.com").avatar_initials
+  end
+
   test "avatar color classes are deterministic and drawn from the palette" do
     u = build_user
     assert_includes User::AVATAR_PALETTE, u.avatar_color_classes
