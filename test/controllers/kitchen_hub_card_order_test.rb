@@ -47,8 +47,8 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
     sign_in_as(admin)
     get "/nykitchen"
     assert_response :success
-    # The overlapping member-avatar stack (workspaces/_member_avatars) root.
-    assert_includes @response.body, "flex -space-x-2 shrink-0",
+    # The member-avatar stack + hover flyout (workspaces/_member_avatars) root.
+    assert_includes @response.body, %(data-controller="member-flyout"),
                     "expected the member avatar stack on the Field Roster header"
   end
 

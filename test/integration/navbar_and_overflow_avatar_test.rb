@@ -10,19 +10,21 @@ class NavbarAndOverflowAvatarTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?] span[title=?]", settings_path, user.display_identifier
   end
 
-  test "the +N overflow chip lists the hidden members in its tooltip" do
+  test "the avatar stack renders a hover flyout listing every shown member" do
     owner = User.create!(email_address: "own-#{SecureRandom.hex(4)}@example.com")
-    ws = Workspace.create!(name: "Big WS", slug: "big-#{SecureRandom.hex(4)}",
+    ws = Workspace.create!(name: "Flyout WS", slug: "fly-#{SecureRandom.hex(4)}",
                            owner: owner, timezone: "Eastern Time (US & Canada)")
-    5.times do |i|
-      ws.memberships.create!(user: User.create!(email_address: "ed#{i}-#{SecureRandom.hex(3)}@example.com"),
-                             role: "editor")
+    editors = 3.times.map do |i|
+      u = User.create!(email_address: "ed#{i}-#{SecureRandom.hex(3)}@example.com")
+      ws.memberships.create!(user: u, role: "editor")
+      u
     end
     sign_in_as owner
     get workspaces_path(force: 1)
     assert_response :success
-    chip = css_select("span[title]").find { |n| n.text.strip.start_with?("+") }
-    assert chip, "expected a +N overflow chip with a tooltip"
-    assert_includes chip["title"], "@", "the chip tooltip should list the hidden member email(s)"
+    # The flyout is in the DOM (shown on hover); it lists each member's identifier.
+    editors.each do |u|
+      assert_select "p", text: u.display_identifier
+    end
   end
 end

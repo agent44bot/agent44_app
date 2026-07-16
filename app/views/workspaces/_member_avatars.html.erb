@@ -1,6 +1,7 @@
 <%# Overlapping stack of a workspace's member avatars. Photo if set, else
     initials. Callers pass the members to show; today they exclude the owner
-    (the Agent44 Labs side) so the stack shows the customer's team.
+    (the Agent44 Labs side) so the stack shows the customer's team. Hovering the
+    stack opens a flyout listing every shown member with name + email.
     Locals:
       members — array of User
       limit   — max avatars before a "+N" chip (default 4)
@@ -10,13 +11,31 @@
 <% limit ||= 4 %>
 <% size  ||= "h-8 w-8" %>
 <% return if members.empty? %>
-<div class="flex -space-x-2 shrink-0">
-  <% members.first(limit).each do |u| %>
-    <%= user_avatar_tag u, size: size %>
-  <% end %>
-  <% if members.size > limit %>
-    <%# Hover the +N chip to see who's hidden. %>
-    <span title="<%= members[limit..].map(&:display_identifier).join(", ") %>"
-          class="<%= size %> rounded-full bg-gray-800 text-gray-300 ring-2 ring-gray-950 inline-flex items-center justify-center text-xs font-semibold shrink-0 cursor-default">+<%= members.size - limit %></span>
-  <% end %>
+<div class="relative shrink-0" data-controller="member-flyout">
+  <div class="flex -space-x-2">
+    <% members.first(limit).each do |u| %>
+      <%= user_avatar_tag u, size: size %>
+    <% end %>
+    <% if members.size > limit %>
+      <span class="<%= size %> rounded-full bg-gray-800 text-gray-300 ring-2 ring-gray-950 inline-flex items-center justify-center text-xs font-semibold shrink-0">+<%= members.size - limit %></span>
+    <% end %>
+  </div>
+
+  <%# Flyout on hover: the full member list with name + email. Portaled to
+      <body> and positioned by member_flyout_controller so no ancestor's
+      overflow can clip it. %>
+  <div data-member-flyout-target="menu"
+       class="hidden z-50 w-64 rounded-lg bg-gray-900 border border-gray-800 shadow-xl p-1.5">
+    <% members.each do |u| %>
+      <div class="flex items-center gap-2 px-2 py-1.5">
+        <%= user_avatar_tag u, size: "h-7 w-7", ring: "" %>
+        <div class="min-w-0">
+          <p class="text-sm text-white truncate leading-tight"><%= u.display_identifier %></p>
+          <% if u.email_address.present? && u.email_address != u.display_identifier %>
+            <p class="text-xs text-gray-500 truncate leading-tight"><%= u.email_address %></p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
 </div>
