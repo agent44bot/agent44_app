@@ -11,7 +11,7 @@
 <% limit ||= 4 %>
 <% size  ||= "h-8 w-8" %>
 <% return if members.empty? %>
-<div class="relative group shrink-0">
+<div class="relative shrink-0" data-controller="member-flyout">
   <div class="flex -space-x-2">
     <% members.first(limit).each do |u| %>
       <%= user_avatar_tag u, size: size %>
@@ -21,8 +21,11 @@
     <% end %>
   </div>
 
-  <%# Flyout on hover: the full member list with name + email. %>
-  <div class="hidden group-hover:block absolute right-0 top-full mt-2 z-50 w-64 rounded-lg bg-gray-900 border border-gray-800 shadow-xl p-1.5">
+  <%# Flyout on hover: the full member list with name + email. Portaled to
+      <body> and positioned by member_flyout_controller so no ancestor's
+      overflow can clip it. %>
+  <div data-member-flyout-target="menu"
+       class="hidden z-50 w-64 rounded-lg bg-gray-900 border border-gray-800 shadow-xl p-1.5">
     <% members.each do |u| %>
       <div class="flex items-center gap-2 px-2 py-1.5">
         <%= user_avatar_tag u, size: "h-7 w-7", ring: "" %>
