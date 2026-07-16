@@ -17,7 +17,9 @@
 <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
   <div class="min-w-0 flex items-center"><%= breadcrumbs %></div>
   <div class="flex items-center gap-3 shrink-0">
-    <% members = Array(workspace&.memberships&.includes(:user)&.map(&:user)) %>
+    <%# Owner (the Agent44 Labs side) is left out of the avatar stack — it shows
+        the customer's team (admins/editors/viewers), not the workspace owner. %>
+    <% members = Array(workspace&.memberships&.includes(:user)&.reject(&:owner?)&.map(&:user)) %>
     <% if members.any? %>
       <%= render "workspaces/member_avatars", members: members, size: "h-8 w-8" %>
     <% end %>

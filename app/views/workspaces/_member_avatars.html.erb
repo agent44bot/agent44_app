@@ -1,5 +1,6 @@
-<%# Overlapping stack of a workspace's member avatars (the real teammates,
-    e.g. RB, who belongs to every workspace). Photo if set, else initials.
+<%# Overlapping stack of a workspace's member avatars. Photo if set, else
+    initials. Callers pass the members to show; today they exclude the owner
+    (the Agent44 Labs side) so the stack shows the customer's team.
     Locals:
       members — array of User
       limit   — max avatars before a "+N" chip (default 4)
