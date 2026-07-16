@@ -351,7 +351,7 @@
       <% fb_connect = workspace_oauth_facebook_connect_path(workspace_slug: @workspace.slug) %>
       <% platform_tabs = [
            { key: "x",         label: "X",         connect: workspace_oauth_x_connect_path(workspace_slug: @workspace.slug),       method: :post,
-             steps: ["Click Connect below.", "Log in to X and authorize Agent44 Labs.", "You'll come right back here with X connected."] },
+             steps: ["Click Connect below.", "Log in to X and approve access.", "You'll come right back here with X connected."] },
            { key: "bluesky",   label: "Bluesky",   connect: new_workspace_bluesky_account_path(workspace_slug: @workspace.slug),   method: :get,
              steps: ["In Bluesky, open Settings, then App Passwords, and create one (use that, not your main password).", "Click Connect below.", "Enter your handle and the app password, then save."] },
            { key: "threads",   label: "Threads",   connect: workspace_oauth_threads_connect_path(workspace_slug: @workspace.slug), method: :post,
