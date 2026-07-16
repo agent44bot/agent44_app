@@ -115,9 +115,11 @@ class WorkspacesController < ApplicationController
 
   # Workspace agents hub. Today every workspace has just one agent (Social),
   # but the hub gives a consistent shape so future agents (analytics, alerts,
-  # etc.) can join the fleet here. NY Kitchen also has a richer agent hub at
-  # /nykitchen; both URLs are valid and this is the workspace-native view.
+  # etc.) can join the fleet here. NY Kitchen has a richer 4-agent hub at
+  # /nykitchen — redirect there so there's one canonical NYK destination.
   def show
+    return redirect_to(nykitchen_path, status: 301) if @workspace.slug == "nykitchen"
+
     @my_role  = @workspace.role_for(current_user)
     @writer   = %w[owner admin editor].include?(@my_role)
     @platforms_connected = @workspace.social_accounts.active.pluck(:platform).map(&:capitalize).uniq.sort
