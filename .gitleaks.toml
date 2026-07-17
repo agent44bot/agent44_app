@@ -1,0 +1,18 @@
+title = "agent44_app gitleaks config"
+
+# Start from gitleaks' built-in ruleset, then add our allowlists below.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Rails encrypted credentials vault. It is encrypted with RAILS_MASTER_KEY (never committed), so the high-entropy blobs inside are safe to commit."
+paths = [
+  '''config/credentials\.yml\.enc''',
+  '''config/credentials/.*\.yml\.enc''',
+]
+
+[[allowlists]]
+description = "Historical security-scan reports may quote redacted/example secrets."
+paths = [
+  '''SECURITY_SCAN_.*\.md''',
+]
