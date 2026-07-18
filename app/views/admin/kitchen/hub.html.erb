@@ -526,9 +526,14 @@
             🖨 <%= @hub_flyer_prints.to_i %> <%= "print".pluralize(@hub_flyer_prints.to_i) %> all-time
           </div>
         <% end %>
-        <% if @hub_qr_scans %>
-          <div class="text-gray-500 tabular-nums text-right" title="QR scans on printed flyers this month (opens the scan report)">
-            📱 <%= @hub_qr_scans.to_i %> QR <%= "scan".pluralize(@hub_qr_scans.to_i) %> this month
+        <% if @hub_flyer_scans %>
+          <div class="text-gray-500 tabular-nums text-right" title="Scans of printed flyer/poster QR codes this month (billed)">
+            📱 <%= @hub_flyer_scans.to_i %> flyer <%= "scan".pluralize(@hub_flyer_scans.to_i) %> this month
+          </div>
+        <% end %>
+        <% if @hub_display_scans %>
+          <div class="text-gray-500 tabular-nums text-right" title="Scans of the tasting-room monitor's calendar QR this month (tracked, not billed)">
+            📺 <%= @hub_display_scans.to_i %> display <%= "scan".pluralize(@hub_display_scans.to_i) %> this month
           </div>
         <% end %>
       </div>

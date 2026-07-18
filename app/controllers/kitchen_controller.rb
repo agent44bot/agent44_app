@@ -1584,9 +1584,13 @@ class KitchenController < ApplicationController
     # card (our metric, not the customer's).
     @hub_flyer_prints = Setting.counter("nyk_flyer_prints:total") if Current.user&.admin?
     # QR scans this month — visible to every NY Kitchen member (owner through
-    # viewer), so the whole team can see the flyers' payoff.
+    # viewer), so the whole team can see the QR codes' payoff. Split by source:
+    # printed-flyer scans (billed) vs the tasting-room monitor's calendar QR
+    # (tracked, not billed), so the two aren't conflated into one number.
     if @nyk_workspace&.member?(Current.user)
-      @hub_qr_scans = LinkScan.for_workspace(@nyk_workspace).this_month.count
+      scans = LinkScan.for_workspace(@nyk_workspace).this_month
+      @hub_flyer_scans   = scans.from_flyer.count
+      @hub_display_scans = scans.from_display.count
     end
     # Flyer + scan revenue this month — owner/admin only (a billing figure).
     if @nyk_workspace&.manager?(Current.user)
