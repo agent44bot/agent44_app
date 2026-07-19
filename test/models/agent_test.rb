@@ -105,4 +105,32 @@ class AgentTest < ActiveSupport::TestCase
 
     assert agent.busy?
   end
+
+  test "accepts an image avatar" do
+    agent = agents(:ripley)
+    agent.avatar.attach(io: file_fixture("sample_bottle.png").open, filename: "a.png", content_type: "image/png")
+    assert agent.valid?
+    assert agent.avatar.attached?
+  end
+
+  test "rejects a non-image avatar" do
+    agent = agents(:ripley)
+    agent.avatar.attach(io: StringIO.new("not an image"), filename: "a.txt", content_type: "text/plain")
+    assert_not agent.valid?
+    assert_includes agent.errors[:avatar], "must be an image"
+  end
+
+  test "rejects an avatar over 5 MB" do
+    agent = agents(:ripley)
+    agent.avatar.attach(io: StringIO.new("0" * (5.megabytes + 1)), filename: "big.png", content_type: "image/png")
+    assert_not agent.valid?
+    assert_includes agent.errors[:avatar], "must be under 5 MB"
+  end
+
+  test "avatar_variant is nil without an upload and present with one" do
+    agent = agents(:ripley)
+    assert_nil agent.avatar_variant(96)
+    agent.avatar.attach(io: file_fixture("sample_bottle.png").open, filename: "a.png", content_type: "image/png")
+    assert_not_nil agent.avatar_variant(96)
+  end
 end

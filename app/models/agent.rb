@@ -18,6 +18,11 @@ class Agent < ApplicationRecord
 
   has_many :agent_memories, dependent: :destroy
 
+  # Optional uploaded avatar; when absent we fall back to the color + initials
+  # circle. Resized via ruby-vips (in the Gemfile) — see avatar_variant.
+  has_one_attached :avatar
+  validate :avatar_is_an_image
+
   scope :ordered, -> {
     order(
       Arel.sql("CASE status WHEN 'busy' THEN 0 WHEN 'error' THEN 1 ELSE 2 END"),
@@ -93,7 +98,19 @@ class Agent < ApplicationRecord
 
   def to_param = slug
 
+  # Square, center-cropped avatar at the given pixel size (nil unless uploaded).
+  def avatar_variant(size)
+    avatar.variant(resize_to_fill: [ size, size ]) if avatar.attached?
+  end
+
   private
+
+  # Keep uploads sane: an actual image, under 5 MB.
+  def avatar_is_an_image
+    return unless avatar.attached?
+    errors.add(:avatar, "must be an image") unless avatar.blob.content_type.to_s.start_with?("image/")
+    errors.add(:avatar, "must be under 5 MB") if avatar.blob.byte_size.to_i > 5.megabytes
+  end
 
   # Derive a URL-safe slug from the first word of the display name, dropping
   # the emoji (e.g. "Knox 🔒" -> "knox"). Only set when blank so it stays stable.
