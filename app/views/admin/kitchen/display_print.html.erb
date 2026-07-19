@@ -118,7 +118,7 @@
               parts << price
             end
             if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0
-              parts << pluralize(event.spots_left, "spot")
+              parts << "#{pluralize(event.spots_left, "spot")} left"
             end
             parts << venue
           %>

@@ -110,7 +110,7 @@
                       <span class="price"><%= price %></span>
                     <% end %>
                     <% if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0 %>
-                      <span class="spots"><%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left</span>
+                      <span class="spots"><%= pluralize(event.spots_left, "spot") %> left</span>
                     <% end %>
                   </div>
                 </div>

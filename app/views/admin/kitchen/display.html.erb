@@ -288,7 +288,7 @@
                   <p class="price"><%= price %></p>
                 <% end %>
                 <p class="where">
-                  <%= venue %><% if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0 %> · <%= event.spots_left %> spot<%= "s" unless event.spots_left == 1 %> left<% end %>
+                  <%= venue %><% if @agent.setting(:show_spots) && event.spots_left.present? && event.spots_left > 0 %> · <%= pluralize(event.spots_left, "spot") %> left<% end %>
                 </p>
               </div>
               <% if blurb.present? %>
