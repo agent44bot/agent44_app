@@ -12,10 +12,30 @@ class LinkScan < ApplicationRecord
   # A scan off the tasting-room monitor's calendar QR (src=display): tracked so
   # we know the screen is earning walk-in attention, but never billed.
   scope :from_display, -> { where(source: "display") }
-  # Everything else is a printed flyer/poster scan (the billable kind). NULL-safe
-  # on purpose: SQL `source != 'display'` drops NULL rows, so a plain
+  # A scan off a bathroom-stall poster QR (src=stall). Billed like any flyer.
+  scope :from_stall, -> { where(source: "stall") }
+  # Everything except the screen is a printed flyer/poster scan (the billable
+  # kind: front-desk "flyer", "stall", and legacy untagged NULL). NULL-safe on
+  # purpose: SQL `source != 'display'` drops NULL rows, so a plain
   # where.not(source: "display") would silently miss every untagged flyer scan.
   scope :from_flyer, -> { where("link_scans.source IS NULL OR link_scans.source != ?", "display") }
+
+  # How a scanned QR was encountered. Printed variants are tagged at print time
+  # (see display_print / display_print_stall); NULL is a legacy flyer printed
+  # before per-variant tagging shipped. Only "display" (the screen) is unbilled.
+  SOURCE_LABELS = {
+    "display" => "Screen",
+    "flyer"   => "Front-desk flyer",
+    "stall"   => "Stall flyer"
+  }.freeze
+
+  def self.source_label(source)
+    SOURCE_LABELS[source] || "Flyer (untagged)"
+  end
+
+  def self.billed_source?(source)
+    source != "display"
+  end
 
   # Coarse device bucket parsed from the user agent, for the scan readout.
   def self.device_bucket(user_agent)

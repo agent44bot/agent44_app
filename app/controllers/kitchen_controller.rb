@@ -1306,6 +1306,11 @@ class KitchenController < ApplicationController
     # Split this month's scans: display-screen scans are tracked but not billed.
     @scan_display_month = month.where(source: "display").count
     @scan_flyer_month   = @scan_total_month - @scan_display_month
+    # Attribution: this month's scans by encounter source (front-desk flyer,
+    # stall poster, screen, untagged legacy flyer), each with its billed flag.
+    @scan_sources = month.group(:source).count
+                         .map { |source, n| { label: LinkScan.source_label(source), count: n, billed: LinkScan.billed_source?(source) } }
+                         .sort_by { |h| -h[:count] }
     @scan_total_30d   = scans.count
     @scan_by_url = scans.joins(:tracked_link)
                         .group("tracked_links.url")
