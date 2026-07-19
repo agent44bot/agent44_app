@@ -21,7 +21,7 @@
           </div>
 
           <div>
-            <p class="text-base font-semibold text-white"><%= agent.name %></p>
+            <p class="text-base font-semibold"><%= link_to agent.name, admin_agent_path(agent), class: "text-white hover:text-orange-400 transition" %></p>
             <p class="text-sm text-gray-500"><%= agent.role %></p>
             <% if agent.llm_model.present? %>
               <p class="text-xs text-gray-500 mt-0.5 font-mono"><%= agent.llm_model %></p>
@@ -44,6 +44,7 @@
               <p class="text-[10px] mt-1 italic <%= agent.busy? ? 'text-amber-500' : 'text-red-500' %>"><%= agent.current_task %></p>
             <% end %>
           </div>
+          <%= link_to "View", admin_agent_path(agent), class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
           <%= link_to "Edit", edit_admin_agent_path(agent), class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
           <%= button_to "Delete", admin_agent_path(agent), method: :delete,
                 data: { turbo_confirm: "Remove #{agent.name}?" },
