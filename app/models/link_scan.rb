@@ -26,7 +26,7 @@ class LinkScan < ApplicationRecord
   SOURCE_LABELS = {
     "display" => "Screen",
     "flyer"   => "Front-desk flyer",
-    "stall"   => "Stall flyer",
+    "stall"   => "Stall flyer"
   }.freeze
 
   def self.source_label(source)
