@@ -33,8 +33,8 @@
       "note": "Safe — reviewed 2026-04-21"
     },
     {
-      "fingerprint": "f39bccc6562ce535c8f503973695390da39a2bb0b4acf025913e4feba1d284b2",
-      "note": "Safe — reviewed 2026-04-21"
+      "fingerprint": "737ce60b0e19048b705cfbf711e9237ef3865031ef493c1261bce03a96e64441",
+      "note": "Safe — Admin::AgentsController is admin-only; the permitted agent attributes (role/status/etc. + the new :avatar) are set by admins by design. Re-fingerprinted 2026-07-19 after adding :avatar."
     },
     {
       "fingerprint": "f6215ab675941c7fae32a1eff8985003b200bcb575a36252da83ee4a80ceecf3",
