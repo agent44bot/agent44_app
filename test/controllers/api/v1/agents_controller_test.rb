@@ -154,4 +154,67 @@ class Api::V1::AgentsControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
     end
   end
+
+  # --- profile + memory sync (Mac Mini push) ---
+
+  test "PUT profile requires auth" do
+    put "/api/v1/agents/ripley/profile",
+      params: { soul_markdown: "hi" }.to_json,
+      headers: { "Content-Type" => "application/json" }
+    assert_response :unauthorized
+  end
+
+  test "PUT profile upserts identity, soul, and skills by slug" do
+    put "/api/v1/agents/ripley/profile",
+      params: { identity_markdown: "# Ripley", soul_markdown: "You coordinate.", skills: %w[delegate report] }.to_json,
+      headers: @headers
+    assert_response :success
+
+    agents(:ripley).reload
+    assert_equal "# Ripley",        agents(:ripley).identity_markdown
+    assert_equal "You coordinate.", agents(:ripley).soul_markdown
+    assert_equal %w[delegate report], agents(:ripley).skills
+  end
+
+  test "PUT profile returns 404 for unknown agent" do
+    put "/api/v1/agents/nobody/profile",
+      params: { soul_markdown: "x" }.to_json,
+      headers: @headers
+    assert_response :not_found
+  end
+
+  test "POST memories requires auth" do
+    post "/api/v1/agents/ripley/memories",
+      params: { memories: [] }.to_json,
+      headers: { "Content-Type" => "application/json" }
+    assert_response :unauthorized
+  end
+
+  test "POST memories creates rows and upserts by filename" do
+    payload = { memories: [
+      { filename: "2026-04-14-team-standup.md", title: "Team standup", body: "Notes.", occurred_at: "2026-04-14T09:00:00Z" }
+    ] }
+
+    assert_difference -> { agents(:ripley).agent_memories.count }, 1 do
+      post "/api/v1/agents/ripley/memories", params: payload.to_json, headers: @headers
+      assert_response :success
+    end
+
+    # Re-syncing the same filename updates in place, no duplicate row.
+    payload[:memories][0][:body] = "Updated notes."
+    assert_no_difference -> { agents(:ripley).agent_memories.count } do
+      post "/api/v1/agents/ripley/memories", params: payload.to_json, headers: @headers
+      assert_response :success
+    end
+    assert_equal "Updated notes.", agents(:ripley).agent_memories.find_by(filename: "2026-04-14-team-standup.md").body
+  end
+
+  test "POST memories skips entries with a blank body" do
+    assert_no_difference -> { AgentMemory.count } do
+      post "/api/v1/agents/ripley/memories",
+        params: { memories: [ { filename: "empty.md", body: "" } ] }.to_json,
+        headers: @headers
+      assert_response :success
+    end
+  end
 end

@@ -72,6 +72,9 @@ gem "caxlsx", "~> 4.1"
 # Passkeys / Face ID sign-in (WebAuthn ceremonies)
 gem "webauthn", "~> 3.1"
 
+# Render agent SOUL / identity / memory markdown docs.
+gem "redcarpet", "~> 3.6"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

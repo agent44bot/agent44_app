@@ -1,0 +1,84 @@
+<% content_for(:title, @agent.name) %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <%= link_to "← All agents", admin_agents_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
+
+  <%# Header: avatar + status + role %>
+  <div class="mt-4 flex items-center gap-4">
+    <div class="relative">
+      <div class="w-16 h-16 rounded-full <%= @agent.avatar_bg_class %> flex items-center justify-center">
+        <span class="text-2xl font-bold <%= @agent.avatar_text_class %>"><%= @agent.initials %></span>
+      </div>
+      <span class="absolute -bottom-0.5 -right-0.5 block h-4 w-4 rounded-full border-2 border-gray-950
+        <% if @agent.online? %>bg-green-400<% elsif @agent.busy? %>bg-amber-400 animate-agent-pulse<% elsif @agent.error? %>bg-red-500<% else %>bg-gray-600<% end %>
+      "></span>
+    </div>
+    <div class="min-w-0">
+      <h1 class="text-2xl font-bold text-white truncate"><%= @agent.name %></h1>
+      <p class="text-sm text-gray-400"><%= @agent.role %></p>
+      <p class="mt-1 text-xs text-gray-500">
+        <span class="font-medium <%= @agent.avatar_text_class %>"><%= @agent.status_label %></span>
+        <% if @agent.llm_model.present? %>
+          <span class="font-mono text-gray-600">· <%= @agent.llm_model %></span>
+        <% end %>
+        <% if @agent.schedule.present? %>
+          <span class="text-gray-600">· <%= @agent.schedule %></span>
+        <% end %>
+      </p>
+    </div>
+    <%= link_to "Edit", edit_admin_agent_path(@agent), class: "ml-auto shrink-0 text-sm text-gray-400 hover:text-orange-400 transition" %>
+  </div>
+
+  <%# Skills / roles %>
+  <% if @agent.skill_list.any? %>
+    <div class="mt-6 flex flex-wrap gap-2">
+      <% @agent.skill_list.each do |skill| %>
+        <span class="px-2.5 py-1 text-xs rounded-full bg-gray-800 text-gray-300 border border-gray-700"><%= skill %></span>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @agent.identity_markdown.present? %>
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Identity</h2>
+      <div class="prose prose-invert prose-sm max-w-none bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <%= render_markdown(@agent.identity_markdown) %>
+      </div>
+    </section>
+  <% end %>
+
+  <% if @agent.soul_markdown.present? %>
+    <section class="mt-6">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Soul</h2>
+      <div class="prose prose-invert prose-sm max-w-none bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <%= render_markdown(@agent.soul_markdown) %>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Memory timeline %>
+  <section class="mt-8">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
+      Memory <span class="text-gray-600">(<%= @memories.size %>)</span>
+    </h2>
+    <% if @memories.any? %>
+      <div class="space-y-3">
+        <% @memories.each do |memory| %>
+          <details class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm">
+              <span class="font-medium text-white"><%= memory.display_title %></span>
+              <% if memory.occurred_at %>
+                <time class="shrink-0 text-xs text-gray-500" datetime="<%= memory.occurred_at.iso8601 %>"><%= memory.occurred_at.strftime("%b %-d, %Y") %></time>
+              <% end %>
+            </summary>
+            <div class="prose prose-invert prose-sm max-w-none mt-3 text-gray-300">
+              <%= render_markdown(memory.body) %>
+            </div>
+          </details>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-gray-500">No memory synced yet.</p>
+    <% end %>
+  </section>
+</div>

@@ -1,5 +1,6 @@
 ripley:
   name: Ripley
+  slug: ripley
   role: Team Lead / Orchestrator
   status: online
   avatar_color: purple
@@ -7,6 +8,7 @@ ripley:
 
 neo:
   name: "Neo 💻"
+  slug: neo
   role: Senior Dev
   status: online
   avatar_color: orange
@@ -14,6 +16,7 @@ neo:
 
 russ:
   name: "Russ 🔒"
+  slug: russ
   role: Security
   status: online
   avatar_color: red
@@ -21,6 +24,7 @@ russ:
 
 vlad:
   name: "Vlad ✅"
+  slug: vlad
   role: Testing
   status: online
   avatar_color: green
@@ -28,6 +32,7 @@ vlad:
 
 knox:
   name: "Knox 🔒"
+  slug: knox
   role: DevOps
   status: online
   avatar_color: cyan
@@ -35,6 +40,7 @@ knox:
 
 jr:
   name: "Jr 🐣"
+  slug: jr
   role: Junior Dev
   status: online
   avatar_color: amber
@@ -42,6 +48,7 @@ jr:
 
 scout:
   name: "Scout 🔭"
+  slug: scout
   role: Field Agent
   status: online
   avatar_color: blue

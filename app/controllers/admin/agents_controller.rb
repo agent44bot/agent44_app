@@ -1,9 +1,13 @@
 module Admin
   class AgentsController < BaseController
-    before_action :set_agent, only: %i[edit update destroy]
+    before_action :set_agent, only: %i[show edit update destroy]
 
     def index
       @agents = Agent.ordered
+    end
+
+    def show
+      @memories = @agent.agent_memories.recent
     end
 
     def new
@@ -41,7 +45,7 @@ module Admin
     private
 
     def set_agent
-      @agent = Agent.find(params[:id])
+      @agent = Agent.find_by!(slug: params[:slug])
     end
 
     def agent_params

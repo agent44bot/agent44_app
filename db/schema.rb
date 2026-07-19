@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_16_123723) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_19_120100) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -49,6 +49,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_16_123723) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "agent_memories", force: :cascade do |t|
+    t.integer "agent_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.string "filename"
+    t.datetime "occurred_at"
+    t.string "source"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["agent_id", "filename"], name: "index_agent_memories_on_agent_id_and_filename", unique: true
+    t.index ["agent_id", "occurred_at"], name: "index_agent_memories_on_agent_id_and_occurred_at"
+    t.index ["agent_id"], name: "index_agent_memories_on_agent_id"
+  end
+
   create_table "agent_messages", force: :cascade do |t|
     t.string "agent", default: "ripley", null: false
     t.text "content", null: false
@@ -65,16 +79,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_16_123723) do
     t.datetime "created_at", null: false
     t.string "current_task"
     t.text "description"
+    t.text "identity_markdown"
     t.datetime "last_active_at"
     t.string "llm_model"
     t.string "name", null: false
     t.integer "position", default: 0, null: false
     t.string "role", null: false
     t.string "schedule"
+    t.json "skills", default: [], null: false
+    t.string "slug", null: false
+    t.text "soul_markdown"
     t.string "status", default: "offline", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_agents_on_name", unique: true
     t.index ["position"], name: "index_agents_on_position"
+    t.index ["slug"], name: "index_agents_on_slug", unique: true
   end
 
   create_table "ai_call_logs", force: :cascade do |t|
@@ -864,6 +883,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_16_123723) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_memories", "agents"
   add_foreign_key "ai_call_logs", "users"
   add_foreign_key "connect_chat_messages", "users"
   add_foreign_key "connect_chat_messages", "workspaces"
