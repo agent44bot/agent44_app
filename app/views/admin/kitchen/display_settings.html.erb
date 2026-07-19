@@ -148,16 +148,18 @@
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
       <div class="flex items-baseline justify-between mb-4">
         <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">QR scans</h2>
-        <span class="text-xs text-gray-600">Last 30 days · flyer, poster, and screen codes</span>
+        <span class="text-xs text-gray-600">Last 30 days · front-desk, stall, poster, and screen codes</span>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
         <div>
           <div class="text-2xl font-black text-white tabular-nums"><%= @scan_total_month.to_i %></div>
           <div class="text-xs uppercase tracking-wide text-gray-500 mt-0.5">This month</div>
-          <% if @scan_display_month.to_i.positive? %>
+          <% if @scan_sources.present? %>
             <div class="text-[11px] text-gray-500 mt-1 leading-tight">
-              <%= @scan_flyer_month.to_i %> flyer (billed)<br><%= @scan_display_month.to_i %> screen (not billed)
+              <% @scan_sources.each do |s| %>
+                <%= s[:count] %> <%= s[:label] %> <span class="text-gray-600">(<%= s[:billed] ? "billed" : "not billed" %>)</span><br>
+              <% end %>
             </div>
           <% end %>
         </div>

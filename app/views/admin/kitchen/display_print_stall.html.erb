@@ -119,7 +119,7 @@
           </div>
           <% if event.url.present? %>
             <div class="qr">
-              <%= nyk_scan_qr(event, workspace: @display_workspace) %>
+              <%= nyk_scan_qr(event, workspace: @display_workspace, source: "stall") %>
               <div class="qr-cap">Scan to reserve</div>
             </div>
           <% end %>
@@ -131,7 +131,7 @@
 
     <div class="footer">
       <div class="footer-cta">
-        <span class="footer-qr"><%= nyk_scan_qr_url("https://nykitchen.com/calendar/", workspace: @display_workspace) %></span>
+        <span class="footer-qr"><%= nyk_scan_qr_url("https://nykitchen.com/calendar/", workspace: @display_workspace, source: "stall") %></span>
         <span class="lead">
           Check out other New York Kitchen classes<br>
           @ <span class="url">nykitchen.com/calendar/</span>

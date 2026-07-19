@@ -35,4 +35,25 @@ class LinkScanTest < ActiveSupport::TestCase
     assert_equal all, LinkScan.from_flyer.count + LinkScan.from_display.count
     assert_empty LinkScan.from_flyer.where(id: LinkScan.from_display).to_a
   end
+
+  test "from_stall returns only stall-poster scans, and they still count as billable flyers" do
+    stall = scan("stall")
+    scan("flyer")
+    scan("display")
+    assert_equal [ stall.id ], LinkScan.from_stall.pluck(:id)
+    # stall is a printed poster, so it bills like a flyer (only the screen is exempt)
+    assert_includes LinkScan.from_flyer.pluck(:id), stall.id
+  end
+
+  test "source_label maps each source, with untagged NULL as a legacy flyer" do
+    assert_equal "Screen", LinkScan.source_label("display")
+    assert_equal "Front-desk flyer", LinkScan.source_label("flyer")
+    assert_equal "Stall flyer", LinkScan.source_label("stall")
+    assert_equal "Flyer (untagged)", LinkScan.source_label(nil)
+  end
+
+  test "billed_source? exempts only the screen" do
+    assert_not LinkScan.billed_source?("display")
+    [ "flyer", "stall", nil ].each { |s| assert LinkScan.billed_source?(s), "#{s.inspect} should bill" }
+  end
 end
