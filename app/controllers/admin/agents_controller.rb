@@ -49,7 +49,7 @@ module Admin
     end
 
     def agent_params
-      params.require(:agent).permit(:name, :role, :description, :status, :avatar_color, :position, :llm_model, :schedule, :current_task)
+      params.require(:agent).permit(:name, :role, :description, :status, :avatar_color, :position, :llm_model, :schedule, :current_task, :avatar)
     end
   end
 end

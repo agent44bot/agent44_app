@@ -22,6 +22,16 @@
   </div>
 
   <div>
+    <label class="block text-sm font-medium text-gray-300 mb-1">Avatar</label>
+    <div class="flex items-center gap-4">
+      <%= agent_avatar(agent, size_classes: "w-12 h-12", text_size: "text-base", variant_px: 96) %>
+      <%= f.file_field :avatar, accept: "image/png,image/jpeg,image/webp,image/gif",
+            class: "text-sm text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-800 file:text-gray-200 hover:file:bg-gray-700" %>
+    </div>
+    <p class="text-xs text-gray-600 mt-1">PNG, JPEG, WEBP, or GIF, up to 5 MB. Falls back to the color + initials circle if none.</p>
+  </div>
+
+  <div>
     <label class="block text-sm font-medium text-gray-300 mb-1">Description</label>
     <%= f.text_area :description, rows: 2, class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent", placeholder: "What does this agent do?" %>
   </div>
