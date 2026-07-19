@@ -12,9 +12,7 @@
         <div class="flex items-center gap-4">
           <%# Avatar %>
           <div class="relative">
-            <div class="w-12 h-12 rounded-full <%= agent.avatar_bg_class %> flex items-center justify-center">
-              <span class="text-base font-bold <%= agent.avatar_text_class %>"><%= agent.initials %></span>
-            </div>
+            <%= agent_avatar(agent, size_classes: "w-12 h-12", text_size: "text-base", variant_px: 96) %>
             <span class="absolute -bottom-0.5 -right-0.5 block h-3.5 w-3.5 rounded-full border-2 border-gray-900
               <% if agent.online? %>bg-green-400<% elsif agent.busy? %>bg-amber-400 animate-agent-pulse<% elsif agent.error? %>bg-red-500<% else %>bg-gray-600<% end %>
             "></span>
