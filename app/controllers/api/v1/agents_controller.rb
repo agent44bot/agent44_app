@@ -6,7 +6,7 @@ module Api
       skip_before_action :verify_authenticity_token
       allow_unauthenticated_access
 
-      before_action :authenticate_api_token, only: :update_status
+      before_action :authenticate_api_token, only: %i[update_status update_profile add_memory]
 
       # GET /api/v1/agents/statuses (no cache — always fresh for live polling)
       def statuses
@@ -29,6 +29,50 @@ module Api
         Rails.cache.delete("agents/ordered")
         notify_status_change(agent, old_status) if old_status != agent.status
         render json: { agent: agent.name, status: agent.status, current_task: agent.current_task }
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: "Agent not found" }, status: :not_found
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { error: e.message }, status: :unprocessable_entity
+      end
+
+      # PUT /api/v1/agents/:slug/profile
+      # Body: { identity_markdown: "...", soul_markdown: "...", skills: ["..."] }
+      # Pushed from the Mac Mini sync job (IDENTITY.md + SOUL.md).
+      def update_profile
+        agent = Agent.find_by!(slug: params[:slug])
+        agent.update!(
+          identity_markdown: params[:identity_markdown],
+          soul_markdown: params[:soul_markdown],
+          skills: params[:skills].nil? ? agent.skills : Array(params[:skills])
+        )
+        render json: { agent: agent.slug, ok: true }
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: "Agent not found" }, status: :not_found
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { error: e.message }, status: :unprocessable_entity
+      end
+
+      # POST /api/v1/agents/:slug/memories
+      # Body: { memories: [ { filename:, title:, body:, occurred_at:, source: }, ... ] }
+      # Upserts by filename so re-syncing the mini's memory/*.md is idempotent.
+      def add_memory
+        agent = Agent.find_by!(slug: params[:slug])
+        entries = params.permit(memories: %i[filename title body occurred_at source])[:memories]
+        synced = 0
+        Array(entries).each do |entry|
+          next if entry[:body].blank?
+          key = entry[:filename].presence || entry[:title].presence
+          memory = agent.agent_memories.find_or_initialize_by(filename: key)
+          memory.assign_attributes(
+            title: entry[:title],
+            body: entry[:body],
+            occurred_at: entry[:occurred_at],
+            source: entry[:source]
+          )
+          memory.save!
+          synced += 1
+        end
+        render json: { agent: agent.slug, synced: synced }
       rescue ActiveRecord::RecordNotFound
         render json: { error: "Agent not found" }, status: :not_found
       rescue ActiveRecord::RecordInvalid => e

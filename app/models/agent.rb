@@ -12,6 +12,11 @@ class Agent < ApplicationRecord
   validates :role, presence: true
   validates :status, inclusion: { in: STATUSES }
   validates :avatar_color, inclusion: { in: COLORS }
+  validates :slug, presence: true, uniqueness: true
+
+  before_validation :ensure_slug
+
+  has_many :agent_memories, dependent: :destroy
 
   scope :ordered, -> {
     order(
@@ -80,5 +85,21 @@ class Agent < ApplicationRecord
 
   def avatar_text_class
     AVATAR_TEXT_CLASSES[avatar_color] || AVATAR_TEXT_CLASSES["orange"]
+  end
+
+  def skill_list
+    Array(skills)
+  end
+
+  def to_param = slug
+
+  private
+
+  # Derive a URL-safe slug from the first word of the display name, dropping
+  # the emoji (e.g. "Knox 🔒" -> "knox"). Only set when blank so it stays stable.
+  def ensure_slug
+    return if slug.present?
+    base = name.to_s.split(/\s+/).first.to_s.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-+|-+\z/, "")
+    self.slug = base if base.present?
   end
 end

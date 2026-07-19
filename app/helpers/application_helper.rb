@@ -97,6 +97,17 @@ module ApplicationHelper
     "<ul class=\"space-y-3\">#{items.map { |i| "<li class=\"flex gap-3 text-sm text-gray-300 leading-relaxed\"><span class=\"text-orange-500 mt-1 flex-shrink-0\">&#x2022;</span><span class=\"min-w-0 break-words\">#{i}</span></li>" }.join}</ul>"
   end
 
+  # Full markdown -> sanitized HTML for agent SOUL / identity / memory docs.
+  def render_markdown(text)
+    return "".html_safe if text.blank?
+    @markdown_renderer ||= Redcarpet::Markdown.new(
+      Redcarpet::Render::HTML.new(filter_html: true, safe_links_only: true, hard_wrap: true),
+      autolink: true, tables: true, fenced_code_blocks: true, strikethrough: true,
+      space_after_headers: true, no_intra_emphasis: true
+    )
+    sanitize(@markdown_renderer.render(text))
+  end
+
   # Inline SVG QR code for print (no network call, scales via CSS). Used on the
   # printable class schedule so walk-ins can scan straight to the reserve page.
   def qr_svg(data)

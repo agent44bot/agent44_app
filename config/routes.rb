@@ -246,6 +246,8 @@ Rails.application.routes.draw do
       resources :scrapers, only: [ :update ]
       patch "agents/:name/status", to: "agents#update_status", as: :agent_status
       get "agents/statuses", to: "agents#statuses"
+      put "agents/:slug/profile", to: "agents#update_profile", as: :agent_profile
+      post "agents/:slug/memories", to: "agents#add_memory", as: :agent_memories
       post "telegram/webhook", to: "telegram_webhook#create"
       post "deploy", to: "deploys#create"
       get "chat/pending", to: "chat#pending"
@@ -287,7 +289,7 @@ Rails.application.routes.draw do
     get  "plan",        to: "plan#show",   as: :plan
     post "plan/toggle", to: "plan#toggle", as: :plan_toggle
     get "visitors/map", to: "visitors#map"
-    resources :agents, except: [ :show ]
+    resources :agents, param: :slug
     get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
