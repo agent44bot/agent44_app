@@ -3,11 +3,12 @@ class JobMatchMailer < ApplicationMailer
   # records (ranked, jobs preloaded). `fresh_ids` is the set of match ids newly
   # scraped since the last run (flagged "NEW" in the email). Built by
   # JobMatchDigestJob.
-  def daily_matches(matches, recipient:, fresh_ids: nil, fallback: false)
-    @matches     = Array(matches)
-    @fresh_ids   = fresh_ids || Set.new
-    @fresh_count = @matches.count { |m| @fresh_ids.include?(m.id) }
-    @fallback    = fallback
+  def daily_matches(matches, recipient:, fresh_ids: nil, fallback: false, other_matches: nil)
+    @matches       = Array(matches)
+    @other_matches = Array(other_matches)
+    @fresh_ids     = fresh_ids || Set.new
+    @fresh_count   = @matches.count { |m| @fresh_ids.include?(m.id) }
+    @fallback      = fallback
     @profile     = JobMatcher.profile["candidate"] || {}
     top = @matches.first&.job
 

@@ -52,6 +52,9 @@ class Job < ApplicationRecord
   scope :ruby_relevant, -> {
     where("LOWER(title) LIKE '%ruby%' OR LOWER(description) LIKE '%ruby%'")
   }
+  # Everything that is NOT Ruby (NULL-safe via a NOT IN subquery), for the
+  # digest's "other part-time/contract roles" section.
+  scope :non_ruby, -> { where.not(id: ruby_relevant.select(:id)) }
   scope :test_automation, -> {
     where(
       "LOWER(title) LIKE '%test automation%' OR LOWER(title) LIKE '%sdet%' OR " \

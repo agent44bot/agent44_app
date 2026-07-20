@@ -3,6 +3,12 @@ require "test_helper"
 class JobMatchDigestJobTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
 
+  # Decode both MIME parts so assertions don't trip on quoted-printable line
+  # wraps (which split words mid-string in the raw encoded body).
+  def decoded(mail)
+    [ mail.html_part&.body&.decoded, mail.text_part&.body&.decoded ].compact.join("\n")
+  end
+
   # Fixtures (automation_engineer, senior_qa) are full-time, non-remote, and
   # have no Ruby, so they never match this digest's filter.
   def make_job(title:, category: "full_time", location: "Remote", desc: "", role_class: "traditional")
@@ -27,10 +33,11 @@ class JobMatchDigestJobTest < ActiveSupport::TestCase
     end
 
     mail = ActionMailer::Base.deliveries.last
+    body = decoded(mail)
     assert_equal [ "botwhisperer@hey.com" ], mail.to
     assert_match(/part-time/i, mail.subject)
-    assert_includes mail.body.encoded, "Ruby SDET (Part-time)"
-    assert_not_includes mail.body.encoded, "Product Manager"
+    assert_includes body, "Ruby SDET (Part-time)"
+    assert_not_includes body, "Product Manager"
   end
 
   test "falls back to full-time remote Ruby test-automation when nothing part-time/contract" do
@@ -43,7 +50,22 @@ class JobMatchDigestJobTest < ActiveSupport::TestCase
 
     mail = ActionMailer::Base.deliveries.last
     assert_match(/full-time/i, mail.subject)
-    assert_includes mail.body.encoded, "Ruby QA Engineer"
+    assert_includes decoded(mail), "Ruby QA Engineer"
+  end
+
+  test "second section lists non-Ruby part-time/contract remote roles" do
+    make_job(title: "Ruby SDET", category: "contract", desc: "remote ruby test automation contract")   # section 1
+    make_job(title: "Playwright QA Engineer", category: "contract",
+             location: "Remote", desc: "remote contract playwright test automation, no rails here")     # section 2
+    make_job(title: "Cypress SDET (Full-time)", category: "full_time",
+             location: "Remote", desc: "remote cypress qa, full time only")                              # excluded (full-time, non-ruby)
+
+    JobMatchDigestJob.perform_now
+    body = decoded(ActionMailer::Base.deliveries.last)
+
+    assert_match(/other part-time/i, body)                  # section header present
+    assert_includes body, "Playwright QA Engineer"          # non-Ruby part-time/contract shown
+    assert_not_includes body, "Cypress SDET (Full-time)"    # full-time non-Ruby not in the part-time section
   end
 
   test "excludes non-remote and non-Ruby roles" do
