@@ -25,6 +25,10 @@
     </div>
   </td></tr>
 
+  <tr><td style="padding:4px 30px 12px">
+    <a href="https://agent44labs.com/jobs/opportunities" style="display:block;text-align:center;font-family:<%= sans %>;font-size:15px;font-weight:bold;color:#fff;background:<%= accent %>;text-decoration:none;padding:13px 20px;border-radius:8px">Review &amp; apply to today's opportunities &rarr;</a>
+  </td></tr>
+
   <% @matches.each do |m| %>
     <% job = m.job; label, color = role_meta[job.role_class] || [job.role_class, mut] %>
     <tr><td style="padding:8px 30px">

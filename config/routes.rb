@@ -62,9 +62,11 @@ Rails.application.routes.draw do
       get :globe
       get :today
       get :for_me
+      get :opportunities
     end
     member do
       post :apply_kit
+      post :enqueue_apply
     end
     resource :saved_job, only: [ :create, :destroy ] do
       post :toggle_applied, on: :member

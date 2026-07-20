@@ -4,6 +4,9 @@ class JobsController < ApplicationController
   RANGE_MAP = { "1d" => 1, "5d" => 5, "1w" => 7, "3w" => 21, "1m" => 30, "3m" => 90, "6m" => 180 }.freeze
   DEFAULT_RANGE = "1m"
 
+  # The apply queue is Rich's personal workflow.
+  before_action :require_admin, only: %i[opportunities enqueue_apply]
+
   def index
     @range = RANGE_MAP.key?(params[:range]) ? params[:range] : DEFAULT_RANGE
     @range_days = RANGE_MAP[@range]
@@ -214,5 +217,27 @@ class JobsController < ApplicationController
       .group(:latitude, :longitude, :location)
       .count
       .map { |(lat, lng, location), count| { lat: lat, lng: lng, location: location, count: count } }
+  end
+
+  # Today's Opportunities: the same roles as the morning digest email, with an
+  # Apply button per role that queues it for the Mac-Mini Playwright runner.
+  def opportunities
+    @ops = DailyOpportunities.call
+    @apply_requests = ApplyRequest.where(job_id: @ops.all_matches.map(&:job_id)).index_by(&:job_id)
+  end
+
+  # Queue a job for the apply runner. Nothing is submitted here; the runner
+  # opens the posting, fills what it can, and stops at the submit button.
+  def enqueue_apply
+    job = Job.find(params[:id])
+    ApplyRequest.enqueue!(job)
+    redirect_to opportunities_jobs_path, notice: "Queued for the apply runner: #{job.title}. It will open on the Mac Mini for you to review."
+  end
+
+  private
+
+  def require_admin
+    return if authenticated? && Current.user&.admin?
+    redirect_to root_path, alert: "Not authorized."
   end
 end
