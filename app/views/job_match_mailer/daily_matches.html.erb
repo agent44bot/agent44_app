@@ -15,8 +15,14 @@
 
   <tr><td style="border-top:4px solid <%= accent %>;padding:24px 30px 12px">
     <div style="font-family:<%= serif %>;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:<%= accent %>;font-weight:bold">Your Job Matches</div>
-    <div style="font-family:<%= serif %>;font-size:25px;font-weight:bold;color:<%= ink %>;margin-top:3px">Your top <%= @matches.size %> <%= "match".pluralize(@matches.size) %><% if @fresh_count.to_i.positive? %> &middot; <%= @fresh_count %> new today<% end %></div>
-    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px">Ranked for <%= @profile["name"] %>. Agent &amp; AI-engineer roles first (flagged ★), AI-augmented QA next, automation as backstop.</div>
+    <div style="font-family:<%= serif %>;font-size:25px;font-weight:bold;color:<%= ink %>;margin-top:3px">Remote Ruby test automation<% if @fresh_count.to_i.positive? %> &middot; <%= @fresh_count %> new today<% end %></div>
+    <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:6px">
+      <% if @fallback %>
+        No new part-time or contract roles today, so these are <strong>full-time</strong> remote Ruby test-automation roles for <%= @profile["name"] %>.
+      <% else %>
+        Part-time and contract remote Ruby test-automation roles for <%= @profile["name"] %>.
+      <% end %>
+    </div>
   </td></tr>
 
   <% @matches.each do |m| %>
@@ -32,7 +38,11 @@
               <div style="font-family:<%= sans %>;font-size:12px;color:<%= mut %>;margin-top:3px">
                 <%= job.company %><% if job.location.present? %> &middot; <%= job.location %><% end %><% if job.salary.present? %> &middot; <span style="color:<%= green %>;font-weight:bold"><%= job.salary %></span><% end %>
               </div>
-              <div style="margin-top:6px"><span style="font-family:<%= sans %>;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:.4px;color:<%= color %>;border:1px solid <%= color %>;border-radius:10px;padding:2px 8px"><%= label %></span></div>
+              <div style="margin-top:6px">
+                <span style="font-family:<%= sans %>;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:.4px;color:<%= color %>;border:1px solid <%= color %>;border-radius:10px;padding:2px 8px"><%= label %></span>
+                <% pt = job.part_time_ish?; ecolor = pt ? green : faint %>
+                <span style="font-family:<%= sans %>;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:.4px;color:<%= ecolor %>;border:1px solid <%= ecolor %>;border-radius:10px;padding:2px 8px;margin-left:5px"><%= pt ? "Part-time / Contract" : "Full-time" %></span>
+              </div>
             </td>
             <td style="vertical-align:top;text-align:right;width:56px">
               <div style="font-family:<%= mono %>;font-size:24px;font-weight:bold;color:<%= m.score >= 85 ? green : accent %>"><%= m.score %></div>
@@ -60,6 +70,29 @@
         </td></tr>
       </table>
     </td></tr>
+  <% end %>
+
+  <% if @other_matches.present? %>
+    <tr><td style="padding:20px 30px 4px">
+      <div style="border-top:1px solid <%= line %>;padding-top:16px">
+        <div style="font-family:<%= serif %>;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:<%= mut %>;font-weight:bold">Also open</div>
+        <div style="font-family:<%= serif %>;font-size:18px;font-weight:bold;color:<%= ink %>;margin-top:2px">Other part-time &amp; contract remote roles (non-Ruby)</div>
+      </div>
+    </td></tr>
+    <% @other_matches.each do |m| %>
+      <% oj = m.job %>
+      <tr><td style="padding:5px 30px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid <%= line %>"><tr>
+          <td style="vertical-align:top;padding-bottom:7px">
+            <div style="font-family:<%= sans %>;font-size:13px;font-weight:bold;color:<%= ink %>;line-height:1.3"><%= oj.title %></div>
+            <div style="font-family:<%= sans %>;font-size:11px;color:<%= mut %>;margin-top:2px"><%= oj.company %><% if oj.location.present? %> &middot; <%= oj.location %><% end %><% if oj.salary.present? %> &middot; <span style="color:<%= green %>"><%= oj.salary %></span><% end %></div>
+          </td>
+          <td style="vertical-align:top;text-align:right;width:70px;padding-bottom:7px">
+            <a href="<%= oj.url %>" style="font-family:<%= sans %>;font-size:12px;font-weight:bold;color:<%= accent %>;text-decoration:none">Apply &rarr;</a>
+          </td>
+        </tr></table>
+      </td></tr>
+    <% end %>
   <% end %>
 
   <tr><td style="padding:14px 30px 26px">

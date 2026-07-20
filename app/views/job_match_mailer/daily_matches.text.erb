@@ -1,10 +1,14 @@
 <% role = { "agent_director" => "AI Agent", "ai_augmented" => "AI-Augmented QA", "traditional" => "Test Automation" } -%>
-YOUR JOB MATCHES: top <%= @matches.size %> <%= "match".pluralize(@matches.size) %><%= @fresh_count.to_i.positive? ? " (#{@fresh_count} new today)" : "" %>
-Ranked for <%= @profile["name"] %> (agent & AI-engineer roles first; ★ = dream/agent role)
+REMOTE RUBY TEST AUTOMATION<%= @fresh_count.to_i.positive? ? " (#{@fresh_count} new today)" : "" %>
+<% if @fallback -%>
+No new part-time/contract roles today, so these are FULL-TIME remote Ruby test-automation roles for <%= @profile["name"] %>.
+<% else -%>
+Part-time & contract remote Ruby test-automation roles for <%= @profile["name"] %>.
+<% end -%>
 
-<% @matches.each_with_index do |m, i| -%>
+<% @matches.each do |m| -%>
 <% job = m.job -%>
-[<%= m.score %>]<%= @fresh_ids.include?(m.id) ? " [NEW]" : "" %> <%= m.is_dream ? "★ " : "" %><%= job.title %> · <%= job.company %>
+[<%= m.score %>]<%= @fresh_ids.include?(m.id) ? " [NEW]" : "" %> <%= job.part_time_ish? ? "[Part-time/Contract]" : "[Full-time]" %> <%= job.title %> · <%= job.company %>
     <%= role[job.role_class] || job.role_class %><%= job.location.present? ? " · #{job.location}" : "" %><%= job.salary.present? ? " · #{job.salary}" : "" %>
 <% if m.why.present? -%>
     Why it fits: <%= m.why %>
@@ -12,10 +16,16 @@ Ranked for <%= @profile["name"] %> (agent & AI-engineer roles first; ★ = dream
 <% if m.pitch.present? -%>
     Pitch: <%= m.pitch %>
 <% end -%>
-<% if m.lead_skills.present? -%>
-    Lead with: <%= Array(m.lead_skills).join(", ") %>
-<% end -%>
     Apply: <%= job.url %>
+
+<% end -%>
+<% if @other_matches.present? -%>
+OTHER PART-TIME & CONTRACT REMOTE ROLES (NON-RUBY)
+<% @other_matches.each do |m| -%>
+<% oj = m.job -%>
+- <%= oj.title %> · <%= oj.company %><%= oj.location.present? ? " · #{oj.location}" : "" %><%= oj.salary.present? ? " · #{oj.salary}" : "" %>
+    Apply: <%= oj.url %>
+<% end -%>
 
 <% end -%>
 See all your matches: https://agent44labs.com/jobs/for_me
