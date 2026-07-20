@@ -1,0 +1,37 @@
+<% content_for(:title, "Today's Opportunities") %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-white">Today's Opportunities</h1>
+    <p class="text-sm text-gray-400 mt-1">
+      Remote Ruby test automation, part-time and contract first. <strong class="text-gray-300">Apply</strong> queues a role for the Mac Mini runner, which opens the posting and fills what it can, then stops at the submit button for you. Nothing is submitted automatically.
+    </p>
+  </div>
+
+  <section class="mb-10">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-orange-400 mb-3">
+      Ruby test automation
+      <span class="text-gray-500 normal-case tracking-normal font-normal">&middot; <%= @ops.fallback ? "full-time (no part-time or contract today)" : "part-time / contract" %></span>
+    </h2>
+    <% if @ops.ruby.any? %>
+      <div class="space-y-3">
+        <% @ops.ruby.each do |m| %><%= render "opportunity_row", match: m %><% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-gray-500 italic">No remote Ruby test-automation roles in the board right now.</p>
+    <% end %>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+      Other part-time &amp; contract remote roles <span class="text-gray-600 normal-case tracking-normal font-normal">(non-Ruby)</span>
+    </h2>
+    <% if @ops.other.any? %>
+      <div class="space-y-3">
+        <% @ops.other.each do |m| %><%= render "opportunity_row", match: m %><% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-gray-500 italic">Nothing else part-time or contract today.</p>
+    <% end %>
+  </section>
+</div>

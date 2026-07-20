@@ -6,6 +6,8 @@ No new part-time/contract roles today, so these are FULL-TIME remote Ruby test-a
 Part-time & contract remote Ruby test-automation roles for <%= @profile["name"] %>.
 <% end -%>
 
+Review & apply to today's opportunities: https://agent44labs.com/jobs/opportunities
+
 <% @matches.each do |m| -%>
 <% job = m.job -%>
 [<%= m.score %>]<%= @fresh_ids.include?(m.id) ? " [NEW]" : "" %> <%= job.part_time_ish? ? "[Part-time/Contract]" : "[Full-time]" %> <%= job.title %> · <%= job.company %>

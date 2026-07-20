@@ -19,6 +19,7 @@ class Job < ApplicationRecord
   }
 
   has_many :job_sources, dependent: :destroy
+  has_one :apply_request, dependent: :destroy
 
   validates :title, :url, :category, presence: true
   validates :url, uniqueness: { scope: :source }
