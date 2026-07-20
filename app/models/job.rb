@@ -47,6 +47,28 @@ class Job < ApplicationRecord
   }
   scope :posted_today, -> { where(created_at: Time.current.beginning_of_day..Time.current.end_of_day) }
   scope :remote, -> { where("location LIKE ? OR location LIKE ? OR title LIKE ?", "%Remote%", "%Anywhere%", "%Remote%") }
+  # Ruby + a test-automation signal, for Rich's daily "part-time remote Ruby
+  # test automation" digest (see JobMatchDigestJob).
+  scope :ruby_relevant, -> {
+    where("LOWER(title) LIKE '%ruby%' OR LOWER(description) LIKE '%ruby%'")
+  }
+  scope :test_automation, -> {
+    where(
+      "LOWER(title) LIKE '%test automation%' OR LOWER(title) LIKE '%sdet%' OR " \
+      "LOWER(title) LIKE '%qa%' OR LOWER(title) LIKE '%automation engineer%' OR " \
+      "LOWER(title) LIKE '%test engineer%' OR LOWER(title) LIKE '%quality engineer%' OR " \
+      "LOWER(description) LIKE '%test automation%' OR LOWER(description) LIKE '%sdet%'"
+    )
+  }
+  # Part-time / contract, from the (unreliable) category field OR the text, since
+  # most scrapers default category to full_time. Text signals are kept specific
+  # ("part-time", "fractional") to avoid matching noise like "smart contract".
+  scope :part_time_ish, -> {
+    where(category: %w[part_time contract])
+      .or(where("LOWER(title) LIKE '%part-time%' OR LOWER(title) LIKE '%part time%' OR " \
+                "LOWER(title) LIKE '%fractional%' OR LOWER(description) LIKE '%part-time%' OR " \
+                "LOWER(description) LIKE '%part time%' OR LOWER(description) LIKE '%fractional%'"))
+  }
   # Forward-Deployed Engineer roles. The scraper has no FDE role_class, so match
   # on title/description text. Cuts across all three role classes (most FDE
   # postings read as AI/agent roles), so the /jobs FDE filter bypasses the tab.
@@ -87,6 +109,13 @@ class Job < ApplicationRecord
 
   def bitcoin_job?
     job_sources.any? { |js| BITCOIN_SOURCES.include?(js.source) }
+  end
+
+  # True when this reads as part-time or contract (tagged category or text).
+  # Used to badge the daily Ruby test-automation digest.
+  def part_time_ish?
+    return true if category.in?(%w[part_time contract])
+    "#{title} #{description}".downcase.match?(/part[\s-]?time|fractional/)
   end
 
   def primary_source
