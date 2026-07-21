@@ -246,6 +246,8 @@ Rails.application.routes.draw do
     namespace :v1 do
       resources :jobs, only: [ :create ]
       resources :scrapers, only: [ :update ]
+      # Apply queue for the Mac-Mini Playwright runner (Phase 2).
+      resources :apply_requests, only: [ :index, :update ]
       patch "agents/:name/status", to: "agents#update_status", as: :agent_status
       get "agents/statuses", to: "agents#statuses"
       put "agents/:slug/profile", to: "agents#update_profile", as: :agent_profile
