@@ -64,6 +64,15 @@
       <p class="text-center text-sm text-gray-500 mt-5">
         Prefer a password or Nostr key? <%= link_to "Sign in here", new_session_path, class: "text-orange-500 hover:text-orange-300 font-medium" %>
       </p>
+
+      <% if Rails.env.development? && (dev_admin = User.find_by(role: "admin") || User.first) %>
+        <div class="mt-5 pt-4 border-t border-dashed border-gray-700">
+          <%= button_to "Dev login as admin (#{dev_admin.email_address})", dev_login_as_path(dev_admin),
+                method: :post,
+                class: "w-full px-4 py-2.5 bg-gray-800 text-orange-300 font-semibold rounded-lg hover:bg-gray-700 border border-orange-700/50 transition text-sm" %>
+          <p class="text-center text-xs text-gray-600 mt-2">Development only. Never rendered in production.</p>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>
