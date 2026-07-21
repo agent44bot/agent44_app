@@ -1,12 +1,11 @@
 class RankJobMatchesJob < ApplicationJob
   queue_as :default
 
-  ENRICH_LIMIT     = 20  # max Claude enrichments per run (cost guard)
-  ENRICH_MIN_SCORE = 55  # only spend credits on strong matches
-
-  # Re-score every active job against Rich's profile (cheap, rule-based), then
-  # AI-enrich the strongest not-yet-enriched matches. Scheduled daily after the
-  # 6am scrape (see config/recurring.yml).
+  # Re-score every active job against Rich's profile (cheap, rule-based). No AI
+  # tokens are spent here. Enrichment (the AI "why it fits" / pitch / lead-skills
+  # blurbs) was removed so the pipeline only spends AI on the apply process
+  # itself: the cover letter, generated on demand when Rich opens a role's apply
+  # kit (see CoverLetterGenerator). Scheduled daily after the 6am scrape.
   def perform
     JobMatcher.reload_profile!
 
@@ -19,8 +18,7 @@ class RankJobMatchesJob < ApplicationJob
     # deletes, but jobs go inactive without being deleted).
     JobMatch.where.not(job_id: active_ids).delete_all
 
-    enriched = enrich_top_matches
-    Rails.logger.info("RankJobMatchesJob: scored #{active_ids.size} jobs, enriched #{enriched}")
+    Rails.logger.info("RankJobMatchesJob: scored #{active_ids.size} jobs (rule-based only, no AI)")
   rescue => e
     Notification.notify!(
       level: "error", source: "job_match",
@@ -29,16 +27,5 @@ class RankJobMatchesJob < ApplicationJob
       telegram: true
     )
     raise
-  end
-
-  private
-
-  def enrich_top_matches
-    JobMatch.ranked
-            .where(enriched_at: nil)
-            .where("score >= ?", ENRICH_MIN_SCORE)
-            .limit(ENRICH_LIMIT)
-            .includes(:job)
-            .count { |m| JobMatchEnricher.enrich!(m) }
   end
 end
