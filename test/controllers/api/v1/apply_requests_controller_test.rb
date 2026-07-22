@@ -48,4 +48,26 @@ class Api::V1::ApplyRequestsControllerTest < ActionDispatch::IntegrationTest
     patch "/api/v1/apply_requests/#{@req.id}", params: { status: "opened" }.to_json
     assert_response :unauthorized
   end
+
+  test "index surfaces the run_requested_at flag for the daemon" do
+    Setting.delete_key("apply_run_requested_at")
+    get "/api/v1/apply_requests", headers: @headers
+    assert_nil JSON.parse(response.body)["run_requested_at"], "flag is nil until Run now is pressed"
+
+    Setting.touch_time("apply_run_requested_at")
+    get "/api/v1/apply_requests", headers: @headers
+    assert JSON.parse(response.body)["run_requested_at"].present?, "flag should be exposed once set"
+  end
+
+  test "clear_run_request removes the flag and needs the token" do
+    Setting.touch_time("apply_run_requested_at")
+
+    delete "/api/v1/apply_requests/run_request"
+    assert_response :unauthorized
+    assert Setting.time("apply_run_requested_at").present?, "unauthorized call must not clear it"
+
+    delete "/api/v1/apply_requests/run_request", headers: @headers
+    assert_response :no_content
+    assert_nil Setting.time("apply_run_requested_at"), "authorized call clears the flag"
+  end
 end

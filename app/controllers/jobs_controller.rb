@@ -5,7 +5,7 @@ class JobsController < ApplicationController
   DEFAULT_RANGE = "1m"
 
   # The apply queue is Rich's personal workflow.
-  before_action :require_admin, only: %i[opportunities enqueue_apply]
+  before_action :require_admin, only: %i[opportunities enqueue_apply run_now]
 
   def index
     @range = RANGE_MAP.key?(params[:range]) ? params[:range] : DEFAULT_RANGE
@@ -224,6 +224,8 @@ class JobsController < ApplicationController
   def opportunities
     @ops = DailyOpportunities.call
     @apply_requests = ApplyRequest.where(job_id: @ops.all_matches.map(&:job_id)).index_by(&:job_id)
+    # Rows the Mac-Mini runner will actually process on its next run.
+    @runnable_count = ApplyRequest.where(status: %w[queued opened error]).count
   end
 
   # Queue a job for the apply runner. Nothing is submitted here; the runner
@@ -232,6 +234,14 @@ class JobsController < ApplicationController
     job = Job.find(params[:id])
     ApplyRequest.enqueue!(job)
     redirect_to opportunities_jobs_path, notice: "Queued for the apply runner: #{job.title}. It will open on the Mac Mini for you to review."
+  end
+
+  # Raise a "Run now" flag the Mac-Mini daemon polls for. It launches the
+  # headed runner for whatever is queued, so the whole flow stays in the
+  # browser (no terminal). The daemon clears the flag once it acts.
+  def run_now
+    Setting.touch_time("apply_run_requested_at")
+    redirect_to opportunities_jobs_path, notice: "Runner requested. It will start on the Mac Mini within about 15 seconds."
   end
 
   private

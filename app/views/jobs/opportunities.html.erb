@@ -6,6 +6,18 @@
     <p class="text-sm text-gray-400 mt-1">
       Remote Ruby test automation, part-time and contract first. <strong class="text-gray-300">Apply</strong> queues a role for the Mac Mini runner, which opens the posting and fills what it can, then stops at the submit button for you. Nothing is submitted automatically.
     </p>
+
+    <div class="mt-4 flex items-center gap-3">
+      <%= button_to run_now_jobs_path, method: :post,
+            class: "inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed",
+            form: { class: "inline" },
+            disabled: @runnable_count.zero? do %>
+        Run now on the Mac Mini<% if @runnable_count.positive? %> (<%= @runnable_count %>)<% end %>
+      <% end %>
+      <span class="text-xs text-gray-500">
+        <%= @runnable_count.zero? ? "Queue a role first, then run." : "Opens the queued postings on the Mac Mini within about 15 seconds." %>
+      </span>
+    </div>
   </div>
 
   <section class="mb-10">

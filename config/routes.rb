@@ -63,6 +63,7 @@ Rails.application.routes.draw do
       get :today
       get :for_me
       get :opportunities
+      post :run_now
     end
     member do
       post :apply_kit
@@ -247,7 +248,10 @@ Rails.application.routes.draw do
       resources :jobs, only: [ :create ]
       resources :scrapers, only: [ :update ]
       # Apply queue for the Mac-Mini Playwright runner (Phase 2).
-      resources :apply_requests, only: [ :index, :update ]
+      resources :apply_requests, only: [ :index, :update ] do
+        # The Mac-Mini daemon clears the "Run now" flag once it acts on it.
+        delete :run_request, on: :collection, action: :clear_run_request
+      end
       patch "agents/:name/status", to: "agents#update_status", as: :agent_status
       get "agents/statuses", to: "agents#statuses"
       put "agents/:slug/profile", to: "agents#update_profile", as: :agent_profile

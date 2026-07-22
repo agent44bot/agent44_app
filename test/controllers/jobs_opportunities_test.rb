@@ -48,4 +48,21 @@ class JobsOpportunitiesTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_nil ApplyRequest.find_by(job_id: @job.id)
   end
+
+  test "run_now raises the run flag the daemon polls for" do
+    sign_in_as(@admin)
+    Setting.delete_key("apply_run_requested_at")
+    post run_now_jobs_path
+    assert_redirected_to opportunities_jobs_path
+    assert Setting.time("apply_run_requested_at").present?, "run_now should set the run flag"
+  end
+
+  test "run_now is blocked for authenticated non-admins" do
+    non_admin = User.create!(email_address: "plain3-#{SecureRandom.hex(4)}@example.com", role: "user")
+    sign_in_as(non_admin)
+    Setting.delete_key("apply_run_requested_at")
+    post run_now_jobs_path
+    assert_response :redirect
+    assert_nil Setting.time("apply_run_requested_at")
+  end
 end
