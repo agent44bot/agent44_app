@@ -187,7 +187,10 @@ async function main() {
   } else {
     console.log("\n✅ Forms filled to the submit button. Review each tab and click Submit yourself.");
     console.log("   Close the browser window when you're done to end the runner.");
-    await browser.waitForEvent("disconnected", { timeout: 0 }).catch(() => {});
+    await new Promise((resolve) => {
+      if (!browser.isConnected()) return resolve();
+      browser.on("disconnected", resolve);
+    });
   }
 }
 
