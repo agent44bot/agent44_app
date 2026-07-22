@@ -24,6 +24,12 @@
       <%= button_to "Apply &rarr;".html_safe, enqueue_apply_job_path(job), method: :post,
             class: "inline-block px-4 py-2 text-sm font-semibold text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition" %>
     <% end %>
-    <div class="mt-1.5"><a href="<%= job.url %>" target="_blank" rel="noopener" class="text-[11px] text-gray-500 hover:text-orange-400 transition">Open posting &#8599;</a></div>
+    <div class="mt-1.5 flex items-center justify-end gap-3">
+      <a href="<%= job.url %>" target="_blank" rel="noopener" class="text-[11px] text-gray-500 hover:text-orange-400 transition">Open posting &#8599;</a>
+      <%= button_to "Remove", dismiss_job_path(job), method: :delete,
+            class: "text-[11px] text-gray-600 hover:text-red-400 transition",
+            form: { class: "inline" },
+            data: { turbo_confirm: "Remove this role from Today's Opportunities?" } %>
+    </div>
   </div>
 </div>

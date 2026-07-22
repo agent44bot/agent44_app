@@ -10,10 +10,13 @@ class DailyOpportunities
 
   attr_reader :ruby, :other, :fallback
 
-  def self.call
+  # exclude_job_ids drops dismissed roles (see JobsController#dismiss); because
+  # the exclusion is applied before the limit, the lists still fill to their cap.
+  def self.call(exclude_job_ids: [])
     target = JobMatch.ranked
                      .preload(job: :job_sources)
                      .joins(:job).merge(Job.active.remote.ruby_relevant.test_automation)
+    target = target.where.not(job_id: exclude_job_ids) if exclude_job_ids.present?
 
     ruby     = target.merge(Job.part_time_ish).limit(RUBY_LIMIT).to_a
     fallback = ruby.empty?
@@ -22,7 +25,8 @@ class DailyOpportunities
     other = JobMatch.ranked
                     .preload(job: :job_sources)
                     .joins(:job).merge(Job.active.remote.part_time_ish.non_ruby)
-                    .limit(OTHER_LIMIT).to_a
+    other = other.where.not(job_id: exclude_job_ids) if exclude_job_ids.present?
+    other = other.limit(OTHER_LIMIT).to_a
 
     new(ruby: ruby, other: other, fallback: fallback)
   end

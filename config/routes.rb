@@ -68,6 +68,7 @@ Rails.application.routes.draw do
     member do
       post :apply_kit
       post :enqueue_apply
+      delete :dismiss
     end
     resource :saved_job, only: [ :create, :destroy ] do
       post :toggle_applied, on: :member

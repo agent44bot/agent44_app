@@ -5,7 +5,7 @@ class JobsController < ApplicationController
   DEFAULT_RANGE = "1m"
 
   # The apply queue is Rich's personal workflow.
-  before_action :require_admin, only: %i[opportunities enqueue_apply run_now]
+  before_action :require_admin, only: %i[opportunities enqueue_apply run_now dismiss]
 
   def index
     @range = RANGE_MAP.key?(params[:range]) ? params[:range] : DEFAULT_RANGE
@@ -222,10 +222,19 @@ class JobsController < ApplicationController
   # Today's Opportunities: the same roles as the morning digest email, with an
   # Apply button per role that queues it for the Mac-Mini Playwright runner.
   def opportunities
-    @ops = DailyOpportunities.call
+    @ops = DailyOpportunities.call(exclude_job_ids: Current.user.hidden_jobs.pluck(:job_id))
     @apply_requests = ApplyRequest.where(job_id: @ops.all_matches.map(&:job_id)).index_by(&:job_id)
     # Rows the Mac-Mini runner will actually process on its next run.
     @runnable_count = ApplyRequest.where(status: %w[queued opened error]).count
+  end
+
+  # Remove a role from Today's Opportunities: hide it (so it stays gone and the
+  # list backfills) and drop any queued apply request for it.
+  def dismiss
+    job = Job.find(params[:id])
+    Current.user.hidden_jobs.find_or_create_by(job: job)
+    ApplyRequest.where(job_id: job.id).delete_all
+    redirect_to opportunities_jobs_path, notice: "Removed: #{job.title}."
   end
 
   # Queue a job for the apply runner. Nothing is submitted here; the runner

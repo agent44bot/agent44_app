@@ -65,4 +65,27 @@ class JobsOpportunitiesTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_nil Setting.time("apply_run_requested_at")
   end
+
+  test "dismiss hides the role, drops its apply request, and removes it from the list" do
+    sign_in_as(@admin)
+    ApplyRequest.enqueue!(@job)
+    assert_difference -> { @admin.hidden_jobs.count }, 1 do
+      delete dismiss_job_path(@job)
+    end
+    assert_redirected_to opportunities_jobs_path
+    assert_nil ApplyRequest.find_by(job_id: @job.id), "dismiss should unqueue the job"
+
+    get opportunities_jobs_path
+    # Assert the role's row (a link to the job) is gone; the flash notice still
+    # names it, so match on the row link rather than the title text.
+    assert_select "a[href=?]", job_path(@job), count: 0, message: "dismissed role's row should be gone"
+  end
+
+  test "dismiss is blocked for authenticated non-admins" do
+    non_admin = User.create!(email_address: "plain4-#{SecureRandom.hex(4)}@example.com", role: "user")
+    sign_in_as(non_admin)
+    delete dismiss_job_path(@job)
+    assert_response :redirect
+    assert_equal 0, non_admin.hidden_jobs.count
+  end
 end
