@@ -40,6 +40,22 @@ A browser opens with one tab per queued role, each filled to the submit button
 want, then close the browser window to end the run. Status is reported back to
 the app per role: `opened` -> `filled` -> (`applied`, which Rich marks himself).
 
+## Run from the browser (the "Run now" button)
+
+So the whole flow stays in the browser, `/jobs/opportunities` has a **Run now on
+the Mac Mini** button. Clicking it raises a flag in the app; a small daemon on
+the Mac Mini polls for that flag and launches the headed runner for you, no
+terminal needed. Start the daemon once (in Rich's GUI session so the browser is
+visible):
+
+```bash
+node ~/.openclaw/skills/agent44-apply-runner/scripts/runner_daemon.mjs
+```
+
+It polls every ~15s and, on a "Run now" click, clears the flag and runs
+`run.sh` once. Leave it running (or wire it into launchd) so the button always
+works.
+
 ## Flags / env
 
 - `HEADLESS=1 …` — run headless (testing/CI; screenshots to `/tmp/apply-runner-*.png`).

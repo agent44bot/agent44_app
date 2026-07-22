@@ -18,8 +18,19 @@ module Api
         requests = ApplyRequest.pending.includes(:job).order(:requested_at)
         render json: {
           profile: JobMatcher.profile["application"] || {},
+          # Set by the "Run now" button; the daemon launches the runner when this
+          # is present and clears it via clear_run_request.
+          run_requested_at: Setting.time("apply_run_requested_at")&.iso8601,
           requests: requests.map { |r| serialize(r) }
         }
+      end
+
+      # DELETE /api/v1/apply_requests/run_request
+      # The Mac-Mini daemon calls this the moment it acts on a "Run now" so the
+      # flag fires exactly once per button press.
+      def clear_run_request
+        Setting.delete_key("apply_run_requested_at")
+        head :no_content
       end
 
       # PATCH /api/v1/apply_requests/:id
