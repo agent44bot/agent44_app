@@ -49,3 +49,6 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Mac Mini OpenClaw skills (tooling, not app runtime)
+/skills

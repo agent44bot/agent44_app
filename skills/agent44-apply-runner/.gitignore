@@ -1,0 +1,7 @@
+# Node deps — restore with `npm install` (package-lock.json is tracked)
+scripts/node_modules/
+
+# Playwright/browser + local run artifacts
+*.log
+/tmp/
+scripts/*.png
