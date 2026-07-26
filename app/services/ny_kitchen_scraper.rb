@@ -165,6 +165,9 @@ class NyKitchenScraper
     request = Net::HTTP::Get.new(uri)
     request["User-Agent"]      = UA
     request["Accept"]          = "application/json"
+    request["Referer"]         = "https://nykitchen.com/calendar/"
+    request["Origin"]          = "https://nykitchen.com"
+    request["Accept-Language"] = "en-US,en;q=0.9"
 
     response = http.request(request)
     code = response.code.to_i
@@ -220,7 +223,7 @@ class NyKitchenScraper
 
   def normalize_tribe_event(raw)
     # Tribe Events REST API returns events with different field names than JSON-LD
-    # Example: start_date instead of startDate, title instead of name
+    # Example: start_date instead of startDate, title instead of name, image is a hash with {url: ...}
     
     start = raw["start_date"] && (DateTime.parse(raw["start_date"]) rescue nil)
     return nil unless start
@@ -230,16 +233,26 @@ class NyKitchenScraper
 
     url = raw["url"] || raw["link"]
     
+    # Extract image URL from nested image hash
+    image_url = nil
+    if raw["image"].is_a?(Hash)
+      image_url = raw["image"]["url"]
+    end
+    
+    # Extract cost and remove HTML entities
+    price = raw["cost"]&.to_s
+    price = price.gsub(/[&#\$;]/, "").strip if price
+    
     {
       url: url,
       name: title,
       start_at: start.to_time,
       end_at: (DateTime.parse(raw["end_date"]).to_time rescue nil),
-      price: raw["cost"]&.to_s,
+      price: price,
       availability: "InStock",  # Will be updated by fetch_availability
       venue: "New York Kitchen",
       description: raw["description"]&.strip,
-      image_url: raw["image"]&.dig("src") || raw["featured_image"]
+      image_url: image_url
     }
   end
 end
