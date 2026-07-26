@@ -58,13 +58,22 @@ class ScrapeKitchenJob < ApplicationJob
       # "Tickets no longer available" zeroes the live page (spots 0, no price) —
       # that's a pre-event sales cutoff, not a sellout. Carry forward the last
       # real observation so the class isn't mistaken for a sellout, doesn't inject
-      # a phantom booking, and keeps its price. A class that had truly sold out
-      # before closing stays "SoldOut".
+      # a phantom booking, and keeps its price. EXCEPT: if the class was truly
+      # sold out before, it stays sold out (don't resurrect it with old spots_left).
       if e[:closed] && prev
-        e[:spots_left]   = prev.spots_left
-        e[:capacity]     = prev.capacity
-        e[:price]        = prev.price if e[:price].blank?
-        e[:availability] = prev.truly_sold_out? ? "SoldOut" : "Closed"
+        if prev.truly_sold_out?
+          # Was sold out; stays sold out (don't carry forward old spots)
+          e[:availability] = "SoldOut"
+          # Zero out the spots (they're invalid after true sellout)
+          e[:spots_left] = 0
+          e[:capacity] = prev.capacity
+        else
+          # Was a pre-event cutoff; restore the last observation
+          e[:spots_left]   = prev.spots_left
+          e[:capacity]     = prev.capacity
+          e[:availability] = "Closed"
+        end
+        e[:price] = prev.price if e[:price].blank?
       end
 
       if e[:spots_left] && e[:capacity]
