@@ -191,8 +191,9 @@ class NyKitchenScraper
     request["Accept-Language"] = "en-US,en;q=0.9"
 
     response = http.request(request)
-    unless response.code.match?(/^20[0249]$/)  # Accept 200, 202, 204, 209 (common success codes)
-      Rails.logger.warn("NyKitchenScraper: #{url} -> HTTP #{response.code}")
+    code = response.code.to_i
+    unless code.between?(200, 299)  # Accept any 2xx success code
+      Rails.logger.warn("NyKitchenScraper: #{url} -> HTTP #{code}")
       return nil
     end
 
