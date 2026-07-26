@@ -17,6 +17,22 @@ class ScrapeKitchenJob < ApplicationJob
     events  = scraper.fetch_events(months: months)
     Rails.logger.info("ScrapeKitchenJob: fetched #{events.size} events")
 
+    # A zero-event scrape means the calendar structure changed (e.g. the source
+    # URL moved and now 404s), not that NY Kitchen has no classes. Writing an
+    # empty snapshot would clobber the last good data and, via the taken_on
+    # guard above, block retries for the rest of the day. Alert and bail instead
+    # of silently reporting "0 events scraped" as a success.
+    if events.empty?
+      Notification.notify!(
+        level: "error",
+        source: "kitchen_scraper",
+        title: "NY Kitchen scrape returned 0 events",
+        body: "fetch_events came back empty for #{months.join(', ')} - the calendar page likely moved or changed markup. No snapshot written; last good snapshot left in place.",
+        telegram: true
+      )
+      return
+    end
+
     # Enrich all events with live spot counts from detail pages
     # (JSON-LD availability from the calendar can be stale/wrong)
     events.each do |e|
