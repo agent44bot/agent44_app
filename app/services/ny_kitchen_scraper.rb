@@ -168,18 +168,22 @@ class NyKitchenScraper
 
     response = http.request(request)
     code = response.code.to_i
+    
+    body = response.body.force_encoding("UTF-8").scrub
+    
     unless code.between?(200, 299)
       Rails.logger.warn("NyKitchenScraper REST API: #{url} -> HTTP #{code}")
+      Rails.logger.warn("NyKitchenScraper REST API response body: #{body.slice(0, 500)}")
       return nil
     end
 
-    body = response.body.force_encoding("UTF-8").scrub
     data = JSON.parse(body) rescue nil
     
-    if data
-      Rails.logger.info("NyKitchenScraper REST API: #{url} -> #{data.dig('events')&.size || 0} events")
+    if data && data.is_a?(Hash) && data['events'].is_a?(Array)
+      Rails.logger.info("NyKitchenScraper REST API: #{url} -> #{data['events'].size} events")
     else
       Rails.logger.warn("NyKitchenScraper REST API: #{url} -> Invalid JSON response")
+      Rails.logger.warn("NyKitchenScraper REST API response: #{body.slice(0, 1000)}")
     end
     
     data
