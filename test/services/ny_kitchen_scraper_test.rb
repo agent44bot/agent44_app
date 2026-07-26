@@ -1,7 +1,19 @@
 require "test_helper"
+require "minitest/mock"
 
 class NyKitchenScraperTest < ActiveSupport::TestCase
   setup { @scraper = NyKitchenScraper.new }
+
+  # Mirrors a real NY Kitchen detail page: a single JSON-LD block with the Event
+  # (and its Offer) nested inside @graph.
+  SOLD_OUT_JSONLD = <<~HTML.freeze
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@graph":[
+      {"@type":"Event","name":"Peaches","url":"https://nykitchen.com/event/peaches/",
+       "offers":[{"@type":"Offer","availability":"SoldOut","price":"85"}]}
+    ]}
+    </script>
+  HTML
 
   test "prefers the JSON-LD #primaryimage over a fallback og:image" do
     html = <<~HTML
@@ -59,5 +71,33 @@ class NyKitchenScraperTest < ActiveSupport::TestCase
 
   test "menu is nil when the page has no Menu section" do
     assert_nil @scraper.extract_event_menu("<h3 class=\"nyk-event-meta-title\">Tasting Notes</h3><p>Dry</p>")
+  end
+
+  test "detail_json_ld_sold_out? reads SoldOut from the event offer nested in @graph" do
+    assert @scraper.send(:detail_json_ld_sold_out?, SOLD_OUT_JSONLD)
+    assert_not @scraper.send(:detail_json_ld_sold_out?, SOLD_OUT_JSONLD.sub("SoldOut", "InStock"))
+  end
+
+  test "fetch_availability reports sold out from JSON-LD when the ticket widget exposes no seat count" do
+    # A sold-out NYK page drops its data-available-count attributes, so the
+    # ticket-block parse finds nothing. The offer JSON-LD still says SoldOut.
+    html = SOLD_OUT_JSONLD + <<~HTML
+      <div class="tribe-tickets__tickets-item tribe-tickets__tickets-item--unavailable">
+        <span class="tribe-tickets__tickets-item-quantity-unavailable">Sold Out</span>
+      </div>
+    HTML
+    result = @scraper.stub(:get, html) do
+      @scraper.fetch_availability("https://nykitchen.com/event/peaches/")
+    end
+    assert_equal 0, result[:spots_left]
+    assert_nil result[:capacity]
+  end
+
+  test "fetch_availability returns nil for an open class with no parseable count and no sold-out signal" do
+    html = '<html><body><div class="tribe-events-content"><p>Register below</p></div></body></html>'
+    result = @scraper.stub(:get, html) do
+      @scraper.fetch_availability("https://nykitchen.com/event/open/")
+    end
+    assert_nil result
   end
 end

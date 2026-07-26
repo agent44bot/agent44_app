@@ -200,6 +200,15 @@ module NykEventScraperHelper
           }
         }
 
+        // Fallback: the event's own content plainly says SOLD OUT, but the ticket
+        // widget exposed no parseable seat count (no data-available-count and no
+        // "N available" text, as happens on a sold-out NYK page). Trust the
+        // on-page sellout rather than returning null, which would leave
+        // availability blank and carry the last (stale) count forward.
+        if (hasSoldOut) {
+          return { spots_left: 0, capacity: null, closed: false };
+        }
+
         return null;
       })()
     JS

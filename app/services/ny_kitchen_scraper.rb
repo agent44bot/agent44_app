@@ -4,7 +4,10 @@ require "json"
 require "cgi"
 
 class NyKitchenScraper
-  BASE = "https://nykitchen.com/calendar/list/"
+  # NY Kitchen removed the /calendar/list/ view (now 404s). The month view at
+  # /calendar/ still honors ?tribe-bar-date=YYYY-MM and emits every event for the
+  # month in its JSON-LD @graph, which extract_jsonld_events flattens.
+  BASE = "https://nykitchen.com/calendar/"
   UA   = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
   # Fetch events covering the given month range (YYYY-MM strings).
@@ -55,6 +58,12 @@ class NyKitchenScraper
       return { spots_left: 0, capacity: nil, closed: true, image_url: image_url, menu: menu }
     end
 
+    # A sold-out class drops its data-available-count attributes and its price,
+    # so the ticket-block parse below finds nothing and would return nil (leaving
+    # availability blank/stale). The detail page's own JSON-LD still reports
+    # "SoldOut" reliably, so trust it as a fallback signal.
+    sold_out = detail_json_ld_sold_out?(html)
+
     blocks = html.split(/class="[^"]*tribe-tickets__tickets-item[ "][^"]*"/)[1..] || []
     by_id     = {}
     seen_pool = {}
@@ -72,7 +81,10 @@ class NyKitchenScraper
       by_id[key] ||= { avail: avail, cap: cap, shared: shared }
     end
 
-    return nil if by_id.empty?
+    if by_id.empty?
+      return { spots_left: 0, capacity: nil, image_url: image_url, menu: menu } if sold_out
+      return nil
+    end
 
     spots_left = 0
     capacity   = 0
@@ -197,6 +209,16 @@ class NyKitchenScraper
       end
     end
     events
+  end
+
+  # True when any Event offer on the detail page reports schema.org SoldOut.
+  # Used as a fallback when the ticket widget exposes no live seat count.
+  def detail_json_ld_sold_out?(html)
+    extract_jsonld_events(html).any? do |raw|
+      offers = raw["offers"]
+      offers = [ offers ] unless offers.is_a?(Array)
+      offers.any? { |o| o.is_a?(Hash) && o["availability"].to_s.include?("SoldOut") }
+    end
   end
 
   def normalize(raw)
