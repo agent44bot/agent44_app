@@ -1,0 +1,16 @@
+NY KITCHEN SCRAPE LOOKS BROKEN
+
+<%= @reason %>
+
+The every-3h NY Kitchen scrape may have stopped (Mac mini primary plus laptop
+stopgap), so the app may be showing old or empty class availability.
+
+WHAT TO CHECK
+- the Mac mini's launchd scrape job
+- the laptop stopgap (com.agent44.nyk-scrape-prod)
+- POST /api/v1/kitchen_snapshots
+
+Tracking: agent44bot/agent44_app issue #444.
+
+You are getting this because availability data went stale or empty. It will not
+re-alert for 12 hours, so a persistent outage pings once, not every hour.

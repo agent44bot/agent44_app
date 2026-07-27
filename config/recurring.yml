@@ -59,6 +59,14 @@ production:
   nyk_smoke_freshness_check:
     class: NykSmokeFreshnessCheckJob
     schedule: every hour at minute 17
+  # Watches the actual scraped data (not a runner heartbeat): alerts by email +
+  # iOS push + Telegram when the latest KitchenSnapshot is empty or no fresh
+  # scrape has landed in ~7h (two missed 3h cycles). Catches every break cause
+  # at once: mini down, laptop stopgap down, node/PATH bug, network, 0-event
+  # scrape. See NykScrapeDataFreshnessCheckJob and issue #444.
+  nyk_scrape_data_freshness_check:
+    class: NykScrapeDataFreshnessCheckJob
+    schedule: every hour at minute 51
   # Verify the flyer-QR -> scan-redirect -> nykitchen.com chain is intact and
   # alert (iOS push + hub banner) if scans would not reach the ticket page.
   # In-process checks only, so it's cheap; 3x/day is plenty. Cron form to stay
