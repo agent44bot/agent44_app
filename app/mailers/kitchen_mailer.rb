@@ -39,6 +39,15 @@ class KitchenMailer < ApplicationMailer
     )
   end
 
+  # Ops alert when the every-3h scrape has gone stale or empty (NY Kitchen
+  # availability data is no longer refreshing). Sent by
+  # NykScrapeDataFreshnessCheckJob to the two NY Kitchen owners. `reason` is a
+  # one-line human explanation of what tripped the check.
+  def scrape_broken(reason:, recipients:)
+    @reason = reason
+    mail(to: recipients, subject: "NY Kitchen scrape looks broken")
+  end
+
   # One-click failure report a manager can forward to an outside developer.
   # Bundles the failed run's error, console output, and steps, with signed
   # links to the video, trace, and page source (no login needed). Artifacts
