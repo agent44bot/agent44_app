@@ -72,6 +72,58 @@ class DeputyClient
     }
   end
 
+  # Deep link to Deputy's Approve Timesheets screen. It's a SPA, so we can't
+  # target a specific week/location in the URL; Lora sets those in Deputy.
+  def self.approve_url
+    "https://#{install}.#{geo}.deputy.com/#/approve-v2"
+  end
+
+  # Count of ACTIVE (non-discarded) timesheets whose Date falls in [from, to].
+  def self.active_timesheet_count(from, to)
+    resp = post("resource/Timesheet/QUERY", {
+      search: { s1: { field: "Date", type: "ge", data: from.to_s },
+                s2: { field: "Date", type: "le", data: to.to_s } },
+      max: 500
+    })
+    return 0 unless resp.is_a?(Array)
+    resp.count { |t| t.is_a?(Hash) && !t["Discarded"] }
+  end
+
+  # Create one UNAPPROVED timesheet per staffed scheduled shift in [from, to].
+  #
+  # Idempotency guard: if ANY active timesheet already exists for the week, it
+  # creates nothing and returns { status: :exists, existing: N } so the caller
+  # shows a "review in Deputy" link instead of ever risking duplicates.
+  #
+  # This never touches the roster: it READS shifts (Roster/QUERY) and WRITES
+  # only Timesheet records (a separate resource). Open/unfilled shifts are
+  # skipped (no employee to bill).
+  def self.generate_week_timesheets(from, to)
+    existing = active_timesheet_count(from, to)
+    return { status: :exists, existing: existing } if existing.positive?
+
+    staffed = query_roster(from, to).select do |r|
+      r["Employee"].to_i.positive? && r["StartTime"].is_a?(Numeric) &&
+        r["EndTime"].is_a?(Numeric) && r["EndTime"] > r["StartTime"] && !r["Open"]
+    end
+
+    created = 0
+    staffed.each do |r|
+      resp = post("supervise/timesheet/update", {
+        intEmployeeId:     r["Employee"],
+        intOpunitId:       r["OperationalUnit"],
+        intStartTimestamp: r["StartTime"],
+        intEndTimestamp:   r["EndTime"],
+        arrSlots:          []
+      })
+      created += 1 if resp.is_a?(Hash) && resp["Id"]
+    rescue Error => e
+      Rails.logger.warn("Deputy timesheet create failed for roster #{r['Id']}: #{e.message}")
+    end
+
+    { status: :created, created: created, attempted: staffed.size }
+  end
+
   def self.query_roster(from, to)
     body = {
       search: {

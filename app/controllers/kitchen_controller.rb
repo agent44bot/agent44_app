@@ -22,7 +22,7 @@ class KitchenController < ApplicationController
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
-  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class hours]
+  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class hours generate_timesheets]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -135,7 +135,47 @@ class KitchenController < ApplicationController
                        disposition: "attachment"
     end
 
+    # HTML only: does this week already have timesheets in Deputy? Drives the
+    # "Generate timesheets" button vs "Review in Deputy" link. Live (uncached)
+    # so it reflects a generate that just happened.
+    if @hours
+      begin
+        @timesheet_count    = DeputyClient.active_timesheet_count(@week_start, @week_end)
+        @deputy_approve_url = DeputyClient.approve_url
+      rescue DeputyClient::Error => e
+        Rails.logger.warn("NYK hours: timesheet count failed: #{e.message}")
+      end
+    end
+
     render "admin/kitchen/hours", layout: "application"
+  end
+
+  # Create pending timesheets in Deputy for one week's scheduled shifts. POST,
+  # manager-only. The client is idempotent (refuses if any already exist for the
+  # week) and never touches the roster, so this cannot create duplicates or alter
+  # the schedule.
+  def generate_timesheets
+    week_start = nyk_week_start(params[:week])
+    week_end   = week_start + 6
+
+    unless DeputyClient.configured?
+      flash[:alert] = "Deputy is not connected."
+      return redirect_to nyk_hours_path(week: week_start)
+    end
+
+    result = DeputyClient.generate_week_timesheets(week_start, week_end)
+    span   = "#{week_start.strftime('%b %-d')} to #{week_end.strftime('%b %-d')}"
+    case result[:status]
+    when :created
+      n = result[:created]
+      flash[:notice] = "Created #{n} pending timesheet#{'s' unless n == 1} in Deputy for #{span}. Review and approve them in Deputy; your schedule was not changed."
+    when :exists
+      flash[:alert] = "Timesheets already exist for #{span} (#{result[:existing]} found), so nothing was created. Review them in Deputy."
+    end
+    redirect_to nyk_hours_path(week: week_start)
+  rescue DeputyClient::Error => e
+    flash[:alert] = "Could not reach Deputy: #{e.message}"
+    redirect_to nyk_hours_path(week: params[:week])
   end
 
   # Consolidated shopping list for every class in a date range that has a

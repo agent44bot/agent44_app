@@ -82,6 +82,9 @@ Rails.application.routes.draw do
   # Team hours (scheduled, from Deputy) for managers: per-employee weekly totals
   # + Export to Excel. See KitchenController#hours.
   get "nykitchen/hours", to: "kitchen#hours", as: :nyk_hours
+  # Generate pending timesheets in Deputy for a week's shifts (manager-only,
+  # idempotent). See KitchenController#generate_timesheets.
+  post "nykitchen/hours/timesheets", to: "kitchen#generate_timesheets", as: :nyk_generate_timesheets
   post "nykitchen/grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
   patch "nykitchen/grocery/portion", to: "kitchen#update_portion", as: :nyk_grocery_portion
   post   "nykitchen/classes",     to: "kitchen#create_manual_class", as: :nyk_manual_classes
