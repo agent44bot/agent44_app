@@ -58,11 +58,36 @@ class DeputyClientTest < ActiveSupport::TestCase
     assert_match %r{\Ahttps://.+\.deputy\.com/#/approve-v2\z}, DeputyClient.approve_url
   end
 
-  test "active_timesheet_count excludes discarded timesheets" do
-    rows = [ { "Id" => 1, "Discarded" => nil }, { "Id" => 2, "Discarded" => "2026-07-23T00:00:00-04:00" }, { "Id" => 3 } ]
+  test "active_timesheet_count excludes discarded and 0-minute ghost timesheets" do
+    rows = [
+      { "Id" => 1, "Discarded" => nil, "TotalTime" => 5 },                                # real
+      { "Id" => 2, "Discarded" => "2026-07-23T00:00:00-04:00", "TotalTime" => 5 },        # discarded
+      { "Id" => 3, "TotalTime" => 3 },                                                    # real
+      { "Id" => 4, "TotalTime" => 0 }                                                    # ghost (0 min)
+    ]
     DeputyClient.stub(:post, rows) do
       assert_equal 2, DeputyClient.active_timesheet_count(Date.new(2026, 7, 20), Date.new(2026, 7, 26))
     end
+  end
+
+  test "timesheet_status groups by employee, counts approved vs pending, excludes ghosts" do
+    rows = [
+      { "EmployeeObject" => { "DisplayName" => "Alice" }, "TimeApproved" => true,  "TotalTime" => 5, "Discarded" => nil },
+      { "EmployeeObject" => { "DisplayName" => "Alice" }, "TimeApproved" => false, "TotalTime" => 3, "Discarded" => nil },
+      { "EmployeeObject" => { "DisplayName" => "Bob" },   "TimeApproved" => false, "TotalTime" => 4, "Discarded" => nil },
+      { "EmployeeObject" => { "DisplayName" => "Ghost" }, "TimeApproved" => false, "TotalTime" => 0, "Discarded" => nil },                 # ghost
+      { "EmployeeObject" => { "DisplayName" => "Gone" },  "TimeApproved" => true,  "TotalTime" => 5, "Discarded" => "2026-07-23T00:00:00-04:00" } # discarded
+    ]
+    st = DeputyClient.stub(:post, rows) do
+      DeputyClient.timesheet_status(Date.new(2026, 7, 20), Date.new(2026, 7, 26))
+    end
+    assert_equal({ approved: 1, pending: 1, total: 2 }, st[:by_employee]["Alice"])
+    assert_equal({ approved: 0, pending: 1, total: 1 }, st[:by_employee]["Bob"])
+    assert_nil st[:by_employee]["Ghost"], "0-minute ghost excluded"
+    assert_nil st[:by_employee]["Gone"],  "discarded excluded"
+    assert_equal 3, st[:total]
+    assert_equal 1, st[:approved]
+    assert_equal 2, st[:pending]
   end
 
   test "generate_week_timesheets refuses (no dupes) when timesheets already exist" do

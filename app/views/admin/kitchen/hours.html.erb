@@ -49,7 +49,11 @@
         <div class="flex items-center justify-between gap-3">
           <div class="text-sm text-gray-300">
             <span class="font-semibold text-white"><%= @timesheet_count %></span>
-            timesheet<%= "s" unless @timesheet_count == 1 %> already generated for this week in Deputy (pending approval).
+            timesheet<%= "s" unless @timesheet_count == 1 %> generated for this week in Deputy.
+            <% if @timesheet_status %>
+              <span class="text-green-400 font-medium"><%= @timesheet_status[:approved] %> approved</span>,
+              <span class="text-amber-400 font-medium"><%= @timesheet_status[:pending] %> pending</span>.
+            <% end %>
           </div>
           <%= link_to @deputy_approve_url, target: "_blank", rel: "noopener",
                 class: "shrink-0 inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-2 text-sm font-semibold text-white transition" do %>
@@ -83,11 +87,15 @@
       No scheduled shifts for this week.
     </div>
   <% else %>
+    <%# Status column appears once timesheets exist for the week; before that,
+        the Generate button above is the call to action, so the column is hidden. %>
+    <% show_status = @timesheet_count.to_i.positive? && @timesheet_status %>
     <div class="overflow-hidden rounded-xl border border-gray-700">
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-gray-800 text-gray-400 text-left">
             <th class="px-4 py-2 font-medium">Employee</th>
+            <% if show_status %><th class="px-4 py-2 font-medium">Timesheet</th><% end %>
             <th class="px-4 py-2 font-medium text-right">Hours</th>
             <th class="px-4 py-2 font-medium text-right w-24">Decimal</th>
           </tr>
@@ -96,6 +104,20 @@
           <% @hours[:rows].each do |r| %>
             <tr class="bg-gray-900/40 hover:bg-gray-800/60 transition">
               <td class="px-4 py-2 text-gray-100"><%= r[:employee] %></td>
+              <% if show_status %>
+                <td class="px-4 py-2">
+                  <% st = @timesheet_status[:by_employee][r[:employee]] %>
+                  <% if st.nil? %>
+                    <span class="text-xs text-gray-600">not generated</span>
+                  <% elsif st[:pending].zero? %>
+                    <span class="inline-flex items-center rounded-full bg-green-900/40 text-green-300 px-2 py-0.5 text-xs font-medium">Approved</span>
+                  <% elsif st[:approved].zero? %>
+                    <span class="inline-flex items-center rounded-full bg-amber-900/40 text-amber-300 px-2 py-0.5 text-xs font-medium">Pending</span>
+                  <% else %>
+                    <span class="inline-flex items-center rounded-full bg-blue-900/40 text-blue-300 px-2 py-0.5 text-xs font-medium">Mixed <%= st[:approved] %>/<%= st[:total] %></span>
+                  <% end %>
+                </td>
+              <% end %>
               <td class="px-4 py-2 text-right tabular-nums text-gray-100"><%= NykHoursXlsx.hm(r[:hours]) %></td>
               <td class="px-4 py-2 text-right tabular-nums text-gray-400"><%= "%.2f" % r[:hours] %></td>
             </tr>
@@ -104,6 +126,7 @@
         <tfoot>
           <tr class="bg-gray-800 font-semibold text-white">
             <td class="px-4 py-2">Total &middot; <%= @hours[:rows].size %> staff</td>
+            <% if show_status %><td class="px-4 py-2"></td><% end %>
             <td class="px-4 py-2 text-right tabular-nums"><%= NykHoursXlsx.hm(@hours[:total]) %></td>
             <td class="px-4 py-2 text-right tabular-nums"><%= "%.2f" % @hours[:total] %></td>
           </tr>
