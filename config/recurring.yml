@@ -36,6 +36,13 @@ production:
   kitchen_digest_email:
     class: KitchenDigestEmailJob
     schedule: "0 10 * * *"
+  # Payroll status nudge: Mon/Tue/Wed at 10:05am ET (app TZ is Eastern), just
+  # after the 10am class digest and separate from it. Emails + iOS-pushes Rich +
+  # Lora the pay week's Deputy timesheet approval status so Lora hits her
+  # Wednesday 4pm payroll deadline. See PayrollStatusJob.
+  nyk_payroll_status:
+    class: PayrollStatusJob
+    schedule: "5 10 * * 1-3"
   # No longer scheduled (2026-06-19): the weekly team report now rides along in
   # Monday's daily digest (see KitchenDigestEmailJob). WeeklySalesEmailJob and
   # the weekly_sales mailer stay for the admin preview / on-demand send.

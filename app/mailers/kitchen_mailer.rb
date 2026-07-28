@@ -48,6 +48,30 @@ class KitchenMailer < ApplicationMailer
     mail(to: recipients, subject: "NY Kitchen scrape looks broken")
   end
 
+  # Payroll status nudge, sent by PayrollStatusJob to Rich + Lora on Mon/Tue/Wed
+  # before Lora's Wednesday 4pm payroll deadline. `status` is the DeputyClient
+  # timesheet_status hash; `deputy_url` deep-links the review button; `deadline`
+  # is the human phrase (e.g. "Wednesday at 4pm").
+  def payroll_status(recipients:, week_start:, week_end:, status:, deputy_url:, deadline:)
+    @week_start = week_start
+    @week_end   = week_end
+    @status     = status
+    @deputy_url = deputy_url
+    @deadline   = deadline
+    @hours_url  = "https://agent44labs.com/nykitchen/hours?week=#{week_start}"
+
+    subject =
+      if status[:total].zero?
+        "Payroll: no timesheets generated yet (week of #{week_start.strftime('%b %-d')})"
+      elsif status[:pending].zero?
+        "Payroll: all #{status[:total]} approved (week of #{week_start.strftime('%b %-d')})"
+      else
+        "Payroll: #{status[:pending]} still pending (week of #{week_start.strftime('%b %-d')})"
+      end
+
+    mail(to: recipients, subject: subject)
+  end
+
   # One-click failure report a manager can forward to an outside developer.
   # Bundles the failed run's error, console output, and steps, with signed
   # links to the video, trace, and page source (no login needed). Artifacts
