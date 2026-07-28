@@ -44,6 +44,10 @@ class KitchenDigestEmailJob < ApplicationJob
     )
     digest[:snapshot_date] = snapshot.taken_on
     digest[:stale_data]    = snapshot.taken_on != today
+    # "What's new" note: recently-shipped owner-facing changes (last few days).
+    # Shown daily except Mondays, when the weekly report's "New this week"
+    # (7-day changelog) already covers it, so the template hides it there.
+    digest[:changelog]     = NykChangelog.recent(since: today - 3, limit: 4)
 
     # Mondays: prepend the Carson weekly team report (one combined email). The
     # builder makes the single paid Carson call; the other six days skip it.

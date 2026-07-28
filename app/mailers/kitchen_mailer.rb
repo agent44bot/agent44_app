@@ -18,6 +18,7 @@ class KitchenMailer < ApplicationMailer
     @total_sold_out = digest[:total_sold_out]
     @snapshot_date  = digest[:snapshot_date]
     @stale_data     = digest[:stale_data]
+    @changelog      = digest[:changelog] # "What's new" notes (nil on Mondays / no recent changes)
 
     mail(
       to: recipients,

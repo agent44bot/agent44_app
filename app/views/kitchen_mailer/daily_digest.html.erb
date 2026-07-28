@@ -92,6 +92,24 @@
   <a href="https://play.google.com/apps/internaltest/4701667749511511610" style="display:inline-block;background:#01875f;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;margin-top:4px;margin-left:6px">Android (Google Play)</a>
 </div>
 
+<%# What's new: recently-shipped changes. Hidden on Mondays, when the weekly
+    report's "New this week" already lists them (avoids duplication). %>
+<% if @changelog.present? && @weekly_report.nil? %>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:20px">
+    <div style="font-size:13px;color:#1e40af;font-weight:600;margin-bottom:2px">&#10024; What's new</div>
+    <% @changelog.each do |c| %>
+      <div style="font-size:13px;color:#374151;line-height:1.5;margin-top:8px">
+        <%= c[:note] %>
+        <% if c[:link].present? %>
+          <div style="margin-top:6px">
+            <a href="https://agent44labs.com<%= c[:link] %>" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px"><%= c[:link_label] %> &rarr;</a>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
 <% [
   ["Current Week", @current_week_events, "No classes this week."],
   ["Next Week",    @week1_events, "No classes next week."],

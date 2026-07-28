@@ -46,6 +46,27 @@ class KitchenDigestEmailJobTest < ActiveSupport::TestCase
     end
   end
 
+  # The box header ("What's new"), tolerant of a literal or HTML-entity apostrophe.
+  WHATS_NEW = /What.{0,6}s new/
+
+  test "non-Monday: a What's new box surfaces recent changelog entries with a link" do
+    travel_to Time.zone.parse("2026-07-28 10:00") do # Tuesday, within 3 days of the 2026-07-27 entries
+      KitchenDigestEmailJob.perform_now
+      body = ActionMailer::Base.deliveries.last.body.to_s
+      assert_match WHATS_NEW, body
+      assert_match "Team hours", body
+      assert_match "https://agent44labs.com/nykitchen/hours", body, "changelog deep-link button rendered"
+    end
+  end
+
+  test "Monday: the What's new box is hidden (the weekly report already lists it)" do
+    travel_to Time.zone.parse("2026-07-27 10:00") do # Monday, still within the changelog window
+      KitchenDigestEmailJob.perform_now
+      body = ActionMailer::Base.deliveries.last.body.to_s
+      assert_no_match WHATS_NEW, body # the box is suppressed; weekly report uses "New this week"
+    end
+  end
+
   test "recipients are the opted-in NY Kitchen members; opt-outs excluded" do
     owner = User.create!(email_address: "owner@example.com")
     ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen",
