@@ -10,8 +10,20 @@ class PayrollStatusJob < ApplicationJob
   # muted app-wide, so this rides email + iOS push only.
   RECIPIENTS = [ "botwhisperer@hey.com", "lora.downie@nykitchen.com" ].freeze
 
+  # Setting key to pause the alert until a timestamp, then auto-resume. Useful
+  # during onboarding/transition weeks. Toggle at runtime, no redeploy:
+  #   Setting.set("payroll_status.paused_until", "2026-08-03T00:00:00-04:00")
+  #   Setting.delete_key("payroll_status.paused_until")   # resume now
+  PAUSE_KEY = "payroll_status.paused_until".freeze
+
   def perform
     return unless DeputyClient.configured?
+
+    paused_until = Setting.time(PAUSE_KEY)
+    if paused_until && Time.current < paused_until
+      Rails.logger.info("PayrollStatusJob: paused until #{paused_until}, skipping this run")
+      return
+    end
 
     # The pay week Wednesday's payroll covers = the most recent COMPLETE Mon-Sun
     # (the week that ended this past Sunday). On Mon/Tue/Wed that's "last week".
