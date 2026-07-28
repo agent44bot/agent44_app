@@ -8,6 +8,12 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-27
+  note: New Team hours page for managers, opened from the Team hours button on your NY Kitchen homepage. It shows each employee's scheduled hours for a week (pulled from Deputy) with a weekly total, buttons to step back through past weeks, and an Export to Excel button.
+
+- date: 2026-07-27
+  note: Removed the How-to guide link from the NY Kitchen homepage.
+
 - date: 2026-07-26
   note: Fixed class availability on the display and in the daily digest. NY Kitchen moved its calendar page, which had quietly stopped the scraper, so some classes were showing an old count (a sold-out class could still read as available). It now reads the current calendar and marks sold-out classes correctly.
 
