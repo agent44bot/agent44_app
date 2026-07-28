@@ -9,7 +9,7 @@ class DeputyClientTest < ActiveSupport::TestCase
       "StartTime"             => start_epoch,
       "EndTime"               => start_epoch + (hours * 3600).to_i,
       "EmployeeObject"        => name ? { "DisplayName" => name } : nil,
-      "OperationalUnitObject" => { "OperationalUnitName" => area },
+      "OperationalUnitObject" => { "OperationalUnitName" => area }
     }
   end
 
@@ -19,7 +19,7 @@ class DeputyClientTest < ActiveSupport::TestCase
       roster(base,           5.0, 11, "Alice A", "Culinary EA"),
       roster(base + 100_000, 3.0, 11, "Alice A", "Culinary EA"),
       roster(base,           4.0, 22, "Bob B",   "Dishwasher"),
-      roster(base,           2.0, 0,  nil,       "Beverage EA"), # unfilled open shift
+      roster(base,           2.0, 0,  nil,       "Beverage EA") # unfilled open shift
     ]
     result = DeputyClient.stub(:post, rows) do
       DeputyClient.weekly_hours(Date.new(2026, 7, 20), Date.new(2026, 7, 26))

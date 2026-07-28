@@ -11,7 +11,7 @@ class KitchenHoursTest < ActionDispatch::IntegrationTest
       total:       37.5,
       open_hours:  2.0,
       by_area:     { "Culinary EA" => 33.5, "Dishwasher" => 4.0 },
-      shift_count: 6,
+      shift_count: 6
     }
   end
 

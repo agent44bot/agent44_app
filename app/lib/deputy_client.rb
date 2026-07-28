@@ -68,7 +68,7 @@ class DeputyClient
       total:       employees.values.sum.round(2),
       open_hours:  open_hours.round(2),
       by_area:     areas.sort_by { |_, v| -v }.map { |a, v| [ a, v.round(2) ] }.to_h,
-      shift_count: shift_count,
+      shift_count: shift_count
     }
   end
 
@@ -76,10 +76,10 @@ class DeputyClient
     body = {
       search: {
         s1: { field: "Date", type: "ge", data: from.to_s },
-        s2: { field: "Date", type: "le", data: to.to_s },
+        s2: { field: "Date", type: "le", data: to.to_s }
       },
       join: %w[OperationalUnitObject EmployeeObject],
-      max: 500,
+      max: 500
     }
     resp = post("resource/Roster/QUERY", body)
     raise Error, "unexpected Deputy response shape" unless resp.is_a?(Array)
