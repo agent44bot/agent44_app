@@ -5,6 +5,7 @@ class PayrollStatusJobTest < ActiveJob::TestCase
   include ActionMailer::TestHelper
 
   setup do
+    Setting.delete_key(PayrollStatusJob::PAUSE_KEY)
     @rich = User.create!(email_address: "botwhisperer@hey.com", role: "admin")
     @lora = User.create!(email_address: "lora.downie@nykitchen.com", role: "user")
     Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @rich }
@@ -27,6 +28,24 @@ class PayrollStatusJobTest < ActiveJob::TestCase
     note = Notification.order(:created_at).last
     assert_equal "payroll_status", note.source
     assert_match(/pending/i, note.body)
+  end
+
+  test "sends nothing while paused_until is in the future, then resumes after it passes" do
+    Setting.set(PayrollStatusJob::PAUSE_KEY, 3.days.from_now.iso8601)
+    DeputyClient.stub(:configured?, true) do
+      DeputyClient.stub(:timesheet_status, STATUS) do
+        assert_no_enqueued_emails do
+          assert_no_difference -> { Notification.count } do
+            PayrollStatusJob.perform_now
+          end
+        end
+        # a past timestamp means the pause has elapsed: it runs again
+        Setting.set(PayrollStatusJob::PAUSE_KEY, 1.day.ago.iso8601)
+        assert_enqueued_emails 1 do
+          PayrollStatusJob.perform_now
+        end
+      end
+    end
   end
 
   test "does nothing when Deputy is not connected" do
