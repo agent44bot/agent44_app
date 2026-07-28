@@ -9,6 +9,11 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-07-28
+  note: New payroll status reminder. On Monday, Tuesday, and Wednesday at 10:05am you and Lora now get a short email and a phone notification with the pay week's timesheet approval status (how many are approved versus still pending), a countdown to the Wednesday 4pm payroll deadline, and a button that jumps straight to the timesheets in Deputy. It is separate from the daily class digest.
+  link: /nykitchen/hours
+  link_label: Open Team hours
+
+- date: 2026-07-28
   note: The Team hours page now shows each employee's timesheet status for the week (Approved, Pending, or Mixed) once timesheets are generated, plus a running count of how many are approved versus pending. It brings both locations (Culinary and Beverage) into one view, so you can see approval progress at a glance without switching locations in Deputy.
   link: /nykitchen/hours
   link_label: Open Team hours
