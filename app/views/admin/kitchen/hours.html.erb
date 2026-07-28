@@ -1,0 +1,107 @@
+<% content_for :title, "NY Kitchen: Team hours" %>
+
+<div class="max-w-3xl mx-auto px-4 py-6 text-gray-200">
+  <%= render "admin/kitchen/breadcrumbs", current: "Team hours" %>
+
+  <div class="flex items-start justify-between gap-4 mb-1">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-bold text-white">Team hours</h1>
+      <p class="text-sm text-gray-400 mt-1">Scheduled hours per employee, by week, from Deputy.</p>
+    </div>
+    <% if @hours %>
+      <%= link_to nyk_hours_path(week: @week_start, xlsx: 1),
+            data: { turbo_frame: "_top" },
+            class: "shrink-0 inline-flex items-center gap-2 rounded-lg bg-green-600 hover:bg-green-500 px-3 py-2 text-sm font-semibold text-white transition" do %>
+        <span aria-hidden="true">⬇</span><span>Export to Excel</span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# Week navigation: prev / label / next (next disabled once we reach this week) %>
+  <div class="flex items-center justify-between gap-3 my-5 rounded-xl border border-gray-700 bg-gray-800/40 px-3 py-2">
+    <%= link_to nyk_hours_path(week: @prev_week_start),
+          class: "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition" do %>
+      <span aria-hidden="true">←</span><span>Prev week</span>
+    <% end %>
+    <div class="text-center">
+      <div class="text-sm font-semibold text-white">
+        <%= @week_start.strftime("%b %-d") %> &ndash; <%= @week_end.strftime("%b %-d, %Y") %>
+      </div>
+      <div class="text-xs text-gray-500">Mon &ndash; Sun</div>
+    </div>
+    <% if @has_next %>
+      <%= link_to nyk_hours_path(week: @next_week_start),
+            class: "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition" do %>
+        <span>Next week</span><span aria-hidden="true">→</span>
+      <% end %>
+    <% else %>
+      <span class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-600 cursor-not-allowed">
+        <span>Next week</span><span aria-hidden="true">→</span>
+      </span>
+    <% end %>
+  </div>
+
+  <% if @hours_error %>
+    <div class="rounded-xl border border-amber-700/50 bg-amber-900/20 px-4 py-3 text-sm text-amber-200">
+      Could not load hours: <%= @hours_error %>
+    </div>
+  <% elsif @hours.nil? %>
+    <div class="rounded-xl border border-gray-700 bg-gray-800/40 px-4 py-6 text-center text-gray-400">Loading…</div>
+  <% elsif @hours[:rows].empty? %>
+    <div class="rounded-xl border border-gray-700 bg-gray-800/40 px-4 py-6 text-center text-gray-400">
+      No scheduled shifts for this week.
+    </div>
+  <% else %>
+    <div class="overflow-hidden rounded-xl border border-gray-700">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-gray-800 text-gray-400 text-left">
+            <th class="px-4 py-2 font-medium">Employee</th>
+            <th class="px-4 py-2 font-medium text-right">Hours</th>
+            <th class="px-4 py-2 font-medium text-right w-24">Decimal</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          <% @hours[:rows].each do |r| %>
+            <tr class="bg-gray-900/40 hover:bg-gray-800/60 transition">
+              <td class="px-4 py-2 text-gray-100"><%= r[:employee] %></td>
+              <td class="px-4 py-2 text-right tabular-nums text-gray-100"><%= NykHoursXlsx.hm(r[:hours]) %></td>
+              <td class="px-4 py-2 text-right tabular-nums text-gray-400"><%= "%.2f" % r[:hours] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <tr class="bg-gray-800 font-semibold text-white">
+            <td class="px-4 py-2">Total &middot; <%= @hours[:rows].size %> staff</td>
+            <td class="px-4 py-2 text-right tabular-nums"><%= NykHoursXlsx.hm(@hours[:total]) %></td>
+            <td class="px-4 py-2 text-right tabular-nums"><%= "%.2f" % @hours[:total] %></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <% if @hours[:open_hours].to_f > 0 %>
+      <p class="mt-3 text-xs text-gray-500">
+        Plus <span class="text-gray-300 font-medium"><%= NykHoursXlsx.hm(@hours[:open_hours]) %></span>
+        of unfilled open shifts (not assigned to anyone, excluded from the total above).
+      </p>
+    <% end %>
+
+    <% if @hours[:by_area].present? %>
+      <div class="mt-6">
+        <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">By area</h2>
+        <div class="flex flex-wrap gap-2">
+          <% @hours[:by_area].each do |area, hrs| %>
+            <span class="rounded-full border border-gray-700 bg-gray-800/40 px-3 py-1 text-xs text-gray-300">
+              <%= area %> <span class="text-gray-500"><%= NykHoursXlsx.hm(hrs) %></span>
+            </span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <p class="mt-6 text-xs text-gray-600">
+      These are scheduled hours from Deputy (<%= @hours[:shift_count] %> shifts this week), not clocked timesheets.
+    </p>
+  <% end %>
+</div>

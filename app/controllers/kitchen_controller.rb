@@ -14,7 +14,7 @@ class KitchenController < ApplicationController
   # The display screen pings this from a no-auth, no-CSRF-token page.
   skip_forgery_protection only: :display_heartbeat
 
-  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices display_settings]
+  before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices display_settings hours]
   # Super Agent (admin/customer-only): once App Review approved the app, we
   # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
   # credits via the chat. Admins, the App Store reviewer account, and members
@@ -22,17 +22,7 @@ class KitchenController < ApplicationController
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
-  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class]
-
-  # NY Kitchen how-to guide (PDF), opened from the hub's "How-to guide" link.
-  # Served to signed-in users (default require_authentication; not in the
-  # allow_unauthenticated_access list). The file is regenerated and committed
-  # at guides/ny-kitchen-how-to-guide.pdf.
-  def guide
-    send_file Rails.root.join("guides", "ny-kitchen-how-to-guide.pdf"),
-              type: "application/pdf", disposition: "inline",
-              filename: "NY-Kitchen-How-To-Guide.pdf"
-  end
+  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class hours]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -108,6 +98,44 @@ class KitchenController < ApplicationController
       @grocery_total_by_week_start[w[:start]] = KitchenAi::GroceryList.total_for(result) if cached
     end
     render "admin/kitchen/list", layout: "application"
+  end
+
+  # NY Kitchen team hours: per-employee SCHEDULED hours for one week, pulled
+  # live from Deputy. Manager-only (Lora + Rich). Mon-Sun weeks (Lora's
+  # preference); ?week=YYYY-MM-DD picks the week containing that date, default
+  # is last week (most recent complete Mon-Sun). ?xlsx=1 downloads the sheet.
+  def hours
+    @week_start = nyk_week_start(params[:week])
+    @week_end   = @week_start + 6
+    @prev_week_start = @week_start - 7
+    @next_week_start = @week_start + 7
+    # Don't page past the current (in-progress) week.
+    @has_next = @next_week_start <= Date.current.beginning_of_week(:monday)
+
+    if DeputyClient.configured?
+      begin
+        # Cache per week so opening the page, paging weeks, refreshing, or hitting
+        # Export don't each re-hit Deputy. Completed weeks are immutable (long
+        # TTL); the in-progress week stays fresh-ish (short TTL).
+        @hours = Rails.cache.fetch("nyk_team_hours/#{@week_start.iso8601}", expires_in: nyk_hours_ttl(@week_start)) do
+          DeputyClient.weekly_hours(@week_start, @week_end)
+        end
+      rescue DeputyClient::Error => e
+        @hours_error = e.message
+        Rails.logger.warn("NYK hours: Deputy fetch failed: #{e.message}")
+      end
+    else
+      @hours_error = "Deputy is not connected yet. Set DEPUTY_API_TOKEN to enable this page."
+    end
+
+    if params[:xlsx].present? && @hours
+      return send_data NykHoursXlsx.new(week_start: @week_start, week_end: @week_end, data: @hours).render,
+                       filename: "nyk-team-hours-#{@week_start}.xlsx",
+                       type: NykHoursXlsx::CONTENT_TYPE,
+                       disposition: "attachment"
+    end
+
+    render "admin/kitchen/hours", layout: "application"
   end
 
   # Consolidated shopping list for every class in a date range that has a
@@ -1136,6 +1164,18 @@ class KitchenController < ApplicationController
     Date.parse(str.to_s)
   rescue ArgumentError, TypeError
     nil
+  end
+
+  # The Monday of the week containing `param` (a date string). Defaults to last
+  # week (the most recent complete Mon-Sun) so the page opens on finished hours.
+  def nyk_week_start(param)
+    (parse_date(param) || (Date.current - 7)).beginning_of_week(:monday)
+  end
+
+  # Deputy fetch cache TTL for a week: completed weeks won't change, so cache
+  # them long; the in-progress (current) week can still gain shifts, keep short.
+  def nyk_hours_ttl(week_start)
+    week_start < Date.current.beginning_of_week(:monday) ? 6.hours : 20.minutes
   end
 
   # Today through the end of this week (Sunday). Min 3 days so a Friday/Saturday

@@ -77,9 +77,11 @@ Rails.application.routes.draw do
   end
   resources :saved_jobs, only: [ :index ]
   get "nykitchen",        to: "kitchen#hub"
-  get "nykitchen/guide",  to: "kitchen#guide", as: :nyk_guide
   get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
   get "nykitchen/grocery", to: "kitchen#grocery", as: :nyk_grocery
+  # Team hours (scheduled, from Deputy) for managers: per-employee weekly totals
+  # + Export to Excel. See KitchenController#hours.
+  get "nykitchen/hours", to: "kitchen#hours", as: :nyk_hours
   post "nykitchen/grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
   patch "nykitchen/grocery/portion", to: "kitchen#update_portion", as: :nyk_grocery_portion
   post   "nykitchen/classes",     to: "kitchen#create_manual_class", as: :nyk_manual_classes
