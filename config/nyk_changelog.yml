@@ -8,6 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-28
+  note: The Team hours page now has a Generate timesheets button that turns the week you are viewing into pending timesheets in Deputy, ready for you to review and approve. It never changes your schedule, and if a week already has timesheets it shows a Review in Deputy link instead so it can't create duplicates.
+  link: /nykitchen/hours
+  link_label: Open Team hours
+
 - date: 2026-07-27
   note: New Team hours page for managers, opened from the Team hours button on your NY Kitchen homepage. It shows each employee's scheduled hours for a week (pulled from Deputy) with a weekly total, buttons to step back through past weeks, and an Export to Excel button.
 

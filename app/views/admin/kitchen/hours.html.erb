@@ -41,6 +41,37 @@
     <% end %>
   </div>
 
+  <%# Timesheets: generate this week's shifts into Deputy as pending timesheets,
+      or (if some already exist) link to review them. Never touches the schedule. %>
+  <% if @hours %>
+    <div class="mb-5 rounded-xl border border-gray-700 bg-gray-800/40 px-4 py-3">
+      <% if @timesheet_count.to_i.positive? %>
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-sm text-gray-300">
+            <span class="font-semibold text-white"><%= @timesheet_count %></span>
+            timesheet<%= "s" unless @timesheet_count == 1 %> already generated for this week in Deputy (pending approval).
+          </div>
+          <%= link_to @deputy_approve_url, target: "_blank", rel: "noopener",
+                class: "shrink-0 inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-2 text-sm font-semibold text-white transition" do %>
+            <span>Review in Deputy</span><span aria-hidden="true">→</span>
+          <% end %>
+        </div>
+        <p class="mt-1.5 text-xs text-gray-500">In Deputy: Timesheets, Approve Timesheets, then set the week and location (Culinary or Beverage Team Schedule) and approve.</p>
+      <% else %>
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-sm text-gray-300">Turn this week's schedule into timesheets in Deputy, created as pending for you to approve.</div>
+          <%= button_to nyk_generate_timesheets_path(week: @week_start),
+                form_class: "shrink-0",
+                data: { turbo_confirm: "Create a pending timesheet for each scheduled shift the week of #{@week_start.strftime('%b %-d')}? They are created unapproved in Deputy for you to review. This does not change your schedule." },
+                class: "inline-flex items-center gap-2 rounded-lg bg-orange-600 hover:bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition" do %>
+            <span aria-hidden="true">🕐</span><span>Generate timesheets</span>
+          <% end %>
+        </div>
+        <p class="mt-1.5 text-xs text-gray-500">One timesheet per scheduled shift. It never changes your schedule, and does nothing if timesheets already exist for the week.</p>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if @hours_error %>
     <div class="rounded-xl border border-amber-700/50 bg-amber-900/20 px-4 py-3 text-sm text-amber-200">
       Could not load hours: <%= @hours_error %>

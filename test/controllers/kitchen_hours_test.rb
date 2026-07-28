@@ -50,18 +50,68 @@ class KitchenHoursTest < ActionDispatch::IntegrationTest
     captured = nil
     fake = ->(from, to) { captured = [ from, to ]; @data }
     DeputyClient.stub(:configured?, true) do
-      DeputyClient.stub(:weekly_hours, fake) do
-        get nyk_hours_path(week: "2026-07-15") # a Wednesday
+      DeputyClient.stub(:active_timesheet_count, 0) do
+        DeputyClient.stub(:weekly_hours, fake) do
+          get nyk_hours_path(week: "2026-07-15") # a Wednesday
+        end
       end
     end
     assert_equal [ Date.new(2026, 7, 13), Date.new(2026, 7, 19) ], captured
   end
 
+  test "shows the Generate timesheets button when the week has none" do
+    sign_in_as(@admin)
+    with_deputy(@data, timesheet_count: 0) { get nyk_hours_path }
+    assert_response :success
+    assert_match "Generate timesheets", response.body
+    assert_no_match "Review in Deputy", response.body
+  end
+
+  test "shows a Review in Deputy link when timesheets already exist" do
+    sign_in_as(@admin)
+    with_deputy(@data, timesheet_count: 46) { get nyk_hours_path }
+    assert_response :success
+    assert_match "Review in Deputy", response.body
+    assert_match "46", response.body
+    assert_no_match "Generate timesheets", response.body
+  end
+
+  test "generate_timesheets creates and redirects with a notice" do
+    sign_in_as(@admin)
+    DeputyClient.stub(:configured?, true) do
+      DeputyClient.stub(:generate_week_timesheets, { status: :created, created: 46 }) do
+        post nyk_generate_timesheets_path(week: "2026-07-20")
+      end
+    end
+    assert_redirected_to nyk_hours_path(week: Date.new(2026, 7, 20))
+    assert_match(/Created 46 pending timesheets/, flash[:notice])
+  end
+
+  test "generate_timesheets makes nothing when timesheets already exist" do
+    sign_in_as(@admin)
+    DeputyClient.stub(:configured?, true) do
+      DeputyClient.stub(:generate_week_timesheets, { status: :exists, existing: 46 }) do
+        post nyk_generate_timesheets_path(week: "2026-07-20")
+      end
+    end
+    assert_match(/already exist/i, flash[:alert])
+  end
+
+  test "generate_timesheets is manager-only" do
+    sign_in_as(User.create!(email_address: "out-#{SecureRandom.hex(4)}@example.com", role: "user"))
+    post nyk_generate_timesheets_path(week: "2026-07-20")
+    assert_response :not_found
+  end
+
   private
 
-  def with_deputy(data, &blk)
+  # Stubs the Deputy calls the hours page makes: configured?, weekly_hours, and
+  # active_timesheet_count (so no test ever hits the real Deputy API).
+  def with_deputy(data, timesheet_count: 0, &blk)
     DeputyClient.stub(:configured?, true) do
-      DeputyClient.stub(:weekly_hours, data, &blk)
+      DeputyClient.stub(:weekly_hours, data) do
+        DeputyClient.stub(:active_timesheet_count, timesheet_count, &blk)
+      end
     end
   end
 end
