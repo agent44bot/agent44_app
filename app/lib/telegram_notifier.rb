@@ -9,7 +9,23 @@ class TelegramNotifier
     "error" => "🚨"
   }.freeze
 
+  # Global kill switch for ALL outbound Telegram pings. Set the Setting
+  # "telegram.muted" to "true" to silence every telegram: true notification at
+  # once; email and iOS push channels are unaffected (they don't route through
+  # here). Toggle at runtime, no redeploy:
+  #   Setting.set("telegram.muted", "true")   # off
+  #   Setting.delete_key("telegram.muted")    # back on
+  # Muted 2026-07-27 per owner: email + iOS cover failures, and the per-run
+  # scrape/agent play-by-play pings were just noise.
+  MUTE_KEY = "telegram.muted".freeze
+
+  def self.muted?
+    Setting.get(MUTE_KEY) == "true"
+  end
+
   def self.send_alert(notification)
+    return if muted?
+
     token = ENV["TELEGRAM_BOT_TOKEN"]
     chat_id = ENV["TELEGRAM_CHAT_ID"]
     return unless token.present? && chat_id.present?
