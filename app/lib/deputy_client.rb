@@ -78,15 +78,44 @@ class DeputyClient
     "https://#{install}.#{geo}.deputy.com/#/approve-v2"
   end
 
-  # Count of ACTIVE (non-discarded) timesheets whose Date falls in [from, to].
-  def self.active_timesheet_count(from, to)
+  # Active, REAL timesheets whose Date falls in [from, to], with the employee
+  # joined. "Real" excludes the 0-minute ghost entries (start == end, TotalTime
+  # 0) that accumulate in Deputy from stray clock-ins, so they never inflate
+  # counts or pollute status.
+  def self.query_timesheets(from, to)
     resp = post("resource/Timesheet/QUERY", {
       search: { s1: { field: "Date", type: "ge", data: from.to_s },
                 s2: { field: "Date", type: "le", data: to.to_s } },
+      join: %w[EmployeeObject],
       max: 500
     })
-    return 0 unless resp.is_a?(Array)
-    resp.count { |t| t.is_a?(Hash) && !t["Discarded"] }
+    return [] unless resp.is_a?(Array)
+    resp.select { |t| t.is_a?(Hash) && !t["Discarded"] && t["TotalTime"].to_f.positive? }
+  end
+
+  # Count of active, real timesheets for the week (drives Generate vs Review).
+  def self.active_timesheet_count(from, to)
+    query_timesheets(from, to).size
+  end
+
+  # Per-employee approval status for the week (ghosts excluded). Returns:
+  #   { by_employee: { "Allyn Itterly" => { approved:, pending:, total: }, ... },
+  #     total:, approved:, pending: }
+  def self.timesheet_status(from, to)
+    by = Hash.new { |h, k| h[k] = { approved: 0, pending: 0 } }
+    query_timesheets(from, to).each do |t|
+      name = t.dig("EmployeeObject", "DisplayName").to_s.strip
+      next if name.blank?
+      by[name][t["TimeApproved"] ? :approved : :pending] += 1
+    end
+    approved = by.values.sum { |v| v[:approved] }
+    pending  = by.values.sum { |v| v[:pending] }
+    {
+      by_employee: by.transform_values { |v| v.merge(total: v[:approved] + v[:pending]) },
+      total:    approved + pending,
+      approved: approved,
+      pending:  pending
+    }
   end
 
   # Create one UNAPPROVED timesheet per staffed scheduled shift in [from, to].

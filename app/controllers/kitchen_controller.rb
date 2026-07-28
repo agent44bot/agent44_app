@@ -140,10 +140,11 @@ class KitchenController < ApplicationController
     # so it reflects a generate that just happened.
     if @hours
       begin
-        @timesheet_count    = DeputyClient.active_timesheet_count(@week_start, @week_end)
+        @timesheet_status   = DeputyClient.timesheet_status(@week_start, @week_end)
+        @timesheet_count    = @timesheet_status[:total]
         @deputy_approve_url = DeputyClient.approve_url
       rescue DeputyClient::Error => e
-        Rails.logger.warn("NYK hours: timesheet count failed: #{e.message}")
+        Rails.logger.warn("NYK hours: timesheet status failed: #{e.message}")
       end
     end
 
