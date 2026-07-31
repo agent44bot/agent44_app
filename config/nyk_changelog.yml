@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-07-31
+  note: The Display Agent settings page now shows a proper miniature of the tasting room screen. The preview used to squash the class list together, so it did not match what the TV actually shows. It now scales the real screen down, so what you see in the preview is what walk-ins see.
+
 - date: 2026-07-28
   note: New payroll status reminder. On Monday, Tuesday, and Wednesday at 10:05am you and Lora now get a short email and a phone notification with the pay week's timesheet approval status (how many are approved versus still pending), a countdown to the Wednesday 4pm payroll deadline, and a button that jumps straight to the timesheets in Deputy. It is separate from the daily class digest.
   link: /nykitchen/hours

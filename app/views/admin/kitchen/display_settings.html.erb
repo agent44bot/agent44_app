@@ -208,9 +208,29 @@
       <span class="text-xs text-gray-600">Live · same view the TV shows</span>
     </div>
     <% preview_src = is_private && @agent.setting(:share_token).present? ? nyk_display_path(token: @agent.setting(:share_token)) : nyk_display_path %>
-    <div class="rounded-lg overflow-hidden border border-gray-800 bg-black" style="aspect-ratio: 16 / 9;">
-      <iframe src="<%= preview_src %>" class="w-full h-full" loading="lazy"
+    <%# The board layout sizes everything off vh, with clamp() floors so the TV
+        stays readable. Loading it straight into a ~350px-tall iframe hits those
+        floors, so six rows of classes crowd each other and the footer. Render
+        the frame at a real TV viewport instead and CSS-scale it down, so the
+        preview is a true miniature of what the tasting room actually shows. %>
+    <div id="display-preview" class="relative rounded-lg overflow-hidden border border-gray-800 bg-black" style="aspect-ratio: 16 / 9;">
+      <iframe src="<%= preview_src %>" loading="lazy"
+              class="absolute top-0 left-0 origin-top-left border-0"
+              style="width: 1600px; height: 900px; transform: scale(0.25);"
               title="Display Agent preview"></iframe>
     </div>
   </div>
 </div>
+
+<%# Inline handlers are CSP-blocked; attach via a nonced <script>. %>
+<%= javascript_tag nonce: true do %>
+  (function() {
+    var box = document.getElementById("display-preview");
+    var frame = box && box.querySelector("iframe");
+    if (!frame) return;
+    function fit() { frame.style.transform = "scale(" + (box.clientWidth / 1600) + ")"; }
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(box);
+    window.addEventListener("resize", fit);
+  })();
+<% end %>
