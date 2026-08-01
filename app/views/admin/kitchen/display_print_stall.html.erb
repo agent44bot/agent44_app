@@ -167,6 +167,12 @@
 
   <%# Inline handlers are CSP-blocked; attach via a nonced <script>. %>
   <%= javascript_tag nonce: true do %>
+    // See the flyer template: the count and the charge hang off this beacon, not
+    // the page load, so crawlers and QA fetches are not billed.
+    fetch("<%= nyk_record_print_path(variant: "stall") %>", {
+      method: "POST", keepalive: true, headers: { "Accept": "application/json" }
+    }).catch(function() {});
+
     document.getElementById("print-btn")?.addEventListener("click", function() {
       window.print();
     });

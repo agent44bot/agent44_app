@@ -71,7 +71,7 @@ class CostInfoDialogsTest < ActionDispatch::IntegrationTest
   test "the workspace rate drives new flyer usage events" do
     @ws.update!(flyer_unit_cents: 60)
     assert_difference -> { UsageEvent.of_kind(UsageEvent::FLYER_PRINT).count }, 1 do
-      get nyk_display_print_path
+      post nyk_record_print_path, headers: { "User-Agent" => "Mozilla/5.0 (Macintosh) Chrome/149.0.0.0 Safari/537.36" }
     end
     assert_equal 60, UsageEvent.of_kind(UsageEvent::FLYER_PRINT).order(:id).last.unit_cents
   end

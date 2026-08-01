@@ -1,6 +1,8 @@
 require "test_helper"
 
 class DisplayPrintTest < ActionDispatch::IntegrationTest
+  BROWSER = { "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/149.0.0.0 Safari/537.36" }.freeze
+
   setup do
     @snapshot = KitchenSnapshot.create!(taken_on: Date.current)
   end
@@ -231,18 +233,38 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "opening the print page bumps the flyer print counter and last_at" do
+  # The count follows the browser beacon, not the page fetch: a crawler or a QA
+  # script pulling this URL used to bump the counter and bill the workspace.
+  test "the print beacon bumps the flyer print counter and last_at" do
     add_event("Counted Class", 24)
     assert_difference -> { Setting.counter("nyk_flyer_prints:total") }, 1 do
       assert_difference -> { Setting.counter("nyk_flyer_prints:flyer") }, 1 do
-        get nyk_display_print_path
+        post nyk_record_print_path, headers: BROWSER
       end
     end
     assert Setting.time("nyk_flyer_prints:last_at").present?, "last_at drives Carson's no-flyers nudge"
 
     assert_difference -> { Setting.counter("nyk_flyer_prints:stall") }, 1 do
-      get nyk_display_print_path(variant: "stall")
+      post nyk_record_print_path(variant: "stall"), headers: BROWSER
     end
+  end
+
+  test "merely fetching the print page counts nothing" do
+    add_event("Counted Class", 24)
+    assert_no_difference -> { Setting.counter("nyk_flyer_prints:total") } do
+      assert_no_difference -> { UsageEvent.count } do
+        get nyk_display_print_path
+        get nyk_display_print_path(variant: "stall")
+      end
+    end
+  end
+
+  test "the page carries the beacon that does the counting" do
+    add_event("Counted Class", 24)
+    get nyk_display_print_path
+    assert_match nyk_record_print_path(variant: "flyer"), response.body
+    get nyk_display_print_path(variant: "stall")
+    assert_match nyk_record_print_path(variant: "stall"), response.body
   end
 
   # Dakota's report: the "Check out other New York Kitchen classes" footer was
