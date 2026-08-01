@@ -246,10 +246,10 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
   end
 
   # Dakota's report: the "Check out other New York Kitchen classes" footer was
-  # printing past the bottom of the last sheet. The fix is structural — the
-  # rows live in a flexing .events box inside a page sized to the printable
-  # area, so they give up a few points instead of shoving the footer off. If a
-  # row ever escapes that box again, the footer goes with it.
+  # printing past the bottom of the last sheet. The fix is structural: the rows
+  # live in a flexing .events box inside a page sized to the printable area, so
+  # they give up a few points instead of shoving the footer off. If a row ever
+  # escapes that box again, the footer goes with it.
   test "every row sits in the flexing .events box so the footer stays on the sheet" do
     18.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24) }
     get nyk_display_print_path
