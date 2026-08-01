@@ -712,6 +712,16 @@ class KitchenController < ApplicationController
   # fetch that never ran the page's JS is never counted or billed. Public and
   # CSRF-exempt (the page is deliberately viewable signed out), so it is
   # deduped per visitor and screened for automated user agents.
+  #
+  # Known gap: a crawler that renders JS *and* sends an ordinary desktop user
+  # agent would still bill, since unlike a scan there is no second signal (a
+  # print has no equivalent of "must be a phone") to catch it. That is a much
+  # smaller class than the plain-GET fetchers this closes off, and the dedupe
+  # window caps what any one of them can run up. Revisit if the print counts
+  # start drifting from what the front desk says it actually printed.
+  #
+  # The dedupe leans on Rails.cache being shared across processes: prod is
+  # :solid_cache_store (DB-backed), so a visitor is deduped across Puma workers.
   def record_print
     variant = params[:variant] == "stall" ? "stall" : "flyer"
     return head :no_content if TrafficSource.automated?(request.user_agent)
@@ -767,7 +777,10 @@ class KitchenController < ApplicationController
     # than counted. The redirect still happens either way, so a real visitor who
     # typed the short URL on a laptop still lands on the class page.
     if link && !TrafficSource.camera_scan?(request.user_agent)
-      Rails.logger.info("scan_redirect: not a camera scan, not counted (ua=#{request.user_agent.to_s.first(80)})")
+      # Newlines stripped: the user agent is attacker-controlled and would
+      # otherwise be able to forge extra log lines.
+      ua = request.user_agent.to_s.first(80).gsub(/[[:cntrl:]]/, " ")
+      Rails.logger.info("scan_redirect: not a camera scan, not counted (ua=#{ua})")
     elsif link
       # "display" = a scan off the tasting-room screen (src=display on the QR);
       # anything else is a printed flyer/poster scan.
