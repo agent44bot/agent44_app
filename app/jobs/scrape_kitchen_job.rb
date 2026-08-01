@@ -1,11 +1,15 @@
 class ScrapeKitchenJob < ApplicationJob
   queue_as :default
 
-  def perform
+  # force: re-scrape and replace today's snapshot even though one already
+  # exists. The daily run is the only writer otherwise, so a class pulled from
+  # nykitchen.com mid-morning would keep printing on the flyer until tomorrow —
+  # this is what the hub's "Refresh classes" button calls.
+  def perform(force: false)
     today  = Date.today
 
     # Skip if Playwright already created today's snapshot (GHA runs at ~9:47 AM)
-    if KitchenSnapshot.exists?(taken_on: today)
+    if KitchenSnapshot.exists?(taken_on: today) && !force
       Rails.logger.info("ScrapeKitchenJob: snapshot already exists for #{today}, skipping")
       return
     end
@@ -16,6 +20,20 @@ class ScrapeKitchenJob < ApplicationJob
     scraper = NyKitchenScraper.new
     events  = scraper.fetch_events(months: months)
     Rails.logger.info("ScrapeKitchenJob: fetched #{events.size} events")
+
+    # A blocked or broken scrape comes back empty. Writing that would leave the
+    # flyer, the display and Sam's list with no classes at all, so keep the last
+    # good snapshot and shout instead.
+    if events.empty?
+      Notification.notify!(
+        level: "error",
+        source: "kitchen_scraper",
+        title: "NY Kitchen scrape returned no events",
+        body: "Kept the previous snapshot rather than emptying the schedule.",
+        telegram: true
+      )
+      return
+    end
 
     # A zero-event scrape means the calendar structure changed (e.g. the source
     # URL moved and now 404s), not that NY Kitchen has no classes. Writing an

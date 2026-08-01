@@ -14,8 +14,15 @@
       print-color-adjust: exact;
     }
     /* One side, 6 classes, big type — sized to be read at arm's length when
-       posted in a bathroom stall. */
-    .page { max-width: 7.5in; margin: 0.4in auto; padding: 0 0.3in; }
+       posted in a bathroom stall. Fixed to the printable height of a Letter
+       sheet (11in less the 0.4in @page margins, minus a hair of slack) so the
+       cards + footer always land on the one side instead of spilling. */
+    .page {
+      max-width: 7.5in; margin: 0.4in auto; padding: 0 0.3in;
+      height: 10.1in; display: flex; flex-direction: column; overflow: hidden;
+    }
+    /* Cards take whatever is left after the header and footer. */
+    .events { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
     .header {
       text-align: left; padding-bottom: 8px;
       border-bottom: 3px solid #111; margin-bottom: 10px;
@@ -25,10 +32,12 @@
     .brand-logo { height: 110px; width: auto; vertical-align: middle; margin-right: 20px; }
     .subhead { font-size: 12pt; color: #444; margin-top: 3px; font-weight: 600; }
 
-    /* Fixed-height cards so all six land on a single side. */
+    /* 1.40in is the target card height so all six land on a single side;
+       flex-shrink lets them give up a few points to keep the footer on the
+       sheet. */
     .event {
       display: flex; align-items: center; gap: 18px;
-      height: 1.40in; border-bottom: 2px solid #e2e2e2;
+      flex: 0 1 1.40in; min-height: 0; border-bottom: 2px solid #e2e2e2;
       page-break-inside: avoid; overflow: hidden;
     }
     .event:last-child { border-bottom: 0; }
@@ -67,17 +76,28 @@
       border-radius: 4px; cursor: pointer; text-decoration: none;
     }
     .btn-primary { background: #111; color: #fff; border-color: #111; }
+    .flash {
+      max-width: 7.5in; margin: 0.4in auto -0.2in; padding: 8px 12px;
+      border: 1px solid #d9d2c4; background: #fdf9f0; border-radius: 4px;
+      font-size: 10pt; color: #444;
+    }
     @media print {
-      .actions { display: none; }
+      .actions, .flash { display: none; }
       .page { margin: 0; max-width: none; }
       @page { margin: 0.4in; }
     }
   </style>
 </head>
 <body>
+  <% if flash[:notice] || flash[:alert] %>
+    <div class="flash"><%= flash[:notice] || flash[:alert] %></div>
+  <% end %>
   <div class="actions">
     <a class="btn" href="<%= nyk_display_settings_path %>">← Back</a>
     <a class="btn" href="<%= nyk_display_print_path %>">Flyer (double-sided)</a>
+    <% if @can_refresh %>
+      <%= button_to "↻ Refresh classes", nyk_refresh_classes_path, class: "btn" %>
+    <% end %>
     <button id="print-btn" type="button" class="btn btn-primary">🖨 Print</button>
   </div>
 
@@ -94,6 +114,7 @@
     </div>
 
     <% if @events.any? %>
+      <div class="events">
       <% @events.each do |event| %>
         <%
           start = event.start_at
@@ -125,6 +146,7 @@
           <% end %>
         </div>
       <% end %>
+      </div>
     <% else %>
       <div class="empty">No upcoming classes right now.<br>Check back at nykitchen.com/calendar/.</div>
     <% end %>

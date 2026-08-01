@@ -244,4 +244,33 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
       get nyk_display_print_path(variant: "stall")
     end
   end
+
+  # Dakota's report: the "Check out other New York Kitchen classes" footer was
+  # printing past the bottom of the last sheet. The fix is structural — the
+  # rows live in a flexing .events box inside a page sized to the printable
+  # area, so they give up a few points instead of shoving the footer off. If a
+  # row ever escapes that box again, the footer goes with it.
+  test "every row sits in the flexing .events box so the footer stays on the sheet" do
+    18.times { |i| add_event("Class #{format('%02d', i)}", (i + 1) * 24) }
+    get nyk_display_print_path
+    assert_response :success
+    assert_equal css_select(".event").size, css_select(".events .event").size,
+                 "every .event must be inside .events"
+    assert_select ".page .footer", 1
+    assert_match "height: 10.1in", response.body   # page box = Letter less @page margins
+    assert_match "flex: 0 1 0.98in", response.body # rows shrink to fit
+
+    get nyk_display_print_path(variant: "stall")
+    assert_response :success
+    assert_equal css_select(".event").size, css_select(".events .event").size
+    assert_select ".page .footer", 1
+    assert_match "flex: 0 1 1.40in", response.body
+  end
+
+  test "the QR caption is kept on one line so the row can't clip it" do
+    add_event("Pinot Noir Decoded", 24)
+    get nyk_display_print_path
+    assert_response :success
+    assert_match "white-space: nowrap", response.body
+  end
 end
