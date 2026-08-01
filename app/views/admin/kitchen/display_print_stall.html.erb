@@ -57,7 +57,9 @@
     .info .sep { color: #bbb; padding: 0 4px; }
     .qr { flex: 0 0 auto; text-align: center; width: 1.2in; }
     .qr svg { width: 1.1in; height: 1.1in; display: block; margin: 0 auto; }
-    .qr-cap { font-size: 8pt; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; font-weight: 700; }
+    /* One line, same as the flyer: wrapped, the caption runs past the card's
+       bottom edge and gets clipped by the overflow. */
+    .qr-cap { font-size: 8pt; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; font-weight: 700; white-space: nowrap; }
 
     .footer {
       margin-top: 12px; padding-top: 8px; border-top: 2px solid #ddd;

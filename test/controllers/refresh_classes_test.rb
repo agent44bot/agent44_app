@@ -9,7 +9,6 @@ class RefreshClassesTest < ActionDispatch::IntegrationTest
     @owner   = User.create!(email_address: "nyk-refresh-owner-#{SecureRandom.hex(4)}@example.com", role: "user")
     @outsider = User.create!(email_address: "nyk-refresh-out-#{SecureRandom.hex(4)}@example.com", role: "user")
     @workspace = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @owner }
-    @workspace.update!(owner: @owner)
     Setting.delete_key("nyk_classes_refreshed_at")
   end
 
