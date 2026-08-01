@@ -1,11 +1,15 @@
 class ScrapeKitchenJob < ApplicationJob
   queue_as :default
 
-  def perform
+  # force: re-scrape and replace today's snapshot even though one already
+  # exists. The daily run is the only writer otherwise, so a class pulled from
+  # nykitchen.com mid-morning would keep printing on the flyer until tomorrow.
+  # This is what the flyer's "Refresh classes" button calls.
+  def perform(force: false)
     today  = Date.today
 
     # Skip if Playwright already created today's snapshot (GHA runs at ~9:47 AM)
-    if KitchenSnapshot.exists?(taken_on: today)
+    if KitchenSnapshot.exists?(taken_on: today) && !force
       Rails.logger.info("ScrapeKitchenJob: snapshot already exists for #{today}, skipping")
       return
     end

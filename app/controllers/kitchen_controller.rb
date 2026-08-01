@@ -22,7 +22,7 @@ class KitchenController < ApplicationController
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
-  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class hours generate_timesheets]
+  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class hours generate_timesheets refresh_classes]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -689,6 +689,9 @@ class KitchenController < ApplicationController
     @last_updated = snapshot&.taken_on
     # Photos default on for both layouts; ?photos=0 prints a leaner text-only run.
     @show_photos = params[:photos].to_s != "0"
+    # The page is public (front-desk staff open it straight from the hub), so
+    # the re-scrape button only shows for NYK managers.
+    @can_refresh = @display_workspace&.manager?(Current.user)
     # Count flyer/poster prints (admin-only readout on the Neon hub card). Bump
     # per print-page open; tracked per variant + a combined total.
     Setting.increment("nyk_flyer_prints:total")
@@ -704,6 +707,25 @@ class KitchenController < ApplicationController
     end
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
     render template, layout: false
+  end
+
+  # Re-scrape nykitchen.com now instead of waiting for the nightly run. The
+  # flyer prints whatever the last snapshot holds, so a class pulled from the
+  # website during the day still printed until tomorrow (Dakota hit this with a
+  # cancelled Sunday pop-up). Manager-gated and throttled: the scrape walks
+  # every class detail page, so it is not something to hammer.
+  REFRESH_COOLDOWN = 10.minutes
+
+  def refresh_classes
+    last_at = Setting.time("nyk_classes_refreshed_at")
+    if last_at && last_at > REFRESH_COOLDOWN.ago
+      flash[:alert] = "Classes were just refreshed. Try again in a few minutes."
+    else
+      Setting.touch_time("nyk_classes_refreshed_at")
+      ScrapeKitchenJob.perform_later(force: true)
+      flash[:notice] = "Refreshing classes from nykitchen.com. Reload this page in a minute to print the updated list."
+    end
+    redirect_back fallback_location: nyk_display_print_path
   end
 
   NYK_CALENDAR_URL = "https://nykitchen.com/calendar/".freeze

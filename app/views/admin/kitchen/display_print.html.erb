@@ -13,8 +13,17 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    /* Each .page is one printed side: 9 classes → front, next 9 → back. */
-    .page { max-width: 7.5in; margin: 0.4in auto; padding: 0 0.25in; }
+    /* Each .page is one printed side: 9 classes → front, next 9 → back.
+       Fixed to the printable height of a Letter sheet (11in less the 0.4in
+       @page margins, minus a hair of slack so rounding can't spill a blank
+       page). The rows flex inside it, so the footer is always on the sheet
+       instead of being pushed past the page break. */
+    .page {
+      max-width: 7.5in; margin: 0.4in auto; padding: 0 0.25in;
+      height: 10.1in; display: flex; flex-direction: column; overflow: hidden;
+    }
+    /* Rows take whatever is left after the header and footer. */
+    .events { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
     .header {
       display: flex; align-items: baseline; justify-content: space-between;
       padding-bottom: 8px; border-bottom: 2px solid #111; margin-bottom: 12px;
@@ -24,11 +33,12 @@
     .brand-logo { height: 60px; width: auto; vertical-align: middle; margin-right: 14px; }
     .meta-head { font-size: 8.5pt; color: #555; }
 
-    /* Compact row: photo · text · QR. Fixed height so exactly nine fit on a
-       side (a 10th would spill the page break). */
+    /* Compact row: photo · text · QR. 0.98in is the target height so exactly
+       nine fit a side; flex-shrink lets the nine give up a few points on the
+       last page, where the footer also has to fit. */
     .event {
       display: flex; align-items: center; gap: 12px;
-      height: 0.98in; border-bottom: 1px solid #e2e2e2;
+      flex: 0 1 0.98in; min-height: 0; border-bottom: 1px solid #e2e2e2;
       page-break-inside: avoid; overflow: hidden;
     }
     .event:last-child { border-bottom: 0; }
@@ -46,9 +56,11 @@
     }
     .info { font-size: 9pt; color: #333; }
     .info .sep { color: #bbb; padding: 0 2px; }
-    .qr { flex: 0 0 auto; text-align: center; width: 0.8in; }
+    .qr { flex: 0 0 auto; text-align: center; width: 0.95in; }
     .qr svg { width: 0.72in; height: 0.72in; display: block; margin: 0 auto; }
-    .qr-cap { font-size: 6pt; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+    /* One line: wrapped to two, the caption ran past the row's bottom edge and
+       got clipped by the overflow. */
+    .qr-cap { font-size: 6pt; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; white-space: nowrap; }
 
     .footer {
       margin-top: 16px; padding-top: 8px; border-top: 1px solid #ddd;
@@ -67,8 +79,13 @@
       border-radius: 4px; cursor: pointer; text-decoration: none;
     }
     .btn-primary { background: #111; color: #fff; border-color: #111; }
+    .flash {
+      max-width: 7.5in; margin: 0.4in auto -0.2in; padding: 8px 12px;
+      border: 1px solid #d9d2c4; background: #fdf9f0; border-radius: 4px;
+      font-size: 10pt; color: #444;
+    }
     @media print {
-      .actions { display: none; }
+      .actions, .flash { display: none; }
       .page { margin: 0; max-width: none; page-break-after: always; }
       .page:last-of-type { page-break-after: auto; }
       @page { margin: 0.4in; }
@@ -76,9 +93,15 @@
   </style>
 </head>
 <body>
+  <% if flash[:notice] || flash[:alert] %>
+    <div class="flash"><%= flash[:notice] || flash[:alert] %></div>
+  <% end %>
   <div class="actions">
     <a class="btn" href="<%= nyk_display_settings_path %>">← Back</a>
     <a class="btn" href="<%= nyk_display_print_path(variant: "stall") %>">Stall poster</a>
+    <% if @can_refresh %>
+      <%= button_to "↻ Refresh classes", nyk_refresh_classes_path, class: "btn" %>
+    <% end %>
     <% if @show_photos %>
       <a class="btn" href="<%= nyk_display_print_path(photos: 0) %>">Text only</a>
     <% else %>
@@ -104,6 +127,7 @@
           </div>
         </div>
 
+        <div class="events">
         <% page_events.each do |event| %>
           <%
             start = event.start_at
@@ -141,6 +165,7 @@
             <% end %>
           </div>
         <% end %>
+        </div>
 
         <% if page_idx == pages.size - 1 %>
           <div class="footer">

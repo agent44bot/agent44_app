@@ -120,6 +120,9 @@ Rails.application.routes.draw do
   patch "nykitchen/flyer_rate", to: "kitchen#update_flyer_rate", as: :nyk_flyer_rate
   # Printer-friendly list of the same N classes the display cycles. Admin-only.
   get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
+  # Force a re-scrape of nykitchen.com so a class pulled from the website today
+  # stops printing on the flyer. NYK managers only.
+  post  "nykitchen/classes/refresh", to: "kitchen#refresh_classes", as: :nyk_refresh_classes
   # Trackable QR redirect: logs the scan, then 302s to the real class page.
   # Public (walk-ins scan it with no login); short path so the QR stays dense.
   get   "nykitchen/r/:token",       to: "kitchen#scan_redirect",  as: :nyk_scan
