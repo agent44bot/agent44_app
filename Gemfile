@@ -25,6 +25,9 @@ gem "bcrypt", "~> 3.1.7"
 # Nostr keypair authentication
 gem "bip-schnorr", "~> 0.7", require: "schnorr"
 gem "bech32", "~> 1.5"
+# Already in the bundle via Action Cable; named here because Buzz::Relay speaks
+# the WebSocket protocol directly.
+gem "websocket-driver", "~> 0.8"
 
 # Claude API for AI-enhanced social media posts
 gem "anthropic"
