@@ -60,6 +60,8 @@ class BuzzSubscriberTest < ActiveSupport::TestCase
       case type
       when "REQ"
         if @require_auth && !@authed
+          # Real Buzz closes the subscription with auth-required, then challenges.
+          @driver.text(JSON.generate([ "CLOSED", rest.first, "auth-required: not authenticated" ]))
           @driver.text(JSON.generate([ "AUTH", CHALLENGE ]))
         else
           @requests << rest.last # the filter

@@ -76,12 +76,34 @@ so a relay restart cannot replay yesterday's `!smoke` and run it again.
 real handshake, the NIP-42 challenge, and the OK/rejection paths, so nothing is
 published to a public relay from CI.
 
+## Running against a real relay
+
+Verified end to end against `ghcr.io/block/buzz:main` on the Mac mini
+(`~/apps/buzz/deploy/compose`, relay on `ws://localhost:3010`, port moved off
+their default 3000 because the Rails dev server owns that).
+
+Two protocol details only a real relay exposed, both worth remembering:
+
+1. **Buzz sends its NIP-42 challenge the instant the socket opens**, before you
+   send anything.
+2. **A refusal is not always a verdict.** An `EVENT` or `REQ` sent before you
+   answer the challenge comes back as `["OK", id, false, "auth-required: ..."]`
+   or `["CLOSED", sub, "auth-required: ..."]`. That refusal races your
+   authenticate-and-retry, and since both attempts carry the same event id there
+   is no way to tell which one it answers. So `auth-required` and `restricted`
+   are treated as "keep waiting" and never as a rejection; if nothing better
+   arrives, the timeout reports the refusal.
+
 ## Not done yet
 
-- **No relay is running.** Buzz self-hosts on Postgres + Redis + S3/MinIO
-  (`deploy/compose/`), which does not fit on the single Fly machine this app
-  uses (SQLite on a per-machine volume, and `fly scale count > 1` would
-  split-brain the data). A relay needs its own Fly app or a box elsewhere.
+- **The relay is local only.** It runs on the mini, bound to localhost. Nothing
+  is exposed, and it does not survive a reboot (no launchd unit yet).
+- **`BUZZ_REQUIRE_RELAY_MEMBERSHIP` is off**, so any key may post. That was to
+  get first light without debugging membership at the same time. It should go
+  back on once the agent keys are enrolled.
+- Buzz does not fit on the Fly machine this app uses (SQLite on a per-machine
+  volume, and `fly scale count > 1` would split-brain the data), which is why
+  the relay lives on the mini rather than next to the app.
 - **The listener is not deployed.** It is a foreground process
   (`bin/buzz-listen`); in prod it needs somewhere to live. SolidQueue runs
   inside puma here, so a long-lived socket does not fit the existing worker

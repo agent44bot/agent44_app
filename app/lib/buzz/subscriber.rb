@@ -25,6 +25,7 @@ module Buzz
     # the connection drops, which it lets the caller handle (see Listener).
     def listen
       socket = Socket.new(@url).open!
+      authenticated = false
       socket.send_json(request_frame)
       @logger.info("[buzz] listening on #{@url} ##{@channel}")
 
@@ -43,10 +44,20 @@ module Buzz
           end
           yield event
         when "AUTH"
+          next if authenticated
+
+          authenticated = true
           socket.send_json([ "AUTH", Event.auth(keypair: @keypair, challenge: message[1], relay_url: @url).to_h ])
           socket.send_json(request_frame)
         when "CLOSED"
-          raise Socket::Error, "relay closed the subscription: #{message[2]}"
+          # Buzz sends its AUTH challenge the moment the socket opens, so a
+          # subscription sent before we answer is closed with "auth-required".
+          # That close races our authenticate-and-resubscribe and cannot be tied
+          # to a particular attempt, so it is an instruction, never a verdict.
+          reason = message[2].to_s
+          next if reason.match?(Relay::AUTH_REQUIRED)
+
+          raise Socket::Error, "relay closed the subscription: #{reason}"
         when "NOTICE"
           @logger.warn("[buzz] relay notice: #{message[1]}")
         end

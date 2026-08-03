@@ -15,9 +15,10 @@ class BuzzRelayTest < ActiveSupport::TestCase
 
     attr_reader :received, :auth_events
 
-    def initialize(require_auth: false, accept: true)
-      @require_auth = require_auth
-      @accept       = accept
+    def initialize(require_auth: false, accept: true, stale_refusal: false)
+      @require_auth  = require_auth
+      @accept        = accept
+      @stale_refusal = stale_refusal
       @received     = []
       @auth_events  = []
       @server       = TCPServer.new("127.0.0.1", 0)
@@ -52,9 +53,16 @@ class BuzzRelayTest < ActiveSupport::TestCase
       case type
       when "EVENT"
         if @require_auth && !@authed
+          # Real Buzz refuses and challenges in the same breath. The refusal
+          # must not be mistaken for a verdict.
+          driver.text(JSON.generate([ "OK", payload["id"], false, "auth-required: not authenticated" ]))
           driver.text(JSON.generate([ "AUTH", CHALLENGE ]))
         else
           @received << payload
+          # Real Buzz challenges on connect, so the refusal aimed at a pre-auth
+          # attempt can land *after* we authenticate. Same event id, so it is
+          # indistinguishable from a verdict on this attempt.
+          driver.text(JSON.generate([ "OK", payload["id"], false, "auth-required: not authenticated" ])) if @stale_refusal
           reason = @accept ? "" : "blocked: not a member"
           driver.text(JSON.generate([ "OK", payload["id"], @accept, reason ]))
         end
@@ -100,6 +108,16 @@ class BuzzRelayTest < ActiveSupport::TestCase
     assert_equal 1, @relay.auth_events.size
     assert_equal @keypair.public_key_hex, @relay.auth_events.first["pubkey"]
     assert_equal event.id, @relay.received.sole["id"]
+  end
+
+  # Regression: a stale "auth-required" refusal arriving after we authenticate
+  # must not be mistaken for a verdict on the retried publish. Caught only when
+  # this ran against a real Buzz relay, never against the earlier stub.
+  test "survives an auth-required refusal that lands after authenticating" do
+    @relay = FakeRelay.new(stale_refusal: true)
+    event  = Buzz::Event.note(keypair: @keypair, content: "hello")
+
+    assert Buzz::Relay.new(url: @relay.url, keypair: @keypair, timeout: 5).publish(event)
   end
 
   test "raises with the relay's reason when the event is rejected" do
