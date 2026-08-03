@@ -10,9 +10,10 @@ class KitchenController < ApplicationController
   # in Safari (the only place iOS shows a print dialog — the in-app WKWebView
   # can't) without a login wall. Same public class data as :display, no
   # Claude/AI, so anonymous access is safe.
-  allow_unauthenticated_access only: [ :hub, :display, :display_heartbeat, :display_print, :scan_redirect ]
-  # The display screen pings this from a no-auth, no-CSRF-token page.
-  skip_forgery_protection only: :display_heartbeat
+  allow_unauthenticated_access only: [ :hub, :display, :display_heartbeat, :display_print, :record_print, :scan_redirect ]
+  # The display screen and the print page ping these from no-auth pages that
+  # carry no CSRF token (both render layout: false).
+  skip_forgery_protection only: %i[display_heartbeat record_print]
 
   before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices display_settings hours]
   # Super Agent (admin/customer-only): once App Review approved the app, we
@@ -692,21 +693,53 @@ class KitchenController < ApplicationController
     # The page is public (front-desk staff open it straight from the hub), so
     # the re-scrape button only shows for NYK managers.
     @can_refresh = @display_workspace&.manager?(Current.user)
-    # Count flyer/poster prints (admin-only readout on the Neon hub card). Bump
-    # per print-page open; tracked per variant + a combined total.
-    Setting.increment("nyk_flyer_prints:total")
-    Setting.increment("nyk_flyer_prints:#{@variant}")
-    Setting.touch_time("nyk_flyer_prints:last_at") # CarsonNudgeJob no_flyers trigger
-    # Monetize the print click: 44 cents per open, billed to the workspace
-    # (owner/admin see the revenue on the billing page + Neon card).
-    if @display_workspace
-      UsageEvent.record!(workspace: @display_workspace, user: Current.user,
-                         kind: UsageEvent::FLYER_PRINT,
-                         unit_cents: @display_workspace.effective_flyer_unit_cents,
-                         metadata: { variant: @variant })
-    end
+    # The count and the charge do NOT happen here. A bare GET on this URL proves
+    # nothing about who asked for it: crawlers, link previewers and our own QA
+    # scripts all fetch it, and every one of those used to bump the counter and
+    # bill the workspace. The page reports itself open from the browser instead
+    # (see #record_print), which is the closest thing to "a person is looking at
+    # the flyer" that a public URL can offer.
     template = @variant == "stall" ? "admin/kitchen/display_print_stall" : "admin/kitchen/display_print"
     render template, layout: false
+  end
+
+  # How long one visitor's opens collapse into a single billable print. Reloads,
+  # a re-print after changing the paper, and the autoprint round trip are one
+  # print job, not four.
+  PRINT_DEDUPE_WINDOW = 2.minutes
+
+  # Beacon from the flyer/poster page: the browser reports itself open, so a
+  # fetch that never ran the page's JS is never counted or billed. Public and
+  # CSRF-exempt (the page is deliberately viewable signed out), so it is
+  # deduped per visitor and screened for automated user agents.
+  #
+  # Known gap: a crawler that renders JS *and* sends an ordinary desktop user
+  # agent would still bill, since unlike a scan there is no second signal (a
+  # print has no equivalent of "must be a phone") to catch it. That is a much
+  # smaller class than the plain-GET fetchers this closes off, and the dedupe
+  # window caps what any one of them can run up. Revisit if the print counts
+  # start drifting from what the front desk says it actually printed.
+  #
+  # The dedupe leans on Rails.cache being shared across processes: prod is
+  # :solid_cache_store (DB-backed), so a visitor is deduped across Puma workers.
+  def record_print
+    variant = params[:variant] == "stall" ? "stall" : "flyer"
+    return head :no_content if TrafficSource.automated?(request.user_agent)
+
+    key = "nyk_flyer_print:#{request.remote_ip}:#{variant}"
+    return head :no_content unless Rails.cache.write(key, 1, expires_in: PRINT_DEDUPE_WINDOW, unless_exist: true)
+
+    Setting.increment("nyk_flyer_prints:total")
+    Setting.increment("nyk_flyer_prints:#{variant}")
+    Setting.touch_time("nyk_flyer_prints:last_at") # CarsonNudgeJob no_flyers trigger
+    workspace = Workspace.find_by(slug: "nykitchen")
+    if workspace
+      UsageEvent.record!(workspace: workspace, user: Current.user,
+                         kind: UsageEvent::FLYER_PRINT,
+                         unit_cents: workspace.effective_flyer_unit_cents,
+                         metadata: { variant: variant })
+    end
+    head :no_content
   end
 
   # Re-scrape nykitchen.com now instead of waiting for the nightly run. The
@@ -737,7 +770,18 @@ class KitchenController < ApplicationController
   # walk-in customer.
   def scan_redirect
     link = TrackedLink.find_by(token: params[:token].to_s)
-    if link
+    # A printed QR is read with a phone camera, so anything else arriving here is
+    # a crawler: a link-safety scanner walked every code on the flyer the day
+    # Dakota emailed the URL out, 30 "scans" inside fifteen minutes from 21
+    # datacenter IPs, all billed. Non-camera traffic is logged and dropped rather
+    # than counted. The redirect still happens either way, so a real visitor who
+    # typed the short URL on a laptop still lands on the class page.
+    if link && !TrafficSource.camera_scan?(request.user_agent)
+      # Newlines stripped: the user agent is attacker-controlled and would
+      # otherwise be able to forge extra log lines.
+      ua = request.user_agent.to_s.first(80).gsub(/[[:cntrl:]]/, " ")
+      Rails.logger.info("scan_redirect: not a camera scan, not counted (ua=#{ua})")
+    elsif link
       # "display" = a scan off the tasting-room screen (src=display on the QR);
       # anything else is a printed flyer/poster scan.
       source = params[:src].to_s.presence

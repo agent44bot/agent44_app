@@ -190,6 +190,13 @@
   <%# Inline event handlers (onclick=) are blocked by the app's CSP nonce
       policy, so attach via a nonced <script> instead. %>
   <%= javascript_tag nonce: true do %>
+    // Tell the server a real browser opened the flyer. The plain GET is fetched
+    // by crawlers and link previewers too, so the print count and the charge
+    // hang off this beacon rather than off the page load.
+    fetch("<%= nyk_record_print_path(variant: "flyer") %>", {
+      method: "POST", keepalive: true, headers: { "Accept": "application/json" }
+    }).catch(function() {});
+
     document.getElementById("print-btn")?.addEventListener("click", function() {
       window.print();
     });

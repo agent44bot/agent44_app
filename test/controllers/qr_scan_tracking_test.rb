@@ -3,6 +3,9 @@ require "test_helper"
 # QR codes on the printed flyers encode a trackable redirect (/nykitchen/r/:token)
 # instead of the raw class URL, so we can count scans. See TrackedLink / LinkScan.
 class QrScanTrackingTest < ActionDispatch::IntegrationTest
+  # A printed QR is read by a phone camera; desktop/crawler hits are not scans.
+  PHONE = { "User-Agent" => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148" }.freeze
+
   setup do
     @snapshot = KitchenSnapshot.create!(taken_on: Date.current)
     @event = @snapshot.kitchen_events.create!(
@@ -67,7 +70,7 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
   test "repeat scans of the same token each log a new scan (302, not cached)" do
     link = TrackedLink.for_url(@event.url)
     assert_difference -> { link.link_scans.count }, 3 do
-      3.times { get nyk_scan_path(link.token) }
+      3.times { get nyk_scan_path(link.token), headers: PHONE }
     end
     assert_equal 302, response.status # never a 301 the browser would cache
   end

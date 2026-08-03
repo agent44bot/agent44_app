@@ -3,6 +3,9 @@ require "test_helper"
 # Monetization: 44 cents per flyer print-page open and per QR scan, recorded as
 # UsageEvents and surfaced (owner/admin only) on the Neon card + billing page.
 class FlyerMonetizationTest < ActionDispatch::IntegrationTest
+  BROWSER = { "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/149.0.0.0 Safari/537.36" }.freeze
+  PHONE   = { "User-Agent" => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148" }.freeze
+
   setup do
     @owner = User.create!(email_address: "own-#{SecureRandom.hex(4)}@example.com", role: "user")
     @ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @owner }
@@ -11,9 +14,9 @@ class FlyerMonetizationTest < ActionDispatch::IntegrationTest
                                           start_at: 2.days.from_now, availability: "InStock")
   end
 
-  test "opening the print page records a 44-cent flyer.print usage event" do
+  test "a browser opening the print page records a 44-cent flyer.print usage event" do
     assert_difference -> { UsageEvent.of_kind(UsageEvent::FLYER_PRINT).count }, 1 do
-      get nyk_display_print_path
+      post nyk_record_print_path, headers: BROWSER
     end
     ue = UsageEvent.of_kind(UsageEvent::FLYER_PRINT).order(:id).last
     assert_equal 44, ue.unit_cents
@@ -24,7 +27,7 @@ class FlyerMonetizationTest < ActionDispatch::IntegrationTest
   test "a scan records a 44-cent flyer.scan usage event" do
     link = TrackedLink.for_url(@event.url, workspace: @ws)
     assert_difference -> { UsageEvent.of_kind(UsageEvent::FLYER_SCAN).count }, 1 do
-      get nyk_scan_path(link.token)
+      get nyk_scan_path(link.token), headers: PHONE
     end
     ue = UsageEvent.of_kind(UsageEvent::FLYER_SCAN).order(:id).last
     assert_equal 44, ue.unit_cents
@@ -33,7 +36,7 @@ class FlyerMonetizationTest < ActionDispatch::IntegrationTest
 
   test "an unknown token does not bill a scan" do
     assert_no_difference -> { UsageEvent.count } do
-      get nyk_scan_path("deadbeef0000")
+      get nyk_scan_path("deadbeef0000"), headers: PHONE
     end
   end
 
@@ -41,7 +44,7 @@ class FlyerMonetizationTest < ActionDispatch::IntegrationTest
     link = TrackedLink.for_url(@event.url, workspace: @ws)
     assert_no_difference -> { UsageEvent.count } do
       assert_difference -> { link.link_scans.count }, 1 do
-        get nyk_scan_path(link.token, src: "display")
+        get nyk_scan_path(link.token, src: "display"), headers: PHONE
       end
     end
     assert_equal "display", link.link_scans.order(:id).last.source
