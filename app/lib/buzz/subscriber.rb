@@ -35,6 +35,12 @@ module Buzz
           event = message[2]
           next unless event.is_a?(Hash)
           next if duplicate?(event["id"])
+          # Nothing unsigned gets past the boundary, so callers never have to
+          # wonder whether an event is trustworthy.
+          unless Event.valid?(event)
+            @logger.warn("[buzz] dropped an event that failed signature validation")
+            next
+          end
           yield event
         when "AUTH"
           socket.send_json([ "AUTH", Event.auth(keypair: @keypair, challenge: message[1], relay_url: @url).to_h ])

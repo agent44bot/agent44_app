@@ -25,10 +25,24 @@ module Buzz
     end
 
     def open!(timeout: 10)
-      uri    = URI.parse(@url)
-      secure = uri.scheme == "wss"
-      tcp    = TCPSocket.new(uri.host, uri.port || (secure ? 443 : 80))
-      @io    = secure ? wrap_tls(tcp, uri.host) : tcp
+      uri      = URI.parse(@url)
+      secure   = uri.scheme == "wss"
+      deadline = timeout && monotonic + timeout
+
+      # The connect itself is inside the deadline. An unreachable or firewalled
+      # host drops packets silently, and a bare TCPSocket.new would sit there for
+      # the OS-level connect timeout (minutes), far past the caller's budget.
+      # That matters because production runs few worker threads, so one wedged
+      # publish can hold up unrelated jobs.
+      # ::Socket is Ruby's, not Buzz::Socket.
+      tcp = begin
+        ::Socket.tcp(uri.host, uri.port || (secure ? 443 : 80), connect_timeout: seconds_left(deadline))
+      rescue Errno::ETIMEDOUT, IO::TimeoutError => e
+        # Surfaced as our own Timeout so callers have one thing to rescue,
+        # whichever way the runtime reports a stalled connect.
+        raise Timeout, "could not connect to #{@url}: #{e.class}"
+      end
+      @io = secure ? wrap_tls(tcp, uri.host, deadline) : tcp
 
       @driver = WebSocket::Driver.client(Adapter.new(@io, @url))
       @driver.on(:open)    { @open = true }
@@ -36,7 +50,6 @@ module Buzz
       @driver.on(:error)   { |e| raise Error, e.message }
       @driver.start
 
-      deadline = timeout && monotonic + timeout
       read_once(deadline) until @open
       self
     end
@@ -68,11 +81,16 @@ module Buzz
     private
 
     def read_once(deadline)
-      wait = deadline && deadline - monotonic
+      wait = seconds_left(deadline)
       raise Timeout, "no response from #{@url}" if wait && wait <= 0
       raise Timeout, "no response from #{@url}" unless IO.select([ @io ], nil, nil, wait)
 
       @driver.parse(read_available)
+    end
+
+    # Seconds remaining before `deadline`, or nil for "wait indefinitely".
+    def seconds_left(deadline)
+      deadline && deadline - monotonic
     end
 
     def read_available
@@ -83,14 +101,34 @@ module Buzz
       raise Error, "relay connection lost: #{e.class}"
     end
 
-    def wrap_tls(tcp, host)
+    # The TLS handshake is bounded too: a host that completes the TCP connect and
+    # then stalls mid-handshake would otherwise hang just as long.
+    def wrap_tls(tcp, host, deadline)
       ctx = OpenSSL::SSL::SSLContext.new
       ctx.set_params(verify_mode: OpenSSL::SSL::VERIFY_PEER)
       ssl = OpenSSL::SSL::SSLSocket.new(tcp, ctx)
       ssl.hostname = host # SNI
-      ssl.connect
+
+      begin
+        ssl.connect_nonblock
+      rescue IO::WaitReadable
+        await(tcp, :read, deadline)
+        retry
+      rescue IO::WaitWritable
+        await(tcp, :write, deadline)
+        retry
+      end
+
       ssl.post_connection_check(host)
       ssl
+    end
+
+    def await(io, direction, deadline)
+      wait = seconds_left(deadline)
+      raise Timeout, "TLS handshake with #{@url} timed out" if wait && wait <= 0
+
+      ready = direction == :read ? IO.select([ io ], nil, nil, wait) : IO.select(nil, [ io ], nil, wait)
+      raise Timeout, "TLS handshake with #{@url} timed out" unless ready
     end
 
     def monotonic = Process.clock_gettime(Process::CLOCK_MONOTONIC)

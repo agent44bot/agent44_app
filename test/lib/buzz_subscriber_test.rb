@@ -110,17 +110,20 @@ class BuzzSubscriberTest < ActiveSupport::TestCase
     assert captured["since"] >= 5.seconds.ago.to_i
   end
 
+  # A message as some other participant in the room would sign it.
+  def signed(content)
+    Buzz::Event.note(keypair: Buzz::Keypair.generate, content: content, channel: "agent44").to_h
+  end
+
   test "yields events pushed by the relay" do
-    events = collect(expected: 1) do
-      @relay.push({ "id" => "a" * 64, "pubkey" => "b" * 64, "content" => "!help", "kind" => 1 })
-    end
+    events = collect(expected: 1) { @relay.push(signed("!help")) }
 
     assert_equal 1, events.size
     assert_equal "!help", events.first["content"]
   end
 
   test "suppresses a duplicate id so a command cannot run twice" do
-    duplicate = { "id" => "c" * 64, "pubkey" => "d" * 64, "content" => "!smoke", "kind" => 1 }
+    duplicate = signed("!smoke")
 
     events = collect(expected: 2, timeout: 2) do
       3.times { @relay.push(duplicate) }
@@ -133,10 +136,18 @@ class BuzzSubscriberTest < ActiveSupport::TestCase
     @relay.shutdown
     @relay = FakeRelay.new(require_auth: true)
 
-    events = collect(expected: 1) do
-      @relay.push({ "id" => "e" * 64, "pubkey" => "f" * 64, "content" => "!status", "kind" => 1 })
-    end
+    events = collect(expected: 1) { @relay.push(signed("!status")) }
 
     assert_equal "!status", events.first["content"]
+  end
+
+  # Anything the relay sends that does not prove it came from the key it claims
+  # is dropped here, so nothing downstream has to re-check it.
+  test "drops an event whose signature does not match" do
+    forged = signed("!smoke").merge("pubkey" => Buzz::Keypair.generate.public_key_hex)
+
+    events = collect(expected: 1, timeout: 2) { @relay.push(forged) }
+
+    assert_empty events
   end
 end

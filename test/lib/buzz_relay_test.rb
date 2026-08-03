@@ -112,6 +112,20 @@ class BuzzRelayTest < ActiveSupport::TestCase
     assert_match(/not a member/, error.message)
   end
 
+  # An unreachable host drops packets silently. Without a bounded connect this
+  # sits for the OS-level TCP timeout (minutes), holding a worker thread the
+  # whole time, which matters because production runs very few of them.
+  test "gives up quickly when the relay host is unreachable" do
+    # 192.0.2.0/24 is TEST-NET-1 (RFC 5737): reserved, never routed.
+    relay = Buzz::Relay.new(url: "ws://192.0.2.1:7447", keypair: @keypair, timeout: 1)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    assert_raises(StandardError) { relay.publish(Buzz::Event.note(keypair: @keypair, content: "x")) }
+
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+    assert_operator elapsed, :<, 10, "connect ignored the timeout (took #{elapsed.round(1)}s)"
+  end
+
   test "times out instead of hanging when nothing answers" do
     server = TCPServer.new("127.0.0.1", 0) # accepts, never speaks WebSocket
     url    = "ws://127.0.0.1:#{server.addr[1]}"

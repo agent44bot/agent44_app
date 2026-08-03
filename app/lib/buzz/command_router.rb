@@ -22,6 +22,13 @@ module Buzz
       text = event["content"].to_s.strip
       return nil unless text.start_with?(PREFIX)
 
+      # Verified before the pubkey is used for anything, because every check
+      # below is only as good as the claim that this key really signed this text.
+      unless Event.valid?(event)
+        @logger.warn("[buzz] dropped an unsigned or mis-signed command event")
+        return nil
+      end
+
       pubkey = event["pubkey"].to_s.downcase
       return nil if Buzz.own_pubkeys.include?(pubkey) # never answer ourselves
 
@@ -59,7 +66,7 @@ module Buzz
     end
 
     def run_smoke(pubkey)
-      case SmokeDispatch.trigger!(requested_by: "#{pubkey[0, 8]}… via Buzz", via: "Buzz")
+      case SmokeDispatch.trigger!(requested_by: "#{pubkey[0, 8]}…", via: "Buzz")
       when :ok       then "Kicked off the NY Kitchen smoke test. I'll post the result here when it lands."
       when :no_token then "I can't trigger it: GITHUB_PAT isn't set on this instance."
       else "Tried to trigger the smoke test but GitHub rejected the request. Check the logs."

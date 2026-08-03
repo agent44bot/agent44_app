@@ -34,6 +34,31 @@ module Buzz
       new(keypair: keypair, kind: PRESENCE, content: status, tags: []).sign
     end
 
+    # Does this event actually prove it came from the key it claims?
+    #
+    # A relay is supposed to reject forged events, but the allowlist is the only
+    # thing between a chat message and a live GitHub dispatch, so we do not take
+    # the relay's word for it: recompute the id from the payload and check the
+    # signature ourselves. A buggy or hostile relay can then claim an
+    # allowlisted pubkey all it likes and still not be believed.
+    def self.valid?(event)
+      id     = event["id"]
+      pubkey = event["pubkey"]
+      sig    = event["sig"]
+
+      return false unless id.is_a?(String) && id.match?(/\A[0-9a-f]{64}\z/)
+      return false unless pubkey.is_a?(String) && pubkey.match?(/\A[0-9a-f]{64}\z/)
+      return false unless sig.is_a?(String) && sig.match?(/\A[0-9a-f]{128}\z/)
+
+      serialized = [ 0, pubkey, event["created_at"], event["kind"], event["tags"], event["content"] ].to_json
+      return false unless Digest::SHA256.hexdigest(serialized) == id
+
+      SchnorrVerifier.verify(message_hex: id, pubkey_hex: pubkey, signature_hex: sig)
+    rescue StandardError => e
+      Rails.logger.warn("[buzz] event validation failed: #{e.class}: #{e.message}")
+      false
+    end
+
     def initialize(keypair:, kind:, content:, tags: [], created_at: Time.current.to_i)
       @keypair    = keypair
       @kind       = kind

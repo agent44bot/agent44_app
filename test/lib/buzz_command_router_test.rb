@@ -4,12 +4,11 @@ require "test_helper"
 require "minitest/mock"
 
 class BuzzCommandRouterTest < ActiveSupport::TestCase
-  ALLOWED = "a" * 64
-  STRANGER = "b" * 64
-
   setup do
-    @router = Buzz::CommandRouter.new(logger: Logger.new(File::NULL))
-    ENV["BUZZ_ALLOWED_PUBKEYS"] = ALLOWED
+    @router   = Buzz::CommandRouter.new(logger: Logger.new(File::NULL))
+    @allowed  = Buzz::Keypair.generate
+    @stranger = Buzz::Keypair.generate
+    ENV["BUZZ_ALLOWED_PUBKEYS"] = @allowed.public_key_hex
   end
 
   teardown do
@@ -17,8 +16,9 @@ class BuzzCommandRouterTest < ActiveSupport::TestCase
     ENV.delete("BUZZ_PRIVATE_KEY")
   end
 
-  def event(content, pubkey: ALLOWED)
-    { "id" => SecureRandom.hex(32), "pubkey" => pubkey, "content" => content, "kind" => 1 }
+  # Real signed events, the same shape the relay delivers.
+  def event(content, keypair: @allowed)
+    Buzz::Event.note(keypair: keypair, content: content, channel: "agent44").to_h
   end
 
   test "ignores ordinary conversation" do
@@ -35,7 +35,7 @@ class BuzzCommandRouterTest < ActiveSupport::TestCase
     triggered = false
 
     SmokeDispatch.stub(:trigger!, ->(**) { triggered = true; :ok }) do
-      assert_match(/not on the command allowlist/, @router.call(event("!smoke", pubkey: STRANGER)))
+      assert_match(/not on the command allowlist/, @router.call(event("!smoke", keypair: @stranger)))
     end
 
     # The refusal is only meaningful if the dispatch genuinely never ran.
@@ -53,7 +53,33 @@ class BuzzCommandRouterTest < ActiveSupport::TestCase
     ENV["BUZZ_PRIVATE_KEY"] = keypair.private_key_hex
 
     # Even a valid command from ourselves is dropped, so replies cannot loop.
-    assert_nil @router.call(event("!help", pubkey: keypair.public_key_hex))
+    assert_nil @router.call(event("!help", keypair: keypair))
+  end
+
+  # The allowlist is the only thing between a chat message and a GitHub
+  # dispatch, so it must rest on a verified signature rather than on a relay
+  # being well behaved.
+  test "rejects an event that claims an allowlisted pubkey without its signature" do
+    forged = event("!smoke", keypair: @stranger).merge("pubkey" => @allowed.public_key_hex)
+    triggered = false
+
+    SmokeDispatch.stub(:trigger!, ->(**) { triggered = true; :ok }) do
+      assert_nil @router.call(forged)
+    end
+
+    assert_not triggered
+  end
+
+  test "rejects an event whose content was altered after signing" do
+    tampered = event("!help").merge("content" => "!smoke")
+
+    assert_nil @router.call(tampered)
+  end
+
+  test "rejects an event with a missing or malformed signature" do
+    assert_nil @router.call(event("!help").merge("sig" => nil))
+    assert_nil @router.call(event("!help").merge("sig" => "zz"))
+    assert_nil @router.call(event("!help").except("sig"))
   end
 
   test "reports smoke status from the most recent run" do
@@ -76,6 +102,8 @@ class BuzzCommandRouterTest < ActiveSupport::TestCase
     end
 
     assert_equal "Buzz", called[:via]
+    # The caller supplies the channel, so the description must not repeat it.
+    assert_not_includes called[:requested_by], "via"
   end
 
   test "says so when the dispatch cannot run" do
