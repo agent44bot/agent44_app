@@ -27,6 +27,18 @@ module Buzz
     hex && Keypair.new(hex)
   end
 
+  # Every pubkey this app can sign as. The listener uses it to ignore its own
+  # messages, which is what stops a reply from triggering another reply.
+  def own_pubkeys
+    keys = ENV.select { |name, value| name.start_with?("BUZZ_KEY_") && value.present? }.values
+    keys << ENV["BUZZ_PRIVATE_KEY"] if ENV["BUZZ_PRIVATE_KEY"].present?
+    keys.filter_map do |hex|
+      Keypair.new(hex).public_key_hex
+    rescue Keypair::InvalidKey
+      nil
+    end.uniq
+  end
+
   # Post a message into a Buzz channel as `agent`. Returns false (and logs)
   # rather than raising, so a relay hiccup never takes down the job that was
   # only trying to say something.

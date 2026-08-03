@@ -160,40 +160,7 @@ module Api
       end
 
       def handle_smoke_request(from_user)
-        token = ENV["GITHUB_PAT"]
-        if token.blank?
-          Rails.logger.warn("[TelegramWebhook] GITHUB_PAT not set — cannot trigger smoke workflow")
-          return
-        end
-
-        uri = URI("https://api.github.com/repos/agent44bot/agent44_app/dispatches")
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.open_timeout = 5
-        http.read_timeout = 10
-
-        req = Net::HTTP::Post.new(uri)
-        req["Authorization"] = "Bearer #{token}"
-        req["Accept"] = "application/vnd.github+json"
-        req["Content-Type"] = "application/json"
-        req.body = { event_type: "smoke-nyk" }.to_json
-
-        res = http.request(req)
-
-        if res.is_a?(Net::HTTPSuccess) || res.code == "204"
-          Notification.notify!(
-            level: "info",
-            source: "smoke_test",
-            title: "Smoke test triggered",
-            body: "#{from_user} requested NY Kitchen smoke test via Telegram",
-            telegram: true
-          )
-          Rails.logger.info("[TelegramWebhook] Smoke test triggered by #{from_user}")
-        else
-          Rails.logger.error("[TelegramWebhook] GitHub dispatch failed (#{res.code}): #{res.body.to_s[0, 200]}")
-        end
-      rescue => e
-        Rails.logger.error("[TelegramWebhook] Smoke trigger error: #{e.class}: #{e.message}")
+        SmokeDispatch.trigger!(requested_by: from_user, via: "Telegram")
       end
 
       def extract_task(text)
