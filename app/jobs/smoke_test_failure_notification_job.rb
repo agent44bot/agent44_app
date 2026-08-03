@@ -50,7 +50,11 @@ class SmokeTestFailureNotificationJob < ApplicationJob
       body:      "The class calendar check has failed #{n} times in a row. Open Super Agent to draft a note to the developer?",
       apns:      true,
       apns_url:  url,
-      apns_user: user
+      apns_user: user,
+      # Also say it out loud in the Buzz room, signed as Vlad, so the escalation
+      # lands where the humans and the other agents are already talking.
+      buzz:       true,
+      buzz_agent: "vlad"
     )
     Setting.set("smoke_streak_incident", incident)
   end

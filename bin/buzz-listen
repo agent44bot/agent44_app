@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# bin/buzz-listen — sit in a Buzz channel and act on commands.
+#
+#   BUZZ_RELAY_URL=ws://127.0.0.1:7447 \
+#   BUZZ_PRIVATE_KEY=... BUZZ_KEY_VLAD=... \
+#   BUZZ_ALLOWED_PUBKEYS=<your pubkey> \
+#   bin/buzz-listen --channel agent44 --agent vlad
+#
+# Runs in the foreground; Ctrl-C stops it cleanly.
+
+require_relative "../config/environment"
+require "optparse"
+
+options = { channel: Buzz::DEFAULT_CHANNEL, agent: nil }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: bin/buzz-listen [options]"
+  opts.on("--channel CHANNEL", "channel to listen on (default: #{Buzz::DEFAULT_CHANNEL})") { |v| options[:channel] = v }
+  opts.on("--agent AGENT", "identity to reply as, e.g. vlad") { |v| options[:agent] = v }
+  opts.on("-h", "--help") { puts opts; exit }
+end.parse!
+
+Rails.logger = ActiveSupport::Logger.new($stdout) if $stdout.tty?
+$stdout.sync = true
+
+listener = Buzz::Listener.new(channel: options[:channel], agent: options[:agent])
+
+%w[INT TERM].each do |signal|
+  Signal.trap(signal) do
+    puts "\nstopping..."
+    listener.stop
+    exit
+  end
+end
+
+puts "buzz-listen: ##{options[:channel]} as #{options[:agent] || 'app'} on #{Buzz.relay_url}"
+puts "allowlist: #{Buzz::CommandRouter.allowed_pubkeys.map { |k| "#{k[0, 12]}…" }.join(', ').presence || '(empty, all commands refused)'}"
+listener.run
