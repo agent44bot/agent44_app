@@ -55,11 +55,16 @@
     }
     .info { font-size: 14pt; color: #222; font-weight: 600; }
     .info .sep { color: #bbb; padding: 0 4px; }
-    .qr { flex: 0 0 auto; text-align: center; width: 1.2in; }
-    .qr svg { width: 1.1in; height: 1.1in; display: block; margin: 0 auto; }
-    /* One line, same as the flyer: wrapped, the caption runs past the card's
-       bottom edge and gets clipped by the overflow. */
-    .qr-cap { font-size: 8pt; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; font-weight: 700; white-space: nowrap; }
+    .qr { flex: 0 0 auto; text-align: center; width: 1.3in; }
+    .qr svg { width: 1.0in; height: 1.0in; display: block; margin: 0 auto; }
+    /* The caption was being clipped vertically, not horizontally. .event is
+       flex: 0 1 1.40in inside a fixed 10.1in page, so once the header and
+       footer take their share the card shrinks to ~1.19in — while the QR block
+       (1.1in code + 3px + a 1.25 line-height caption) stood at 1.27in and its
+       last few pixels fell outside .event's overflow: hidden. Wrapping makes
+       that worse, so the caption stays on one line and the block is trimmed to
+       ~1.13in instead: a 1.0in code, a tighter margin, and line-height 1. */
+    .qr-cap { font-size: 8pt; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; line-height: 1; font-weight: 700; white-space: nowrap; }
 
     .footer {
       margin-top: 12px; padding-top: 8px; border-top: 2px solid #ddd;
