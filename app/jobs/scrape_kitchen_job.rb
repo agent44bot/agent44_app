@@ -50,6 +50,9 @@ class ScrapeKitchenJob < ApplicationJob
         # didn't include one (which is currently always).
         e[:image_url] ||= info[:image_url]
         e[:menu] = info[:menu]
+        # The REST listing has no organizer, so the detail page is the only
+        # source for this now.
+        e[:instructor] ||= info[:instructor]
         if info[:closed]
           e[:availability] = "Closed"
           e[:closed] = true

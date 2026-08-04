@@ -52,7 +52,13 @@ class NyKitchenScraper
         end
 
         # Check if there are more pages
-        break if events.size < per_page  # If less than per_page, we got all results
+        # The API reports total_pages, so use it rather than inferring the end
+        # from a short page: The Events Calendar has historically capped
+        # per_page below what was requested, which would end the loop after
+        # page 1 and silently drop the rest of a busy month.
+        total_pages = response_data["total_pages"].to_i
+        break if total_pages.positive? && page >= total_pages
+        break if total_pages.zero? && events.size < per_page
 
         page += 1
         break if page > 50  # Safety limit
@@ -69,11 +75,14 @@ class NyKitchenScraper
     html = get(url)
     return nil unless html
 
-    image_url = extract_event_image(html)
-    menu      = extract_event_menu(html)
+    image_url  = extract_event_image(html)
+    menu       = extract_event_menu(html)
+    # The REST listing carries no organizer (it is [] on every event), so the
+    # instructor now comes off the detail page's JSON-LD performer instead.
+    instructor = extract_instructor(html)
 
     if html.include?("Tickets are no longer available")
-      return { spots_left: 0, capacity: nil, closed: true, image_url: image_url, menu: menu }
+      return { spots_left: 0, capacity: nil, closed: true, image_url: image_url, menu: menu, instructor: instructor }
     end
 
     # A sold-out class drops its data-available-count attributes and its price,
@@ -100,7 +109,7 @@ class NyKitchenScraper
     end
 
     if by_id.empty?
-      return { spots_left: 0, capacity: nil, image_url: image_url, menu: menu } if sold_out
+      return { spots_left: 0, capacity: nil, image_url: image_url, menu: menu, instructor: instructor } if sold_out
       return nil
     end
 
@@ -125,7 +134,20 @@ class NyKitchenScraper
       end
     end
 
-    { spots_left: spots_left, capacity: cap_known ? capacity : nil, image_url: image_url, menu: menu }
+    { spots_left: spots_left, capacity: cap_known ? capacity : nil, image_url: image_url, menu: menu, instructor: instructor }
+  end
+
+  # The instructor, from the detail page's JSON-LD Event performer.
+  def extract_instructor(html)
+    extract_jsonld_events(html).each do |raw|
+      # Careful: Array(hash) splits it into key/value pairs rather than wrapping
+      # it, so a single performer object has to be handled before the Array cast.
+      perf = raw["performer"]
+      perf = perf.first if perf.is_a?(Array)
+      name = perf.is_a?(Hash) ? perf["name"] : perf
+      return decode(name.to_s).strip.presence if name.present?
+    end
+    nil
   end
 
   # The class menu from the detail page: an <h3 class="nyk-event-meta-title">
@@ -189,6 +211,11 @@ class NyKitchenScraper
   end
 
   private
+
+  # WordPress serializes these fields HTML-escaped.
+  def decode(value)
+    value && CGI.unescapeHTML(value.to_s)
+  end
 
   def fetch_rest_api(url)
     uri = URI(url)
@@ -290,7 +317,10 @@ class NyKitchenScraper
     start = raw["start_date"] && (Time.zone.parse(raw["start_date"]) rescue nil)
     return nil unless start
 
-    title = raw["title"]&.strip
+    # Titles and descriptions come back HTML-escaped the same way cost does:
+    # "Chef&#8217;s Table", "Summer Pasta Party &#8211; Gnocchi". Left encoded
+    # they render as literal entities in the digest email and admin cards.
+    title = decode(raw["title"])&.strip
     return nil unless title
 
     image_url = raw["image"]["url"] if raw["image"].is_a?(Hash)
@@ -308,7 +338,7 @@ class NyKitchenScraper
       price: price,
       availability: "InStock", # refined later by fetch_availability
       venue: "New York Kitchen",
-      description: raw["description"]&.strip,
+      description: decode(raw["description"])&.strip,
       image_url: image_url
     }
   end
