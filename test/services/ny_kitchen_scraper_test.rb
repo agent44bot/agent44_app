@@ -100,4 +100,132 @@ class NyKitchenScraperTest < ActiveSupport::TestCase
     end
     assert_nil result
   end
+
+  # ---------------------------------------------------------------------------
+  # Tribe Events REST API listing.
+  #
+  # The listing moved off JSON-LD scraping because SiteGround's CAPTCHA
+  # intermittently served a challenge page instead of the calendar. None of this
+  # path had coverage, so these pin the field mapping, the paging stop
+  # conditions, and which HTTP codes count as success. No network: fetch_rest_api
+  # and Net::HTTP are stubbed.
+  # ---------------------------------------------------------------------------
+
+  TRIBE_EVENT = {
+    "url"         => "https://nykitchen.com/event/knife-skills/",
+    "title"       => "Knife Skills",
+    "start_date"  => "2026-08-10 18:00:00",
+    "end_date"    => "2026-08-10 20:00:00",
+    "cost"        => "&#36;85",
+    "description" => "  Sharpen up.  ",
+    "image"       => { "url" => "https://nykitchen.com/wp-content/uploads/knife.jpg" }
+  }.freeze
+
+  test "maps Tribe REST fields onto the normalized event shape" do
+    event = @scraper.send(:normalize_tribe_event, TRIBE_EVENT)
+
+    assert_equal "Knife Skills", event[:name]
+    assert_equal "https://nykitchen.com/event/knife-skills/", event[:url]
+    # The API sends naive local times. Reading them as UTC would shift every
+    # class four hours earlier, so a 6pm class must stay 6pm Eastern.
+    assert_equal Time.zone.parse("2026-08-10 18:00:00"), event[:start_at]
+    assert_equal Time.zone.parse("2026-08-10 20:00:00"), event[:end_at]
+    assert_equal 18, event[:start_at].in_time_zone("Eastern Time (US & Canada)").hour
+    assert_equal "New York Kitchen", event[:venue]
+    # image arrives as a nested hash, not a string, and cost carries HTML entities
+    assert_equal "https://nykitchen.com/wp-content/uploads/knife.jpg", event[:image_url]
+    assert_equal "85", event[:price]
+    assert_equal "Sharpen up.", event[:description]
+  end
+
+  test "skips events missing a start date or title rather than importing junk" do
+    assert_nil @scraper.send(:normalize_tribe_event, TRIBE_EVENT.except("start_date"))
+    assert_nil @scraper.send(:normalize_tribe_event, TRIBE_EVENT.merge("title" => nil))
+    assert_nil @scraper.send(:normalize_tribe_event, TRIBE_EVENT.merge("start_date" => "not a date"))
+  end
+
+  test "fetch_events normalizes and de-duplicates across pages" do
+    duplicate = TRIBE_EVENT.merge("title" => "Knife Skills (dupe)")
+    calls = []
+    fake = lambda do |url|
+      calls << url
+      { "events" => [ TRIBE_EVENT, duplicate ] }
+    end
+
+    events = @scraper.stub(:fetch_rest_api, fake) do
+      @scraper.fetch_events(months: [ "2026-08" ])
+    end
+
+    # Same url on both records, so the second collapses into the first.
+    assert_equal 1, events.size
+    assert_equal "Knife Skills", events.first[:name]
+    # A short page ends the loop, so exactly one request per month.
+    assert_equal 1, calls.size
+    assert_includes calls.first, "start_date=2026-08-01"
+    assert_includes calls.first, "end_date=2026-08-31"
+  end
+
+  test "fetch_events stops instead of looping when the relay returns nothing" do
+    events = @scraper.stub(:fetch_rest_api, ->(_url) { nil }) do
+      @scraper.fetch_events(months: [ "2026-08" ])
+    end
+    assert_empty events
+
+    events = @scraper.stub(:fetch_rest_api, ->(_url) { { "events" => [] } }) do
+      @scraper.fetch_events(months: [ "2026-08" ])
+    end
+    assert_empty events
+  end
+
+  # Fly's load balancer answers 202 for a request it accepted, which an
+  # exact `== "200"` check rejected and read as a scrape failure.
+  test "accepts any 2xx from the API, not just 200" do
+    [ "200", "202" ].each do |code|
+      data = with_stubbed_http(code, { "events" => [ TRIBE_EVENT ] }.to_json) do
+        @scraper.send(:fetch_rest_api, NyKitchenScraper::REST_API)
+      end
+      assert_equal 1, data["events"].size, "expected HTTP #{code} to be treated as success"
+    end
+  end
+
+  test "returns nil on a non-2xx or unparseable response" do
+    assert_nil(with_stubbed_http("403", "<html>CAPTCHA</html>") do
+      @scraper.send(:fetch_rest_api, NyKitchenScraper::REST_API)
+    end)
+
+    assert_nil(with_stubbed_http("200", "<html>not json</html>") do
+      @scraper.send(:fetch_rest_api, NyKitchenScraper::REST_API)
+    end)
+  end
+
+  test "presents a nykitchen Referer and Origin so the CAPTCHA lets us through" do
+    headers = {}
+    captured = Object.new
+    captured.define_singleton_method(:request) do |req|
+      req.each_header { |k, v| headers[k] = v }
+      Struct.new(:code, :body).new("200", { "events" => [] }.to_json)
+    end
+    captured.define_singleton_method(:use_ssl=) { |_| }
+    captured.define_singleton_method(:open_timeout=) { |_| }
+    captured.define_singleton_method(:read_timeout=) { |_| }
+
+    Net::HTTP.stub(:new, captured) do
+      @scraper.send(:fetch_rest_api, NyKitchenScraper::REST_API)
+    end
+
+    assert_equal "https://nykitchen.com/calendar/", headers["referer"]
+    assert_equal "https://nykitchen.com", headers["origin"]
+  end
+
+  private
+
+  # Swaps in a Net::HTTP whose request returns the given code and body.
+  def with_stubbed_http(code, body)
+    http = Object.new
+    http.define_singleton_method(:request) { |_req| Struct.new(:code, :body).new(code, body) }
+    http.define_singleton_method(:use_ssl=) { |_| }
+    http.define_singleton_method(:open_timeout=) { |_| }
+    http.define_singleton_method(:read_timeout=) { |_| }
+    Net::HTTP.stub(:new, http) { yield }
+  end
 end

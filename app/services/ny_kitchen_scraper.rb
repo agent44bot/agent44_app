@@ -4,48 +4,66 @@ require "json"
 require "cgi"
 
 class NyKitchenScraper
-  # NY Kitchen removed the /calendar/list/ view (now 404s). The month view at
-  # /calendar/ still honors ?tribe-bar-date=YYYY-MM and emits every event for the
-  # month in its JSON-LD @graph, which extract_jsonld_events flattens.
+  # The calendar page. No longer scraped for the event list (see REST_API), but
+  # still the Referer we present on requests, and the human-facing URL.
   BASE = "https://nykitchen.com/calendar/"
+
+  # The Events Calendar's REST API returns the same events as structured JSON,
+  # which is what the listing now reads. Scraping the month view's JSON-LD was
+  # fragile: SiteGround's CAPTCHA intermittently served a challenge page instead
+  # of the calendar, and the markup shifted under us.
+  REST_API = "https://nykitchen.com/wp-json/tribe/events/v1/events"
   UA   = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
-  # Fetch events covering the given month range (YYYY-MM strings).
-  # Paginates through The Events Calendar list view.
+  # Fetch events using Tribe Events REST API.
+  # This is much more reliable than HTML scraping since it gets structured data.
   def fetch_events(months:)
     seen = {}
+
+    # For each month, query the API for events in that range
     months.each do |ym|
+      # Parse YYYY-MM to get start and end dates
+      year, month = ym.split("-")
+      start_date = "#{year}-#{month}-01"
+      # Last day of month
+      last_day = Date.parse(start_date).next_month.prev_day.day
+      end_date = "#{year}-#{month}-#{last_day}"
+
+      per_page = 100
       page = 1
       loop do
-        url  = "#{BASE}?tribe-bar-date=#{ym}&tribe_paged=#{page}"
-        html = get(url)
-        break if html.nil?
+        # Query REST API with date range and pagination
+        url = "#{REST_API}?per_page=#{per_page}&page=#{page}&start_date=#{start_date}&end_date=#{end_date}"
+        response_data = fetch_rest_api(url)
+        break if response_data.nil?
 
-        events = extract_jsonld_events(html)
+        events = response_data.dig("events") || []
         break if events.empty?
 
-        new_count = 0
-        events.each do |e|
-          key = e["url"] || "#{e['name']}|#{e['startDate']}"
-          unless seen.key?(key)
-            seen[key] = e
-            new_count += 1
+        # Normalize each event and add to seen
+        events.each do |raw_event|
+          normalized = normalize_tribe_event(raw_event)
+          if normalized
+            key = normalized[:url] || "#{normalized[:name]}|#{normalized[:start_at]}"
+            unless seen.key?(key)
+              seen[key] = normalized
+            end
           end
         end
 
-        break if new_count.zero?
+        # Check if there are more pages
+        break if events.size < per_page  # If less than per_page, we got all results
+
         page += 1
-        break if page > 10
+        break if page > 50  # Safety limit
       end
     end
-    seen.values.filter_map { |raw| normalize(raw) }
+
+    seen.values
   end
 
   # Scrape an event detail page for live ticket availability + image + menu.
   # Returns { spots_left:, capacity:, closed:, image_url:, menu: } or nil.
-  # The image_url is extracted from the page's og:image / twitter:image /
-  # JSON-LD as a fallback because the calendar listing's JSON-LD often
-  # omits the image field for newer events.
   def fetch_availability(url)
     return nil if url.nil? || url.empty?
     html = get(url)
@@ -110,14 +128,6 @@ class NyKitchenScraper
     { spots_left: spots_left, capacity: cap_known ? capacity : nil, image_url: image_url, menu: menu }
   end
 
-  # Pull the event page's primary image. Priority:
-  #   1. JSON-LD #primaryimage — the WordPress *featured* image. Most accurate
-  #      per event. og:image alone is unreliable: when no social image is set,
-  #      Yoast falls back to the site-default building shot (GTP_NYK-OUTDOORS),
-  #      which is the wrong image for the class.
-  #   2. og:image meta tag
-  #   3. twitter:image meta tag
-  #   4. image field on a JSON-LD Event block
   # The class menu from the detail page: an <h3 class="nyk-event-meta-title">
   # heading reading "Menu" followed by <p> item lines, between the price block
   # and the disclosures link. Returns the joined item text or nil.
@@ -130,6 +140,14 @@ class NyKitchenScraper
     text.presence&.slice(0, 500)
   end
 
+  # Pull the event page's primary image. Priority:
+  #   1. JSON-LD #primaryimage — the WordPress *featured* image. Most accurate
+  #      per event. og:image alone is unreliable: when no social image is set,
+  #      Yoast falls back to the site-default building shot (GTP_NYK-OUTDOORS),
+  #      which is the wrong image for the class.
+  #   2. og:image meta tag
+  #   3. twitter:image meta tag
+  #   4. image field on a JSON-LD Event block
   def extract_event_image(html)
     if (primary = extract_primary_image(html))
       return primary
@@ -172,6 +190,46 @@ class NyKitchenScraper
 
   private
 
+  def fetch_rest_api(url)
+    uri = URI(url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    http.open_timeout = 15
+    http.read_timeout = 30
+
+    request = Net::HTTP::Get.new(uri)
+    request["User-Agent"]      = UA
+    request["Accept"]          = "application/json"
+    request["Referer"]         = "https://nykitchen.com/calendar/"
+    request["Origin"]          = "https://nykitchen.com"
+    request["Accept-Language"] = "en-US,en;q=0.9"
+
+    response = http.request(request)
+    code = response.code.to_i
+
+    body = response.body.force_encoding("UTF-8").scrub
+
+    unless code.between?(200, 299)
+      Rails.logger.warn("NyKitchenScraper REST API: #{url} -> HTTP #{code}")
+      Rails.logger.warn("NyKitchenScraper REST API response body: #{body.slice(0, 500)}")
+      return nil
+    end
+
+    data = JSON.parse(body) rescue nil
+
+    if data && data.is_a?(Hash) && data["events"].is_a?(Array)
+      Rails.logger.info("NyKitchenScraper REST API: #{url} -> #{data['events'].size} events")
+    else
+      Rails.logger.warn("NyKitchenScraper REST API: #{url} -> Invalid JSON response")
+      Rails.logger.warn("NyKitchenScraper REST API response: #{body.slice(0, 1000)}")
+    end
+
+    data
+  rescue Net::OpenTimeout, Net::ReadTimeout, SocketError => e
+    Rails.logger.warn("NyKitchenScraper REST API: #{url} -> #{e.class}: #{e.message}")
+    nil
+  end
+
   def get(url)
     uri = URI(url)
     http = Net::HTTP.new(uri.host, uri.port)
@@ -185,13 +243,13 @@ class NyKitchenScraper
     request["Accept-Language"] = "en-US,en;q=0.9"
 
     response = http.request(request)
-    unless response.code == "200"
-      Rails.logger.warn("NyKitchenScraper: #{url} -> HTTP #{response.code}")
+    code = response.code.to_i
+    unless code.between?(200, 299)
+      Rails.logger.warn("NyKitchenScraper: #{url} -> HTTP #{code}")
       return nil
     end
 
     body = response.body.force_encoding("UTF-8").scrub
-    Rails.logger.info("NyKitchenScraper: #{url} #{body.bytesize}B jsonld=#{body.scan('application/ld+json').size}")
     body
   rescue Net::OpenTimeout, Net::ReadTimeout, SocketError => e
     Rails.logger.warn("NyKitchenScraper: #{url} -> #{e.class}: #{e.message}")
@@ -221,32 +279,37 @@ class NyKitchenScraper
     end
   end
 
-  def normalize(raw)
-    start = raw["startDate"] && (DateTime.parse(raw["startDate"]) rescue nil)
+  # The REST API names its fields differently from the JSON-LD the listing used
+  # to read: start_date not startDate, title not name, and image is a hash
+  # rather than a string.
+  def normalize_tribe_event(raw)
+    # The API reports naive local times ("2026-08-10 18:00:00") with no offset.
+    # DateTime.parse would read those as UTC and shift every class four hours
+    # earlier, so a 6pm class shows as 2pm. Time.zone.parse reads them in the
+    # app zone (Eastern), which is the zone the site publishes in.
+    start = raw["start_date"] && (Time.zone.parse(raw["start_date"]) rescue nil)
     return nil unless start
 
-    offers   = Array(raw["offers"]).first || {}
-    location = raw["location"]
-    location = location.first if location.is_a?(Array)
-    venue    = location.is_a?(Hash) ? location["name"] : nil
-    perf     = Array(raw["performer"]).first
-    instructor = perf.is_a?(Hash) ? perf["name"] : nil
-    decode = ->(s) { s ? CGI.unescapeHTML(s.to_s) : nil }
+    title = raw["title"]&.strip
+    return nil unless title
 
-    image = Array(raw["image"]).first || raw["image"]
-    image_url = image.is_a?(Hash) ? image["url"] : image.to_s.presence
+    image_url = raw["image"]["url"] if raw["image"].is_a?(Hash)
+
+    # Cost arrives HTML-escaped, e.g. "&#36;85". It has to be unescaped before
+    # the currency symbol is stripped: peeling off "&", "#" and ";" first leaves
+    # the entity's digits behind and turns "&#36;85" into "3685".
+    price = raw["cost"].presence&.then { |c| CGI.unescapeHTML(c.to_s).gsub(/[$\s]/, "").strip }
 
     {
-      url:          raw["url"] || offers["url"],
-      name:         decode.call(raw["name"]),
-      start_at:     start.to_time,
-      end_at:       (DateTime.parse(raw["endDate"]).to_time rescue nil),
-      price:        offers["price"]&.to_s,
-      availability: (offers["availability"] || "").to_s.sub("https://schema.org/", "").sub("http://schema.org/", ""),
-      venue:        decode.call(venue),
-      instructor:   decode.call(instructor),
-      description:  decode.call(raw["description"]),
-      image_url:    image_url
+      url: raw["url"] || raw["link"],
+      name: title,
+      start_at: start,
+      end_at: (Time.zone.parse(raw["end_date"]) rescue nil),
+      price: price,
+      availability: "InStock", # refined later by fetch_availability
+      venue: "New York Kitchen",
+      description: raw["description"]&.strip,
+      image_url: image_url
     }
   end
 end
