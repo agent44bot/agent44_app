@@ -9,7 +9,7 @@
       <p class="text-sm text-gray-400 mt-1">Scheduled hours per employee, by week, from Deputy.</p>
     </div>
     <% if @hours %>
-      <%= link_to nyk_hours_path(week: @week_start, xlsx: 1),
+      <%= link_to nyk_hours_path(week: @week_start, sort: @sort, dir: @dir, xlsx: 1),
             data: { turbo_frame: "_top" },
             class: "shrink-0 inline-flex items-center gap-2 rounded-lg bg-green-600 hover:bg-green-500 px-3 py-2 text-sm font-semibold text-white transition" do %>
         <span aria-hidden="true">⬇</span><span>Export to Excel</span>
@@ -19,7 +19,7 @@
 
   <%# Week navigation: prev / label / next (next disabled once we reach this week) %>
   <div class="flex items-center justify-between gap-3 my-5 rounded-xl border border-gray-700 bg-gray-800/40 px-3 py-2">
-    <%= link_to nyk_hours_path(week: @prev_week_start),
+    <%= link_to nyk_hours_path(week: @prev_week_start, sort: @sort, dir: @dir),
           class: "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition" do %>
       <span aria-hidden="true">←</span><span>Prev week</span>
     <% end %>
@@ -30,7 +30,7 @@
       <div class="text-xs text-gray-500">Mon &ndash; Sun</div>
     </div>
     <% if @has_next %>
-      <%= link_to nyk_hours_path(week: @next_week_start),
+      <%= link_to nyk_hours_path(week: @next_week_start, sort: @sort, dir: @dir),
             class: "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition" do %>
         <span>Next week</span><span aria-hidden="true">→</span>
       <% end %>
@@ -90,20 +90,35 @@
     <%# Status column appears once timesheets exist for the week; before that,
         the Generate button above is the call to action, so the column is hidden. %>
     <% show_status = @timesheet_count.to_i.positive? && @timesheet_status %>
+    <%# Column headers are sort links: clicking the active one flips direction.
+        The Export button carries the same sort, so the download matches. %>
+    <% sort_header = ->(key, label) do
+         active   = @sort == key
+         next_dir = if active then (@dir == "asc" ? "desc" : "asc")
+                    else key == "hours" ? "desc" : "asc"
+                    end
+         arrow = active ? (@dir == "asc" ? " ↑" : " ↓") : ""
+         link_to "#{label}#{arrow}",
+                 nyk_hours_path(week: @week_start, sort: key, dir: next_dir),
+                 class: "hover:text-white transition #{'text-white' if active}"
+       end %>
     <div class="overflow-hidden rounded-xl border border-gray-700">
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-gray-800 text-gray-400 text-left">
-            <th class="px-4 py-2 font-medium">Employee</th>
+            <th class="px-4 py-2 font-medium"><%= sort_header.call("first", "First name") %></th>
+            <th class="px-4 py-2 font-medium"><%= sort_header.call("last", "Last name") %></th>
             <% if show_status %><th class="px-4 py-2 font-medium">Timesheet</th><% end %>
-            <th class="px-4 py-2 font-medium text-right">Hours</th>
+            <th class="px-4 py-2 font-medium text-right"><%= sort_header.call("hours", "Hours") %></th>
             <th class="px-4 py-2 font-medium text-right w-24">Decimal</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-800">
           <% @hours[:rows].each do |r| %>
+            <% first_name, last_name = EmployeeName.split(r[:employee]) %>
             <tr class="bg-gray-900/40 hover:bg-gray-800/60 transition">
-              <td class="px-4 py-2 text-gray-100"><%= r[:employee] %></td>
+              <td class="px-4 py-2 text-gray-100"><%= first_name %></td>
+              <td class="px-4 py-2 text-gray-100"><%= last_name %></td>
               <% if show_status %>
                 <td class="px-4 py-2">
                   <% st = @timesheet_status[:by_employee][r[:employee]] %>
@@ -125,7 +140,7 @@
         </tbody>
         <tfoot>
           <tr class="bg-gray-800 font-semibold text-white">
-            <td class="px-4 py-2">Total &middot; <%= @hours[:rows].size %> staff</td>
+            <td class="px-4 py-2" colspan="2">Total &middot; <%= @hours[:rows].size %> staff</td>
             <% if show_status %><td class="px-4 py-2"></td><% end %>
             <td class="px-4 py-2 text-right tabular-nums"><%= NykHoursXlsx.hm(@hours[:total]) %></td>
             <td class="px-4 py-2 text-right tabular-nums"><%= "%.2f" % @hours[:total] %></td>

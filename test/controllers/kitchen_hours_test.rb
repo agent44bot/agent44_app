@@ -20,7 +20,7 @@ class KitchenHoursTest < ActionDispatch::IntegrationTest
     with_deputy(@data) { get nyk_hours_path }
     assert_response :success
     assert_select "h1", /Team hours/
-    assert_match "Allyn Itterly", response.body
+    assert_match "Itterly", response.body
     assert_match "Export to Excel", response.body
   end
 
@@ -28,6 +28,41 @@ class KitchenHoursTest < ActionDispatch::IntegrationTest
     sign_in_as(User.create!(email_address: "out-#{SecureRandom.hex(4)}@example.com", role: "user"))
     get nyk_hours_path
     assert_response :not_found
+  end
+
+  test "the table splits the name into first and last columns" do
+    sign_in_as(@admin)
+    with_deputy(@data) { get nyk_hours_path }
+    assert_select "th", /First name/
+    assert_select "th", /Last name/
+    # Default sort is last name A-Z, so Bob B leads and Allyn Itterly follows.
+    assert_select "tbody tr:last-child td:first-child", "Allyn"
+    assert_select "tbody tr:last-child td:nth-child(2)", "Itterly"
+  end
+
+  test "rows default to last name A-Z and re-sort from the column headers" do
+    sign_in_as(@admin)
+    data = @data.merge(rows: [
+      { employee: "Zoe Adams", hours: 4.0 },
+      { employee: "Al Zimmer", hours: 40.0 },
+      { employee: "Elisha", hours: 8.0 } # one-word name sorts on that name
+    ])
+
+    # Default: last name A-Z (Adams, Elisha, Zimmer).
+    with_deputy(data) { get nyk_hours_path }
+    assert_equal %w[Zoe Elisha Al], first_names
+
+    with_deputy(data) { get nyk_hours_path(sort: "hours", dir: "desc") }
+    assert_equal %w[Al Elisha Zoe], first_names
+
+    with_deputy(data) { get nyk_hours_path(sort: "first", dir: "desc") }
+    assert_equal %w[Zoe Elisha Al], first_names
+  end
+
+  test "the export link carries the current sort" do
+    sign_in_as(@admin)
+    with_deputy(@data) { get nyk_hours_path(sort: "hours", dir: "asc") }
+    assert_select "a[href*='sort=hours'][href*='xlsx=1']"
   end
 
   test "the xlsx export returns a real Excel file" do
@@ -121,6 +156,10 @@ class KitchenHoursTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def first_names
+    css_select("tbody tr td:first-child").map { |td| td.text.strip }
+  end
 
   # Stubs the Deputy calls the hours page makes: configured?, weekly_hours, and
   # timesheet_status (so no test ever hits the real Deputy API). `status`

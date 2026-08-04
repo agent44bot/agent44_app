@@ -129,6 +129,11 @@ class KitchenController < ApplicationController
       @hours_error = "Deputy is not connected yet. Set DEPUTY_API_TOKEN to enable this page."
     end
 
+    # Sort order for the table. Same params drive the Export link, so the
+    # spreadsheet comes out in whatever order Lora is looking at on screen.
+    @sort, @dir = nyk_hours_sort(params[:sort], params[:dir])
+    @hours = @hours.merge(rows: nyk_sort_hours_rows(@hours[:rows], @sort, @dir)) if @hours
+
     if params[:xlsx].present? && @hours
       return send_data NykHoursXlsx.new(week_start: @week_start, week_end: @week_end, data: @hours).render,
                        filename: "nyk-team-hours-#{@week_start}.xlsx",
@@ -1283,6 +1288,28 @@ class KitchenController < ApplicationController
   # them long; the in-progress (current) week can still gain shifts, keep short.
   def nyk_hours_ttl(week_start)
     week_start < Date.current.beginning_of_week(:monday) ? 6.hours : 20.minutes
+  end
+
+  # Team-hours table sort, from ?sort=&?dir=. Defaults to last name A-Z (what
+  # payroll reads off); hours defaults to biggest first.
+  HOURS_SORTS = %w[last first hours].freeze
+
+  def nyk_hours_sort(sort, dir)
+    sort = HOURS_SORTS.include?(sort) ? sort : "last"
+    dir  = %w[asc desc].include?(dir) ? dir : (sort == "hours" ? "desc" : "asc")
+    [ sort, dir ]
+  end
+
+  def nyk_sort_hours_rows(rows, sort, dir)
+    sorted = case sort
+    when "first"
+      rows.sort_by { |r| EmployeeName.first_last_key(r[:employee]) }
+    when "hours"
+      rows.sort_by { |r| [ r[:hours], EmployeeName.last_first_key(r[:employee]) ] }
+    else
+      rows.sort_by { |r| EmployeeName.last_first_key(r[:employee]) }
+    end
+    dir == "desc" ? sorted.reverse : sorted
   end
 
   # Today through the end of this week (Sunday). Min 3 days so a Friday/Saturday
