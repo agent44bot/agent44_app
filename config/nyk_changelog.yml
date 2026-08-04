@@ -8,6 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-04
+  note: Team hours now lists first name and last name in their own columns, sorted by last name to start. Click any column heading (first name, last name, or hours) to re-sort, and Export to Excel downloads the list in that same order with the names in separate spreadsheet columns.
+  link: /nykitchen/hours
+  link_label: Open team hours
+
 - date: 2026-08-01
   note: Two fixes to the printed class flyer and the bathroom stall poster, both reported by Dakota. The "Check out other New York Kitchen classes" box at the bottom no longer gets cut off (it was being pushed past the bottom of the sheet), and the "Scan to reserve" caption under each code now prints in full. The flyer page also has a new Refresh classes button for you and Rich, so a class you pull from nykitchen.com stops printing right away instead of the next morning.
   link: /nykitchen/display/print

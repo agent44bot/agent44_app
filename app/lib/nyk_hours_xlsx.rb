@@ -28,18 +28,21 @@ class NykHoursXlsx
       sheet.add_row [ "NY Kitchen team hours (scheduled)" ], style: title
       sheet.add_row [ "Week of #{@week_start.strftime('%a %b %-d')} to #{@week_end.strftime('%a %b %-d, %Y')}" ], style: sub
       sheet.add_row []
-      sheet.add_row [ "Employee", "Hours (h:m)", "Hours (decimal)" ], style: hdr
+      sheet.add_row [ "First name", "Last name", "Hours (h:m)", "Hours (decimal)" ], style: hdr
+      # Rows arrive already sorted the way the page is sorted, so the download
+      # matches what's on screen.
       @data[:rows].each do |r|
-        sheet.add_row [ r[:employee], self.class.hm(r[:hours]), r[:hours] ], style: [ cell, cell, num ]
+        first, last = EmployeeName.split(r[:employee])
+        sheet.add_row [ first, last, self.class.hm(r[:hours]), r[:hours] ], style: [ cell, cell, cell, num ]
       end
-      sheet.add_row [ "TOTAL (#{@data[:rows].size} staff)", self.class.hm(@data[:total]), @data[:total] ],
-                    style: [ tot, tot, totn ]
+      sheet.add_row [ "TOTAL (#{@data[:rows].size} staff)", nil, self.class.hm(@data[:total]), @data[:total] ],
+                    style: [ tot, tot, tot, totn ]
       if @data[:open_hours].to_f.positive?
         sheet.add_row []
-        sheet.add_row [ "Unfilled open shifts (not staffed)", self.class.hm(@data[:open_hours]), @data[:open_hours] ],
-                      style: [ sub, sub, sub ]
+        sheet.add_row [ "Unfilled open shifts (not staffed)", nil, self.class.hm(@data[:open_hours]), @data[:open_hours] ],
+                      style: [ sub, sub, sub, sub ]
       end
-      sheet.column_widths 36, 14, 16
+      sheet.column_widths 22, 22, 14, 16
     end
 
     package.to_stream.read
