@@ -112,6 +112,3 @@ production:
   device_token_prune:
     class: DeviceTokenPruneJob
     schedule: every monday at 4:41am
-  scrape_kitchen:
-    class: ScrapeKitchenJob
-    schedule: every 3 hours
