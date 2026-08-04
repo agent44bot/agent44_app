@@ -3,7 +3,10 @@ require "test_helper"
 class KitchenDigestEmailJobTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
 
-  setup do
+  # Seeded INSIDE each test's travel_to, not in setup: the digest only lists
+  # classes in the next few weeks, so a snapshot stamped with the real "today"
+  # drifts out of that window as the calendar moves and the test rots.
+  def seed_snapshot!
     snapshot = KitchenSnapshot.create!(taken_on: Date.current)
     snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/e1", name: "Class A", start_at: 3.days.from_now,
@@ -17,6 +20,7 @@ class KitchenDigestEmailJobTest < ActiveSupport::TestCase
 
   test "non-Monday: one email with the class list and no weekly team report" do
     travel_to Time.zone.parse("2026-06-23 10:00") do # Tuesday
+      seed_snapshot!
       assert_emails(1) { KitchenDigestEmailJob.perform_now }
       mail = ActionMailer::Base.deliveries.last
       assert_match "NY Kitchen", mail.subject
@@ -35,6 +39,7 @@ class KitchenDigestEmailJobTest < ActiveSupport::TestCase
 
   test "Monday: the weekly team report is prepended into the same daily email" do
     travel_to Time.zone.parse("2026-06-22 10:00") do # Monday
+      seed_snapshot!
       assert_emails(1) { KitchenDigestEmailJob.perform_now }
       mail = ActionMailer::Base.deliveries.last
       body = mail.body.to_s
