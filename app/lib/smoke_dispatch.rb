@@ -1,16 +1,22 @@
 # frozen_string_literal: true
 
-# Kicks off the NY Kitchen smoke test by asking GitHub Actions to run it
-# (the test itself is Playwright, driven by a workflow, not an in-app job).
+# Asks GitHub Actions to run part of the NY Kitchen Playwright suite on the Mac
+# mini runner.
 #
-# Extracted from the Telegram webhook so the Buzz listener triggers it the exact
-# same way rather than growing a second copy of the dispatch call.
+# This is the only way the app can cause a scrape. SiteGround CAPTCHAs Fly's IP,
+# so anything that scrapes from the app server comes back empty; the mini runs
+# from a residential IP and POSTs its results to /api/v1/kitchen_snapshots.
+#
+# `test:` maps to the workflow's own choices (nav, scrape, print, all) and rides
+# along as client_payload, which smoke-nyk.yml reads to pick the files to run.
 class SmokeDispatch
   EVENT_TYPE   = "smoke-nyk"
   DISPATCH_URL = "https://api.github.com/repos/agent44bot/agent44_app/dispatches"
 
+  TESTS = %w[all nav nav_mobile scrape print].freeze
+
   # Returns :ok, :no_token, or :failed.
-  def self.trigger!(requested_by:, via:)
+  def self.trigger!(requested_by:, via:, test: nil)
     token = ENV["GITHUB_PAT"]
     if token.blank?
       Rails.logger.warn("[smoke_dispatch] GITHUB_PAT not set, cannot trigger smoke workflow")
@@ -27,7 +33,9 @@ class SmokeDispatch
     req["Authorization"] = "Bearer #{token}"
     req["Accept"]        = "application/vnd.github+json"
     req["Content-Type"]  = "application/json"
-    req.body             = { event_type: EVENT_TYPE }.to_json
+    payload = { event_type: EVENT_TYPE }
+    payload[:client_payload] = { test: test } if TESTS.include?(test.to_s)
+    req.body = payload.to_json
 
     res = http.request(req)
 
@@ -36,10 +44,10 @@ class SmokeDispatch
         level:    "info",
         source:   "smoke_test",
         title:    "Smoke test triggered",
-        body:     "#{requested_by} requested NY Kitchen smoke test via #{via}",
+        body:     "#{requested_by} requested NY Kitchen #{test.presence || 'smoke'} run via #{via}",
         telegram: true
       )
-      Rails.logger.info("[smoke_dispatch] triggered by #{requested_by} via #{via}")
+      Rails.logger.info("[smoke_dispatch] #{test.presence || 'all'} triggered by #{requested_by} via #{via}")
       :ok
     else
       Rails.logger.error("[smoke_dispatch] GitHub dispatch failed (#{res.code}): #{res.body.to_s[0, 200]}")

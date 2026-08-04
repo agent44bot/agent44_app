@@ -240,15 +240,12 @@ module KitchenAi
     def write_action(name, input)
       case name
       when "trigger_scrape"
-        ScrapeKitchenJob.perform_later
-        record(name, {})
-        [ "Scrape queued. The snapshot will refresh shortly.", false ]
+        # Scraping from the app server is always empty (SiteGround CAPTCHAs
+        # Fly's IP), so this asks the Mac mini runner to do it instead.
+        dispatch_run("scrape", name, "Scrape requested. It runs on the studio Mac, so the snapshot should refresh in a couple of minutes.")
       when "trigger_smoke_test"
         test = %w[nav scrape all].include?(input[:test]) ? input[:test] : "all"
-        # TODO: extract Api::V1::TelegramWebhookController#handle_smoke_request into
-        # a Nyk::SmokeDispatcher service and call it here (GitHub repository_dispatch).
-        record(name, { test: test })
-        [ "Smoke test (#{test}) triggered. Check the hub for the result.", false ]
+        dispatch_run(test, name, "Smoke test (#{test}) triggered. Check the hub for the result.", { test: test })
       when "draft_social_post"
         ws = Workspace.find_by(slug: "nykitchen")
         res = WorkspaceAi::Drafter.new(ws, user: @user).suggest(topic: input[:topic])
@@ -256,6 +253,21 @@ module KitchenAi
         # TODO: persist as a WorkspaceDraft (status: draft) rather than just returning text.
         record(name, { topic: input[:topic] })
         [ "Drafted (NOT posted):\n#{res.text}", false ]
+      end
+    end
+
+    # Ask the Mac mini runner to run part of the Playwright suite. Returns the
+    # [message, error?] pair the tool loop expects, and reports the real outcome
+    # rather than promising a run that never started.
+    def dispatch_run(test, action, success_message, args = {})
+      case SmokeDispatch.trigger!(requested_by: @user&.email_address || "the Super Agent", via: "Super Agent", test: test)
+      when :ok
+        record(action, args)
+        [ success_message, false ]
+      when :no_token
+        [ "Couldn't trigger that: this instance has no GITHUB_PAT configured.", true ]
+      else
+        [ "Tried to trigger that, but GitHub rejected the request. Check the logs.", true ]
       end
     end
 
