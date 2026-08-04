@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-08-04
+  note: The "Refresh classes" button on the flyer now actually refreshes. It had been asking the website for classes from a server the site blocks, so it quietly did nothing; it now runs the refresh on the studio Mac instead. Give it a couple of minutes after clicking.
+
+- date: 2026-08-04
   note: Team hours now lists first name and last name in their own columns, sorted by last name to start. Click any column heading (first name, last name, or hours) to re-sort, and Export to Excel downloads the list in that same order with the names in separate spreadsheet columns.
   link: /nykitchen/hours
   link_label: Open team hours

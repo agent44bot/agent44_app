@@ -759,9 +759,19 @@ class KitchenController < ApplicationController
     if last_at && last_at > REFRESH_COOLDOWN.ago
       flash[:alert] = "Classes were just refreshed. Try again in a few minutes."
     else
-      Setting.touch_time("nyk_classes_refreshed_at")
-      ScrapeKitchenJob.perform_later(force: true)
-      flash[:notice] = "Refreshing classes from nykitchen.com. Reload this page in a minute to print the updated list."
+      # Scraping from the app server always comes back empty: SiteGround
+      # CAPTCHAs Fly's IP. The Mac mini runner scrapes from a residential IP and
+      # posts the snapshot back, so the button asks it to run rather than
+      # queueing a job here that cannot succeed.
+      case SmokeDispatch.trigger!(requested_by: Current.user&.email_address || "a manager",
+                                 via: "Refresh classes", test: "scrape")
+      when :ok
+        Setting.touch_time("nyk_classes_refreshed_at")
+        flash[:notice] = "Refreshing classes from nykitchen.com. This runs on the studio Mac, so give it a couple of minutes, then reload to print the updated list."
+      else
+        # Don't start the cooldown on a failed trigger, so it can be retried.
+        flash[:alert] = "Couldn't start the refresh just now. The last saved class list is still here, and the overnight refresh will pick it up."
+      end
     end
     redirect_back fallback_location: nyk_display_print_path
   end
