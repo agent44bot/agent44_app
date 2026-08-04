@@ -228,4 +228,65 @@ class NyKitchenScraperTest < ActiveSupport::TestCase
     http.define_singleton_method(:read_timeout=) { |_| }
     Net::HTTP.stub(:new, http) { yield }
   end
+
+  # ---------------------------------------------------------------------------
+  # Follow-ups from the REST migration (PR #459 review), each verified against a
+  # live API response before fixing.
+  # ---------------------------------------------------------------------------
+
+  test "decodes HTML entities in the title and description" do
+    # Real strings from the live endpoint: 23 of 40 descriptions were encoded.
+    raw = TRIBE_EVENT.merge(
+      "title"       => "Chef&#8217;s Table Class 8/1/26",
+      "description" => "Gnocchi &#38; Pasta"
+    )
+    event = @scraper.send(:normalize_tribe_event, raw)
+
+    assert_equal "Chef’s Table Class 8/1/26", event[:name]
+    assert_equal "Gnocchi & Pasta", event[:description]
+    assert_not_includes event[:name], "&#"
+    assert_not_includes event[:description], "&#"
+  end
+
+  test "pages by total_pages rather than inferring the end from a short page" do
+    # The API can cap per_page below what we ask for. Inferring "done" from a
+    # short page would stop after page 1 and silently drop the rest.
+    pages = { 1 => [ TRIBE_EVENT ], 2 => [ TRIBE_EVENT.merge("url" => "https://nykitchen.com/event/second/") ] }
+    seen_pages = []
+    fake = lambda do |url|
+      page = url[/[?&]page=(\d+)/, 1].to_i   # not per_page
+      seen_pages << page
+      { "events" => pages.fetch(page, []), "total_pages" => 2 }
+    end
+
+    events = @scraper.stub(:fetch_rest_api, fake) do
+      @scraper.fetch_events(months: [ "2026-08" ])
+    end
+
+    assert_equal [ 1, 2 ], seen_pages
+    assert_equal 2, events.size
+  end
+
+  test "still stops on a short page when the API omits total_pages" do
+    calls = 0
+    fake = lambda do |_url|
+      calls += 1
+      { "events" => [ TRIBE_EVENT ] }
+    end
+    @scraper.stub(:fetch_rest_api, fake) { @scraper.fetch_events(months: [ "2026-08" ]) }
+
+    assert_equal 1, calls
+  end
+
+  test "reads the instructor off the detail page, since the listing has none" do
+    html = <<~HTML
+      <script type="application/ld+json">
+      {"@graph":[{"@type":"Event","name":"Peaches",
+        "performer":{"@type":"Person","name":"Chef Jos&#233;"}}]}
+      </script>
+    HTML
+
+    assert_equal "Chef José", @scraper.extract_instructor(html)
+    assert_nil @scraper.extract_instructor("<html>no json-ld</html>")
+  end
 end

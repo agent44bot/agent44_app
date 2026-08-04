@@ -5,6 +5,12 @@ class ScrapeKitchenJob < ApplicationJob
   # exists. The daily run is the only writer otherwise, so a class pulled from
   # nykitchen.com mid-morning would keep printing on the flyer until tomorrow.
   # This is what the flyer's "Refresh classes" button calls.
+  # Not scheduled. SiteGround CAPTCHAs Fly's IP, so a scrape started from the
+  # app server always comes back empty (verified in prod 2026-08-04). The real
+  # scrape runs on the Mac mini from a residential IP via the Playwright smoke
+  # suite and POSTs its results to /api/v1/kitchen_snapshots. This job stays for
+  # the flyer's "Refresh classes" button and for local/manual runs, both of
+  # which are subject to the same block when invoked from Fly.
   def perform(force: false)
     today  = Date.today
 
@@ -50,6 +56,9 @@ class ScrapeKitchenJob < ApplicationJob
         # didn't include one (which is currently always).
         e[:image_url] ||= info[:image_url]
         e[:menu] = info[:menu]
+        # The REST listing has no organizer, so the detail page is the only
+        # source for this now.
+        e[:instructor] ||= info[:instructor]
         if info[:closed]
           e[:availability] = "Closed"
           e[:closed] = true
