@@ -32,6 +32,11 @@ class HomeAccessTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /Smarter\. Faster\. Cheaper\./
   end
 
+  test "hero headline shows Smarter in purple" do
+    get "/"
+    assert_select "h1 span.text-purple-400", text: "Smarter."
+  end
+
   test "non-admin is still sandboxed off other marketing pages" do
     sign_in_as(@non_admin)
     get "/jobs"
