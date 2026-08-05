@@ -27,6 +27,11 @@ class HomeAccessTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "hero headline uses the three-word tagline order" do
+    get "/"
+    assert_select "h1", text: /Smarter\. Faster\. Cheaper\./
+  end
+
   test "non-admin is still sandboxed off other marketing pages" do
     sign_in_as(@non_admin)
     get "/jobs"
