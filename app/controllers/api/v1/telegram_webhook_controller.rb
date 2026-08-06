@@ -36,6 +36,9 @@ module Api
 
       private
 
+      # Legacy fallback only. Agents are resolved from the database by slug
+      # (see #find_agent) so anyone added later via /admin/agents checks in
+      # too; this map stays for agents whose slug drifted from their name.
       AGENT_NAMES = {
         "ripley"  => "Ripley",
         "neo"     => "Neo 💻",
@@ -90,11 +93,7 @@ module Api
       end
 
       def update_agent(name_fragment, status, task = nil)
-        key = name_fragment.downcase.strip
-        full_name = AGENT_NAMES[key]
-        return unless full_name
-
-        agent = Agent.find_by(name: full_name)
+        agent = find_agent(name_fragment)
         return unless agent
 
         attrs = { status: status, last_active_at: Time.current }
@@ -103,7 +102,19 @@ module Api
 
         agent.update!(attrs)
         Rails.cache.delete("agents/ordered")
-        Rails.logger.info("[TelegramWebhook] #{full_name} → #{status}#{task ? " (#{task})" : ""}")
+        Rails.logger.info("[TelegramWebhook] #{agent.name} → #{status}#{task ? " (#{task})" : ""}")
+      end
+
+      # Match the word the bot used against an agent's slug, which Agent
+      # derives from the first word of its name minus the emoji ("Knox 🔒" ->
+      # "knox"). Reading the roster from the database means an agent added
+      # after the original seven still reports in; previously the hardcoded
+      # map silently dropped their updates and they looked idle forever.
+      def find_agent(name_fragment)
+        key = name_fragment.to_s.downcase.strip
+        return if key.blank?
+
+        Agent.find_by(slug: key) || (AGENT_NAMES[key] && Agent.find_by(name: AGENT_NAMES[key]))
       end
 
       DEPLOY_PATTERNS = [
