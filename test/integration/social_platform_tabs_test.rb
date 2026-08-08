@@ -106,6 +106,17 @@ class SocialPlatformTabsTest < ActionDispatch::IntegrationTest
     assert_select "h4", text: "Yesterday"
   end
 
+  test "the post list scrolls inside a capped box on mobile" do
+    sign_in_as(@owner)
+    get social_workspace_path(@ws.slug)
+
+    # One capped, scrollable box per connected platform (X + Bluesky here),
+    # so a long history can't run off the bottom of a phone screen.
+    assert_select "[data-posts-scroll]", 2
+    assert_select "[data-posts-scroll].overflow-y-auto.max-h-80.sm\\:max-h-none", 2
+    assert_select "[data-posts-scroll] h4", text: "Today"
+  end
+
   test "a post with an attached image renders a thumbnail linking to the full image" do
     img = "https://example.com/microgreens.jpg"
     @ws.workspace_posts.create!(author: @owner, platform: "x", body: "POST WITH IMAGE", status: "posted",

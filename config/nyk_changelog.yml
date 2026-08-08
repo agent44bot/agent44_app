@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-08
+  note: On a phone, Post History now shows about two and a half posts at a time and scrolls inside its own box. The full list was running well past the bottom of the screen, which made the older posts hard to read and pushed everything under it out of reach.
+
 - date: 2026-08-04
   note: The "Refresh classes" button on the flyer now actually refreshes. It had been asking the website for classes from a server the site blocks, so it quietly did nothing; it now runs the refresh on the studio Mac instead. Give it a couple of minutes after clicking.
 
