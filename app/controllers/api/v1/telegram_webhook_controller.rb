@@ -3,6 +3,7 @@ module Api
     class TelegramWebhookController < ApplicationController
       skip_before_action :verify_authenticity_token
       allow_unauthenticated_access
+      before_action :verify_telegram_secret
 
       # POST /api/v1/telegram/webhook
       # Receives Telegram bot updates and auto-updates agent statuses
@@ -13,7 +14,15 @@ module Api
 
         Rails.logger.info("[TelegramWebhook] from=#{from_user} bot=#{bot_reply} text=#{message_text.truncate(80).inspect}")
 
-        # Check for human user commands
+        # Check for human user commands. Deploy and smoke both reach into prod,
+        # so they only run for the owner's chat, never for a stranger who found
+        # the bot's username and DM'd it.
+        if !bot_reply && message_text.present? && (smoke_request?(message_text) || deploy_request?(message_text)) && !owner_chat?
+          Rails.logger.warn("[TelegramWebhook] ignoring command from non-owner chat=#{params.dig(:message, :chat, :id)} user=#{from_user}")
+          head :ok
+          return
+        end
+
         if !bot_reply && message_text.present?
           if smoke_request?(message_text)
             handle_smoke_request(from_user)
@@ -35,6 +44,17 @@ module Api
       end
 
       private
+
+      def verify_telegram_secret
+        return if TelegramWebhook.valid_secret?(request.headers["X-Telegram-Bot-Api-Secret-Token"])
+
+        Rails.logger.warn("[TelegramWebhook] rejected update with missing or bad secret token (ip=#{request.remote_ip})")
+        head :unauthorized
+      end
+
+      def owner_chat?
+        TelegramWebhook.owner_chat?(params.dig(:message, :chat, :id))
+      end
 
       AGENT_NAMES = {
         "ripley"  => "Ripley",

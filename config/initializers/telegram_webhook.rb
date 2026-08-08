@@ -7,7 +7,7 @@ if Rails.env.production? && ENV["TELEGRAM_BOT_TOKEN"].present?
     require "json"
 
     token = ENV["TELEGRAM_BOT_TOKEN"]
-    webhook_url = "https://agent44labs.com/api/v1/telegram/webhook"
+    webhook_url = TelegramWebhook::URL
 
     uri = URI("https://api.telegram.org/bot#{token}/setWebhook")
     http = Net::HTTP.new(uri.host, uri.port)
@@ -17,7 +17,9 @@ if Rails.env.production? && ENV["TELEGRAM_BOT_TOKEN"].present?
 
     req = Net::HTTP::Post.new(uri)
     req["Content-Type"] = "application/json"
-    req.body = { url: webhook_url }.to_json
+    # secret_token is what the controller checks on every update; without it the
+    # endpoint is open to anyone who guesses the URL.
+    req.body = { url: webhook_url, secret_token: TelegramWebhook.secret }.compact.to_json
 
     res = http.request(req)
     Rails.logger.info("[TelegramWebhook] Registered webhook: #{res.body}")
