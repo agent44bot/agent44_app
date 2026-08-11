@@ -126,7 +126,10 @@
     <footer class="footer">
       <div class="footer-cta">
         <% if @agent.setting(:show_qr) %>
-          <div class="qr-code"><%= nyk_scan_qr_url("https://nykitchen.com/calendar", workspace: @display_workspace, source: "display") %></div>
+          <%# Canonical URL, not a literal: the token is a digest of the URL, so
+              a second spelling (no trailing slash) would mint a second tracked
+              link and split the calendar QR's scans in the report. %>
+          <div class="qr-code"><%= nyk_scan_qr_url(KitchenController::NYK_CALENDAR_URL, workspace: @display_workspace, source: "display") %></div>
         <% end %>
         <div class="cta-text">
           <div class="lead">Scan for the full schedule</div>

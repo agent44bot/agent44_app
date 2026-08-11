@@ -8,6 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-11
+  note: The QR scan report on Display settings now counts the "all classes" calendar code as one line. Scans of that code from the tasting room screen were landing in a second, unlabelled row showing a raw web address, so the calendar QR looked less used than it really is.
+  link: /nykitchen/display/settings
+  link_label: Open Display settings
+
 - date: 2026-08-04
   note: The "Refresh classes" button on the flyer now actually refreshes. It had been asking the website for classes from a server the site blocks, so it quietly did nothing; it now runs the refresh on the studio Mac instead. Give it a couple of minutes after clicking.
 

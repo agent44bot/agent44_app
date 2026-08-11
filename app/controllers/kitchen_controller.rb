@@ -1496,11 +1496,12 @@ class KitchenController < ApplicationController
                          .map { |source, n| { label: LinkScan.source_label(source), count: n, billed: LinkScan.billed_source?(source) } }
                          .sort_by { |h| -h[:count] }
     @scan_total_30d   = scans.count
-    @scan_by_url = scans.joins(:tracked_link)
-                        .group("tracked_links.url")
-                        .order(Arel.sql("COUNT(*) DESC"))
-                        .limit(15)
-                        .count
+    # Grouped in full (one row per scanned URL, a few dozen at most) rather than
+    # LIMITed in SQL, because the calendar variants below are folded together
+    # first: trimming to the top 15 before the fold could cut a row that only
+    # ranks once merged.
+    by_url = scans.joins(:tracked_link).group("tracked_links.url").count
+    @scan_by_url = fold_calendar_variants(by_url).sort_by { |_, n| -n }.first(15).to_h
     @scan_devices = scans.group(:user_agent).count
                         .each_with_object(Hash.new(0)) { |(ua, n), h| h[LinkScan.device_bucket(ua)] += n }
     latest = KitchenSnapshot.latest
@@ -1508,6 +1509,18 @@ class KitchenController < ApplicationController
     # The footer "all classes" calendar QR isn't a class, so give it a label
     # instead of showing the raw URL in the report.
     @scan_names[NYK_CALENDAR_URL] = "All classes (calendar QR)"
+  end
+
+  # The board layout printed the calendar QR without a trailing slash for a
+  # while. A token is a digest of the URL, so that spelling is a second tracked
+  # link pointing at the same page: its scans landed in the report as an
+  # unlabelled raw-URL row, separate from the flyer footer's calendar row. Fold
+  # the two together so the calendar QR reads as one line.
+  def fold_calendar_variants(counts)
+    legacy = counts.delete(NYK_CALENDAR_URL.chomp("/"))
+    return counts unless legacy
+    counts[NYK_CALENDAR_URL] = counts.fetch(NYK_CALENDAR_URL, 0) + legacy
+    counts
   end
 
   # Loads the locals needed by workspaces/_team partial when rendering on

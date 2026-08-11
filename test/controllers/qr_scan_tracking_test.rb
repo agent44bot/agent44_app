@@ -47,6 +47,43 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
     assert_redirected_to calendar
   end
 
+  test "the board layout's calendar QR is the same tracked link as the flyer's" do
+    # A token is a digest of the URL, so a second spelling of the calendar URL
+    # is a second tracked link, and its scans split off into their own row.
+    owner = User.create!(email_address: "own-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = owner }
+    ws.agent_for("display").update_settings(layout: "board")
+
+    get nyk_display_path
+    assert_response :success
+    get nyk_display_print_path
+    assert_response :success
+
+    urls = TrackedLink.where("url LIKE ?", "%nykitchen.com/calendar%").pluck(:url).uniq
+    assert_equal [ KitchenController::NYK_CALENDAR_URL ], urls,
+                 "board and flyer must encode one calendar URL, not two spellings"
+  end
+
+  test "the scan report shows the calendar QR as one labelled row" do
+    manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    ws = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = manager }
+    canonical = TrackedLink.for_url(KitchenController::NYK_CALENDAR_URL, workspace: ws)
+    # Scans of the slashless code the board layout used to print.
+    legacy = TrackedLink.for_url(KitchenController::NYK_CALENDAR_URL.chomp("/"), workspace: ws)
+    canonical.link_scans.create!(scanned_at: 1.day.ago, user_agent: "iPhone")
+    2.times { legacy.link_scans.create!(scanned_at: 1.day.ago, user_agent: "iPhone") }
+
+    sign_in_as(manager)
+    get nyk_display_settings_path
+    assert_response :success
+
+    rows = css_select("li").select { |li| li.text.include?("All classes (calendar QR)") }
+    assert_equal 1, rows.size, "the two calendar links are one destination, so one row"
+    assert_match(/\b3\b/, rows.first.text, "both codes' scans count toward the calendar row")
+    refute_match KitchenController::NYK_CALENDAR_URL.chomp("/") + "<", response.body,
+                 "no raw, unlabelled calendar URL row"
+  end
+
   test "scanning logs a scan with device and referrer, then 302s to the class" do
     link = TrackedLink.for_url(@event.url)
     assert_difference -> { link.link_scans.count }, 1 do
