@@ -115,6 +115,40 @@ class SocialListenJobTest < ActiveJob::TestCase
     assert @nyk.social_leads.new_leads.any?, "leads are still stored, just no push"
   end
 
+  test "emails one lead digest per run when notify_emails is set" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Setting.set("social_listen:notify_emails", "botwhisperer@hey.com, lora@example.com")
+    ActionMailer::Base.deliveries.clear
+
+    SocialListenJob.perform_now
+
+    assert_equal 1, ActionMailer::Base.deliveries.size, "one email per run, not per lead"
+    mail = ActionMailer::Base.deliveries.last
+    assert_equal [ "botwhisperer@hey.com", "lora@example.com" ], mail.to
+    assert_match "NY Kitchen", mail.subject
+  end
+
+  test "per-workspace notify_emails overrides the global list" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Setting.set("social_listen:notify_emails", "global@example.com")
+    Setting.set("social_listen:notify_emails:nykitchen", "nyk@example.com")
+    ActionMailer::Base.deliveries.clear
+
+    SocialListenJob.perform_now
+
+    assert_equal [ "nyk@example.com" ], ActionMailer::Base.deliveries.last.to
+  end
+
+  test "no email when no address is configured" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    ActionMailer::Base.deliveries.clear
+
+    SocialListenJob.perform_now
+
+    assert_empty ActionMailer::Base.deliveries
+    assert @nyk.social_leads.new_leads.any?, "leads are still stored, just no email"
+  end
+
   test "pushes 24/7, including overnight (users mute on their device)" do
     Setting.set("social_listen:slugs", "nykitchen")
     Setting.set("social_listen:notify_user_ids", @rich.id.to_s)
