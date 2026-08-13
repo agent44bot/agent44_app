@@ -81,7 +81,8 @@ class SocialListenJob < ApplicationJob
     scout = SocialAi::LeadScout.new(workspace: ws)
     new_leads = candidates.filter_map { |c| store_lead(ws, scout, c) }
     notify_new_leads(ws, new_leads)
-    email_new_leads(ws, new_leads)
+    # Email is not sent here: EchoDailyEmailJob mails the day's leads once at
+    # 3pm, so four listening runs a day don't become four emails.
   end
 
   # One push per run (not one per lead): tell the reviewers how many new
@@ -110,28 +111,6 @@ class SocialListenJob < ApplicationJob
   def notify_users
     ids = Setting.get("social_listen:notify_user_ids").to_s.split(",").map(&:strip).reject(&:blank?)
     ids.empty? ? [] : User.where(id: ids).to_a
-  end
-
-  # One digest email per run listing the new leads (post, why, suggested reply,
-  # link to the Echo page). Same shape as the push, for people who live in
-  # their inbox rather than on their phone. Off until Setting
-  # "social_listen:notify_emails" (or the per-workspace
-  # "social_listen:notify_emails:<slug>") lists addresses, comma-separated.
-  # A mail failure must not lose the leads we just stored, so it's rescued.
-  def email_new_leads(ws, leads)
-    return if leads.empty?
-    recipients = notify_emails(ws)
-    return if recipients.empty?
-
-    EchoMailer.new_leads(workspace: ws, leads: leads, recipients: recipients).deliver_now
-  rescue => e
-    Rails.logger.error("SocialListenJob: lead email failed for #{ws.slug}: #{e.class}: #{e.message}")
-  end
-
-  def notify_emails(ws)
-    raw = Setting.get("social_listen:notify_emails:#{ws.slug}").presence ||
-          Setting.get("social_listen:notify_emails")
-    raw.to_s.split(",").map(&:strip).reject(&:blank?)
   end
 
 

@@ -73,6 +73,13 @@ class Workspace < ApplicationRecord
                .uniq
   end
 
+  # Members who still want Echo's daily 3pm email of new conversations. Opt-out:
+  # everyone is on it until they turn it off in Settings or from the email's
+  # unsubscribe link (WorkspaceMembership#echo_email_enabled).
+  def echo_email_memberships
+    memberships.where(echo_email_enabled: true).includes(:user).select { |m| m.user&.email_address.present? }
+  end
+
   # WorkspaceAgent row for the given kind ("list", "social", "data",
   # "test"), auto-assigning a random unused 3-digit ID on first access.
   # Subsequent calls return the same row, so the badge number is stable.

@@ -17,7 +17,7 @@ class EchoMailerTest < ActionMailer::TestCase
   end
 
   test "renders the post, why, suggested reply, and links" do
-    mail = EchoMailer.new_leads(workspace: @ws, leads: [ lead ], recipients: [ "botwhisperer@hey.com" ])
+    mail = EchoMailer.new_leads(workspace: @ws, leads: [ lead ], recipient: "botwhisperer@hey.com")
 
     assert_equal [ "botwhisperer@hey.com" ], mail.to
     assert_match "1 new conversation for NY Kitchen", mail.subject
@@ -35,7 +35,7 @@ class EchoMailerTest < ActionMailer::TestCase
     low  = lead(score: 62, text: "Finger Lakes wine tasting was great")
     high = lead(score: 95, text: "Good times at NY Kitchen")
 
-    mail = EchoMailer.new_leads(workspace: @ws, leads: [ low, high ], recipients: [ "a@example.com" ])
+    mail = EchoMailer.new_leads(workspace: @ws, leads: [ low, high ], recipient: "a@example.com")
 
     assert_match "2 new conversations for NY Kitchen", mail.subject
     body = mail.html_part ? mail.html_part.body.to_s : mail.body.to_s
@@ -49,8 +49,33 @@ class EchoMailerTest < ActionMailer::TestCase
                                    text: "microgreens in Greece NY", url: "https://bsky.app/p/1",
                                    posted_at: 1.day.ago, score: 80, status: "new")
 
-    mail = EchoMailer.new_leads(workspace: other, leads: [ l ], recipients: [ "a@example.com" ])
+    mail = EchoMailer.new_leads(workspace: other, leads: [ l ], recipient: "a@example.com")
     body = mail.html_part ? mail.html_part.body.to_s : mail.body.to_s
     assert_match "https://agent44labs.com/workspaces/#{other.slug}/social", body
+  end
+
+  test "a member gets an explicit how-to-turn-off block, an unsubscribe link, and the List-Unsubscribe headers" do
+    membership = @ws.memberships.find_or_create_by!(user: @owner) { |m| m.role = "owner" }
+
+    mail = EchoMailer.new_leads(workspace: @ws, leads: [ lead ], recipient: @owner.email_address, membership: membership)
+
+    body = mail.html_part ? mail.html_part.body.to_s : mail.body.to_s
+    assert_match "Don't want this email?", body
+    assert_match "Turn off Echo emails", body
+    assert_match "https://agent44labs.com/settings", body
+
+    url = "https://agent44labs.com/echo_email/unsubscribe/#{membership.echo_unsubscribe_token}"
+    assert_includes body, url
+    assert_equal "<#{url}>", mail["List-Unsubscribe"].to_s
+    assert_equal "List-Unsubscribe=One-Click", mail["List-Unsubscribe-Post"].to_s
+  end
+
+  test "a non-member address still gets the Settings route, but no unsubscribe link or header" do
+    mail = EchoMailer.new_leads(workspace: @ws, leads: [ lead ], recipient: "agency@example.com")
+
+    body = mail.html_part ? mail.html_part.body.to_s : mail.body.to_s
+    assert_match "Don't want this email?", body
+    assert_no_match(/echo_email\/unsubscribe/, body)
+    assert_nil mail["List-Unsubscribe"]
   end
 end

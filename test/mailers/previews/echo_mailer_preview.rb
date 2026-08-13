@@ -7,6 +7,6 @@ class EchoMailerPreview < ActionMailer::Preview
     leads = ws.social_leads.recent.limit(4).to_a
     return if leads.empty?
 
-    EchoMailer.new_leads(workspace: ws, leads: leads, recipients: [ "preview@example.com" ])
+    EchoMailer.new_leads(workspace: ws, leads: leads, recipient: "preview@example.com", membership: ws.memberships.first)
   end
 end

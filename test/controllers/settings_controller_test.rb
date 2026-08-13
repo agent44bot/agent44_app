@@ -168,6 +168,33 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert membership.reload.daily_digest_enabled, "another member's digest pref is untouched"
   end
 
+  test "PATCH update_notifications persists the Echo email toggle, and only for your own membership" do
+    other = User.create!(email_address: "other-#{SecureRandom.hex(4)}@example.com")
+    mine = Workspace.create!(name: "Mine", slug: "set-#{SecureRandom.hex(4)}",
+                             owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    theirs = Workspace.create!(name: "Theirs", slug: "set-#{SecureRandom.hex(4)}",
+                               owner_id: other.id, timezone: "Eastern Time (US & Canada)")
+    my_membership = mine.memberships.find_by(user_id: @user.id)
+    their_membership = theirs.memberships.find_by(user_id: other.id)
+    assert my_membership.echo_email_enabled, "new members are signed up by default"
+    sign_in_as @user
+
+    patch update_notifications_settings_path, params: {
+      ios_push_enabled: "1", workspace_echo_email: { mine.id.to_s => "0", theirs.id.to_s => "0" }
+    }
+
+    assert_not my_membership.reload.echo_email_enabled
+    assert their_membership.reload.echo_email_enabled, "another member's Echo pref is untouched"
+  end
+
+  test "settings page renders an Echo email toggle for every workspace" do
+    ws = Workspace.create!(name: "Echo WS", slug: "set-#{SecureRandom.hex(4)}",
+                           owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    sign_in_as @user
+    get settings_path
+    assert_select "input[type=checkbox][name=?]", "workspace_echo_email[#{ws.id}]"
+  end
+
   test "settings page renders a digest toggle only for digest workspaces" do
     nyk = Workspace.create!(name: "NY Kitchen", slug: "nykitchen",
                             owner_id: @user.id, timezone: "Eastern Time (US & Canada)")

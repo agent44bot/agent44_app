@@ -65,6 +65,7 @@ class SettingsController < ApplicationController
     user.update(attrs) if attrs.any?
     update_workspace_push_prefs(user)
     update_workspace_digest_prefs(user)
+    update_workspace_echo_email_prefs(user)
     redirect_to settings_path, notice: "Notification settings saved."
   end
 
@@ -123,6 +124,18 @@ class SettingsController < ApplicationController
     bool = ActiveModel::Type::Boolean.new
     user.workspace_memberships.where(workspace_id: prefs.keys).find_each do |membership|
       membership.update(push_enabled: bool.cast(prefs[membership.workspace_id.to_s]))
+    end
+  end
+
+  # Apply the per-workspace Echo email toggles (the 3pm conversations email).
+  # Scoped to the user's own memberships, same as the others.
+  def update_workspace_echo_email_prefs(user)
+    prefs = params[:workspace_echo_email]
+    return unless prefs.respond_to?(:each_pair)
+
+    bool = ActiveModel::Type::Boolean.new
+    user.workspace_memberships.where(workspace_id: prefs.keys).find_each do |membership|
+      membership.update(echo_email_enabled: bool.cast(prefs[membership.workspace_id.to_s]))
     end
   end
 

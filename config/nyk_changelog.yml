@@ -8,6 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-13
+  note: Echo now emails you once a day, at 3pm, with the new social conversations it found worth joining (the post, why it matters, and a suggested reply you can edit). Everyone on the team gets it to start, quiet days send nothing, and every email has a one-click link to turn it off.
+  link: /nykitchen/social
+  link_label: Open Echo
+
 - date: 2026-08-04
   note: The "Refresh classes" button on the flyer now actually refreshes. It had been asking the website for classes from a server the site blocks, so it quietly did nothing; it now runs the refresh on the studio Mac instead. Give it a couple of minutes after clicking.
 
