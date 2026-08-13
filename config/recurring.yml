@@ -102,6 +102,12 @@ production:
   social_listen:
     class: SocialListenJob
     schedule: "0 */6 * * *"
+  # Echo's daily conversations email, 3pm ET (app TZ is Eastern): everything
+  # SocialListenJob found since yesterday's send, to every member of a listening
+  # workspace who hasn't opted out. Silent on days with nothing new.
+  echo_daily_email:
+    class: EchoDailyEmailJob
+    schedule: "0 15 * * *"
   # Hourly poll of X + Bluesky engagement on recent posts. Refreshes the
   # like/repost/reply counts and pushes members a "new engagement" alert when
   # any of them rises (see RefreshSocialMetricsJob#notify_new_engagement). The
