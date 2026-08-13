@@ -31,15 +31,21 @@ class EchoDailyEmailJob < ApplicationJob
     ws = Workspace.find_by(slug: slug)
     return unless ws
 
-    since = Setting.time(last_sent_key(slug)) || FIRST_RUN_WINDOW.ago
+    # Snapshot "now" before reading, and stamp that same instant afterwards: a
+    # lead stored while this run is sending would otherwise land before the
+    # stamp without being in this email, and never be mailed at all.
+    run_at = Time.current
+    since  = Setting.time(last_sent_key(slug)) || FIRST_RUN_WINDOW.ago
     # Only conversations still waiting on someone: anything already replied to
     # or dismissed on the Echo page is done, and re-mailing it is noise.
-    leads = ws.social_leads.where(status: "new").where("created_at > ?", since).order(score: :desc).to_a
+    leads = ws.social_leads.where(status: "new")
+                .where("created_at > ? AND created_at <= ?", since, run_at)
+                .order(score: :desc).to_a
 
     if leads.empty?
       Rails.logger.info("EchoDailyEmailJob: no new conversations for #{slug} since #{since}, nothing sent")
       # Still stamp the run, so a quiet day doesn't widen tomorrow's window.
-      Setting.touch_time(last_sent_key(slug))
+      Setting.set(last_sent_key(slug), run_at.iso8601)
       return
     end
 
@@ -49,7 +55,7 @@ class EchoDailyEmailJob < ApplicationJob
     end
     extra_recipients(ws).each { |address| sent += 1 if deliver(ws, leads, address, nil) }
 
-    Setting.touch_time(last_sent_key(slug))
+    Setting.set(last_sent_key(slug), run_at.iso8601)
     Rails.logger.info("EchoDailyEmailJob: #{leads.size} conversations for #{slug}, emailed #{sent} recipients")
   end
 

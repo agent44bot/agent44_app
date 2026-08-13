@@ -187,12 +187,19 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert their_membership.reload.echo_email_enabled, "another member's Echo pref is untouched"
   end
 
-  test "settings page renders an Echo email toggle for every workspace" do
-    ws = Workspace.create!(name: "Echo WS", slug: "set-#{SecureRandom.hex(4)}",
-                           owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+  test "settings page renders an Echo email toggle only for workspaces Echo listens to" do
+    listening = Workspace.create!(name: "Echo WS", slug: "set-#{SecureRandom.hex(4)}",
+                                  owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    quiet = Workspace.create!(name: "Quiet WS", slug: "set-#{SecureRandom.hex(4)}",
+                              owner_id: @user.id, timezone: "Eastern Time (US & Canada)")
+    Setting.set("social_listen:slugs", listening.slug)
     sign_in_as @user
+
     get settings_path
-    assert_select "input[type=checkbox][name=?]", "workspace_echo_email[#{ws.id}]"
+
+    assert_select "input[type=checkbox][name=?]", "workspace_echo_email[#{listening.id}]"
+    assert_select "input[type=checkbox][name=?]", "workspace_echo_email[#{quiet.id}]", count: 0,
+                  message: "a toggle that can't change anything shouldn't be shown"
   end
 
   test "settings page renders a digest toggle only for digest workspaces" do

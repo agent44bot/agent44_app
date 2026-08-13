@@ -140,12 +140,14 @@
         </div>
       <% end %>
 
-      <% if memberships.present? %>
+      <% echo_slugs = Workspace.echo_listening_slugs %>
+      <% echo_memberships = memberships&.select { |m| echo_slugs.include?(m.workspace.slug) } %>
+      <% if echo_memberships.present? %>
         <div class="pt-3 mt-1 border-t border-gray-800 space-y-3">
           <p class="text-xs text-gray-500">
             Echo email. Turn off to stop the 3pm email of new social conversations for this workspace.
           </p>
-          <% memberships.each do |m| %>
+          <% echo_memberships.each do |m| %>
             <label class="flex items-center justify-between gap-3 cursor-pointer">
               <span class="text-sm text-gray-300"><%= m.workspace.name %> Echo email</span>
               <%= hidden_field_tag "workspace_echo_email[#{m.workspace_id}]", "0" %>

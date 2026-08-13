@@ -104,6 +104,24 @@ class EchoDailyEmailJobTest < ActiveJob::TestCase
     assert_empty ActionMailer::Base.deliveries
   end
 
+  test "a lead stored while the run is sending is picked up by the next run, not skipped" do
+    lead(text: "todays lead")
+    # A listening run lands a lead mid-send: it's after the window this run
+    # read, so it must not be swallowed by this run's timestamp.
+    original = EchoMailer.method(:new_leads)
+    EchoMailer.stub :new_leads, ->(**kwargs) {
+      lead(text: "arrived mid-send") unless @ws.social_leads.exists?(text: "arrived mid-send")
+      original.call(**kwargs)
+    } do
+      EchoDailyEmailJob.perform_now
+    end
+    ActionMailer::Base.deliveries.clear
+
+    EchoDailyEmailJob.perform_now
+
+    assert_match "arrived mid-send", ActionMailer::Base.deliveries.first.body.to_s
+  end
+
   test "one failing recipient does not stop the rest, and the run is still stamped" do
     lead
     # Bound up front so the stub can delegate without re-entering itself.
