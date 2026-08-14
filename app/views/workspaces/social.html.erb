@@ -490,16 +490,23 @@
                 </div>
               </div>
               <% if posts.any? %>
-                <%# Posts come back newest-first, so grouping by day yields
-                    Today, then Yesterday, then older dates in order. %>
-                <% posts.group_by { |p| social_post_day_label(p.created_at, @workspace.timezone) }.each do |day_label, day_posts| %>
-                  <h4 class="text-xs uppercase tracking-wide text-gray-500 mt-4 mb-2 first:mt-0"><%= day_label %></h4>
-                  <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-                    <% day_posts.each do |p| %>
-                      <%= render "workspaces/post_card", p: p, workspace: @workspace, writer: @writer %>
-                    <% end %>
-                  </div>
-                <% end %>
+                <%# The history grows to 40 posts, which on a phone runs far past
+                    the fold and buries everything under it. Cap the list at
+                    roughly two and a half cards and scroll inside it; on wider
+                    screens there's room, so it stays full height. %>
+                <div class="max-h-80 overflow-y-auto overscroll-contain sm:max-h-none sm:overflow-visible"
+                     data-posts-scroll>
+                  <%# Posts come back newest-first, so grouping by day yields
+                      Today, then Yesterday, then older dates in order. %>
+                  <% posts.group_by { |p| social_post_day_label(p.created_at, @workspace.timezone) }.each do |day_label, day_posts| %>
+                    <h4 class="text-xs uppercase tracking-wide text-gray-500 mt-4 mb-2 first:mt-0"><%= day_label %></h4>
+                    <div class="rounded-lg border border-gray-800 bg-gray-900 divide-y divide-gray-800">
+                      <% day_posts.each do |p| %>
+                        <%= render "workspaces/post_card", p: p, workspace: @workspace, writer: @writer %>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
               <% else %>
                 <div class="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-sm text-gray-500">No <%= t[:label] %> posts yet.</div>
               <% end %>
