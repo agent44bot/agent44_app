@@ -54,6 +54,12 @@ Rails.application.routes.draw do
     patch :update_avatar
     patch :update_notifications
   end
+  # Login-free unsubscribe from Echo's daily email (signed token in the URL).
+  # GET confirms, POST turns it off, so a prefetching mail scanner can't mute
+  # someone by following the link.
+  get  "echo_email/unsubscribe/:token", to: "echo_email_subscriptions#show",    as: :echo_email_unsubscribe
+  post "echo_email/unsubscribe/:token", to: "echo_email_subscriptions#destroy"
+
   get "email_verification", to: "email_verifications#show", as: :email_verification
   post "email_verification/resend", to: "email_verifications#resend", as: :resend_email_verification
 

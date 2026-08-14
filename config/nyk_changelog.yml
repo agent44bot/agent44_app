@@ -8,6 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-13
+  note: Echo now emails you once a day, at 3pm, with the new social conversations it found worth joining (the post, why it matters, and a suggested reply you can edit). Everyone on the team gets it to start, quiet days send nothing, and every email has a one-click link to turn it off.
+  link: /nykitchen/social
+  link_label: Open Echo
+
 - date: 2026-08-08
   note: On a phone, Post History now shows about two and a half posts at a time and scrolls inside its own box. The full list was running well past the bottom of the screen, which made the older posts hard to read and pushed everything under it out of reach.
 

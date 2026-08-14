@@ -81,6 +81,8 @@ class SocialListenJob < ApplicationJob
     scout = SocialAi::LeadScout.new(workspace: ws)
     new_leads = candidates.filter_map { |c| store_lead(ws, scout, c) }
     notify_new_leads(ws, new_leads)
+    # Email is not sent here: EchoDailyEmailJob mails the day's leads once at
+    # 3pm, so four listening runs a day don't become four emails.
   end
 
   # One push per run (not one per lead): tell the reviewers how many new

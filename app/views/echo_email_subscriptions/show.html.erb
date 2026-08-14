@@ -1,0 +1,19 @@
+<% content_for :title, "Turn off Echo emails" %>
+
+<section class="bg-gray-950 min-h-screen">
+  <div class="max-w-lg mx-auto px-4 py-16">
+    <h1 class="text-2xl font-black text-white tracking-tight">Turn off Echo emails?</h1>
+    <p class="mt-3 text-[15px] text-gray-300 leading-relaxed">
+      <%= @membership.user.email_address %> will stop getting the daily 3pm email of new
+      conversations Echo finds for <%= @membership.workspace.name %>. Nothing else changes:
+      you keep your account, and the conversations still wait for you on the Echo page.
+    </p>
+
+    <%= button_to "Turn off these emails", echo_email_unsubscribe_path(params[:token]),
+          class: "mt-6 w-full px-4 py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+
+    <p class="mt-4 text-xs text-gray-500">
+      Changed your mind? Just close this page, nothing happens until you tap the button.
+    </p>
+  </div>
+</section>

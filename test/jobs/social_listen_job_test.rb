@@ -115,6 +115,17 @@ class SocialListenJobTest < ActiveJob::TestCase
     assert @nyk.social_leads.new_leads.any?, "leads are still stored, just no push"
   end
 
+  test "listening never emails: EchoDailyEmailJob owns the 3pm send" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    Setting.set("social_listen:notify_emails", "botwhisperer@hey.com")
+    ActionMailer::Base.deliveries.clear
+
+    SocialListenJob.perform_now
+
+    assert_empty ActionMailer::Base.deliveries, "four listening runs a day must not become four emails"
+    assert @nyk.social_leads.new_leads.any?, "leads are still stored, just not emailed here"
+  end
+
   test "pushes 24/7, including overnight (users mute on their device)" do
     Setting.set("social_listen:slugs", "nykitchen")
     Setting.set("social_listen:notify_user_ids", @rich.id.to_s)

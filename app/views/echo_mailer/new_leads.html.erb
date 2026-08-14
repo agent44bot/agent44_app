@@ -1,0 +1,90 @@
+<%
+  # Local lambdas, not `def`s: a `def` in an ERB template leaks onto the shared
+  # view context and can clobber Rails helpers (see daily_digest.html.erb).
+  body_font = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+
+  when_str = ->(t) do
+    return "" unless t
+    days = ((Time.current - t) / 1.day).floor
+    case days
+    when 0 then "today"
+    when 1 then "yesterday"
+    else "#{days} days ago"
+    end
+  end
+
+  score_pill = ->(score) do
+    color = score.to_i >= 85 ? [ "#e6f4ea", "#1b6e3a" ] : [ "#fff3e0", "#b35900" ]
+    %Q(<span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;background:#{color[0]};color:#{color[1]}">#{score}</span>)
+  end
+%>
+
+<div style="<%= body_font %>;max-width:640px;color:#1a1a1a">
+  <div style="font-size:19px;font-weight:700">
+    <%= @leads.size %> <%= "conversation".pluralize(@leads.size) %> worth joining
+  </div>
+  <div style="font-size:14px;color:#6b7280;margin-top:4px">
+    Echo found <%= @leads.size == 1 ? "this post" : "these posts" %> while listening for <%= @workspace.name %>.
+    Nothing has been posted: review and reply from the Echo page.
+  </div>
+
+  <% @leads.each do |lead| %>
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-top:16px">
+      <div style="font-size:12px;color:#6b7280">
+        <strong style="color:#1a1a1a"><%= lead.platform_label %></strong>
+        <% if lead.author.present? %>
+          · <%= lead.author.to_s.start_with?("@") ? lead.author : "@#{lead.author}" %>
+        <% end %>
+        · <%= raw score_pill.call(lead.score) %>
+        · <%= when_str.call(lead.posted_at) %>
+      </div>
+
+      <div style="font-size:14px;line-height:1.5;margin-top:10px;white-space:pre-wrap"><%= lead.text.to_s.truncate(400) %></div>
+
+      <% if lead.reason.present? %>
+        <div style="font-size:12px;color:#6b7280;margin-top:10px">
+          <strong>Why:</strong> <%= lead.reason %>
+        </div>
+      <% end %>
+
+      <% if lead.draft_reply.present? %>
+        <div style="background:#f9fafb;border-left:3px solid #F26B1F;padding:10px 12px;margin-top:12px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;color:#6b7280;text-transform:uppercase">Suggested reply</div>
+          <div style="font-size:14px;line-height:1.5;margin-top:5px"><%= lead.draft_reply %></div>
+        </div>
+      <% end %>
+
+      <div style="margin-top:12px">
+        <% if lead.url.present? %>
+          <a href="<%= lead.url %>" style="font-size:13px;color:#F26B1F;font-weight:600;text-decoration:none">Open post &#8599;</a>
+          <span style="color:#d1d5db">&nbsp;·&nbsp;</span>
+        <% end %>
+        <a href="<%= @echo_url %>" style="font-size:13px;color:#F26B1F;font-weight:600;text-decoration:none">Reply on Echo</a>
+      </div>
+    </div>
+  <% end %>
+
+  <div style="margin-top:20px">
+    <a href="<%= @echo_url %>" style="display:inline-block;background:#F26B1F;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:9px 16px;border-radius:6px">Review on the Echo page</a>
+  </div>
+
+  <div style="border-top:1px solid #e5e7eb;margin-top:24px;padding-top:14px;font-size:12px;color:#6b7280;line-height:1.6">
+    <strong style="color:#1a1a1a">Don't want this email?</strong><br>
+    You get it once a day, at 3pm, because you're a member of the
+    <%= @workspace.name %> workspace. Two ways to stop it, and neither one touches
+    the rest of your account:
+    <ul style="margin:8px 0 0;padding-left:18px">
+      <% if @unsubscribe_url %>
+        <li style="margin-bottom:4px">
+          <a href="<%= @unsubscribe_url %>" style="color:#F26B1F;font-weight:600;text-decoration:underline">Turn off Echo emails</a>
+          (one click, no sign-in needed)
+        </li>
+      <% end %>
+      <li>
+        Or open <a href="<%= @settings_url %>" style="color:#F26B1F;text-decoration:underline">Settings</a>
+        and switch off "<%= @workspace.name %> Echo email" under Notifications.
+      </li>
+    </ul>
+    <div style="margin-top:8px">Prefer a different address, or want it less often? Just reply to this email.</div>
+  </div>
+</div>

@@ -73,6 +73,24 @@ class Workspace < ApplicationRecord
                .uniq
   end
 
+  # Workspaces Echo is actually listening for (Setting "social_listen:slugs").
+  # Only these can produce a daily email, so only these show the Settings
+  # toggle: a switch that can't change anything is worse than no switch.
+  def self.echo_listening_slugs
+    Setting.get("social_listen:slugs").to_s.split(",").map(&:strip).reject(&:blank?)
+  end
+
+  def echo_listening?
+    self.class.echo_listening_slugs.include?(slug)
+  end
+
+  # Members who still want Echo's daily 3pm email of new conversations. Opt-out:
+  # everyone is on it until they turn it off in Settings or from the email's
+  # unsubscribe link (WorkspaceMembership#echo_email_enabled).
+  def echo_email_memberships
+    memberships.where(echo_email_enabled: true).includes(:user).select { |m| m.user&.email_address.present? }
+  end
+
   # WorkspaceAgent row for the given kind ("list", "social", "data",
   # "test"), auto-assigning a random unused 3-digit ID on first access.
   # Subsequent calls return the same row, so the badge number is stable.
