@@ -95,6 +95,18 @@ class SocialListenJobTest < ActiveJob::TestCase
     assert_equal 0, SocialLead.count
   end
 
+  test "the cutoff is 50: a 50 is kept, a 49 is dropped" do
+    Setting.set("social_listen:slugs", "nykitchen")
+    stub_score(50)
+    SocialListenJob.perform_now
+    assert_operator SocialLead.count, :>, 0, "a 50 sits exactly on the cutoff and is kept"
+
+    SocialLead.delete_all
+    stub_score(49)
+    SocialListenJob.perform_now
+    assert_equal 0, SocialLead.count
+  end
+
   test "pushes one review notification (deep-linked to Echo) when leads land and a recipient is set" do
     Setting.set("social_listen:slugs", "nykitchen")
     Setting.set("social_listen:notify_user_ids", @rich.id.to_s)
