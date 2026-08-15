@@ -93,7 +93,7 @@ GEM
     bcrypt_pbkdf (1.1.2)
     bcrypt_pbkdf (1.1.2-arm64-darwin)
     bcrypt_pbkdf (1.1.2-x86_64-darwin)
-    bech32 (1.5.0)
+    bech32 (1.5.1)
       thor (>= 1.1.0)
     bigdecimal (3.3.1)
     bindata (2.5.1)
