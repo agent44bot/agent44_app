@@ -41,7 +41,12 @@ class SocialListenJob < ApplicationJob
     "(#winetasting OR #cookingclass OR #cocktails) (Rochester OR \"Finger Lakes\" OR Canandaigua)"
   ].freeze
 
-  MIN_SCORE       = 60 # below this we don't store the lead (only confident, on-topic hits)
+  # Below this we don't store the lead. Lowered 60 -> 50 on 2026-08-15: at 60,
+  # four days ran without a single new conversation, so the daily email had
+  # nothing to send. 50 still drops the "unsure" half of the scale (the scorer
+  # is told to score low when a post is ambiguous), it just stops discarding
+  # the merely-plausible local ones a human can judge in a second.
+  MIN_SCORE       = 50
   MAX_NEW_PER_RUN = 15 # cap the AI calls (and cost) per run
   MAX_AGE_DAYS    = 14 # only surface recent posts (skip stale search hits)
   MAX_X_QUERIES   = 14 # cap recent-search calls per run (X read-budget guard; recent search is metered).
