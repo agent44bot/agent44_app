@@ -198,6 +198,32 @@
           No scans yet. Print flyers and the QR codes will track scans here.
         </p>
       <% end %>
+
+      <%# Individual scans: which code, on what device, when. %>
+      <% if @recent_scans.present? %>
+        <div class="border-t border-gray-800 pt-4 mt-4">
+          <span class="text-xs uppercase tracking-wide text-gray-500 block mb-3">Recent scans</span>
+          <ul class="space-y-2.5">
+            <% @recent_scans.each do |scan| %>
+              <li class="text-sm">
+                <div class="flex items-baseline justify-between gap-3">
+                  <span class="min-w-0 truncate text-gray-300">
+                    <%= @scan_names[scan[:url]].presence || scan[:url] %>
+                  </span>
+                  <span class="text-xs text-gray-500 tabular-nums shrink-0">
+                    <%= scan[:at].strftime("%a %-m/%-d %-I:%M %p") %>
+                  </span>
+                </div>
+                <div class="text-[11px] text-gray-500 mt-0.5">
+                  <span class="text-gray-400"><%= scan[:source] %></span>
+                  &middot; <%= scan[:device] %>
+                  &middot; <%= scan[:billed] ? "billed" : "not billed" %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
     </div>
   <% end %>
 

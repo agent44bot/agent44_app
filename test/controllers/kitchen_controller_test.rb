@@ -759,6 +759,24 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect # /sign_in
   end
 
+  test "display_settings: recent scans name the class, source, and device" do
+    nyk_workspace.memberships.find_or_create_by!(user: @default_user) { |m| m.role = "owner" }
+    event = create_event("Pasta Workshop", 3.days.from_now, "InStock")
+    link = TrackedLink.for_url(event.url, workspace: nyk_workspace)
+    link.link_scans.create!(
+      scanned_at: 2.hours.ago,
+      source: "flyer",
+      user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) Mobile/15E148"
+    )
+
+    get nyk_display_settings_path
+    assert_response :success
+    assert_match "Recent scans", response.body
+    assert_match "Pasta Workshop", response.body
+    assert_match "Front-desk flyer", response.body
+    assert_match "iPhone", response.body
+  end
+
   test "update_display_settings: owner can save" do
     nyk_workspace.memberships.find_or_create_by!(user: @default_user) { |m| m.role = "owner" }
 
