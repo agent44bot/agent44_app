@@ -467,7 +467,16 @@
             <% if t[:method] == :get %>
               <%= link_to "Connect", t[:connect], class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md inline-block" %>
             <% else %>
-              <%= button_to "Connect", t[:connect], method: :post, class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
+              <%# turbo: false so the POST does a full-page navigation. These
+                  actions answer with a cross-origin 302 to the provider's
+                  authorize page; Turbo submits via fetch, and Safari fails the
+                  cross-origin redirect, so the click silently does nothing.
+                  Chrome tolerates it, which is why this only broke for Safari
+                  users. Applies to X, Threads, Facebook, and Instagram (all
+                  :post); Bluesky is a :get link and navigates normally. %>
+              <%= button_to "Connect", t[:connect], method: :post,
+                    form: { data: { turbo: false } },
+                    class: "text-xs text-orange-400 hover:text-orange-300 px-3 py-1 border border-orange-900 rounded-md cursor-pointer" %>
             <% end %>
           <% end %>
           <div data-tabs-target="panel" class="<%= "hidden" unless i.zero? %>">
