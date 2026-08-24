@@ -778,6 +778,10 @@ class KitchenController < ApplicationController
 
   NYK_CALENDAR_URL = "https://nykitchen.com/calendar/".freeze
 
+  # How many individual scans the Display settings readout lists. Enough to see
+  # this week's walk-ins at a glance without turning the page into a log.
+  RECENT_SCAN_LIMIT = 10
+
   # Public QR landing: log the scan (anonymous: counts + device/referrer only),
   # then 302 onward to the real class page. 302 not 301 so repeat scans keep
   # hitting us instead of being served from the browser cache. An unknown token
@@ -1508,6 +1512,24 @@ class KitchenController < ApplicationController
     # The footer "all classes" calendar QR isn't a class, so give it a label
     # instead of showing the raw URL in the report.
     @scan_names[NYK_CALENDAR_URL] = "All classes (calendar QR)"
+    load_recent_scans(scans)
+  end
+
+  # The last handful of individual scans, newest first. The totals above answer
+  # "how many"; this answers "which flyer just got scanned, on what, and when",
+  # which is the question that otherwise sends someone to the database.
+  def load_recent_scans(scans)
+    @recent_scans = scans.joins(:tracked_link)
+                         .order(scanned_at: :desc)
+                         .limit(RECENT_SCAN_LIMIT)
+                         .pluck(:scanned_at, :source, :user_agent, "tracked_links.url")
+                         .map do |scanned_at, source, user_agent, url|
+      { at: scanned_at,
+        source: LinkScan.source_label(source),
+        billed: LinkScan.billed_source?(source),
+        device: LinkScan.device_bucket(user_agent),
+        url: url }
+    end
   end
 
   # Loads the locals needed by workspaces/_team partial when rendering on

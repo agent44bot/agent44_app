@@ -8,6 +8,12 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-23
+  note: Display settings now lists your most recent QR scans, not just the totals. Each line
+    shows which class was scanned, whether it came off the front desk flyer, the stall poster,
+    or the tasting room screen, what kind of phone was used, when it happened, and whether it
+    was billed.
+
 - date: 2026-08-13
   note: Echo now emails you once a day, at 3pm, with the new social conversations it found worth joining (the post, why it matters, and a suggested reply you can edit). Everyone on the team gets it to start, quiet days send nothing, and every email has a one-click link to turn it off.
   link: /nykitchen/social
