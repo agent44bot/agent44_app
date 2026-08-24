@@ -15,7 +15,21 @@ Rails.application.configure do
     policy.connect_src :self, :https
     policy.frame_ancestors :none
     policy.base_uri    :self
-    policy.form_action :self
+    # form-action must list the OAuth providers' authorize hosts, not just
+    # :self. The Connect buttons POST to our own /oauth/*/connect, which
+    # answers with a 302 to the provider — and Chrome checks form-action
+    # against the *redirect target*, then reports the violation using the
+    # original (same-origin) URL, which makes the console error read as if
+    # posting to ourselves were blocked. Without these hosts the connect
+    # flow dies at the redirect with "violates ... form-action 'self'".
+    # Both twitter.com and x.com are needed: X's authorize URL is on
+    # twitter.com and can itself bounce to x.com mid-flow, and every hop is
+    # checked. Threads and Facebook are listed so their flows work once
+    # their credentials are configured.
+    policy.form_action :self,
+                       "https://twitter.com", "https://x.com",
+                       "https://www.facebook.com", "https://facebook.com",
+                       "https://threads.net", "https://www.threads.net"
   end
 
   # No per-request nonce. 'unsafe-inline' above is what allows our inline
