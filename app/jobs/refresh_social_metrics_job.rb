@@ -111,19 +111,12 @@ class RefreshSocialMetricsJob < ApplicationJob
     workspace.users.where(social_push_enabled: true)
   end
 
-  # In-app deep link to the workspace's social page. NY Kitchen has its own
-  # slug-baked route; everything else uses the generic workspace social path.
-  def social_path_for(workspace)
-    helpers = Rails.application.routes.url_helpers
-    workspace.slug == "nykitchen" ? helpers.nyk_social_path : helpers.social_workspace_path(workspace.slug)
-  end
-
   # Deep link straight to this post's card: open its platform tab (?tab=) and
   # anchor to the row (#post-<id>). The Recent Posts tabs controller scrolls to
   # and highlights it. From there the card's "View on X/Bluesky" opens the live
   # post to reply.
   def social_post_deeplink(post)
-    "#{social_path_for(post.workspace)}?tab=#{post.platform}#post-#{post.id}"
+    "#{post.workspace.social_path}?tab=#{post.platform}#post-#{post.id}"
   end
 
   # Subtitle on the push: the social agent's name (NY Kitchen's is "Echo").

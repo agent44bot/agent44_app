@@ -84,6 +84,15 @@ class Workspace < ApplicationRecord
     self.class.echo_listening_slugs.include?(slug)
   end
 
+  # In-app deep link to this workspace's social (Echo) page. NY Kitchen has its
+  # own slug-baked route; everything else uses the generic workspace path. Lives
+  # here because every push that deep-links to Echo needs it, and a hardcoded
+  # nyk_social_path sends another workspace's alert to NY Kitchen's page.
+  def social_path
+    helpers = Rails.application.routes.url_helpers
+    slug == "nykitchen" ? helpers.nyk_social_path : helpers.social_workspace_path(slug)
+  end
+
   # Members who still want Echo's daily 3pm email of new conversations. Opt-out:
   # everyone is on it until they turn it off in Settings or from the email's
   # unsubscribe link (WorkspaceMembership#echo_email_enabled).
