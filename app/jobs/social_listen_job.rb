@@ -102,7 +102,7 @@ class SocialListenJob < ApplicationJob
     top   = leads.max_by(&:score)
     title = leads.size == 1 ? "New conversation for #{ws.name}" : "#{leads.size} new conversations for #{ws.name}"
     body  = leads.size == 1 ? "#{top.platform_label}: #{top.text.to_s.truncate(90)}" : "Tap to review and reply on the Echo page."
-    url   = Rails.application.routes.url_helpers.nyk_social_path
+    url   = ws.social_path
 
     users.each do |user|
       Notification.notify!(

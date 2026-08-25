@@ -119,6 +119,23 @@ class SocialListenJobTest < ActiveJob::TestCase
     assert_equal 1, Notification.where(source: "echo").count, "one push per run, not per lead"
   end
 
+  test "review push deep-links to the workspace's own Echo page, not NY Kitchen's" do
+    other = Workspace.create!(slug: "feastcoast-hospitality", name: "Feastcoast Hospitality", owner: @rich)
+    other.social_accounts.create!(platform: "bluesky", external_id: "did:plc:y", handle: "@fc.bsky.social",
+                                  connected_by: @rich, access_token: "AT", refresh_token: "RT",
+                                  token_expires_at: 2.hours.from_now, status: "active")
+    Setting.set("social_listen:slugs", "feastcoast-hospitality")
+    Setting.set("social_listen:notify_user_ids", @rich.id.to_s)
+    Notification.delete_all
+
+    travel_to(Time.zone.parse("#{Date.current} 14:00")) { SocialListenJob.perform_now }
+
+    n = Notification.where(source: "echo").last
+    assert n, "expected an Echo review notification"
+    assert_equal "/workspaces/feastcoast-hospitality/social", n.url,
+                 "a non-NYK workspace's push must open its own Echo page"
+  end
+
   test "no review push when no recipient is configured" do
     Setting.set("social_listen:slugs", "nykitchen")
     Notification.delete_all

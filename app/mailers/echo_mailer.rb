@@ -13,7 +13,7 @@ class EchoMailer < ApplicationMailer
   def new_leads(workspace:, leads:, recipient:, membership: nil)
     @workspace = workspace
     @leads     = leads.sort_by { |l| [ -l.score.to_i, -l.posted_at.to_i ] }
-    @echo_url  = HOST + echo_path(workspace)
+    @echo_url  = HOST + workspace.social_path
     @unsubscribe_url = membership && HOST + Rails.application.routes.url_helpers.echo_email_unsubscribe_path(membership.echo_unsubscribe_token)
     @settings_url    = "#{HOST}/settings"
 
@@ -34,14 +34,5 @@ class EchoMailer < ApplicationMailer
       end
 
     mail(to: recipient, subject: subject)
-  end
-
-  private
-
-  # NY Kitchen's Echo page lives at the vanity /nykitchen/social; every other
-  # workspace uses the generic /workspaces/:slug/social.
-  def echo_path(workspace)
-    routes = Rails.application.routes.url_helpers
-    workspace.slug == "nykitchen" ? routes.nyk_social_path : routes.social_workspace_path(workspace.slug)
   end
 end
