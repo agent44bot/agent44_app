@@ -23,8 +23,11 @@ class TelegramNotifier
     Setting.get(MUTE_KEY) == "true"
   end
 
-  def self.send_alert(notification)
-    return if muted?
+  # force: true sends even while the global mute is on. For one-off alerts the
+  # owner explicitly asked for (e.g. a read receipt on a specific notification),
+  # as opposed to the per-run play-by-play the mute exists to silence.
+  def self.send_alert(notification, force: false)
+    return if muted? && !force
 
     token = ENV["TELEGRAM_BOT_TOKEN"]
     chat_id = ENV["TELEGRAM_CHAT_ID"]

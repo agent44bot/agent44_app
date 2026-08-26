@@ -115,6 +115,12 @@ production:
   refresh_social_metrics:
     class: RefreshSocialMetricsJob
     schedule: every hour at minute 33
+  # Read receipts: ping Telegram when someone finally opens a notification we're
+  # watching (Setting "notification_read_watch:ids"). Idle no-op when that list
+  # is empty; each id reports once and removes itself.
+  notification_read_watch:
+    class: NotificationReadWatchJob
+    schedule: "*/5 * * * *"
   device_token_prune:
     class: DeviceTokenPruneJob
     schedule: every monday at 4:41am
