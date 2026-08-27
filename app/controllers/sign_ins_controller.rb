@@ -4,11 +4,11 @@ class SignInsController < ApplicationController
   before_action :redirect_if_authenticated, only: %i[new create code]
 
   # Requesting a code: cap per-IP to blunt email-bombing + user-row probing.
-  rate_limit to: 6, within: 15.minutes, only: :create,
-    with: -> { redirect_to sign_in_path, alert: "Too many requests — try again in a few minutes." }
+  rate_limit to: 6, within: 15.minutes, only: :create, by: RATE_LIMIT_BY_CLIENT_IP,
+    with: -> { redirect_to sign_in_path, alert: "Too many requests. Try again in a few minutes." }
   # Verifying: cap per-IP on top of the per-code MAX_ATTEMPTS.
-  rate_limit to: 20, within: 15.minutes, only: :verify,
-    with: -> { redirect_to sign_in_path, alert: "Too many attempts — request a new code." }
+  rate_limit to: 20, within: 15.minutes, only: :verify, by: RATE_LIMIT_BY_CLIENT_IP,
+    with: -> { redirect_to sign_in_path, alert: "Too many attempts. Request a new code." }
 
   # GET /sign_in — "Enter your email". Doubles as sign-up: unknown emails
   # become accounts on first successful verify.

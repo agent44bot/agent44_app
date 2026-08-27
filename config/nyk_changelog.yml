@@ -8,6 +8,11 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-08-27
+  note: Signing in no longer gets held up because someone else was signing in. The limit that
+    slows down password guessing was counting everyone's attempts as if they came from one
+    person, so a busy few minutes could lock the rest of the team out.
+
 - date: 2026-08-23
   note: Display settings now lists your most recent QR scans, not just the totals. Each line
     shows which class was scanned, whether it came off the front desk flyer, the stall poster,

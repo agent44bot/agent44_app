@@ -8,8 +8,8 @@ module Api
 
       before_action :authenticate_api_token
 
-      # Rate limit: 50 create requests per hour per IP
-      rate_limit to: 50, within: 1.hour, by: -> { request.remote_ip }, only: :create
+      # Rate limit: 50 create requests per hour per client IP
+      rate_limit to: 50, within: 1.hour, by: RATE_LIMIT_BY_CLIENT_IP, only: :create
 
       def create
         jobs_data = params[:jobs] || [ params[:job] ]
