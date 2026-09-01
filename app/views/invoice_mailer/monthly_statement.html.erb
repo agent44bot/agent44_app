@@ -1,0 +1,137 @@
+<%
+  inv  = @invoice
+  ws   = @workspace
+  host = "https://agent44labs.com"
+
+  serif = "Georgia,'Times New Roman',serif"
+  sans  = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+  mono  = "'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace"
+
+  ink="#1a1a1a"; mut="#8a8276"; faint="#a8a08f"; accent="#c2410c"
+  green="#1b6e3a"; line="#e8e1d6"; cream="#faf7f2"
+
+  money = ->(n) { number_to_currency(n) }
+
+  items    = inv.line_items
+  checks   = items.find { |li| li["label"] == "Browser smoke tests" }
+  ai_items = items.reject { |li| li["label"] == "Browser smoke tests" }
+  ai_calls = ai_items.sum { |li| li["calls"].to_i }
+
+  # Customer-facing names for the internal line labels. Anything unmapped falls
+  # through unchanged, so a new billed feature still shows up.
+  friendly = { "Browser smoke tests" => "Automated site checks" }
+
+  budget_month = inv.average_list_price_dollars
+  budget_year  = budget_month * 12
+%>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f1ea;padding:24px 0">
+  <tr><td align="center">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid <%= line %>;border-radius:12px;overflow:hidden">
+
+      <!-- Header -->
+      <tr><td style="padding:28px 30px 20px;border-bottom:2px solid <%= ink %>">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="font-family:<%= serif %>;font-size:20px;font-weight:bold;color:<%= ink %>">
+            Agent<span style="color:<%= accent %>">44</span> Labs
+          </td>
+          <td align="right" style="font-family:<%= sans %>;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:<%= faint %>;font-weight:bold">
+            Usage summary
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Workspace + period -->
+      <tr><td style="padding:22px 30px 6px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>;vertical-align:top">
+            <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:4px">Workspace</div>
+            <div style="font-family:<%= serif %>;font-size:16px;color:<%= ink %>;font-weight:bold"><%= ws.name %></div>
+          </td>
+          <td align="right" style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>;vertical-align:top">
+            <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:4px">Period</div>
+            <div style="font-family:<%= serif %>;font-size:16px;color:<%= ink %>;font-weight:bold"><%= inv.period_label %></div>
+            <div style="font-size:12px;color:<%= faint %>"><%= inv.period_start.strftime("%b %-d") %> to <%= inv.period_end.strftime("%b %-d, %Y") %></div>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Activity hero -->
+      <tr><td style="padding:18px 30px 8px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border:1px solid <%= line %>;border-radius:10px"><tr>
+          <td style="padding:18px 22px;width:50%">
+            <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:<%= accent %>;font-weight:bold;margin-bottom:2px">Site checks run</div>
+            <div style="font-family:<%= serif %>;font-size:34px;font-weight:bold;color:<%= ink %>"><%= number_with_delimiter(checks ? checks["calls"].to_i : 0) %></div>
+          </td>
+          <td style="padding:18px 22px;width:50%;border-left:1px solid <%= line %>">
+            <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:<%= accent %>;font-weight:bold;margin-bottom:2px">AI actions</div>
+            <div style="font-family:<%= serif %>;font-size:34px;font-weight:bold;color:<%= ink %>"><%= number_with_delimiter(ai_calls) %></div>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- What ran -->
+      <tr><td style="padding:16px 30px 4px">
+        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">What the fleet did</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px">
+          <% items.each do |li| %>
+            <% smoke = (li["label"] == "Browser smoke tests") %>
+            <tr>
+              <td style="padding:6px 0;color:<%= ink %>;border-bottom:1px solid <%= line %>"><%= friendly[li["label"]] || li["label"] %></td>
+              <td align="right" style="padding:6px 0 6px 16px;color:<%= mut %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap">
+                <%= number_with_delimiter(li["calls"].to_i) %> <%= smoke ? "runs" : "uses" %>
+              </td>
+            </tr>
+          <% end %>
+          <% if items.empty? %>
+            <tr><td colspan="2" style="padding:8px 0;color:<%= faint %>;font-style:italic">No activity recorded this period.</td></tr>
+          <% end %>
+        </table>
+      </td></tr>
+
+      <!-- Cost -->
+      <tr><td style="padding:18px 30px 6px">
+        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">What it cost</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>">
+          <tr>
+            <td style="padding:4px 0">At list price</td>
+            <td align="right" style="padding:4px 0;font-family:<%= mono %>"><%= money.(inv.list_price_dollars) %></td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:<%= green %>">Pilot credit</td>
+            <td align="right" style="padding:4px 0;color:<%= green %>;font-family:<%= mono %>">&minus;<%= money.(inv.pilot_credit_dollars) %></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;border-top:2px solid <%= ink %>;color:<%= ink %>;font-weight:bold;font-family:<%= serif %>;font-size:15px">You were charged</td>
+            <td align="right" style="padding:8px 0;border-top:2px solid <%= ink %>;color:<%= ink %>;font-weight:bold;font-family:<%= mono %>;font-size:15px"><%= money.(inv.total_dollars) %></td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- Budget note -->
+      <tr><td style="padding:14px 30px 6px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border:1px solid <%= line %>;border-radius:10px"><tr>
+          <td style="padding:16px 20px;font-family:<%= sans %>;font-size:13px;color:<%= ink %>;line-height:1.55">
+            <span style="font-weight:bold">Planning ahead:</span> at this level of use, list price runs about
+            <span style="font-family:<%= mono %>"><%= number_to_currency(budget_month, precision: 0) %></span> a month, roughly
+            <span style="font-family:<%= mono %>"><%= number_to_currency(budget_year, precision: 0) %></span> a year. The pilot credit
+            covers most of that today, so this line is what to plan for if the fleet keeps running at the same level.
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="padding:16px 30px 26px">
+        <div style="font-family:<%= sans %>;font-size:12px;color:<%= faint %>;line-height:1.5">
+          List price is a <%= number_to_currency(inv.base_fee_configured_dollars, precision: 0) %> monthly platform fee plus a
+          <%= inv.multiplier.to_i %>&times; margin on what the fleet costs to run (developer time, hardware,
+          and reserve capacity). Questions on any line, just reply to this email.
+        </div>
+        <div style="margin-top:14px">
+          <a href="<%= host %>/<%= ws.slug %>/billing" style="font-family:<%= sans %>;font-size:13px;font-weight:bold;color:<%= accent %>;text-decoration:none">See the live meter &rarr;</a>
+        </div>
+      </td></tr>
+
+    </table>
+    <div style="font-family:<%= sans %>;font-size:11px;color:<%= faint %>;margin-top:14px">Agent44 Labs &middot; agent44labs.com</div>
+  </td></tr>
+</table>

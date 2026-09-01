@@ -38,6 +38,37 @@ class Invoice < ApplicationRecord
     period_start.strftime("%B %Y")
   end
 
+  # --- Customer statement figures -------------------------------------------
+  # The statement Lora gets is a budget document, not a bill: it has to answer
+  # "what would this cost us next year?" So it prices the month at LIST (the
+  # configured platform fee, even when waived, plus marked-up usage) and shows
+  # the pilot credit that brings it down to what was actually charged.
+
+  # What this month would cost with no pilot pricing applied.
+  def list_price_dollars
+    base_fee_configured_dollars + (usage_cost_dollars * multiplier.to_f)
+  end
+
+  # Everything the pilot is currently absorbing: the waived fee and the
+  # discount, as one number. Never negative (a total above list would mean the
+  # knobs changed mid-period, and a "credit" of -$4 helps nobody).
+  def pilot_credit_dollars
+    [ (list_price_dollars - total_dollars).round(2), 0.0 ].max
+  end
+
+  # Rolling list-price average across this invoice and the ones before it, so
+  # the statement's budget line doesn't swing on a single quiet month. Falls
+  # back to this month alone for a workspace's first invoice.
+  def average_list_price_dollars(months: 3)
+    recent = self.class.where(workspace_id: workspace_id)
+                 .where(period_start: ..period_start)
+                 .order(period_start: :desc)
+                 .limit(months)
+                 .to_a
+    recent = [ self ] if recent.empty?
+    (recent.sum(&:list_price_dollars) / recent.size).round(2)
+  end
+
   # Build (or return the existing) frozen invoice for a workspace + calendar
   # month. `month` is any date within the target month. Idempotent: the unique
   # index on (workspace_id, period_start) means a re-run returns the row that's

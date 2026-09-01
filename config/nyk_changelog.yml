@@ -8,6 +8,12 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-09-01
+  note: On the first of each month you now get a short usage summary by email. It lists what the
+    agents did that month (site checks run, AI features used), what the month would cost at
+    regular pricing, the pilot credit that is covering most of it today, and a per month and
+    per year figure to plan a budget around.
+
 - date: 2026-08-27
   note: Signing in no longer gets held up because someone else was signing in. The limit that
     slows down password guessing was counting everyone's attempts as if they came from one
