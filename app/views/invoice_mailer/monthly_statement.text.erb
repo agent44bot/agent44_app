@@ -28,7 +28,7 @@ ALSO RAN FOR YOU, NOT CHARGED
 <% end -%>
 
 HOW THAT PRICES OUT
-Metered total <%= money.(metered) %> x <%= inv.multiplier.to_i %>: <%= money.(inv.usage_cost_dollars * inv.multiplier) %>
+Metered total <%= money.(metered) %> x <%= inv.multiplier_label %>: <%= money.(inv.usage_cost_dollars * inv.multiplier) %>
 Platform fee:      <%= money.(inv.base_fee_configured_dollars) %>
 List price:        <%= money.(inv.list_price_dollars) %>
 Pilot credit:     -<%= money.(inv.pilot_credit_dollars) %>
@@ -41,7 +41,7 @@ today, so this line is what to plan for if the fleet keeps running at
 the same level.
 
 Metered cost is what the work costs to run (model calls, browser time).
-List price adds a <%= number_to_currency(inv.base_fee_configured_dollars, precision: 0) %> monthly platform fee and a <%= inv.multiplier.to_i %>x margin covering
+List price adds a <%= number_to_currency(inv.base_fee_configured_dollars, precision: 0) %> monthly platform fee and a <%= inv.multiplier_label %>x margin covering
 developer time, hardware, and reserve capacity. Questions on any line,
 just reply to this email.
 

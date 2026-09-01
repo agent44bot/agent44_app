@@ -34,6 +34,18 @@ class Invoice < ApplicationRecord
   def discount_dollars;   discount_cents.to_i   / 100.0; end
   def total_dollars;      total_cents.to_i      / 100.0; end
 
+  # Render a multiplier for customer-facing copy: "3" for a whole number, "2.5"
+  # otherwise. Never use to_i on a multiplier in a view — it renders 2.5 as "2",
+  # printing arithmetic that does not match the total beside it.
+  def self.format_multiplier(value)
+    number = value.to_f
+    number == number.round ? number.round.to_s : number.to_s
+  end
+
+  def multiplier_label
+    self.class.format_multiplier(multiplier)
+  end
+
   def period_label
     period_start.strftime("%B %Y")
   end
