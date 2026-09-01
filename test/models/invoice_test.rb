@@ -181,5 +181,4 @@ class InvoiceTest < ActiveSupport::TestCase
   test "a zero-volume line does not divide by zero" do
     assert_equal 0.0, Invoice.line_unit_dollars({ "calls" => 0, "cost_dollars" => 0.0 })
   end
-
 end
