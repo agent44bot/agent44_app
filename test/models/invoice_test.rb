@@ -27,13 +27,13 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal Date.new(2026, 5, 31), inv.period_end
     assert_equal "unpaid", inv.status
     assert_in_delta 6.00, inv.usage_cost_dollars, 0.001
-    assert_equal 3.0, inv.multiplier.to_f
+    assert_equal 2.0, inv.multiplier.to_f
     assert_equal 0,   inv.base_fee_cents # applied = 0 (waived)
     assert inv.base_fee_waived?
     assert_equal 5000, inv.base_fee_configured_cents # pre-waive $50 frozen for strike-through
-    # subtotal = 6.00 * 3 = 18.00; 95% off -> 0.90
-    assert_in_delta 18.00, inv.subtotal_dollars, 0.01
-    assert_in_delta 0.90,  inv.total_dollars, 0.01
+    # subtotal = 6.00 * 2 = 12.00; 95% off -> 0.60
+    assert_in_delta 12.00, inv.subtotal_dollars, 0.01
+    assert_in_delta 0.60,  inv.total_dollars, 0.01
   end
 
   test "non-waived workspace freezes the applied fee and is not marked waived" do
@@ -104,10 +104,10 @@ class InvoiceTest < ActiveSupport::TestCase
 
     inv = Invoice.generate_for(@ws, Date.new(2026, 5, 1))
 
-    # $1.00 of raw usage at the NYK 3x markup, plus the $50 fee it is not paying.
-    assert_in_delta 53.0, inv.list_price_dollars, 0.01
-    assert_in_delta 0.15, inv.total_dollars, 0.01
-    assert_in_delta 52.85, inv.pilot_credit_dollars, 0.01
+    # $1.00 of raw usage at the NYK 2x markup, plus the $50 fee it is not paying.
+    assert_in_delta 52.0, inv.list_price_dollars, 0.01
+    assert_in_delta 0.10, inv.total_dollars, 0.01
+    assert_in_delta 51.90, inv.pilot_credit_dollars, 0.01
   end
 
   test "pilot credit never goes negative" do

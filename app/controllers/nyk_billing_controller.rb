@@ -7,9 +7,9 @@ class NykBillingController < ApplicationController
   before_action :require_site_admin, only: %i[update_rate update_pricing mark_invoice_paid]
 
   # Customer-view markup. NYK_BASE_FEE_DOLLARS + (raw cost × NYK_RAW_MULTIPLIER).
-  # Defaults match the current pricing thesis: $50/mo base + 3× raw.
+  # Defaults match the current pricing thesis: $50/mo base + 2× raw.
   DEFAULT_BASE_FEE   = 50.0
-  DEFAULT_MULTIPLIER = 3.0
+  DEFAULT_MULTIPLIER = Invoice::DEFAULT_MULTIPLIER
 
   def show
     now = Time.zone.now
