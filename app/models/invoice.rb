@@ -117,7 +117,21 @@ class Invoice < ApplicationRecord
     discount = (subtotal * discount_pc / 100.0).round(2)
     total    = (subtotal - discount).round(2)
 
-    line_items = build_line_items(by_source, smoke_count, smoke_cost)
+    # NYK-attributed AI work we absorb rather than bill (Echo's social
+    # listening, the admin dogfood agent). Frozen onto the invoice at $0 so the
+    # customer statement can show the full picture of what ran on their behalf,
+    # not just the billable slice.
+    unbilled = if nyk
+      AiCallLog.summary_by_source(
+        AiCallLog.where(created_at: range)
+                 .where("source LIKE ?", "nyk_%")
+                 .where.not(source: AiCallLog::NYK_SOURCES)
+      )
+    else
+      {}
+    end
+
+    line_items = build_line_items(by_source, smoke_count, smoke_cost, unbilled)
 
     create!(
       workspace:       workspace,
@@ -137,10 +151,13 @@ class Invoice < ApplicationRecord
     )
   end
 
-  # Frozen per-line breakdown: one row per AI feature, plus a smoke-test line.
+  # Frozen per-line breakdown: one row per AI feature, plus a smoke-test line,
+  # plus (NYK only) the AI work we ran on their behalf but absorb, at $0.
   # Costs are raw (pre-markup), matching the "AI usage" table on the billing
-  # page. Human labels mirror the billing view's source mapping.
-  def self.build_line_items(by_source, smoke_count, smoke_cost)
+  # page. Human labels mirror the billing view's source mapping. Rows carry
+  # "billed" => false when they are included at no charge; a row without the
+  # key predates it and is billed, so older invoices still read correctly.
+  def self.build_line_items(by_source, smoke_count, smoke_cost, unbilled = {})
     labels = {
       "nyk_enhance"        => "Enhance with AI button",
       "nyk_x_autopost"     => "Daily X autopost draft",
@@ -150,16 +167,53 @@ class Invoice < ApplicationRecord
       "nyk_recipe_generate" => "Recipe generation (AI)",
       "nyk_receipt_extract" => "Receipt scanning",
       "nyk_ask"            => "Super Agent chat",
+      "nyk_social_scout"   => "Echo social listening",
+      "nyk_agent"          => "Super Agent (our testing)",
       "workspace_ai_assist" => "Social Agent drafts"
     }
     items = by_source.sort_by { |_, v| -v[:cost_dollars] }.map do |source, v|
       { "label" => labels[source] || source, "calls" => v[:calls],
-        "cost_cents" => (v[:cost_dollars] * 100).round }
+        "cost_cents" => (v[:cost_dollars] * 100).round,
+        "cost_dollars" => v[:cost_dollars].round(6) }
     end
     if smoke_count.positive? || smoke_cost.positive?
       items << { "label" => "Browser smoke tests", "calls" => smoke_count,
-                 "cost_cents" => (smoke_cost * 100).round }
+                 "cost_cents" => (smoke_cost * 100).round,
+                 "cost_dollars" => smoke_cost.round(6) }
+    end
+    unbilled.sort_by { |_, v| -v[:calls] }.each do |source, v|
+      items << { "label" => labels[source] || source, "calls" => v[:calls],
+                 "cost_cents" => 0, "cost_dollars" => 0.0, "billed" => false }
     end
     items
+  end
+
+  # The line items the customer is actually charged for.
+  def billed_line_items
+    line_items.reject { |li| li["billed"] == false }
+  end
+
+  # Work we ran for them and absorbed (shown at no charge).
+  def unbilled_line_items
+    line_items.select { |li| li["billed"] == false }
+  end
+
+  # A line's metered cost. Prefers the full-precision figure written since the
+  # itemized statement landed, falling back to the rounded cents on older rows.
+  def self.line_cost_dollars(item)
+    item["cost_dollars"] || (item["cost_cents"].to_f / 100.0)
+  end
+
+  # Metered cost per run/use on a line, for the statement's "rate each" column.
+  def self.line_unit_dollars(item)
+    calls = item["calls"].to_i
+    return 0.0 if calls.zero?
+    line_cost_dollars(item) / calls
+  end
+
+  # What the billed lines add up to before the markup. Uses the frozen lines so
+  # the statement's column actually sums to the number printed under it.
+  def metered_usage_dollars
+    billed_line_items.sum { |li| self.class.line_cost_dollars(li) }.round(2)
   end
 end

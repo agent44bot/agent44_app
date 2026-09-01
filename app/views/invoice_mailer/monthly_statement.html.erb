@@ -11,16 +11,18 @@
   green="#1b6e3a"; line="#e8e1d6"; cream="#faf7f2"
 
   money = ->(n) { number_to_currency(n) }
+  # Metered amounts run to fractions of a cent, so sub-dollar lines keep four
+  # decimals. Rounding them to $0.00 would make the meter look made up.
+  meter = ->(n) { n.abs >= 1 ? number_to_currency(n) : number_to_currency(n, precision: 4) }
 
-  items    = inv.line_items
-  checks   = items.find { |li| li["label"] == "Browser smoke tests" }
-  ai_items = items.reject { |li| li["label"] == "Browser smoke tests" }
-  ai_calls = ai_items.sum { |li| li["calls"].to_i }
-
+  billed   = inv.billed_line_items
+  free     = inv.unbilled_line_items
   # Customer-facing names for the internal line labels. Anything unmapped falls
   # through unchanged, so a new billed feature still shows up.
   friendly = { "Browser smoke tests" => "Automated site checks" }
+  unit     = ->(li) { li["label"] == "Browser smoke tests" ? "runs" : "uses" }
 
+  metered      = inv.metered_usage_dollars
   budget_month = inv.average_list_price_dollars
   budget_year  = budget_month * 12
 %>
@@ -41,7 +43,7 @@
       </td></tr>
 
       <!-- Workspace + period -->
-      <tr><td style="padding:22px 30px 6px">
+      <tr><td style="padding:22px 30px 10px">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>;vertical-align:top">
             <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:4px">Workspace</div>
@@ -55,46 +57,65 @@
         </tr></table>
       </td></tr>
 
-      <!-- Activity hero -->
-      <tr><td style="padding:18px 30px 8px">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:<%= cream %>;border:1px solid <%= line %>;border-radius:10px"><tr>
-          <td style="padding:18px 22px;width:50%">
-            <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:<%= accent %>;font-weight:bold;margin-bottom:2px">Site checks run</div>
-            <div style="font-family:<%= serif %>;font-size:34px;font-weight:bold;color:<%= ink %>"><%= number_with_delimiter(checks ? checks["calls"].to_i : 0) %></div>
-          </td>
-          <td style="padding:18px 22px;width:50%;border-left:1px solid <%= line %>">
-            <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:<%= accent %>;font-weight:bold;margin-bottom:2px">AI actions</div>
-            <div style="font-family:<%= serif %>;font-size:34px;font-weight:bold;color:<%= ink %>"><%= number_with_delimiter(ai_calls) %></div>
-          </td>
-        </tr></table>
-      </td></tr>
-
-      <!-- What ran -->
-      <tr><td style="padding:16px 30px 4px">
-        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">What the fleet did</div>
+      <!-- Metered items -->
+      <tr><td style="padding:10px 30px 4px">
+        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">Everything that ran, metered</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px">
-          <% items.each do |li| %>
-            <% smoke = (li["label"] == "Browser smoke tests") %>
+          <tr>
+            <td style="padding:0 0 6px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:<%= faint %>">Item</td>
+            <td align="right" style="padding:0 0 6px 10px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:<%= faint %>">Volume</td>
+            <td align="right" style="padding:0 0 6px 10px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:<%= faint %>">Each</td>
+            <td align="right" style="padding:0 0 6px 10px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:<%= faint %>">Cost</td>
+          </tr>
+          <% billed.each do |li| %>
             <tr>
               <td style="padding:6px 0;color:<%= ink %>;border-bottom:1px solid <%= line %>"><%= friendly[li["label"]] || li["label"] %></td>
-              <td align="right" style="padding:6px 0 6px 16px;color:<%= mut %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap">
-                <%= number_with_delimiter(li["calls"].to_i) %> <%= smoke ? "runs" : "uses" %>
-              </td>
+              <td align="right" style="padding:6px 0 6px 10px;color:<%= mut %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap"><%= number_with_delimiter(li["calls"].to_i) %> <%= unit.(li) %></td>
+              <td align="right" style="padding:6px 0 6px 10px;color:<%= faint %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap"><%= meter.(Invoice.line_unit_dollars(li)) %></td>
+              <td align="right" style="padding:6px 0 6px 10px;color:<%= ink %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap"><%= meter.(Invoice.line_cost_dollars(li)) %></td>
             </tr>
           <% end %>
-          <% if items.empty? %>
-            <tr><td colspan="2" style="padding:8px 0;color:<%= faint %>;font-style:italic">No activity recorded this period.</td></tr>
+          <% if billed.empty? %>
+            <tr><td colspan="4" style="padding:8px 0;color:<%= faint %>;font-style:italic">No metered activity this period.</td></tr>
           <% end %>
+          <tr>
+            <td colspan="3" style="padding:8px 0;color:<%= ink %>;font-weight:bold">Metered total</td>
+            <td align="right" style="padding:8px 0 8px 10px;color:<%= ink %>;font-weight:bold;font-family:<%= mono %>;white-space:nowrap"><%= money.(metered) %></td>
+          </tr>
         </table>
       </td></tr>
 
-      <!-- Cost -->
-      <tr><td style="padding:18px 30px 6px">
-        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">What it cost</div>
+      <% if free.any? %>
+        <!-- Absorbed work -->
+        <tr><td style="padding:10px 30px 4px">
+          <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">Also ran for you, not charged</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px">
+            <% free.each do |li| %>
+              <tr>
+                <td style="padding:6px 0;color:<%= ink %>;border-bottom:1px solid <%= line %>"><%= friendly[li["label"]] || li["label"] %></td>
+                <td align="right" style="padding:6px 0 6px 10px;color:<%= mut %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap"><%= number_with_delimiter(li["calls"].to_i) %> calls</td>
+                <td align="right" style="padding:6px 0 6px 10px;color:<%= green %>;border-bottom:1px solid <%= line %>;font-family:<%= mono %>;font-size:12px;white-space:nowrap">No charge</td>
+              </tr>
+            <% end %>
+          </table>
+        </td></tr>
+      <% end %>
+
+      <!-- Pricing -->
+      <tr><td style="padding:16px 30px 6px">
+        <div style="font-family:<%= sans %>;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:<%= faint %>;font-weight:bold;margin-bottom:8px">How that prices out</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:<%= sans %>;font-size:13px;color:<%= mut %>">
           <tr>
-            <td style="padding:4px 0">At list price</td>
-            <td align="right" style="padding:4px 0;font-family:<%= mono %>"><%= money.(inv.list_price_dollars) %></td>
+            <td style="padding:4px 0">Metered total <%= money.(metered) %> &times; <%= inv.multiplier.to_i %></td>
+            <td align="right" style="padding:4px 0;font-family:<%= mono %>"><%= money.(inv.usage_cost_dollars * inv.multiplier) %></td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0">Platform fee</td>
+            <td align="right" style="padding:4px 0;font-family:<%= mono %>"><%= money.(inv.base_fee_configured_dollars) %></td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid <%= line %>;color:<%= ink %>">List price</td>
+            <td align="right" style="padding:6px 0;border-top:1px solid <%= line %>;color:<%= ink %>;font-family:<%= mono %>"><%= money.(inv.list_price_dollars) %></td>
           </tr>
           <tr>
             <td style="padding:4px 0;color:<%= green %>">Pilot credit</td>
@@ -122,9 +143,10 @@
       <!-- Footer -->
       <tr><td style="padding:16px 30px 26px">
         <div style="font-family:<%= sans %>;font-size:12px;color:<%= faint %>;line-height:1.5">
-          List price is a <%= number_to_currency(inv.base_fee_configured_dollars, precision: 0) %> monthly platform fee plus a
-          <%= inv.multiplier.to_i %>&times; margin on what the fleet costs to run (developer time, hardware,
-          and reserve capacity). Questions on any line, just reply to this email.
+          Metered cost is what the work costs to run (model calls, browser time). List price adds a
+          <%= number_to_currency(inv.base_fee_configured_dollars, precision: 0) %> monthly platform fee and a
+          <%= inv.multiplier.to_i %>&times; margin covering developer time, hardware, and reserve capacity.
+          Questions on any line, just reply to this email.
         </div>
         <div style="margin-top:14px">
           <a href="<%= host %>/<%= ws.slug %>/billing" style="font-family:<%= sans %>;font-size:13px;font-weight:bold;color:<%= accent %>;text-decoration:none">See the live meter &rarr;</a>
