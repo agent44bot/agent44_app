@@ -49,7 +49,8 @@ class MonthCloseInvoiceJob < ApplicationJob
   # Send the invoice email and stamp sent_at. Extracted so a one-off test send
   # (MonthCloseInvoiceJob.new.deliver(invoice)) hits the exact same content as
   # the scheduled run. Recipient is hardcoded to the test address in the mailer
-  # for now.
+  # for now, so re-sending the invoice only ever reaches us. The customer
+  # statement is different: see deliver_statement's once-per-invoice guard.
   def deliver(invoice)
     InvoiceMailer.monthly_invoice(invoice).deliver_now
     invoice.update!(sent_at: Time.current)
@@ -60,13 +61,20 @@ class MonthCloseInvoiceJob < ApplicationJob
   # Customer-facing usage statement. Sent after the invoice and deliberately in
   # its own begin/rescue: a bad customer address must not stop the run or lose
   # the invoice we already sent ourselves.
+  #
+  # Guarded by statement_sent_at, which is what makes a rerun safe. Invoice
+  # generation is idempotent at the row level, but that protects the books, not
+  # the customer's inbox: without this, a retry after a mid-loop failure (or a
+  # manual deliver() while testing) emails them the same month twice.
   def deliver_statement(invoice)
+    return if invoice.statement_sent_at.present?
     return if Setting.get(PAUSE_KEY).present?
 
     recipients = statement_recipients(invoice.workspace)
     return if recipients.empty?
 
     InvoiceMailer.monthly_statement(invoice, to: recipients, cc: STATEMENT_CC).deliver_now
+    invoice.update!(statement_sent_at: Time.current)
     Rails.logger.info("MonthCloseInvoiceJob: sent statement for invoice ##{invoice.id} to #{recipients.join(', ')}")
   rescue => e
     Rails.logger.error("MonthCloseInvoiceJob: statement for invoice ##{invoice.id} failed: #{e.class}: #{e.message}")

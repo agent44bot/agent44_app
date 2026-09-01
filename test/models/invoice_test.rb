@@ -135,12 +135,16 @@ class InvoiceTest < ActiveSupport::TestCase
     AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_enhance",
                       input_tokens: 1_000_000, output_tokens: 0,
                       created_at: Date.new(2026, 5, 10))
-    # Echo's listening and the admin dogfood agent: NYK-attributed, not billed.
+    # Echo's listening: run for them, absorbed by us, shown at $0.
     2.times do
       AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_social_scout",
                         input_tokens: 500_000, output_tokens: 0,
                         created_at: Date.new(2026, 5, 11))
     end
+    # Our own admin dogfood agent: not theirs, must not appear at all.
+    AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_agent",
+                      input_tokens: 900_000, output_tokens: 0,
+                      created_at: Date.new(2026, 5, 12))
 
     inv = Invoice.generate_for(@ws, Date.new(2026, 5, 1))
 
@@ -148,7 +152,8 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal [ "Enhance with AI button" ], billed
 
     free = inv.unbilled_line_items
-    assert_equal [ "Echo social listening" ], free.map { |li| li["label"] }
+    assert_equal [ "Echo social listening" ], free.map { |li| li["label"] },
+                 "nyk_agent is our admin dogfood traffic and must never reach the customer"
     assert_equal 2, free.first["calls"]
     assert_equal 0, free.first["cost_cents"]
 

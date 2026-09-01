@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_13_183930) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -306,6 +306,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_183930) do
     t.date "period_end", null: false
     t.date "period_start", null: false
     t.datetime "sent_at"
+    t.datetime "statement_sent_at"
     t.string "status", default: "unpaid", null: false
     t.integer "subtotal_cents", default: 0, null: false
     t.integer "total_cents", default: 0, null: false

@@ -20,6 +20,13 @@ class AiCallLog < ApplicationRecord
   # nyk_agent: it's the admin-only read-only AgenticAgent we run to dogfood, so
   # it's our cost, not the customer's.
   NYK_SOURCES = %w[nyk_enhance nyk_x_autopost nyk_team_report nyk_recipe_extract nyk_recipe_generate nyk_receipt_extract nyk_grocery_list nyk_ask].freeze
+  # NYK work we run on the customer's behalf and absorb: it appears on their
+  # statement at $0 so they can see what the fleet did for them, but it is
+  # never billed. An explicit list, NOT "every nyk_ source we don't bill":
+  # nyk_agent is our own admin dogfood traffic and must never be presented to
+  # the customer as work delivered to them.
+  ABSORBED_NYK_SOURCES = %w[nyk_social_scout].freeze
+
   # The Opus "kitchen prep" features (Sam the List agent): the consolidated
   # grocery list and recipe import/generation. All bill at the Opus rate.
   LIST_AGENT_SOURCES = %w[nyk_grocery_list nyk_recipe_extract nyk_recipe_generate].freeze

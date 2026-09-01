@@ -112,4 +112,29 @@ class MonthCloseInvoiceJobTest < ActiveSupport::TestCase
     end
     assert Invoice.exists?(workspace_id: other.id)
   end
+  test "a rerun does not email the customer the same month twice" do
+    MonthCloseInvoiceJob.new.perform(month: Date.new(2026, 5, 15))
+    inv = Invoice.last
+    assert_not_nil inv.statement_sent_at
+
+    # Same month again: the invoice row is reused and only our own copy resends.
+    ActionMailer::Base.deliveries.clear
+    assert_emails 1 do
+      MonthCloseInvoiceJob.new.perform(month: Date.new(2026, 5, 20))
+    end
+    assert_match(/invoice for/, ActionMailer::Base.deliveries.last.subject)
+  end
+
+  test "a statement that failed to send is retried on the next run" do
+    InvoiceMailer.stub(:monthly_statement, ->(*) { raise ArgumentError, "bad address" }) do
+      MonthCloseInvoiceJob.new.perform(month: Date.new(2026, 5, 15))
+    end
+    assert_nil Invoice.last.statement_sent_at, "a failed send must not stamp the invoice"
+
+    ActionMailer::Base.deliveries.clear
+    MonthCloseInvoiceJob.new.perform(month: Date.new(2026, 5, 20))
+    statement = ActionMailer::Base.deliveries.find { |m| m.subject.include?("usage summary") }
+    assert_not_nil statement
+    assert_not_nil Invoice.last.statement_sent_at
+  end
 end

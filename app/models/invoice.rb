@@ -117,15 +117,14 @@ class Invoice < ApplicationRecord
     discount = (subtotal * discount_pc / 100.0).round(2)
     total    = (subtotal - discount).round(2)
 
-    # NYK-attributed AI work we absorb rather than bill (Echo's social
-    # listening, the admin dogfood agent). Frozen onto the invoice at $0 so the
-    # customer statement can show the full picture of what ran on their behalf,
-    # not just the billable slice.
+    # NYK work we run for them and absorb (Echo's social listening). Frozen
+    # onto the invoice at $0 so the customer statement shows what the fleet did
+    # on their behalf, not just the billable slice. Scoped to the explicit
+    # ABSORBED_NYK_SOURCES list rather than "every unbilled nyk_ source", which
+    # would sweep in nyk_agent, our own admin dogfood traffic.
     unbilled = if nyk
       AiCallLog.summary_by_source(
-        AiCallLog.where(created_at: range)
-                 .where("source LIKE ?", "nyk_%")
-                 .where.not(source: AiCallLog::NYK_SOURCES)
+        AiCallLog.where(source: AiCallLog::ABSORBED_NYK_SOURCES, created_at: range)
       )
     else
       {}
@@ -168,7 +167,6 @@ class Invoice < ApplicationRecord
       "nyk_receipt_extract" => "Receipt scanning",
       "nyk_ask"            => "Super Agent chat",
       "nyk_social_scout"   => "Echo social listening",
-      "nyk_agent"          => "Super Agent (our testing)",
       "workspace_ai_assist" => "Social Agent drafts"
     }
     items = by_source.sort_by { |_, v| -v[:cost_dollars] }.map do |source, v|
