@@ -96,7 +96,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     refute_match(/Raw monthly cost/, response.body)
     refute_match(/No markup/, response.body)
     # Customer markup explainer is what's shown.
-    assert_match(/3.* margin/, response.body)
+    assert_match(/2× margin/, response.body)
   end
 
   test "?view=raw is ignored — still the customer view" do
@@ -104,7 +104,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
     get "/nykitchen/billing", params: { view: "raw" }
     assert_response :success
     refute_match(/No markup/, response.body)
-    assert_match(/3.* margin/, response.body)
+    assert_match(/2× margin/, response.body)
   end
 
   test "env override changes the customer total" do
@@ -115,7 +115,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
       get "/nykitchen/billing"
       assert_response :success
       assert_match(/\$100/, response.body)
-      assert_match(/5.* margin/, response.body)
+      assert_match(/5× margin/, response.body)
     ensure
       ENV.delete("NYK_BASE_FEE_DOLLARS")
       ENV.delete("NYK_RAW_MULTIPLIER")

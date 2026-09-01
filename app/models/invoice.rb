@@ -2,7 +2,7 @@ class Invoice < ApplicationRecord
   belongs_to :workspace
 
   STATUSES = %w[unpaid paid].freeze
-  DEFAULT_MULTIPLIER = 3.0
+  DEFAULT_MULTIPLIER = 2.0
   DEFAULT_BASE_FEE   = 50.0
 
   validates :period_start, :period_end, presence: true

@@ -8,7 +8,7 @@
     <h1 class="text-2xl font-bold text-white">Billing</h1>
   </div>
   <p class="text-sm text-gray-400 mb-6">
-    What NY Kitchen pays. Includes a $<%= sprintf("%.0f", @base_fee) %>/mo platform fee plus a <%= @raw_multiplier.to_i %>× margin on raw fleet cost (covers developer time, hardware, and reserve capacity).
+    What NY Kitchen pays. Includes a $<%= sprintf("%.0f", @base_fee) %>/mo platform fee plus a <%= Invoice.format_multiplier(@raw_multiplier) %>× margin on raw fleet cost (covers developer time, hardware, and reserve capacity).
   </p>
 
   <div class="rounded-lg bg-gray-900 border border-orange-700/40 p-5 mb-8">
@@ -16,7 +16,7 @@
     <p class="text-3xl font-bold text-white">$<%= sprintf("%.2f", @month_total) %></p>
     <div class="text-xs text-gray-400 mt-2 space-y-0.5">
       <div>Platform fee: <%= @base_fee_waived ? %(<span class="line-through text-gray-500">$#{sprintf('%.2f', @base_fee_configured)}</span> <span class="text-green-400 font-semibold">Waived</span>).html_safe : "$#{sprintf('%.2f', @base_fee)}" %></div>
-      <div>Usage: $<%= sprintf("%.2f", @raw_total) %> × <%= @raw_multiplier.to_i %> = $<%= sprintf("%.2f", @raw_total * @raw_multiplier) %></div>
+      <div>Usage: $<%= sprintf("%.2f", @raw_total) %> × <%= Invoice.format_multiplier(@raw_multiplier) %> = $<%= sprintf("%.2f", @raw_total * @raw_multiplier) %></div>
       <div>Subtotal: $<%= sprintf("%.2f", @customer_subtotal) %></div>
       <% if @discount_percent.positive? %>
         <div class="text-green-400">Discount (<%= @discount_percent.to_i %>% off): −$<%= sprintf("%.2f", @discount_amount) %></div>
