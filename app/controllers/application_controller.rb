@@ -11,6 +11,15 @@ class ApplicationController < ActionController::Base
 
   helper_method :impersonating?
 
+  # Bucket key for every `rate_limit` in the app. Rails defaults to
+  # request.remote_ip, but behind fly's edge proxy that is the proxy's own
+  # address for every visitor (see Trackable#client_ip), so one shared bucket
+  # counts the whole internet: the 7th person to ask for a sign-in code in 15
+  # minutes is turned away by the first six, and an API client gets a bare
+  # HTTP 429 because someone else spent the budget. Key on the real client
+  # address instead.
+  RATE_LIMIT_BY_CLIENT_IP = -> { client_ip }
+
   private
 
   # Convenience for views/controllers that need to know if the current

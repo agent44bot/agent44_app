@@ -8,8 +8,8 @@ module Api
 
       before_action :authenticate_api_token
 
-      # Rate limit: 100 requests per hour per IP
-      rate_limit to: 100, within: 1.hour, by: -> { request.remote_ip }, only: :users
+      # Rate limit: 100 requests per hour per client IP
+      rate_limit to: 100, within: 1.hour, by: RATE_LIMIT_BY_CLIENT_IP, only: :users
 
       def users
         total_users = User.count
