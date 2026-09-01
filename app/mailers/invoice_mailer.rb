@@ -13,4 +13,19 @@ class InvoiceMailer < ApplicationMailer
       subject: "#{@workspace.name} — invoice for #{invoice.period_label} · #{ActiveSupport::NumberHelper.number_to_currency(invoice.total_dollars)}"
     )
   end
+
+  # The customer-facing twin of monthly_invoice: same frozen invoice row, read
+  # as a usage statement rather than a bill. It leads with what the fleet did
+  # (site checks, AI actions), then prices the month at list and shows the
+  # pilot credit, because its job is to give the customer a number they can put
+  # in next year's budget. No "amount due", no payment ask.
+  def monthly_statement(invoice, to:, cc: nil)
+    @invoice   = invoice
+    @workspace = invoice.workspace
+    mail(
+      to: to,
+      cc: cc.presence,
+      subject: "#{@workspace.name}: Agent44 usage summary for #{invoice.period_label}"
+    )
+  end
 end

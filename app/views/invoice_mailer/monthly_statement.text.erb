@@ -1,0 +1,50 @@
+<% inv = @invoice; ws = @workspace
+   money = ->(n) { number_to_currency(n) }
+   meter = ->(n) { n.abs >= 1 ? number_to_currency(n) : number_to_currency(n, precision: 4) }
+   billed = inv.billed_line_items
+   free   = inv.unbilled_line_items
+   friendly = { "Browser smoke tests" => "Automated site checks" }
+   metered = inv.metered_usage_dollars
+   budget_month = inv.average_list_price_dollars -%>
+AGENT44 LABS: USAGE SUMMARY
+
+Workspace: <%= ws.name %>
+Period:    <%= inv.period_label %> (<%= inv.period_start.strftime("%b %-d") %> to <%= inv.period_end.strftime("%b %-d, %Y") %>)
+
+EVERYTHING THAT RAN, METERED
+<% billed.each do |li| -%>
+  - <%= friendly[li["label"]] || li["label"] %>: <%= number_with_delimiter(li["calls"].to_i) %> <%= li["label"] == "Browser smoke tests" ? "runs" : "uses" %> at <%= meter.(Invoice.line_unit_dollars(li)) %> each = <%= meter.(Invoice.line_cost_dollars(li)) %>
+<% end -%>
+<% if billed.empty? -%>
+  (no metered activity this period)
+<% end -%>
+  Metered total: <%= money.(metered) %>
+<% if free.any? -%>
+
+ALSO RAN FOR YOU, NOT CHARGED
+<% free.each do |li| -%>
+  - <%= friendly[li["label"]] || li["label"] %>: <%= number_with_delimiter(li["calls"].to_i) %> calls, no charge
+<% end -%>
+<% end -%>
+
+HOW THAT PRICES OUT
+Metered total <%= money.(metered) %> x <%= inv.multiplier_label %>: <%= money.(inv.usage_cost_dollars * inv.multiplier) %>
+Platform fee:      <%= money.(inv.base_fee_configured_dollars) %>
+List price:        <%= money.(inv.list_price_dollars) %>
+Pilot credit:     -<%= money.(inv.pilot_credit_dollars) %>
+You were charged:  <%= money.(inv.total_dollars) %>
+
+PLANNING AHEAD
+At this level of use, list price runs about <%= number_to_currency(budget_month, precision: 0) %> a month,
+roughly <%= number_to_currency(budget_month * 12, precision: 0) %> a year. The pilot credit covers most of that
+today, so this line is what to plan for if the fleet keeps running at
+the same level.
+
+Metered cost is what the work costs to run (model calls, browser time).
+List price adds a <%= number_to_currency(inv.base_fee_configured_dollars, precision: 0) %> monthly platform fee and a <%= inv.multiplier_label %>x margin covering
+developer time, hardware, and reserve capacity. Questions on any line,
+just reply to this email.
+
+See the live meter: https://agent44labs.com/<%= ws.slug %>/billing
+
+Agent44 Labs · agent44labs.com

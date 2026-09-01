@@ -88,7 +88,7 @@
             </td>
           </tr>
           <tr>
-            <td style="padding:4px 0">Usage <%= cents.(inv.usage_cost_cents) %> &times; <%= inv.multiplier.to_i %></td>
+            <td style="padding:4px 0">Usage <%= cents.(inv.usage_cost_cents) %> &times; <%= inv.multiplier_label %></td>
             <td align="right" style="padding:4px 0;font-family:<%= mono %>"><%= money.(inv.usage_cost_dollars * inv.multiplier) %></td>
           </tr>
           <tr>
@@ -111,7 +111,7 @@
       <!-- Footer -->
       <tr><td style="padding:18px 30px 26px">
         <div style="font-family:<%= sans %>;font-size:12px;color:<%= faint %>;line-height:1.5">
-          What NY Kitchen pays: a platform fee plus a <%= inv.multiplier.to_i %>&times; margin on raw fleet cost (covers developer time, hardware, and reserve capacity).
+          What NY Kitchen pays: a platform fee plus a <%= inv.multiplier_label %>&times; margin on raw fleet cost (covers developer time, hardware, and reserve capacity).
         </div>
         <div style="margin-top:14px">
           <a href="<%= host %>/nykitchen/billing" style="font-family:<%= sans %>;font-size:13px;font-weight:bold;color:<%= accent %>;text-decoration:none">View billing &rarr;</a>
