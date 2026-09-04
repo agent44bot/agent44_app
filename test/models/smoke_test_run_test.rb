@@ -22,6 +22,16 @@ class SmokeTestRunTest < ActiveSupport::TestCase
     assert run.cost_dollars.positive?, "cost should auto-compute from duration_ms"
   end
 
+  test "duration_label shows elapsed time for a running row" do
+    run = SmokeTestRun.new(name: "nyk_calendar_nav", status: "running", started_at: 90.seconds.ago)
+    assert_equal "1.5m…", run.duration_label
+  end
+
+  test "duration_label is a dash for a finished row with no duration" do
+    run = SmokeTestRun.new(name: "nyk_calendar_nav", status: "failed", started_at: 1.minute.ago)
+    assert_equal "—", run.duration_label
+  end
+
   test ".finished excludes running rows" do
     SmokeTestRun.where("name LIKE ?", "nyk_calendar_nav_scope%").destroy_all
     SmokeTestRun.create!(name: "nyk_calendar_nav_scope1", status: "passed",  started_at: 2.hours.ago, ended_at: 2.hours.ago + 30, duration_ms: 30_000)

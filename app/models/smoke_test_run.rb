@@ -56,9 +56,10 @@ class SmokeTestRun < ApplicationRecord
 
   # Friendly duration string for display
   def duration_label
-    return "—" unless duration_ms
-    secs = duration_ms / 1000.0
-    secs < 60 ? "#{secs.round(1)}s" : "#{(secs / 60).round(1)}m"
+    return "—" unless duration_ms || running?
+    secs = duration_ms ? duration_ms / 1000.0 : Time.current - started_at
+    label = secs < 60 ? "#{secs.round(1)}s" : "#{(secs / 60).round(1)}m"
+    running? ? "#{label}…" : label
   end
 
   # Pass/fail rollup for a named scope (:nyk_nav / :nyk_scrape) over a date
