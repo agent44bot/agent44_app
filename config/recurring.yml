@@ -121,6 +121,11 @@ production:
   notification_read_watch:
     class: NotificationReadWatchJob
     schedule: "*/5 * * * *"
+  # Monday 7am ET: owner-only status of the /admin/plan plans (progress, what
+  # was checked off last week, what is next). Added 2026-09-04.
+  plan_status_report:
+    class: PlanStatusReportJob
+    schedule: "0 7 * * 1"
   device_token_prune:
     class: DeviceTokenPruneJob
     schedule: every monday at 4:41am
