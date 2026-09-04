@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Catch-up dispatcher for the NYK smoke schedules on the Mac mini runner.
+
+  - RunAtLoad only, no calendar schedule: it fires once every time the agent44
+    LaunchAgent domain comes up, which means every boot and login.
+  - bin/nyk-smoke-catchup then asks GitHub when the scrape and nav tests last
+    ran and dispatches a run only for the ones already past their cadence, so a
+    routine login on a healthy mini is a no-op.
+  - Exists because the scrape/nav plists only fire inside a live GUI session.
+    An unclean reboot with nobody logged back in stops Scout cold: the mini
+    rebooted 2026-09-02 at 20:13 and missed four snapshots before the 07:22
+    login the next morning.
+  - When it does dispatch, it pings Telegram (level warning) so the outage
+    itself gets noticed rather than just quietly patched.
+
+  Install:
+    cp ops/launchd/com.agent44.smoke-nyk-catchup.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.agent44.smoke-nyk-catchup.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.agent44.smoke-nyk-catchup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/agent44/apps/agent44_app/bin/nyk-smoke-catchup</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/agent44</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/smoke-nyk-catchup.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/smoke-nyk-catchup.err.log</string>
+</dict>
+</plist>

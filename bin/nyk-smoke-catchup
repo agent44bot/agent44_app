@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Catch-up dispatcher for the NY Kitchen smoke schedules (Mac mini runner).
+#
+# Why this exists: the scrape and nav schedules are launchd
+# StartCalendarInterval jobs, and LaunchAgents only fire while the agent44 user
+# has a live GUI session. An unclean reboot with nobody logged back in stops
+# every scrape, silently, until a human logs in. On 2026-09-02 the mini
+# rebooted at 20:13 and Scout missed four snapshots (21:00, 00:00, 03:00,
+# 06:00) before the 07:22 login; the night before cost about the same.
+#
+# com.agent44.smoke-nyk-catchup runs this once per load (RunAtLoad), so it
+# fires on every boot and login. For each test it asks GitHub when that test
+# last ran and dispatches a run only when the gap is already past the test's
+# cadence, so logging into a healthy mini does not stack an extra run on top
+# of the normal schedule.
+#
+# Usage:
+#   bin/nyk-smoke-catchup                 # scrape + nav at their defaults
+#   bin/nyk-smoke-catchup scrape 210      # one test, staleness limit in minutes
+#
+# Env: GH_BIN overrides the gh path (default /opt/homebrew/bin/gh).
+
+set -uo pipefail
+
+GH="${GH_BIN:-/opt/homebrew/bin/gh}"
+REPO="agent44bot/agent44_app"
+WORKFLOW="smoke-nyk.yml"
+
+# test:minutes. Scrape runs every 3h, nav every 12h; each limit is its cadence
+# plus a little slack so a merely-late run does not read as a missed one.
+DEFAULT_TARGETS=("scrape:210" "nav:780")
+
+# Right after a reboot the network is often not up yet, so a single failed
+# lookup means "ask again", not "the schedule is dead".
+QUERY_ATTEMPTS=6
+QUERY_WAIT=20
+
+# API_TOKEN for the Telegram notification (optional).
+# shellcheck source=/dev/null
+[[ -f "$HOME/.agent44_smoke_env" ]] && source "$HOME/.agent44_smoke_env"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
+# Minutes since the last run of $1, on stdout. Returns 1 if GitHub stayed
+# unreachable, which we treat as "do not guess" rather than "dispatch".
+last_run_age_min() {
+  local test="$1" attempt created epoch
+
+  for (( attempt = 1; attempt <= QUERY_ATTEMPTS; attempt++ )); do
+    # The workflow's run-name is "NY Kitchen Smoke - <test>", so an endswith
+    # match on the test name keeps nav and nav_mobile apart.
+    created=$("$GH" run list --workflow="$WORKFLOW" -R "$REPO" --limit 100 \
+                --json createdAt,displayTitle \
+                -q "[.[] | select(.displayTitle | endswith(\" $test\"))] | .[0].createdAt" 2>/dev/null)
+
+    if [[ -n "$created" && "$created" != "null" ]]; then
+      epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$created" +%s 2>/dev/null) || return 1
+      echo $(( ( $(date +%s) - epoch ) / 60 ))
+      return 0
+    fi
+
+    (( attempt < QUERY_ATTEMPTS )) && sleep "$QUERY_WAIT"
+  done
+
+  return 1
+}
+
+# Tell Telegram the mini went dark, so a silent gap surfaces somewhere a human
+# looks. Best effort: never fail the catch-up over a failed notification.
+notify() {
+  local test="$1" age="$2" hours
+  [[ -n "${API_TOKEN:-}" ]] || return 0
+  hours=$(( age / 60 ))
+
+  curl -fsS -X POST \
+    -H "Authorization: Bearer $API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"source\":\"nyk_smoke_catchup\",\"title\":\"Catch-up smoke dispatched ($test)\",\"body\":\"The Mac mini's schedule was down for about ${hours}h (last $test run was $age minutes ago), so a catch-up run was dispatched on login. Check whether the mini rebooted.\",\"level\":\"warning\",\"telegram\":true}" \
+    "https://agent44-app.fly.dev/api/v1/notifications" >/dev/null || true
+}
+
+run_one() {
+  local test="$1" max_age="$2" age
+
+  if ! age=$(last_run_age_min "$test"); then
+    log "$test: could not read the last run from GitHub, skipping (schedule untouched)"
+    return 1
+  fi
+
+  if (( age >= max_age )); then
+    log "$test: last run $age min ago, over the $max_age min limit, dispatching a catch-up"
+    "$GH" workflow run "$WORKFLOW" --ref main -R "$REPO" -f test="$test" || {
+      log "$test: dispatch failed"
+      return 1
+    }
+    notify "$test" "$age"
+  else
+    log "$test: last run $age min ago, under the $max_age min limit, schedule looks healthy"
+  fi
+}
+
+# With no arguments, check every default target. With a test name, check just
+# that one, at its own default limit unless a second argument overrides it.
+targets=("${DEFAULT_TARGETS[@]}")
+if [[ $# -gt 0 ]]; then
+  limit="${2:-}"
+  if [[ -z "$limit" ]]; then
+    for target in "${DEFAULT_TARGETS[@]}"; do
+      [[ "${target%%:*}" == "$1" ]] && limit="${target##*:}"
+    done
+  fi
+  if [[ -z "$limit" ]]; then
+    echo "usage: $(basename "$0") [test] [staleness-minutes]" >&2
+    echo "no default limit for '$1'; pass one explicitly" >&2
+    exit 2
+  fi
+  targets=("$1:$limit")
+fi
+
+status=0
+for target in "${targets[@]}"; do
+  run_one "${target%%:*}" "${target##*:}" || status=1
+done
+exit "$status"
