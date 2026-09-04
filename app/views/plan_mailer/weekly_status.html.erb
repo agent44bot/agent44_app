@@ -1,0 +1,53 @@
+<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:560px;margin:auto;color:#222;background:#fafafa;padding:20px">
+  <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+    <h2 style="margin:0 0 4px 0;font-size:20px;color:#111">Your plans, week of <%= @week_end.strftime("%b %-d") %></h2>
+    <div style="color:#666;font-size:13px;margin-bottom:18px">
+      What moved between <%= @week_start.strftime("%b %-d") %> and <%= (@week_end - 1.day).strftime("%b %-d, %Y") %>, and what is next.
+    </div>
+
+    <% @plans.each do |plan| %>
+      <% done = @done_this_week[plan.slug] %>
+      <% remaining = plan.remaining %>
+      <div style="margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #eee">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div style="font-size:16px;font-weight:700;color:#111"><%= plan.title %></div>
+          <div style="font-size:13px;color:#666"><%= plan.completed %> of <%= plan.total %> done (<%= plan.percent %>%)</div>
+        </div>
+        <div style="height:6px;border-radius:3px;background:#eee;overflow:hidden;margin:8px 0 12px">
+          <div style="height:100%;width:<%= plan.percent %>%;background:#F26B1F"></div>
+        </div>
+
+        <% if plan.complete? %>
+          <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 12px;color:#065f46;font-size:13px">
+            All done. Nothing left on this plan.
+          </div>
+        <% else %>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:4px">Checked off this week</div>
+          <% if done.any? %>
+            <div style="font-size:13px;color:#444;line-height:1.7;margin-bottom:12px">
+              <% done.each do |s| %>
+                <div>&#10003; <%= s.title %> <span style="color:#999">(<%= s.done_at.strftime("%a %b %-d") %>)</span></div>
+              <% end %>
+            </div>
+          <% else %>
+            <div style="font-size:13px;color:#999;margin-bottom:12px">Nothing checked off this week.</div>
+          <% end %>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:4px">Next up</div>
+          <div style="font-size:13px;color:#444;line-height:1.7">
+            <% remaining.first(4).each do |s| %>
+              <div><span style="color:#F26B1F">&#9675;</span> <%= s.title %> <span style="color:#999">(<%= s.section %>)</span></div>
+            <% end %>
+            <% if remaining.size > 4 %><div style="color:#888">and <%= remaining.size - 4 %> more</div><% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <a href="<%= @plan_url %>" style="display:inline-block;background:#F26B1F;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 16px;border-radius:8px">Open the plans &rarr;</a>
+
+    <div style="margin-top:18px;font-size:12px;color:#999;line-height:1.5">
+      Sent every Monday morning. Check-offs are saved with a timestamp, so this report reflects exactly what you marked done.
+    </div>
+  </div>
+</div>
