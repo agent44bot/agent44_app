@@ -1,0 +1,15 @@
+<%# Pass/fail/in-flight badge for a SmokeTestRun row (Tests + Scrapes panels). %>
+<% if run.passed? %>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-900/50 text-green-400 text-xs font-semibold">
+    ✓ PASSED
+  </span>
+<% elsif run.running? %>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-900/50 text-sky-300 text-xs font-semibold">
+    <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+    RUNNING
+  </span>
+<% else %>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/50 text-red-400 text-xs font-semibold">
+    🚨 FAILED
+  </span>
+<% end %>

@@ -42,15 +42,7 @@
                     <span class="block sm:inline text-gray-500"><%= run.started_at.strftime("%-I:%M %p") %></span>
                   </td>
                   <td class="px-3 py-3 whitespace-nowrap sm:px-4">
-                    <% if run.passed? %>
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-900/50 text-green-400 text-xs font-semibold">
-                        ✓ PASSED
-                      </span>
-                    <% else %>
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/50 text-red-400 text-xs font-semibold">
-                        🚨 FAILED
-                      </span>
-                    <% end %>
+                    <%= render "admin/kitchen/run_status_badge", run: run %>
                   </td>
                   <td class="px-3 py-3 text-sm text-gray-400 whitespace-nowrap sm:px-4">
                     <%= run.duration_label %>
