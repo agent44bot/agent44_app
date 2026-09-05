@@ -56,7 +56,7 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.0"
+gem "image_processing", "~> 2.1"
 # Ruby binding for libvips (installed in the Docker image), the default Rails 8
 # Active Storage variant processor. Without it, avatar/logo variants raise
 # LoadError at render time and images show as broken.
