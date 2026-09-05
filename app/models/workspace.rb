@@ -20,6 +20,18 @@ class Workspace < ApplicationRecord
   has_many :ai_call_logs,      dependent: :nullify # keep usage history if a workspace is deleted
   has_many :connect_chat_messages, dependent: :destroy # connect-help Q&A transcripts
 
+  # Kitchen feature set (calendar scrapes, display, packets, grocery, cellar,
+  # smoke tests). Only workspaces with kitchen_enabled run it; NY Kitchen is
+  # the first. See KitchenTenant for how controllers resolve the tenant.
+  has_many :kitchen_snapshots,      dependent: :destroy
+  has_many :kitchen_manual_classes, dependent: :destroy
+  has_many :kitchen_packets,        dependent: :destroy
+  has_many :kitchen_packet_links,   dependent: :destroy
+  has_many :smoke_test_runs,        dependent: :nullify # keep the run ledger for billing history
+  has_many :grocery_receipts,       dependent: :destroy
+  has_many :ingredient_prices,      dependent: :destroy
+  has_many :inventory_items,        dependent: :destroy
+
   # Brand logo for the workspace (white-label: shown on the workspace's pages
   # in place of the generic mark). Stored on the persistent volume via
   # ActiveStorage (STORAGE_ROOT=/data/storage in prod).
@@ -45,6 +57,13 @@ class Workspace < ApplicationRecord
 
   scope :active,   -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
+  scope :kitchen,  -> { active.where(kitchen_enabled: true) }
+
+  # NY Kitchen's slug is baked into its public URLs (/nykitchen/*, QR codes,
+  # the display screen, iOS deep links), so it is the one slug the code may
+  # still name. Everything else resolves a tenant from the request.
+  NYK_SLUG = "nykitchen".freeze
+  def self.nykitchen = find_by(slug: NYK_SLUG)
 
   def archived?
     archived_at.present?

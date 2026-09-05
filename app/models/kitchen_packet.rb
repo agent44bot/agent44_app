@@ -23,6 +23,7 @@
 # in Ruby): the extractor proposes the station quantities and a human fixes
 # them in review, so ranges ("2-3 cloves") and "to taste" lines just work.
 class KitchenPacket < ApplicationRecord
+  include KitchenScoped
   has_many :links, class_name: "KitchenPacketLink", dependent: :destroy
   # The uploaded PDF source, kept only until ExtractRecipeJob consumes it.
   has_one_attached :source_document

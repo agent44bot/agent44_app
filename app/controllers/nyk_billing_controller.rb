@@ -2,6 +2,7 @@
 # NYK_BILLING_VISIBLE so we can stand it up internally before exposing
 # it to her — admins always see it regardless of the flag.
 class NykBillingController < ApplicationController
+  include KitchenTenant
   before_action :require_authentication
   before_action :require_visible
   before_action :require_site_admin, only: %i[update_rate update_pricing mark_invoice_paid]
@@ -14,7 +15,7 @@ class NykBillingController < ApplicationController
   def show
     now = Time.zone.now
     @month_start = now.beginning_of_month
-    @workspace = Workspace.find_by(slug: "nykitchen")
+    @workspace = current_workspace
     @test_rate = @workspace&.effective_test_rate || SmokeTestRun::COST_PER_MINUTE
 
     # Load this month's NYK logs once (newest first) and derive everything from
@@ -40,7 +41,7 @@ class NykBillingController < ApplicationController
     @ai_trend_max = @ai_trend.map { |m| m[:cost_dollars] }.max.to_f
 
     # One aggregate query for the month's smoke runs (count + minutes + cost).
-    smoke = SmokeTestRun.nyk.where("started_at >= ?", @month_start)
+    smoke = current_workspace.smoke_test_runs.nyk.where("started_at >= ?", @month_start)
                         .pick(Arel.sql("COUNT(*), COALESCE(SUM(duration_ms), 0), COALESCE(SUM(cost_dollars), 0)"))
     @smoke_count   = smoke[0].to_i
     @smoke_minutes = (smoke[1].to_f / 60_000.0).round
@@ -112,13 +113,13 @@ class NykBillingController < ApplicationController
   # Site-admin only: set this workspace's $/min test-run rate, then re-price all
   # of its existing smoke runs so billing + the agent salaries reflect it at once.
   def update_rate
-    ws = Workspace.find_by(slug: "nykitchen")
+    ws = current_workspace
     rate = params[:test_cost_per_minute].to_f
     return redirect_to(nyk_billing_path, alert: "Enter a positive rate.") if ws.nil? || rate <= 0
 
     ws.update!(test_cost_per_minute: rate)
     repriced = 0
-    SmokeTestRun.nyk.where.not(duration_ms: nil).find_each do |r|
+    current_workspace.smoke_test_runs.nyk.where.not(duration_ms: nil).find_each do |r|
       r.update_columns(cost_dollars: ((r.duration_ms / 60_000.0) * rate).round(6))
       repriced += 1
     end
@@ -128,7 +129,7 @@ class NykBillingController < ApplicationController
   # Site-admin only: the customer-facing pricing knobs (flat fee, waive, discount).
   # Display-only — no run re-pricing needed.
   def update_pricing
-    ws = Workspace.find_by(slug: "nykitchen")
+    ws = current_workspace
     return redirect_to(nyk_billing_path, alert: "Workspace not found.") unless ws
     ws.update!(
       base_fee_dollars: params[:base_fee_dollars].presence&.to_f,
@@ -147,7 +148,7 @@ class NykBillingController < ApplicationController
 
   def require_visible
     return if Current.user&.admin? # site admin always
-    ws = Workspace.find_by(slug: "nykitchen")
+    ws = current_workspace
     return if ws&.manager?(Current.user) # NYK workspace owner/admin (e.g. Lora)
     redirect_to "/nykitchen", alert: "Not available."
   end

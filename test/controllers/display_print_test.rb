@@ -4,6 +4,7 @@ class DisplayPrintTest < ActionDispatch::IntegrationTest
   BROWSER = { "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/149.0.0.0 Safari/537.36" }.freeze
 
   setup do
+    nyk_workspace!
     @snapshot = KitchenSnapshot.create!(taken_on: Date.current)
   end
 

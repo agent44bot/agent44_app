@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_130000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -205,7 +205,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.datetime "updated_at", null: false
     t.date "week_end"
     t.date "week_start"
+    t.integer "workspace_id"
     t.index ["created_by_id"], name: "index_grocery_receipts_on_created_by_id"
+    t.index ["workspace_id"], name: "index_grocery_receipts_on_workspace_id"
   end
 
   create_table "hidden_jobs", force: :cascade do |t|
@@ -239,8 +241,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.string "unit"
     t.integer "unit_price_cents", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id"
     t.index ["canonical_name", "observed_on"], name: "index_ingredient_prices_on_canonical_name_and_observed_on"
     t.index ["grocery_receipt_id"], name: "index_ingredient_prices_on_grocery_receipt_id"
+    t.index ["workspace_id"], name: "index_ingredient_prices_on_workspace_id"
   end
 
   create_table "inventory_captures", force: :cascade do |t|
@@ -273,8 +277,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.datetime "updated_at", null: false
     t.string "vendor"
     t.string "vintage"
+    t.integer "workspace_id"
     t.index ["barcode"], name: "index_inventory_items_on_barcode", unique: true
     t.index ["case_barcode"], name: "index_inventory_items_on_case_barcode", unique: true
+    t.index ["workspace_id"], name: "index_inventory_items_on_workspace_id"
   end
 
   create_table "inventory_movements", force: :cascade do |t|
@@ -417,8 +423,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.datetime "start_at", null: false
     t.datetime "updated_at", null: false
     t.string "venue"
+    t.integer "workspace_id"
     t.index ["created_by_id"], name: "index_kitchen_manual_classes_on_created_by_id"
     t.index ["start_at"], name: "index_kitchen_manual_classes_on_start_at"
+    t.index ["workspace_id"], name: "index_kitchen_manual_classes_on_workspace_id"
   end
 
   create_table "kitchen_packet_links", force: :cascade do |t|
@@ -427,8 +435,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.string "event_url", null: false
     t.integer "kitchen_packet_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["event_url"], name: "index_kitchen_packet_links_on_event_url", unique: true
+    t.integer "workspace_id"
     t.index ["kitchen_packet_id"], name: "index_kitchen_packet_links_on_kitchen_packet_id"
+    t.index ["workspace_id", "event_url"], name: "index_kitchen_packet_links_on_workspace_id_and_event_url", unique: true
+    t.index ["workspace_id"], name: "index_kitchen_packet_links_on_workspace_id"
   end
 
   create_table "kitchen_packets", force: :cascade do |t|
@@ -444,13 +454,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.string "status", default: "ready", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id"
+    t.index ["workspace_id"], name: "index_kitchen_packets_on_workspace_id"
   end
 
   create_table "kitchen_snapshots", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.date "taken_on", null: false
     t.datetime "updated_at", null: false
-    t.index ["taken_on"], name: "index_kitchen_snapshots_on_taken_on", unique: true
+    t.integer "workspace_id"
+    t.index ["workspace_id", "taken_on"], name: "index_kitchen_snapshots_on_workspace_id_and_taken_on", unique: true
+    t.index ["workspace_id"], name: "index_kitchen_snapshots_on_workspace_id"
   end
 
   create_table "kitchen_ticket_digests", force: :cascade do |t|
@@ -634,8 +648,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.string "status", null: false
     t.text "summary"
     t.datetime "updated_at", null: false
+    t.integer "workspace_id"
     t.index ["name", "started_at"], name: "index_smoke_test_runs_on_name_and_started_at"
     t.index ["started_at"], name: "index_smoke_test_runs_on_started_at"
+    t.index ["workspace_id"], name: "index_smoke_test_runs_on_workspace_id"
   end
 
   create_table "social_accounts", force: :cascade do |t|
@@ -881,6 +897,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
     t.text "description"
     t.decimal "discount_percent", precision: 5, scale: 2, default: "0.0"
     t.integer "flyer_unit_cents"
+    t.boolean "kitchen_enabled", default: false, null: false
     t.string "name", null: false
     t.integer "owner_id", null: false
     t.boolean "pricing_visible_to_members", default: false, null: false
@@ -908,12 +925,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
   add_foreign_key "device_tokens", "users"
   add_foreign_key "fleet_requests", "users"
   add_foreign_key "grocery_receipts", "users", column: "created_by_id"
+  add_foreign_key "grocery_receipts", "workspaces"
   add_foreign_key "hidden_jobs", "jobs"
   add_foreign_key "hidden_jobs", "users"
   add_foreign_key "impersonation_logs", "users", column: "actor_id"
   add_foreign_key "impersonation_logs", "users", column: "target_id"
   add_foreign_key "ingredient_prices", "grocery_receipts"
+  add_foreign_key "ingredient_prices", "workspaces"
   add_foreign_key "inventory_captures", "users", on_delete: :nullify
+  add_foreign_key "inventory_items", "workspaces"
   add_foreign_key "inventory_movements", "inventory_items", on_delete: :cascade
   add_foreign_key "inventory_movements", "users", on_delete: :nullify
   add_foreign_key "invoices", "workspaces"
@@ -921,7 +941,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
   add_foreign_key "job_sources", "jobs"
   add_foreign_key "kitchen_events", "kitchen_snapshots"
   add_foreign_key "kitchen_manual_classes", "users", column: "created_by_id"
+  add_foreign_key "kitchen_manual_classes", "workspaces"
   add_foreign_key "kitchen_packet_links", "kitchen_packets"
+  add_foreign_key "kitchen_packet_links", "workspaces"
+  add_foreign_key "kitchen_packets", "workspaces"
+  add_foreign_key "kitchen_snapshots", "workspaces"
   add_foreign_key "kitchen_ticket_digests", "kitchen_snapshots"
   add_foreign_key "link_scans", "tracked_links"
   add_foreign_key "notifications", "users"
@@ -931,6 +955,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_132913) do
   add_foreign_key "saved_jobs", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "sessions", "users", column: "impersonated_user_id"
+  add_foreign_key "smoke_test_runs", "workspaces"
   add_foreign_key "social_accounts", "users", column: "connected_by_id"
   add_foreign_key "social_accounts", "workspaces"
   add_foreign_key "social_leads", "workspaces"

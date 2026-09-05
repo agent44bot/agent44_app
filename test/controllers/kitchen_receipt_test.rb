@@ -21,6 +21,7 @@ class KitchenReceiptTest < ActionDispatch::IntegrationTest
 
   setup do
     @user = User.create!(email_address: "receipt-#{SecureRandom.hex(4)}@example.com", role: "admin")
+    nyk_workspace!(owner: @user)
     sign_in_as(@user)
   end
 

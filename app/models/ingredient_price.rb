@@ -3,6 +3,7 @@
 # week-over-week the estimates stop being guesses and start being real.
 class IngredientPrice < ApplicationRecord
   belongs_to :grocery_receipt, optional: true
+  include KitchenScoped
 
   validates :canonical_name, presence: true
   validates :unit_price_cents, presence: true, numericality: { greater_than_or_equal_to: 0 }

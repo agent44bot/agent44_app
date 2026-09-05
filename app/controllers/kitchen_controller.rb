@@ -1,4 +1,5 @@
 class KitchenController < ApplicationController
+  include KitchenTenant
   # Only the hub is publicly viewable — anonymous visitors can preview the
   # NY Kitchen agents fleet (so Lora can share /nykitchen with her boss),
   # but every card click requires sign-in/sign-up. The four agent pages
@@ -38,17 +39,17 @@ class KitchenController < ApplicationController
     # team knows if flyer scans are failing to reach nykitchen.com.
     @qr_health_alert = qr_health_alert_for(Current.user)
     @daily_prompt = morning_prompt_for(Current.user)
-    @nyk_workspace = nyk_workspace_for(Current.user)
+    @nyk_workspace = current_workspace.member?(Current.user) ? current_workspace : nil
     # Cost-info dialogs on the agent cards: managers (owner/admin) see the (i)
     # icon + formula dialog; only an owner may edit the flyer rate inside it.
-    pricing_ws           = @nyk_workspace || Workspace.find_by(slug: "nykitchen")
+    pricing_ws           = current_workspace
     @nyk_is_manager      = pricing_ws&.manager?(Current.user) || false
     @nyk_can_edit_rate   = pricing_ws&.owner?(Current.user) || false
     @nyk_flyer_unit_cents = pricing_ws&.effective_flyer_unit_cents || UsageEvent::FLYER_UNIT_CENTS
     # Cellar (storage-room inventory) card stats — live bottle count + low flags.
-    inv_on_hand = InventoryItem.on_hand_by_item
+    inv_on_hand = current_workspace.inventory_items.on_hand_by_item
     @hub_inventory_units = inv_on_hand.values.sum
-    @hub_inventory_low   = InventoryItem.where.not(par_level: nil).count { |i| i.low_stock?(inv_on_hand[i.id].to_i) }
+    @hub_inventory_low   = current_workspace.inventory_items.where.not(par_level: nil).count { |i| i.low_stock?(inv_on_hand[i.id].to_i) }
     # Per-agent "salary" (this month's tokens + cost). Owner/admin only.
     @hub_salary = hub_salary_by_agent if @can_see_pricing
     # Fixed CSS-order layout for the agent cards (Sam, Echo, Neon lead).
@@ -62,17 +63,17 @@ class KitchenController < ApplicationController
   def list
     @sendable_workspaces = sendable_workspaces_for(Current.user)
     # Recipe packet per class (keyed by event URL) for the card row action.
-    @packets_by_url = KitchenPacketLink.pluck(:event_url, :kitchen_packet_id).to_h
-    packets_by_id = KitchenPacket.where(id: @packets_by_url.values).index_by(&:id)
+    @packets_by_url = current_workspace.kitchen_packet_links.pluck(:event_url, :kitchen_packet_id).to_h
+    packets_by_id = current_workspace.kitchen_packets.where(id: @packets_by_url.values).index_by(&:id)
     @packet_search_text_by_url = @packets_by_url.transform_values do |packet_id|
       packets_by_id[packet_id]&.search_text.to_s
     end
     # URLs whose packet was auto-attached (by class-name match) so the card can
     # badge them and Lora knows the system, not she, linked it.
-    @auto_packet_urls = KitchenPacketLink.where(auto: true).pluck(:event_url).to_set
+    @auto_packet_urls = current_workspace.kitchen_packet_links.where(auto: true).pluck(:event_url).to_set
     # Latest uploaded grocery receipt per week (keyed by week_start) so each
     # expanded week can show whether a receipt is in / being read.
-    @receipt_by_week_start = GroceryReceipt.recent_first.where.not(week_start: nil)
+    @receipt_by_week_start = current_workspace.grocery_receipts.recent_first.where.not(week_start: nil)
                                            .group_by(&:week_start).transform_values(&:first)
     load_events_data
     # QR scan count per class (keyed by event URL) so each row can badge how
@@ -265,7 +266,7 @@ class KitchenController < ApplicationController
       return redirect_to(nyk_list_path, alert: "That file is too large (max 15 MB).")
     end
 
-    receipt = GroceryReceipt.create!(week_start: from, week_end: to, purchased_on: Date.current,
+    receipt = current_workspace.grocery_receipts.create!(week_start: from, week_end: to, purchased_on: Date.current,
                                      created_by: Current.user, status: "pending")
     receipt.image.attach(file)
     GroceryReceiptExtractionJob.perform_later(receipt.id)
@@ -289,7 +290,7 @@ class KitchenController < ApplicationController
       return redirect_to(nyk_list_path, alert: "That date/time didn't look right. Try again.")
     end
 
-    KitchenManualClass.create!(
+    current_workspace.kitchen_manual_classes.create!(
       name: name, start_at: start_at, end_at: end_at,
       price: params[:price].presence, notes: params[:notes].presence,
       venue: params[:venue].presence, created_by: Current.user
@@ -300,11 +301,11 @@ class KitchenController < ApplicationController
   end
 
   def destroy_manual_class
-    mc = KitchenManualClass.find_by(id: params[:id])
+    mc = current_workspace.kitchen_manual_classes.find_by(id: params[:id])
     if mc
       # Unlink its recipe packet so a later camp that reuses this row id can't
       # inherit it (the packet itself stays, reusable via search).
-      KitchenPacketLink.where(event_url: mc.packet_url).destroy_all
+      current_workspace.kitchen_packet_links.where(event_url: mc.packet_url).destroy_all
       mc.destroy
     end
     redirect_to nyk_list_path, notice: "Removed from the schedule."
@@ -314,12 +315,12 @@ class KitchenController < ApplicationController
   # feeds future grocery estimates. Editable so Lora can fix a misread or drop a
   # junk line (a bottle deposit, a fee).
   def prices
-    @prices = IngredientPrice.recent_by_name.values.sort_by(&:canonical_name)
+    @prices = current_workspace.ingredient_prices.recent_by_name.values.sort_by(&:canonical_name)
     render "admin/kitchen/prices", layout: "application"
   end
 
   def update_price
-    price = IngredientPrice.find(params[:id])
+    price = current_workspace.ingredient_prices.find(params[:id])
     attrs = { unit: params[:unit].to_s.strip.presence }
     if params[:unit_price_dollars].present?
       cents = begin
@@ -334,7 +335,7 @@ class KitchenController < ApplicationController
   end
 
   def destroy_price
-    price = IngredientPrice.find(params[:id])
+    price = current_workspace.ingredient_prices.find(params[:id])
     price.destroy
     redirect_to nyk_prices_path, notice: "Removed #{price.canonical_name}."
   end
@@ -376,7 +377,7 @@ class KitchenController < ApplicationController
   # a shareable internal URL for reviewing the report before it goes out.
   def report_preview
     head :not_found and return unless Current.user&.admin?
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     head :not_found and return unless snapshot
     # Preview skips Carson's AI intro so repeatedly viewing the report doesn't
     # burn Claude tokens; only the real Monday/Friday send pays for it.
@@ -393,7 +394,7 @@ class KitchenController < ApplicationController
   # Uses the exact builder + template as the scheduled send. Logged as a metered
   # UsageEvent (we record now, decide billing later).
   def generate_report
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     redirect_to(nyk_analyst_path, alert: "No snapshot yet, so there's nothing to report.") and return unless snapshot
 
     summary = WeeklySalesEmailJob.build_summary(snapshot)
@@ -455,7 +456,7 @@ class KitchenController < ApplicationController
 
     # Only offer a retrospective range once it has data (we have ~6 weeks of
     # history, so quarter/year stay hidden until they fill in).
-    avail_back = back.select { |_k, w| KitchenSnapshot.any_classes_between?(w[:from], w[:to]) }
+    avail_back = back.select { |_k, w| current_workspace.kitchen_snapshots.any_classes_between?(w[:from], w[:to]) }
 
     @range = params[:range].to_s
     unless forward.key?(@range) || avail_back.key?(@range) || daily.key?(@range)
@@ -473,12 +474,12 @@ class KitchenController < ApplicationController
       d = daily[@range]
       @range_label = d[:label]
       @day_date    = d[:date]
-      @day_booking = KitchenSnapshot.bookings_daily_total(d[:date], d[:date])
+      @day_booking = current_workspace.kitchen_snapshots.bookings_daily_total(d[:date], d[:date])
       priced = [] # day ranges use the booking total, not the capacity rollup
     elsif @retrospective
       w = back[@range]
       @range_label = w[:label]
-      priced = KitchenSnapshot.classes_ended_between(w[:from], w[:to]).select(&:capacity_known?)
+      priced = current_workspace.kitchen_snapshots.classes_ended_between(w[:from], w[:to]).select(&:capacity_known?)
     else
       w = forward[@range]
       @range_label = w[:label]
@@ -503,16 +504,16 @@ class KitchenController < ApplicationController
     # Recent booking momentum — tickets actually sold yesterday and today,
     # independent of the selected range. Same observed-sales basis as the weekly
     # chart (bookings_daily_total), so it reconciles with "Booked this week".
-    @today_bookings     = KitchenSnapshot.bookings_daily_total(today, today)
-    @yesterday_bookings = KitchenSnapshot.bookings_daily_total(today - 1, today - 1)
+    @today_bookings     = current_workspace.kitchen_snapshots.bookings_daily_total(today, today)
+    @yesterday_bookings = current_workspace.kitchen_snapshots.bookings_daily_total(today - 1, today - 1)
 
     # Pace/at-risk leaderboards make no sense for a past window or a single day
     # — forward only. (Overrides the unscoped values load_events_data set.)
     # Day ranges also never define in_window, so this guard avoids a NameError.
     @top_sellers = @needs_a_push = []
-    if !@retrospective && !@daily_view && (snap = KitchenSnapshot.latest)
-      @top_sellers  = KitchenSnapshot.selling_fastest(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
-      @needs_a_push = KitchenSnapshot.needs_a_push(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
+    if !@retrospective && !@daily_view && (snap = current_workspace.kitchen_snapshots.latest)
+      @top_sellers  = current_workspace.kitchen_snapshots.selling_fastest(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
+      @needs_a_push = current_workspace.kitchen_snapshots.needs_a_push(snapshot: snap, limit: 40).select { |r| in_window.call(r[:event]) }.first(5)
     end
 
     render "admin/kitchen/analyst", layout: "application"
@@ -522,7 +523,7 @@ class KitchenController < ApplicationController
   # subscriber user IDs on the Analyst agent; the job resolves them to emails
   # at send time (so an email change carries over automatically).
   def update_analyst_subscription
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     user = Current.user
     return redirect_to(nyk_analyst_path, alert: "Sign in to subscribe.") unless workspace && user
     if user.email_address.blank?
@@ -541,7 +542,7 @@ class KitchenController < ApplicationController
   # holds the conversation in-browser; each turn POSTs the full history to
   # #ask_message, which calls KitchenAi::AskAgent.
   def ask
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     @last_snapshot_taken_on = snapshot&.taken_on
     ask_agent = @nyk_workspace&.agent_for("ask")
     custom = Array(ask_agent&.setting(:chip_prompts)).compact_blank
@@ -552,7 +553,7 @@ class KitchenController < ApplicationController
   end
 
   def update_ask_examples
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
       redirect_to nyk_ask_path, alert: "Only workspace admins can edit examples." and return
     end
@@ -603,14 +604,14 @@ class KitchenController < ApplicationController
        params[:token].to_s != @agent.setting(:share_token).to_s
       head :not_found and return
     end
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     # Skip sold-out and private events (we don't promote private bookings on the
     # walk-in screen, same as the printed flyer).
     available = snapshot ? snapshot.kitchen_events.upcoming.reject { |e| e.sold_out? || e.private_event? } : []
     @events = available.first(@agent.setting(:slide_count).to_i)
     @available_total = available.size
     @last_updated = snapshot&.taken_on
-    @display_workspace = Workspace.find_by(slug: "nykitchen")
+    @display_workspace = current_workspace
     # Board layout shows several classes per screen (snapshot-proof); carousel
     # shows one at a time. Both share the same @events and heartbeat.
     template = @agent.setting(:layout) == "board" ? "display_board" : "display"
@@ -620,7 +621,7 @@ class KitchenController < ApplicationController
   # Display Agent settings: configuration form + share URL + preview.
   def display_settings
     @agent = nyk_display_agent
-    @workspace = Workspace.find_by(slug: "nykitchen")
+    @workspace = current_workspace
     @my_workspace_role = @workspace&.role_for(Current.user)
     @workspace_agents = WorkspaceAgent::KINDS.index_with { |k| @workspace&.agent_for(k) }
     load_qr_scan_report if @workspace&.member?(Current.user)
@@ -628,7 +629,7 @@ class KitchenController < ApplicationController
   end
 
   def update_display_settings
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     unless workspace && %w[owner admin editor].include?(workspace.role_for(Current.user))
       redirect_to nyk_display_settings_path, alert: "Viewers can't change Display settings. Ask a workspace owner or admin for editor access." and return
     end
@@ -657,7 +658,7 @@ class KitchenController < ApplicationController
   # Change the per-workspace flyer print/scan rate from Neon's cost info dialog.
   # Owner-only (site admins included); managers see the dialog but can't POST here.
   def update_flyer_rate
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     unless workspace&.owner?(Current.user)
       redirect_to nykitchen_path, alert: "Only the workspace owner can change the flyer rate." and return
     end
@@ -681,8 +682,8 @@ class KitchenController < ApplicationController
   # the TV's slide_count, which only limits the rotating on-screen carousel.
   def display_print
     @agent = nyk_display_agent
-    @display_workspace = Workspace.find_by(slug: "nykitchen")
-    snapshot = KitchenSnapshot.latest
+    @display_workspace = current_workspace
+    snapshot = current_workspace.kitchen_snapshots.latest
     @variant = params[:variant] == "stall" ? "stall" : "flyer"
     @per_page = 9 # flyer: forces a clean 9-front / 9-back page break
     default_limit = @variant == "stall" ? 6 : 18
@@ -737,7 +738,7 @@ class KitchenController < ApplicationController
     Setting.increment("nyk_flyer_prints:total")
     Setting.increment("nyk_flyer_prints:#{variant}")
     Setting.touch_time("nyk_flyer_prints:last_at") # CarsonNudgeJob no_flyers trigger
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     if workspace
       UsageEvent.record!(workspace: workspace, user: Current.user,
                          kind: UsageEvent::FLYER_PRINT,
@@ -813,7 +814,7 @@ class KitchenController < ApplicationController
       # Monetize the scan, billed to the link's workspace (public endpoint, so no
       # user). Flyer scans bill; display-screen scans are tracked only, never
       # billed (Chris's TV shouldn't run up NYK's tab).
-      scan_ws = link.workspace || Workspace.find_by(slug: "nykitchen")
+      scan_ws = link.workspace || current_workspace
       if scan_ws && source != "display"
         UsageEvent.record!(workspace: scan_ws, kind: UsageEvent::FLYER_SCAN,
                            unit_cents: scan_ws.effective_flyer_unit_cents,
@@ -825,7 +826,7 @@ class KitchenController < ApplicationController
   end
 
   def rotate_display_token
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     unless workspace && %w[owner admin].include?(workspace.role_for(Current.user))
       redirect_to nyk_display_settings_path, alert: "Only workspace admins can rotate the token." and return
     end
@@ -864,7 +865,7 @@ class KitchenController < ApplicationController
     unless WorkspaceAgent::KINDS.include?(kind)
       redirect_to nykitchen_path, alert: "Unknown agent." and return
     end
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     role = workspace&.role_for(Current.user)
     unless workspace && %w[owner admin].include?(role)
       redirect_to nykitchen_path, alert: "Only workspace admins can rename agents." and return
@@ -887,7 +888,7 @@ class KitchenController < ApplicationController
     unless WorkspaceAgent::KINDS.include?(kind)
       redirect_to nykitchen_path, alert: "Unknown agent." and return
     end
-    workspace = Workspace.find_by(slug: "nykitchen")
+    workspace = current_workspace
     role = workspace&.role_for(Current.user)
     unless workspace && %w[owner admin].include?(role)
       redirect_to nykitchen_path, alert: "Only workspace admins can change agent photos." and return
@@ -916,18 +917,18 @@ class KitchenController < ApplicationController
   def digest
     @digest = KitchenTicketDigest.find(params[:id])
     @snapshot = @digest.kitchen_snapshot
-    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.user) || false
+    @can_see_pricing = current_workspace&.pricing_visible_for?(Current.user) || false
     render layout: "application"
   end
 
   def download_smoke_page_source
-    run = SmokeTestRun.find(params[:id])
+    run = current_workspace.smoke_test_runs.find(params[:id])
     return head :not_found unless run.page_source.attached?
     redirect_to rails_blob_url(run.page_source, disposition: "attachment"), allow_other_host: true
   end
 
   def download_smoke_trace
-    run = SmokeTestRun.find(params[:id])
+    run = current_workspace.smoke_test_runs.find(params[:id])
     return head :not_found unless run.trace.attached?
     redirect_to rails_blob_url(run.trace, disposition: "attachment"), allow_other_host: true
   end
@@ -936,7 +937,7 @@ class KitchenController < ApplicationController
   # outside developer. Bundles the error/console/steps with signed artifact
   # links (mailer). Logged as a metered UsageEvent. Manager-gated.
   def send_smoke_report
-    run = SmokeTestRun.find(params[:id])
+    run = current_workspace.smoke_test_runs.find(params[:id])
     email = params[:email].to_s.strip
     unless email.match?(URI::MailTo::EMAIL_REGEXP)
       redirect_to(nyk_test_path(status: "failed"), alert: "Enter a valid email address.") and return
@@ -1208,7 +1209,7 @@ class KitchenController < ApplicationController
   # flag). Managers only, so Lora's team sees it; nil when healthy.
   def qr_health_alert_for(user)
     return nil unless Setting.time(NykQrHealthCheckJob::FAILED_AT)
-    ws = @nyk_workspace || Workspace.find_by(slug: "nykitchen")
+    ws = current_workspace
     return nil unless user&.admin? || ws&.member?(user)
     Setting.get(NykQrHealthCheckJob::MESSAGE).presence ||
       "Flyer QR scans may not be reaching nykitchen.com."
@@ -1246,7 +1247,7 @@ class KitchenController < ApplicationController
       { tokens: r[:total_tokens], cost: r[:cost_dollars] }
     }
     smoke = ->(scope) {
-      { tokens: 0, cost: SmokeTestRun.public_send(scope).where("started_at >= ?", month).sum(:cost_dollars).to_f }
+      { tokens: 0, cost: current_workspace.smoke_test_runs.public_send(scope).where("started_at >= ?", month).sum(:cost_dollars).to_f }
     }
     # The List agent (Sam) runs the two Opus features: grocery list + recipe
     # extraction. They're Opus, so price per-row via total_cost_dollars rather
@@ -1272,7 +1273,7 @@ class KitchenController < ApplicationController
     user = Current.user
     return false unless user
     return true if user.admin? || user.reviewer?
-    (@nyk_workspace || Workspace.find_by(slug: "nykitchen"))&.member?(user) || false
+    current_workspace&.member?(user) || false
   end
 
   def require_nyk_super_agent_access
@@ -1282,7 +1283,7 @@ class KitchenController < ApplicationController
   # Gate + load for the on-demand report actions: only NY Kitchen managers
   # (owner/admin = Lora + Rich) may generate or send the report. 404 otherwise.
   def require_nyk_manager
-    @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
+    @nyk_workspace = current_workspace
     head :not_found unless @nyk_workspace&.manager?(Current.user)
   end
 
@@ -1341,7 +1342,7 @@ class KitchenController < ApplicationController
   # Gather the in-range classes, split into with/without recipe, assign each a
   # short colored tag, and run (or fetch from cache) the aggregated list.
   def load_grocery_data
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     svc = grocery_list_service
     # Include SOLD-OUT classes: those are the fullest ones, exactly what you
     # need to shop for (unlike the promo flyer, which hides sold-out classes).
@@ -1427,11 +1428,11 @@ class KitchenController < ApplicationController
 
   def set_common_view_state
     @admin = authenticated? && (Current.user.admin? || Current.user.reviewer?)
-    @can_see_pricing = Workspace.find_by(slug: "nykitchen")&.pricing_visible_for?(Current.user) || false
+    @can_see_pricing = current_workspace&.pricing_visible_for?(Current.user) || false
     # The NYK workspace itself (slug 'nykitchen'). All four agent pages
     # need it so the WorkspaceAgent badge + pet-name can render in the
     # title row. Anonymous viewers (hub only) get nil.
-    @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
+    @nyk_workspace = current_workspace
     # Grocery price estimates stay hidden until real price data is uploaded;
     # the manager toggle (on the grocery page) flips this per workspace.
     @show_grocery_prices = @nyk_workspace&.show_grocery_prices? || false
@@ -1462,14 +1463,10 @@ class KitchenController < ApplicationController
   # The user's NYK-flavored workspace, if any — backs the Social Agent card
   # on the hub. Falls back to nil; the card then links to /workspaces.
   def nyk_display_agent
-    Workspace.find_by(slug: "nykitchen")&.agent_for("display") ||
+    current_workspace&.agent_for("display") ||
       WorkspaceAgent.new(kind: "display", settings: {})
   end
 
-  def nyk_workspace_for(user)
-    return nil unless user
-    user.workspaces.find { |w| w.slug.to_s.include?("kitchen") || w.name.to_s.downcase.include?("kitchen") }
-  end
 
   # Redirect target for a scanned QR. Only ever fed a TrackedLink.url, which is
   # written server-side from scraped class URLs (never user input), but we still
@@ -1507,7 +1504,7 @@ class KitchenController < ApplicationController
                         .count
     @scan_devices = scans.group(:user_agent).count
                         .each_with_object(Hash.new(0)) { |(ua, n), h| h[LinkScan.device_bucket(ua)] += n }
-    latest = KitchenSnapshot.latest
+    latest = current_workspace.kitchen_snapshots.latest
     @scan_names = latest ? latest.kitchen_events.pluck(:url, :name).to_h : {}
     # The footer "all classes" calendar QR isn't a class, so give it a label
     # instead of showing the raw URL in the report.
@@ -1548,9 +1545,9 @@ class KitchenController < ApplicationController
     # workspace's managers (owner/admin role) + app admins. Plain members /
     # kitchen_customers still see seats, not dollars. Distinct from
     # @can_see_pricing, which gates OUR internal agent/compute costs.
-    ws_role = (@nyk_workspace || Workspace.find_by(slug: "nykitchen"))&.role_for(Current.user)
+    ws_role = current_workspace&.role_for(Current.user)
     @show_revenue = Current.user&.admin? || %w[owner admin].include?(ws_role.to_s)
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming.order(:start_at)
       # Use the app's zone (Eastern), NOT Date.today (the server's UTC date). On
@@ -1566,7 +1563,7 @@ class KitchenController < ApplicationController
       # matching every later week and Lora's request.
       # Hand-added camps/classes (Lora), merged in for display only — they stay
       # out of the revenue/sold-out/grocery rollups below, which read @events.
-      @manual_classes = KitchenManualClass.upcoming.to_a
+      @manual_classes = current_workspace.kitchen_manual_classes.upcoming.to_a
 
       @weeks = []
       labels = [ "Current Week", "Next Week" ]
@@ -1616,22 +1613,22 @@ class KitchenController < ApplicationController
       @workspace_status_by_url = workspace_status_for(Current.user, event_urls)
 
       # Day-of-week ticket sales: 6-week historical avg vs this week's actuals.
-      @dow_avg       = KitchenSnapshot.tickets_sold_by_wday
-      @dow_this_week = KitchenSnapshot.tickets_sold_this_week_by_wday
+      @dow_avg       = current_workspace.kitchen_snapshots.tickets_sold_by_wday
+      @dow_this_week = current_workspace.kitchen_snapshots.tickets_sold_this_week_by_wday
 
       # Tickets sold per week / month since tracking began — sales trend.
-      @weekly_sales  = KitchenSnapshot.tickets_sold_by_week
-      @monthly_sales = KitchenSnapshot.tickets_sold_by_month
+      @weekly_sales  = current_workspace.kitchen_snapshots.tickets_sold_by_week
+      @monthly_sales = current_workspace.kitchen_snapshots.tickets_sold_by_month
 
       # "Selling fastest" card — ranked by observed pace. Two views toggled
       # client-side: upcoming-only (default) and all-time (past + future).
-      @top_sellers     = KitchenSnapshot.selling_fastest(snapshot: snapshot)
-      @top_sellers_all = KitchenSnapshot.selling_fastest(snapshot: snapshot, scope: :all, window_weeks: nil)
+      @top_sellers     = current_workspace.kitchen_snapshots.selling_fastest(snapshot: snapshot)
+      @top_sellers_all = current_workspace.kitchen_snapshots.selling_fastest(snapshot: snapshot, scope: :all, window_weeks: nil)
 
       # "Needs a push" card: upcoming classes behind pace (default) + an
       # all-time retrospective of past classes that ended with unsold seats.
-      @needs_a_push    = KitchenSnapshot.needs_a_push(snapshot: snapshot)
-      @ended_emptiest  = KitchenSnapshot.ended_emptiest(snapshot: snapshot)
+      @needs_a_push    = current_workspace.kitchen_snapshots.needs_a_push(snapshot: snapshot)
+      @ended_emptiest  = current_workspace.kitchen_snapshots.ended_emptiest(snapshot: snapshot)
     else
       @events = []
       @weeks = []
@@ -1654,7 +1651,7 @@ class KitchenController < ApplicationController
 
   # Test Agent data — smoke runs, failure stats, daily-failure chart.
   def load_smoke_data
-    nav_scope = SmokeTestRun.nyk_nav
+    nav_scope = current_workspace.smoke_test_runs.nyk_nav
 
     # Test page filter: status pill (All / Passed / Failed). The
     # "last 30 days" failure-rate card is fixed; the table is windowed to
@@ -1710,7 +1707,7 @@ class KitchenController < ApplicationController
 
   # Data Agent data — scrape runs and per-day event summary.
   def load_scrape_data
-    scrape_scope = SmokeTestRun.nyk_scrape
+    scrape_scope = current_workspace.smoke_test_runs.nyk_scrape
 
     @scrape_runs = scrape_scope.recent.with_attached_video.with_attached_thumbnail.limit(100)
     @scrape_runs_total_count   = scrape_scope.count
@@ -1720,7 +1717,7 @@ class KitchenController < ApplicationController
     # Per-day event counts. KitchenSnapshot is unique on taken_on, so multiple
     # scrapes the same day all reflect that day's snapshot.
     scrape_days = @scrape_runs.map { |r| r.started_at.to_date }.uniq
-    @scrape_day_summary = KitchenSnapshot.where(taken_on: scrape_days)
+    @scrape_day_summary = current_workspace.kitchen_snapshots.where(taken_on: scrape_days)
       .includes(:kitchen_events)
       .each_with_object({}) do |snap, h|
         events = snap.kitchen_events.to_a
@@ -1735,7 +1732,7 @@ class KitchenController < ApplicationController
   # Hub summary — just the headline numbers each card displays. Pulls from the
   # same scopes as the detail pages but skips the heavy joins/snapshot loads.
   def load_hub_summary
-    snapshot = KitchenSnapshot.latest
+    snapshot = current_workspace.kitchen_snapshots.latest
     @hub_events_total    = snapshot ? snapshot.kitchen_events.upcoming.count : 0
     @hub_events_updated  = snapshot&.taken_on
     # Genuine sellouts among upcoming classes ("SoldOut", not the "Closed" sales
@@ -1752,7 +1749,7 @@ class KitchenController < ApplicationController
     # `expected_by_now` is what we'd expect to have sold by this hour if
     # sales tracked the daily average linearly across the window. Before
     # 8am there's nothing to compare against.
-    @hub_tickets_sold_avg = KitchenSnapshot.tickets_sold_daily_avg
+    @hub_tickets_sold_avg = current_workspace.kitchen_snapshots.tickets_sold_daily_avg
     if @hub_tickets_sold_today && @hub_tickets_sold_avg
       now = Time.current
       hour_frac = (now.hour + now.min / 60.0 - 8.0) / 12.0
@@ -1763,8 +1760,8 @@ class KitchenController < ApplicationController
         ((@hub_tickets_sold_today / expected_by_now - 1) * 100).round : nil
     end
 
-    nav    = SmokeTestRun.nyk_nav
-    scrape = SmokeTestRun.nyk_scrape
+    nav    = current_workspace.smoke_test_runs.nyk_nav
+    scrape = current_workspace.smoke_test_runs.nyk_scrape
 
     # Most-recent row (incl. running rows) for presence-dot logic.
     @hub_smoke_last       = nav.recent.first
@@ -1788,7 +1785,7 @@ class KitchenController < ApplicationController
     # removed / price changes). Same builder the weekly report uses; this is
     # what "powers ticket-change alerts" means. "This week" = Mon–Sun (Lora's
     # convention, matches the analyst page), so the count resets each Monday.
-    @hub_scrape_churn = KitchenSnapshot.calendar_churn(Date.current.beginning_of_week(:monday))
+    @hub_scrape_churn = current_workspace.kitchen_snapshots.calendar_churn(Date.current.beginning_of_week(:monday))
     @hub_scrape_changes = @hub_scrape_churn.values.sum
 
     # Neon flyer/poster print count — admin-only internal readout on the Display
@@ -1814,7 +1811,7 @@ class KitchenController < ApplicationController
 
     # Iris mini "sales by day of week" sparkline — 6-week avg per weekday
     # (Sun..Sat). Tiny CSS bars on the hub card; full chart lives on /analyst.
-    @hub_dow_avg = KitchenSnapshot.tickets_sold_by_wday
+    @hub_dow_avg = current_workspace.kitchen_snapshots.tickets_sold_by_wday
 
     @hub_display_last_seen = Setting.time("nyk_display:last_seen_at")
     # Geolocated "City, ST" of the screen's last heartbeat (set by

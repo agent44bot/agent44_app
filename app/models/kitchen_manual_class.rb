@@ -7,6 +7,7 @@ class KitchenManualClass < ApplicationRecord
   DEFAULT_VENUE = "New York Kitchen, Canandaigua".freeze
 
   belongs_to :created_by, class_name: "User", optional: true
+  include KitchenScoped
 
   validates :name, presence: true
   validates :start_at, presence: true
