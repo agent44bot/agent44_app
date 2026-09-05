@@ -100,6 +100,16 @@ class KitchenRoutesTest < ActionDispatch::IntegrationTest
     assert Workspace.reserved_slugs.include?("workspaces")
   end
 
+  test "a second tenant's /billing goes to the generic per-workspace billing page, never NYK's numbers" do
+    sign_in_as(@owner)
+    get "/flxculinary/billing"
+    assert_redirected_to "/workspaces/flxculinary/billing"
+    admin = User.create!(email_address: "adm4-#{SecureRandom.hex(3)}@example.com", role: "admin")
+    sign_in_as(admin)
+    get "/nykitchen/billing"
+    assert_response :success
+  end
+
   test "the /social alias renders the tenant's own composer" do
     sign_in_as(@owner)
     get "/flxculinary/social"

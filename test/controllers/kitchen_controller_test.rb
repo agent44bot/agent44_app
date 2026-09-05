@@ -347,6 +347,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       target_platforms: %w[x], source_url: event.url)
 
     laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "user")
+    Workspace.nykitchen.memberships.create!(user: laura, role: "editor")
     sign_in_as(laura)
     get nyk_list_path
     assert_response :success
@@ -411,6 +412,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     member = User.create!(email_address: "snd-mem-#{SecureRandom.hex(4)}@example.com", role: "user")
     ws.memberships.create!(user: member, role: "editor")
+    # Posting from NYK's list requires NYK membership; the target workspace is separate.
+    Workspace.nykitchen.memberships.create!(user: member, role: "editor")
 
     sign_in_as(member)
     assert_difference -> { WorkspaceDraft.count }, 1 do
@@ -455,6 +458,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     k.social_accounts.create!(platform: "x", connected_by: user, handle: "@k", external_id: "2",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
     create_event("Pasta 101", 2.days.from_now, "InStock")
+    Workspace.nykitchen.memberships.create!(user: user, role: "editor")
 
     sign_in_as(user)
     get nyk_list_path
@@ -473,6 +477,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
     create_event("Pasta 101", 2.days.from_now, "InStock")
     create_event("Classroom Reserved for Private Event", 3.days.from_now, "InStock")
+    Workspace.nykitchen.memberships.create!(user: user, role: "editor")
 
     sign_in_as(user)
     get nyk_list_path

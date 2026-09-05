@@ -92,7 +92,7 @@ Rails.application.routes.draw do
   # as /jobs or /workspaces can never be shadowed; Workspace also refuses
   # slugs that collide with them. Helper names keep their nyk_ prefix; the
   # :workspace_slug segment is filled from the current request (or NYK by
-  # default, see ApplicationController#default_url_options).
+  # default, see ApplicationController#url_options).
   # ---------------------------------------------------------------------------
   scope ":workspace_slug", constraints: KitchenWorkspaceConstraint.new do
     get "",        to: "kitchen#hub", as: :nykitchen
