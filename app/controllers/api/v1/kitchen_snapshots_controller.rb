@@ -9,6 +9,11 @@ module Api
       skip_before_action :verify_authenticity_token
       allow_unauthenticated_access
       before_action :authenticate_api_token
+      # A workspace_slug that names no kitchen workspace is a JSON 404 on every
+      # action, not Rails' HTML error page.
+      rescue_from ActiveRecord::RecordNotFound do |e|
+        render json: { error: e.message }, status: :not_found
+      end
 
       # GET /api/v1/kitchen_snapshots/upcoming
       # Returns upcoming events from the latest snapshot that still have seats.
@@ -146,8 +151,8 @@ module Api
         notify_wrongly_closed(snapshot, prev_events, prev_avail)
 
         render json: { snapshot_id: snapshot.id, taken_on: taken_on, events_created: created }, status: :created
-      rescue ActiveRecord::RecordNotFound => e
-        render json: { error: e.message }, status: :not_found
+      rescue ActiveRecord::RecordNotFound
+        raise
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
       end

@@ -49,6 +49,12 @@ class KitchenTenantTest < ActionDispatch::IntegrationTest
     assert_equal 0, @nyk.kitchen_snapshots.count
   end
 
+  test "GET upcoming with a bad slug is a JSON 404 too" do
+    get "/api/v1/kitchen_snapshots/upcoming", params: { workspace_slug: "nope" }, headers: @headers
+    assert_response :not_found
+    assert_equal "application/json", response.media_type
+  end
+
   test "kitchen records created without a workspace default into NY Kitchen (transitional)" do
     snap = KitchenSnapshot.create!(taken_on: Date.current)
     assert_equal @nyk, snap.workspace
