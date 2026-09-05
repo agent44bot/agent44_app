@@ -347,6 +347,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       target_platforms: %w[x], source_url: event.url)
 
     laura = User.create!(email_address: "snd-l-#{SecureRandom.hex(4)}@example.com", role: "user")
+    Workspace.nykitchen.memberships.create!(user: laura, role: "editor")
     sign_in_as(laura)
     get nyk_list_path
     assert_response :success
@@ -364,7 +365,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference -> { WorkspaceDraft.count }, 1 do
       post "/nykitchen/send_to_workspace",
-           params: { text: "Chef's Table Sat 6pm — 1 seat left", event_url: "https://nykitchen.com/event/x", workspace_slug: ws.slug }
+           params: { text: "Chef's Table Sat 6pm — 1 seat left", event_url: "https://nykitchen.com/event/x", target_slug: ws.slug }
     end
     body = JSON.parse(response.body)
     assert body["ok"]
@@ -388,7 +389,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(admin)
 
     post "/nykitchen/send_to_workspace",
-         params: { text: "hi", event_url: "https://nykitchen.com/event/y", workspace_slug: "nykitchen" }
+         params: { text: "hi", event_url: "https://nykitchen.com/event/y", target_slug: "nykitchen" }
     draft = WorkspaceDraft.last
     assert_equal "/workspaces/nykitchen/drafts/#{draft.id}/edit?return_to=%2Fnykitchen%2Flist",
                  JSON.parse(response.body)["workspace_url"]
@@ -396,7 +397,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
   test "send_to_workspace rejects unauthenticated requests" do
     sign_out
-    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "any" }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", target_slug: "any" }
     # The before-action redirects unauthenticated requests to /sign_in.
     assert_response :redirect
     assert_match %r{/sign_in}, response.location
@@ -411,11 +412,13 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
     member = User.create!(email_address: "snd-mem-#{SecureRandom.hex(4)}@example.com", role: "user")
     ws.memberships.create!(user: member, role: "editor")
+    # Posting from NYK's list requires NYK membership; the target workspace is separate.
+    Workspace.nykitchen.memberships.create!(user: member, role: "editor")
 
     sign_in_as(member)
     assert_difference -> { WorkspaceDraft.count }, 1 do
       post "/nykitchen/send_to_workspace",
-           params: { text: "Hi from a member", event_url: "https://nykitchen.com/event/y", workspace_slug: ws.slug }
+           params: { text: "Hi from a member", event_url: "https://nykitchen.com/event/y", target_slug: ws.slug }
     end
     assert JSON.parse(response.body)["ok"]
   end
@@ -423,7 +426,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   test "send_to_workspace 404s when slug doesn't match a workspace the admin belongs to" do
     admin = User.create!(email_address: "snd-n-#{SecureRandom.hex(4)}@example.com", role: "admin")
     sign_in_as(admin)
-    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: "nonexistent" }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", target_slug: "nonexistent" }
     assert_response :not_found
     assert_equal "workspace_not_found", JSON.parse(response.body)["error"]
   end
@@ -433,7 +436,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     outside = User.create!(email_address: "snd-x-#{SecureRandom.hex(4)}@example.com", role: "admin")
     ws = Workspace.create!(name: "Not Mine", owner: outside)
     sign_in_as(admin)
-    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: ws.slug }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", target_slug: ws.slug }
     assert_response :not_found
   end
 
@@ -441,7 +444,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     admin = User.create!(email_address: "snd-p-#{SecureRandom.hex(4)}@example.com", role: "admin")
     ws = Workspace.create!(name: "Empty WS", owner: admin)
     sign_in_as(admin)
-    post "/nykitchen/send_to_workspace", params: { text: "hi", workspace_slug: ws.slug }
+    post "/nykitchen/send_to_workspace", params: { text: "hi", target_slug: ws.slug }
     assert_response :unprocessable_entity
     assert_equal "no_platforms", JSON.parse(response.body)["error"]
   end
@@ -455,6 +458,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     k.social_accounts.create!(platform: "x", connected_by: user, handle: "@k", external_id: "2",
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
     create_event("Pasta 101", 2.days.from_now, "InStock")
+    Workspace.nykitchen.memberships.create!(user: user, role: "editor")
 
     sign_in_as(user)
     get nyk_list_path
@@ -473,6 +477,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
     create_event("Pasta 101", 2.days.from_now, "InStock")
     create_event("Classroom Reserved for Private Event", 3.days.from_now, "InStock")
+    Workspace.nykitchen.memberships.create!(user: user, role: "editor")
 
     sign_in_as(user)
     get nyk_list_path
@@ -986,15 +991,16 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_match "Tickets sold by week", response.body
   end
 
-  test "a non-member does not see the revenue rollup (seats, not dollars)" do
+  test "a plain member (viewer) does not see the revenue rollup (seats, not dollars)" do
     @snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/events/rev-cust", name: "Rev Cust",
       start_at: 2.days.from_now, availability: "InStock",
       price: "100.00", capacity: 10, spots_left: 4
     )
 
-    outsider = User.create!(email_address: "cust-#{SecureRandom.hex(4)}@example.com", role: "user")
-    sign_in_as(outsider)
+    viewer = User.create!(email_address: "cust-#{SecureRandom.hex(4)}@example.com", role: "user")
+    Workspace.nykitchen.memberships.create!(user: viewer, role: "viewer")
+    sign_in_as(viewer)
 
     get nyk_analyst_path(range: "all")
     assert_response :success

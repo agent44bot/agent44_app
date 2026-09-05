@@ -20,16 +20,17 @@ module KitchenTenant
   def current_workspace
     return @current_workspace if defined?(@current_workspace)
 
-    slug = params[:workspace_slug].presence
+    slug = params[:workspace_slug].presence || Workspace::NYK_SLUG
     @current_workspace =
-      if slug
-        Workspace.kitchen.find_by(slug: slug)
+      if slug == Workspace::NYK_SLUG
+        # NY Kitchen's /nykitchen/* URLs are permanent (QR codes, the display
+        # screen, iOS deep links): never gated on kitchen_enabled, so a flag
+        # slip can't take the display down.
+        Workspace.find_by(slug: slug)
       else
-        # No slug on the route = NY Kitchen's permanent /nykitchen/* URLs. Not
-        # gated on kitchen_enabled so a flag slip can't take the display down.
-        Workspace.find_by(slug: Workspace::NYK_SLUG)
+        Workspace.kitchen.find_by(slug: slug)
       end
-    raise ActiveRecord::RecordNotFound, "no kitchen workspace for #{slug || Workspace::NYK_SLUG}" unless @current_workspace
+    raise ActiveRecord::RecordNotFound, "no kitchen workspace for #{slug}" unless @current_workspace
     @current_workspace
   end
 
@@ -38,5 +39,18 @@ module KitchenTenant
 
   def require_workspace_manager
     head :not_found unless current_workspace.manager?(Current.user)
+  end
+
+  # Non-public kitchen pages are for the workspace's members, site admins,
+  # and the App Store reviewer account. Anyone else signed in gets a 404
+  # (not a redirect, so the page's existence is not confirmed). Replaces the
+  # old rule where any signed-in user could read every /nykitchen page.
+  def require_kitchen_access
+    head :not_found unless kitchen_access?(Current.user)
+  end
+
+  def kitchen_access?(user)
+    return false unless user
+    user.admin? || user.reviewer? || current_workspace.member?(user)
   end
 end

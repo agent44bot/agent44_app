@@ -20,6 +20,20 @@ class ApplicationController < ActionController::Base
   # address instead.
   RATE_LIMIT_BY_CLIENT_IP = -> { client_ip }
 
+  # Kitchen routes carry a :workspace_slug segment. Inside a kitchen request
+  # the helpers fill it with the request's own slug; everywhere else (layout
+  # nav, other controllers) they fall back to NY Kitchen, matching the
+  # pre-tenant links. Supplied as :path_params on purpose: Rails uses those
+  # only for named path segments and discards them otherwise, so a
+  # non-kitchen URL never grows a ?workspace_slug=... query string, and
+  # positional helper args (edit_nyk_packet_path(packet)) still map to :id.
+  # Public: views reach it through controller.url_options.
+  def url_options
+    opts = super
+    slug = params[:workspace_slug].presence || Workspace::NYK_SLUG
+    opts.merge(path_params: { workspace_slug: slug }.merge(opts[:path_params] || {}))
+  end
+
   private
 
   # Convenience for views/controllers that need to know if the current
@@ -43,7 +57,7 @@ class ApplicationController < ActionController::Base
   # Paths a non-admin signed-in user can reach. /nykitchen lives here because
   # NYK is still a workspace destination (the agents hub for NY Kitchen);
   # /api/assets/rails are infrastructure paths, never user-facing redirects.
-  WORKSPACE_ALLOWED_PREFIXES = %w[/nykitchen /workspaces /invitations /notifications /session /sign_in /email_verification /passwords /settings /impersonate /api /assets /rails/active_storage].freeze
+  WORKSPACE_ALLOWED_PREFIXES = %w[/workspaces /invitations /notifications /session /sign_in /email_verification /passwords /settings /impersonate /api /assets /rails/active_storage].freeze
 
   # Non-admin signed-in users are sandboxed to workspace-shaped URLs.
   # Admins see everything (marketing pages, /pulse, /jobs, /admin, etc.).
@@ -56,6 +70,9 @@ class ApplicationController < ActionController::Base
     # anyone she invites to a workspace) see it too, e.g. to scan the share QR.
     return if path == "/"
     return if WORKSPACE_ALLOWED_PREFIXES.any? { |prefix| path == prefix || path.start_with?("#{prefix}/") }
+    # Kitchen pages live at /<kitchen slug>/*; membership is enforced by the
+    # kitchen controllers themselves (KitchenTenant#require_kitchen_access).
+    return if KitchenWorkspaceConstraint.slug?(path.split("/")[1])
     redirect_to "/workspaces"
   end
 end

@@ -4,6 +4,11 @@
 class NykBillingController < ApplicationController
   include KitchenTenant
   before_action :require_authentication
+  # This page is NY Kitchen's richer billing view and still reads NYK's AI
+  # usage by source name. Every other kitchen workspace has the generic
+  # per-workspace billing page; send them there rather than show NYK's spend
+  # under their slug. Slice 3 folds the two pages together.
+  before_action :require_nyk_tenant
   before_action :require_visible
   before_action :require_site_admin, only: %i[update_rate update_pricing mark_invoice_paid]
 
@@ -146,10 +151,15 @@ class NykBillingController < ApplicationController
     redirect_to nyk_billing_path, alert: "Only the site admin can change the rate."
   end
 
+  def require_nyk_tenant
+    return if current_workspace.slug == Workspace::NYK_SLUG
+    redirect_to billing_workspace_path(current_workspace.slug)
+  end
+
   def require_visible
     return if Current.user&.admin? # site admin always
     ws = current_workspace
     return if ws&.manager?(Current.user) # NYK workspace owner/admin (e.g. Lora)
-    redirect_to "/nykitchen", alert: "Not available."
+    redirect_to nykitchen_path, alert: "Not available."
   end
 end

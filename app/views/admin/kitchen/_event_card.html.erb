@@ -12,10 +12,10 @@
      data-social-post-url-value="<%= event.url %>"
      data-social-post-description-value="<%= truncate(CGI.unescapeHTML(strip_tags(event.description.to_s)).gsub("&nbsp;", " ").gsub(/([ap]m)([A-Z])/, '\1 \2').gsub(/\n/, ' ').squeeze(' ').strip, length: 200, separator: '. ', omission: '.') %>"
      data-social-post-image-url-value="<%= event.image_url %>"
-     data-social-post-log-url-value="/nykitchen/social_post_log"
-     data-social-post-enhance-url-value="/nykitchen/enhance_post"
+     data-social-post-log-url-value="<%= nyk_social_post_log_path %>"
+     data-social-post-enhance-url-value="<%= nyk_enhance_post_path %>"
      <% default_ws = Array(@sendable_workspaces).first %>
-     <% if default_ws %>data-social-post-send-to-workspace-url-value="/nykitchen/send_to_workspace"
+     <% if default_ws %>data-social-post-send-to-workspace-url-value="<%= nyk_send_to_workspace_path %>"
      data-social-post-workspace-slug-value="<%= default_ws.slug %>"<% end %>
      data-social-post-posted-value="<%= post_log&.posted? ? 'true' : 'false' %>"
      data-social-post-enhanced-text-value="<%= post_log&.enhanced_text %>"

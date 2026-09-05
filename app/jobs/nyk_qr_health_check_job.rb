@@ -41,7 +41,7 @@ class NykQrHealthCheckJob < ApplicationJob
 
   # 1. AASA still excludes the flyer redirect from Universal Links.
   def universal_link_problem
-    paths = WellKnownController::APP_LINK_PATHS
+    paths = WellKnownController.app_link_paths
     not_i = paths.index("NOT /nykitchen/r/*")
     all_i = paths.index("/nykitchen/*")
     return nil if not_i && (all_i.nil? || not_i < all_i)

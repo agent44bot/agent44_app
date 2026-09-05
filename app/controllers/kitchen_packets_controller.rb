@@ -5,6 +5,7 @@
 # NY Kitchen PDF (full pages then single-station pages).
 class KitchenPacketsController < ApplicationController
   include KitchenTenant
+  before_action :require_kitchen_access
   MAX_PDF_BYTES = 10.megabytes
 
   # The edit and print pages embed the recipe PDF (served by #print) in an
@@ -254,7 +255,7 @@ class KitchenPacketsController < ApplicationController
     # Return to the library when deleted from there, else Sam's list. Only
     # allow our own in-app paths (no open redirect).
     back = params[:return_to].to_s
-    dest = back.start_with?("/nykitchen/") ? back : nyk_list_path
+    dest = back.start_with?("/#{current_workspace.slug}/") ? back : nyk_list_path
     redirect_to dest, notice: "Packet deleted."
   end
 

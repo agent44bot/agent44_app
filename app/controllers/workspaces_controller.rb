@@ -178,7 +178,7 @@ class WorkspacesController < ApplicationController
   end
 
   def load_workspace
-    @workspace = Workspace.find_by!(slug: params[:slug])
+    @workspace = Workspace.find_by!(slug: params[:slug].presence || params[:workspace_slug])
   end
 
   def require_member

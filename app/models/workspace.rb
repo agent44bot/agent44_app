@@ -45,6 +45,7 @@ class Workspace < ApplicationRecord
                    format: { with: /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z/ },
                    length: { maximum: 60 }
   validates :timezone, presence: true
+  validate :slug_not_reserved
   validate :acceptable_logo
 
   # The main site the workspace's agents watch and pull from. Optional, but if
@@ -54,6 +55,7 @@ class Workspace < ApplicationRecord
 
   before_validation :generate_slug, on: :create
   after_create :ensure_owner_membership
+  after_commit :reset_kitchen_route_cache, if: -> { saved_change_to_slug? || saved_change_to_kitchen_enabled? || destroyed? }
 
   scope :active,   -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
@@ -109,7 +111,7 @@ class Workspace < ApplicationRecord
   # nyk_social_path sends another workspace's alert to NY Kitchen's page.
   def social_path
     helpers = Rails.application.routes.url_helpers
-    slug == "nykitchen" ? helpers.nyk_social_path : helpers.social_workspace_path(slug)
+    kitchen_enabled? || slug == NYK_SLUG ? helpers.nyk_social_path(workspace_slug: slug) : helpers.social_workspace_path(slug)
   end
 
   # Members who still want Echo's daily 3pm email of new conversations. Opt-out:
@@ -203,6 +205,24 @@ class Workspace < ApplicationRecord
     if logo.blob.byte_size > LOGO_MAX_BYTES
       errors.add(:logo, "must be 2 MB or smaller")
     end
+  end
+
+  # Kitchen pages mount at /:slug/*, so a slug that equals a top-level route
+  # segment (/jobs, /admin, /workspaces ...) would be unreachable. Derived from
+  # the route table so a new top-level route is reserved automatically.
+  def self.reserved_slugs
+    @reserved_slugs ||= Rails.application.routes.routes.filter_map { |r|
+      seg = r.path.spec.to_s.split("/")[1].to_s.sub(/\(.*\z/, "")
+      seg.presence unless seg.start_with?(":", "*")
+    }.uniq.freeze
+  end
+
+  def slug_not_reserved
+    errors.add(:slug, "is reserved") if slug.present? && self.class.reserved_slugs.include?(slug)
+  end
+
+  def reset_kitchen_route_cache
+    KitchenWorkspaceConstraint.reset!
   end
 
   def source_url_is_http
