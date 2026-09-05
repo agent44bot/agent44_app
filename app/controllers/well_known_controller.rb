@@ -24,7 +24,15 @@ class WellKnownController < ApplicationController
   # reach the class page. The "NOT" rule must precede "/nykitchen/*" — the
   # legacy matcher takes the first match. (Modern iOS uses the components list
   # below, which marks the same path exclude: true.)
-  APP_LINK_PATHS = [ "/sign_in/*", "/get", "NOT /nykitchen/r/*", "/nykitchen/*" ].freeze
+  # Kitchen pages mount at /<slug>/* for every kitchen-enabled workspace (NY
+  # Kitchen first), so the deep-link list is built per slug at request time.
+  BASE_LINK_PATHS = [ "/sign_in/*", "/get" ].freeze
+
+  def self.app_link_paths
+    BASE_LINK_PATHS + KitchenWorkspaceConstraint.slugs.flat_map { |s| [ "NOT /#{s}/r/*", "/#{s}/*" ] }
+  end
+
+  def app_link_paths = self.class.app_link_paths
 
   def apple_app_site_association
     render json: {
@@ -32,15 +40,18 @@ class WellKnownController < ApplicationController
         details: [
           # Legacy format (older iOS) + modern components — belt-and-suspenders
           # so both the magic link and the in-app deep links reliably open the app.
-          { "appID" => APP_ID, "paths" => APP_LINK_PATHS },
+          { "appID" => APP_ID, "paths" => app_link_paths },
           {
             "appIDs" => [ APP_ID ],
             "components" => [
               { "/" => "/sign_in/*", "comment" => "passwordless magic link opens the app" },
-              { "/" => "/get", "comment" => "QR smart-link opens the app if installed (needs app build claiming /get)" },
-              { "/" => "/nykitchen/r/*", "exclude" => true, "comment" => "flyer QR scan redirects must open in the browser so they follow the 302 to nykitchen.com, not the app" },
-              { "/" => "/nykitchen/*", "comment" => "in-app deep links (report buttons) open the app" }
-            ]
+              { "/" => "/get", "comment" => "QR smart-link opens the app if installed (needs app build claiming /get)" }
+            ] + KitchenWorkspaceConstraint.slugs.flat_map { |s|
+              [
+                { "/" => "/#{s}/r/*", "exclude" => true, "comment" => "flyer QR scan redirects must open in the browser so they follow the 302 to the venue site, not the app" },
+                { "/" => "/#{s}/*", "comment" => "in-app deep links (report buttons) open the app" }
+              ]
+            }
           }
         ]
       },

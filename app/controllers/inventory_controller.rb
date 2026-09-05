@@ -10,6 +10,7 @@ require "csv"
 # permits NYK workspace members to reach /nykitchen/*.
 class InventoryController < ApplicationController
   include KitchenTenant
+  before_action :require_kitchen_access
   before_action :set_item, only: %i[show_item edit_item update_item]
 
   # Stock list — current on-hand per item, with search / category / low-stock

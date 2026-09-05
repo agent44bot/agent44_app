@@ -14,7 +14,7 @@ module Trackable
     return if %w[OPTIONS HEAD].include?(request.method)
     return if controller_path.start_with?("api", "rails", "impersonations")
     return if request.path.match?(/\.(js|css|png|jpg|svg|ico|woff2?)$/)
-    return if POLL_PATHS.include?(request.path)
+    return if POLL_PATHS.any? { |m| m.match?(request.path) }
     return if bot_request?
     return if EXCLUDED_IPS.include?(client_ip)
 
@@ -52,7 +52,7 @@ module Trackable
   # default flyer; without the query string both collapse to one path in the
   # PageView analytics (grouped by :path). Every other page records bare
   # request.path so pagination/filter params don't fragment the grouping.
-  QUERY_TRACKED_PATHS = [ "/nykitchen/display/print" ].freeze
+  QUERY_TRACKED_PATHS = [ %r{\A/[a-z0-9-]+/display/print\z} ].freeze
 
   # Background XHR poll endpoints that fire on a timer, not on a user action, so
   # counting them as page views inflates engagement: an idle open tab looks
@@ -68,14 +68,15 @@ module Trackable
   # visitor stats (hundreds of hits/day, phantom "sessions"). Skip both. The
   # heartbeat still updates the hub's liveness dot + city via the controller
   # action; it just no longer writes a PageView.
+  # Kitchen pages mount at /<slug>/..., so these match any kitchen workspace.
   POLL_PATHS = [
-    "/nykitchen/packets/active_builds",
-    "/nykitchen/display",
-    "/nykitchen/display/heartbeat"
+    %r{\A/[a-z0-9-]+/packets/active_builds\z},
+    %r{\A/[a-z0-9-]+/display\z},
+    %r{\A/[a-z0-9-]+/display/heartbeat\z}
   ].freeze
 
   def tracked_path
-    QUERY_TRACKED_PATHS.include?(request.path) ? request.fullpath : request.path
+    QUERY_TRACKED_PATHS.any? { |m| m.match?(request.path) } ? request.fullpath : request.path
   end
 
   BOT_PATTERNS = /

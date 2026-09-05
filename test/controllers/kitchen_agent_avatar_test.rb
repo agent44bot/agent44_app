@@ -30,8 +30,10 @@ class KitchenAgentAvatarTest < ActionDispatch::IntegrationTest
     assert_not agent.reload.avatar.attached?
   end
 
-  test "non-admin cannot change a bot photo" do
-    sign_in_as(User.create!(email_address: "out-#{SecureRandom.hex(4)}@example.com", role: "user"))
+  test "non-admin member cannot change a bot photo" do
+    member = User.create!(email_address: "out-#{SecureRandom.hex(4)}@example.com", role: "user")
+    @workspace.memberships.create!(user: member, role: "editor")
+    sign_in_as(member)
     patch nyk_agent_avatar_path(kind: "list"), params: { avatar: upload }
     assert_redirected_to nykitchen_path
     assert_not @workspace.agent_for("list").avatar.attached?

@@ -82,127 +82,141 @@ Rails.application.routes.draw do
     resource :hidden_job, only: [ :create, :destroy ]
   end
   resources :saved_jobs, only: [ :index ]
-  get "nykitchen",        to: "kitchen#hub"
-  get "nykitchen/list",   to: "kitchen#list", as: :nyk_list
-  get "nykitchen/grocery", to: "kitchen#grocery", as: :nyk_grocery
-  # Team hours (scheduled, from Deputy) for managers: per-employee weekly totals
-  # + Export to Excel. See KitchenController#hours.
-  get "nykitchen/hours", to: "kitchen#hours", as: :nyk_hours
-  # Generate pending timesheets in Deputy for a week's shifts (manager-only,
-  # idempotent). See KitchenController#generate_timesheets.
-  post "nykitchen/hours/timesheets", to: "kitchen#generate_timesheets", as: :nyk_generate_timesheets
-  post "nykitchen/grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
-  patch "nykitchen/grocery/portion", to: "kitchen#update_portion", as: :nyk_grocery_portion
-  post   "nykitchen/classes",     to: "kitchen#create_manual_class", as: :nyk_manual_classes
-  delete "nykitchen/classes/:id", to: "kitchen#destroy_manual_class", as: :nyk_manual_class
-  get    "nykitchen/prices",     to: "kitchen#prices",       as: :nyk_prices
-  patch  "nykitchen/prices/:id", to: "kitchen#update_price", as: :nyk_price
-  delete "nykitchen/prices/:id", to: "kitchen#destroy_price"
-  get "nykitchen/test",   to: "kitchen#test", as: :nyk_test
-  get "nykitchen/data",   to: "kitchen#data", as: :nyk_data
-  get   "nykitchen/analyst", to: "kitchen#analyst", as: :nyk_analyst
-  patch "nykitchen/analyst/subscription", to: "kitchen#update_analyst_subscription", as: :nyk_analyst_subscription
-  # Admin-only live preview of the weekly Agent Team Report (real data, same
-  # builder as the real send). 404s for non-admins. See kitchen#report_preview.
-  get   "nykitchen/analyst/report", to: "kitchen#report_preview", as: :nyk_report_preview
-  # On-demand report for NY Kitchen managers: generate a fresh copy (POST so it
-  # isn't re-run on refresh/prefetch); it emails a copy to the logged-in user
-  # only. Metered action.
-  post  "nykitchen/analyst/report/generate", to: "kitchen#generate_report", as: :nyk_generate_report
-  get  "nykitchen/ask",          to: "kitchen#ask",                as: :nyk_ask
-  post "nykitchen/ask/message",  to: "kitchen#ask_message",        as: :nyk_ask_message
-  post "nykitchen/ask/examples", to: "kitchen#update_ask_examples", as: :nyk_ask_examples
-  # Public, no-auth screen for the tasting-room display monitor.
-  # Cycles currently-available classes; auto-refreshes periodically.
-  get  "nykitchen/display", to: "kitchen#display", as: :nyk_display
-  # Liveness ping from the live screen (private mode only). Records last-seen
-  # so the hub's Display Agent dot reflects whether the TV is actually on.
-  post "nykitchen/display/heartbeat", to: "kitchen#display_heartbeat", as: :nyk_display_heartbeat
-  # Display Agent admin: hub-card detail page with config form.
-  get   "nykitchen/display/settings", to: "kitchen#display_settings",        as: :nyk_display_settings
-  patch "nykitchen/display/settings", to: "kitchen#update_display_settings"
-  post  "nykitchen/display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
-  # Owner-editable flyer print/scan rate, changed inline from Neon's cost dialog.
-  patch "nykitchen/flyer_rate", to: "kitchen#update_flyer_rate", as: :nyk_flyer_rate
-  # Printer-friendly list of the same N classes the display cycles. Admin-only.
-  get   "nykitchen/display/print",  to: "kitchen#display_print",  as: :nyk_display_print
-  # Beacon the flyer page fires once it renders in a real browser. The GET above
-  # is fetched by crawlers and QA scripts too, so the count and the charge hang
-  # off this instead.
-  post  "nykitchen/display/print/opened", to: "kitchen#record_print", as: :nyk_record_print
-  # Force a re-scrape of nykitchen.com so a class pulled from the website today
-  # stops printing on the flyer. NYK managers only.
-  post  "nykitchen/classes/refresh", to: "kitchen#refresh_classes", as: :nyk_refresh_classes
-  # Trackable QR redirect: logs the scan, then 302s to the real class page.
-  # Public (walk-ins scan it with no login); short path so the QR stays dense.
-  get   "nykitchen/r/:token",       to: "kitchen#scan_redirect",  as: :nyk_scan
-  # Class packets: a per-class bundle (recipes + equipment + pull sheet),
-  # created/attached from Sam's list page.
-  post   "nykitchen/equipment_tags/hide", to: "kitchen_packets#hide_equipment", as: :nyk_hide_equipment_tag
-  get    "nykitchen/packets/open",      to: "kitchen_packets#open",   as: :open_nyk_packet
-  get    "nykitchen/packets/active_builds", to: "kitchen_packets#active_builds", as: :nyk_active_builds
-  get    "nykitchen/packets/new",       to: "kitchen_packets#new",    as: :new_nyk_packet
-  post   "nykitchen/packets",           to: "kitchen_packets#create", as: :nyk_packets
-  get    "nykitchen/packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet
-  post   "nykitchen/packets/:id/regenerate", to: "kitchen_packets#regenerate", as: :regenerate_nyk_packet
-  patch  "nykitchen/packets/:id",       to: "kitchen_packets#update", as: :nyk_packet
-  patch  "nykitchen/packets/:id/equipment", to: "kitchen_packets#update_equipment", as: :nyk_packet_equipment
-  patch  "nykitchen/packets/:id/purchase_equipment", to: "kitchen_packets#update_purchase_equipment", as: :nyk_packet_purchase_equipment
-  post   "nykitchen/packets/:id/suggest_equipment", to: "kitchen_packets#suggest_equipment", as: :nyk_suggest_equipment
-  delete "nykitchen/packets/:id",       to: "kitchen_packets#destroy"
-  get    "nykitchen/packets/:id/print", to: "kitchen_packets#print",  as: :print_nyk_packet
-  # The recipe/packet library: browse + search every packet on its own page
-  # (moved off the bottom of the new-packet page as the library grew).
-  get "nykitchen/recipes",            to: "kitchen_packets#library", as: :nyk_recipes
-  # Legacy redirects: old /handouts URLs.
-  get "nykitchen/handouts/new",       to: redirect("/nykitchen/packets/new")
-  get "nykitchen/handouts/:id/edit",  to: redirect("/nykitchen/packets/%{id}/edit")
-  get "nykitchen/handouts/:id/print", to: redirect("/nykitchen/packets/%{id}/print")
-  get "nykitchen/handouts/:id",       to: redirect("/nykitchen/packets/%{id}/edit")
-  # /nykitchen/social renders the NYK workspace's social composer in-place
-  # so the four agent URLs on the hub all read /nykitchen/<agent>. Shares
-  # WorkspacesController#social by baking the slug in as a default param.
-  get "nykitchen/social", to: "workspaces#social", defaults: { slug: "nykitchen" }, as: :nyk_social
-  get "nykitchen/digests/:id", to: "kitchen#digest", as: :nyk_digest
-  get "nykitchen/smoke_runs/:id/page_source", to: "kitchen#download_smoke_page_source", as: :nyk_smoke_page_source
-  get "nykitchen/smoke_runs/:id/trace", to: "kitchen#download_smoke_trace", as: :nyk_smoke_trace
-  # Managers email a failed run's report (error + console + artifact links) to
-  # any address, e.g. an outside developer. Metered usage event per send.
-  post "nykitchen/smoke_runs/:id/report", to: "kitchen#send_smoke_report", as: :nyk_send_smoke_report
-  post "nykitchen/social_post_log", to: "kitchen#social_post_log"
-  post "nykitchen/enhance_post", to: "kitchen#enhance_post"
-  post "nykitchen/send_to_workspace", to: "kitchen#send_to_workspace"
-  get   "nykitchen/billing",      to: "nyk_billing#show",        as: :nyk_billing
-  patch "nykitchen/billing/rate",    to: "nyk_billing#update_rate",    as: :nyk_billing_rate
-  patch "nykitchen/billing/pricing", to: "nyk_billing#update_pricing", as: :nyk_billing_pricing
-  patch "nykitchen/billing/model",   to: "nyk_billing#update_model",   as: :nyk_billing_model
-  patch "nykitchen/billing/auto_recipe", to: "nyk_billing#update_auto_recipe", as: :nyk_billing_auto_recipe
-  patch "nykitchen/billing/invoices/:id/pay", to: "nyk_billing#mark_invoice_paid", as: :nyk_billing_invoice_pay
-  post "nykitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
-  patch "nykitchen/agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
-  patch "nykitchen/agents/:kind/avatar", to: "kitchen#update_agent_avatar", as: :nyk_agent_avatar
+  # ---------------------------------------------------------------------------
+  # Kitchen feature set, mounted once under a workspace slug. NY Kitchen's
+  # slug is "nykitchen", so every URL below is byte-for-byte what it was
+  # (/nykitchen/display/print etc. are permanent: QR codes, the display
+  # screen, iOS Universal Links); any other kitchen-enabled workspace gets the
+  # same pages under /<slug>/... with no code change. The constraint only
+  # matches kitchen-enabled slugs (plus nykitchen), so top-level routes such
+  # as /jobs or /workspaces can never be shadowed; Workspace also refuses
+  # slugs that collide with them. Helper names keep their nyk_ prefix; the
+  # :workspace_slug segment is filled from the current request (or NYK by
+  # default, see ApplicationController#default_url_options).
+  # ---------------------------------------------------------------------------
+  scope ":workspace_slug", constraints: KitchenWorkspaceConstraint.new do
+    get "",        to: "kitchen#hub", as: :nykitchen
+    get "list",   to: "kitchen#list", as: :nyk_list
+    get "grocery", to: "kitchen#grocery", as: :nyk_grocery
+    # Team hours (scheduled, from Deputy) for managers: per-employee weekly totals
+    # + Export to Excel. See KitchenController#hours.
+    get "hours", to: "kitchen#hours", as: :nyk_hours
+    # Generate pending timesheets in Deputy for a week's shifts (manager-only,
+    # idempotent). See KitchenController#generate_timesheets.
+    post "hours/timesheets", to: "kitchen#generate_timesheets", as: :nyk_generate_timesheets
+    post "grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
+    patch "grocery/portion", to: "kitchen#update_portion", as: :nyk_grocery_portion
+    post "classes",     to: "kitchen#create_manual_class", as: :nyk_manual_classes
+    delete "classes/:id", to: "kitchen#destroy_manual_class", as: :nyk_manual_class
+    get "prices",     to: "kitchen#prices",       as: :nyk_prices
+    patch "prices/:id", to: "kitchen#update_price", as: :nyk_price
+    delete "prices/:id", to: "kitchen#destroy_price"
+    get "test",   to: "kitchen#test", as: :nyk_test
+    get "data",   to: "kitchen#data", as: :nyk_data
+    get "analyst", to: "kitchen#analyst", as: :nyk_analyst
+    patch "analyst/subscription", to: "kitchen#update_analyst_subscription", as: :nyk_analyst_subscription
+    # Admin-only live preview of the weekly Agent Team Report (real data, same
+    # builder as the real send). 404s for non-admins. See kitchen#report_preview.
+    get "analyst/report", to: "kitchen#report_preview", as: :nyk_report_preview
+    # On-demand report for NY Kitchen managers: generate a fresh copy (POST so it
+    # isn't re-run on refresh/prefetch); it emails a copy to the logged-in user
+    # only. Metered action.
+    post "analyst/report/generate", to: "kitchen#generate_report", as: :nyk_generate_report
+    get "ask",          to: "kitchen#ask",                as: :nyk_ask
+    post "ask/message",  to: "kitchen#ask_message",        as: :nyk_ask_message
+    post "ask/examples", to: "kitchen#update_ask_examples", as: :nyk_ask_examples
+    # Public, no-auth screen for the tasting-room display monitor.
+    # Cycles currently-available classes; auto-refreshes periodically.
+    get "display", to: "kitchen#display", as: :nyk_display
+    # Liveness ping from the live screen (private mode only). Records last-seen
+    # so the hub's Display Agent dot reflects whether the TV is actually on.
+    post "display/heartbeat", to: "kitchen#display_heartbeat", as: :nyk_display_heartbeat
+    # Display Agent admin: hub-card detail page with config form.
+    get "display/settings", to: "kitchen#display_settings",        as: :nyk_display_settings
+    patch "display/settings", to: "kitchen#update_display_settings"
+    post "display/rotate_token", to: "kitchen#rotate_display_token", as: :nyk_display_rotate_token
+    # Owner-editable flyer print/scan rate, changed inline from Neon's cost dialog.
+    patch "flyer_rate", to: "kitchen#update_flyer_rate", as: :nyk_flyer_rate
+    # Printer-friendly list of the same N classes the display cycles. Admin-only.
+    get "display/print",  to: "kitchen#display_print",  as: :nyk_display_print
+    # Beacon the flyer page fires once it renders in a real browser. The GET above
+    # is fetched by crawlers and QA scripts too, so the count and the charge hang
+    # off this instead.
+    post "display/print/opened", to: "kitchen#record_print", as: :nyk_record_print
+    # Force a re-scrape of nykitchen.com so a class pulled from the website today
+    # stops printing on the flyer. NYK managers only.
+    post "classes/refresh", to: "kitchen#refresh_classes", as: :nyk_refresh_classes
+    # Trackable QR redirect: logs the scan, then 302s to the real class page.
+    # Public (walk-ins scan it with no login); short path so the QR stays dense.
+    get "r/:token",       to: "kitchen#scan_redirect",  as: :nyk_scan
+    # Class packets: a per-class bundle (recipes + equipment + pull sheet),
+    # created/attached from Sam's list page.
+    post "equipment_tags/hide", to: "kitchen_packets#hide_equipment", as: :nyk_hide_equipment_tag
+    get "packets/open",      to: "kitchen_packets#open",   as: :open_nyk_packet
+    get "packets/active_builds", to: "kitchen_packets#active_builds", as: :nyk_active_builds
+    get "packets/new",       to: "kitchen_packets#new",    as: :new_nyk_packet
+    post "packets",           to: "kitchen_packets#create", as: :nyk_packets
+    get "packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet
+    post "packets/:id/regenerate", to: "kitchen_packets#regenerate", as: :regenerate_nyk_packet
+    patch "packets/:id",       to: "kitchen_packets#update", as: :nyk_packet
+    patch "packets/:id/equipment", to: "kitchen_packets#update_equipment", as: :nyk_packet_equipment
+    patch "packets/:id/purchase_equipment", to: "kitchen_packets#update_purchase_equipment", as: :nyk_packet_purchase_equipment
+    post "packets/:id/suggest_equipment", to: "kitchen_packets#suggest_equipment", as: :nyk_suggest_equipment
+    delete "packets/:id",       to: "kitchen_packets#destroy"
+    get "packets/:id/print", to: "kitchen_packets#print",  as: :print_nyk_packet
+    # The recipe/packet library: browse + search every packet on its own page
+    # (moved off the bottom of the new-packet page as the library grew).
+    get "recipes",            to: "kitchen_packets#library", as: :nyk_recipes
+    # Legacy redirects: old /handouts URLs.
+    get "handouts/new",       to: redirect("/%{workspace_slug}/packets/new")
+    get "handouts/:id/edit",  to: redirect("/%{workspace_slug}/packets/%{id}/edit")
+    get "handouts/:id/print", to: redirect("/%{workspace_slug}/packets/%{id}/print")
+    get "handouts/:id",       to: redirect("/%{workspace_slug}/packets/%{id}/edit")
+    # /<slug>/social renders the workspace's social composer in-place so the
+    # four agent URLs on the hub all read /<slug>/<agent>. Shares
+    # WorkspacesController#social, which reads :workspace_slug when :slug is absent.
+    get "social", to: "workspaces#social", as: :nyk_social
+    get "digests/:id", to: "kitchen#digest", as: :nyk_digest
+    get "smoke_runs/:id/page_source", to: "kitchen#download_smoke_page_source", as: :nyk_smoke_page_source
+    get "smoke_runs/:id/trace", to: "kitchen#download_smoke_trace", as: :nyk_smoke_trace
+    # Managers email a failed run's report (error + console + artifact links) to
+    # any address, e.g. an outside developer. Metered usage event per send.
+    post "smoke_runs/:id/report", to: "kitchen#send_smoke_report", as: :nyk_send_smoke_report
+    post "social_post_log", to: "kitchen#social_post_log"
+    post "enhance_post", to: "kitchen#enhance_post"
+    post "send_to_workspace", to: "kitchen#send_to_workspace"
+    get "billing",      to: "nyk_billing#show",        as: :nyk_billing
+    patch "billing/rate",    to: "nyk_billing#update_rate",    as: :nyk_billing_rate
+    patch "billing/pricing", to: "nyk_billing#update_pricing", as: :nyk_billing_pricing
+    patch "billing/model",   to: "nyk_billing#update_model",   as: :nyk_billing_model
+    patch "billing/auto_recipe", to: "nyk_billing#update_auto_recipe", as: :nyk_billing_auto_recipe
+    patch "billing/invoices/:id/pay", to: "nyk_billing#mark_invoice_paid", as: :nyk_billing_invoice_pay
+    post "trigger_smoke", to: "kitchen#trigger_smoke", as: :nyk_trigger_smoke
+    patch "agents/:kind",   to: "kitchen#rename_agent", as: :nyk_rename_agent
+    patch "agents/:kind/avatar", to: "kitchen#update_agent_avatar", as: :nyk_agent_avatar
 
-  # NY Kitchen storage-room alcohol inventory. Lora scans cases IN, Chris scans
-  # bottles OUT; on-hand is the running Σ (in − out). All actions require
-  # sign-in (no public access); enforce_workspace_scope already lets NYK
-  # workspace members reach /nykitchen/*. /items/new must precede /items/:id.
-  get   "nykitchen/inventory",            to: "inventory#index",           as: :nyk_inventory
-  get   "nykitchen/inventory/receive",    to: "inventory#receive",         as: :nyk_inventory_receive
-  get   "nykitchen/inventory/remove",     to: "inventory#remove",          as: :nyk_inventory_remove
-  get   "nykitchen/inventory/lookup",     to: "inventory#lookup",          as: :nyk_inventory_lookup
-  get   "nykitchen/inventory/import",     to: "inventory#import",          as: :nyk_inventory_import
-  post  "nykitchen/inventory/import",     to: "inventory#import_upload"
-  post  "nykitchen/inventory/movements",  to: "inventory#create_movement", as: :nyk_inventory_movements
-  get   "nykitchen/inventory/items/new",  to: "inventory#new_item",        as: :new_nyk_inventory_item
-  post  "nykitchen/inventory/items",      to: "inventory#create_item",     as: :nyk_inventory_items
-  get   "nykitchen/inventory/items/:id",      to: "inventory#show_item",   as: :nyk_inventory_item
-  get   "nykitchen/inventory/items/:id/edit", to: "inventory#edit_item",   as: :edit_nyk_inventory_item
-  patch "nykitchen/inventory/items/:id",      to: "inventory#update_item"
-  # Photo + price capture log -> monthly CSV (separate from the scan in/out ledger).
-  get  "nykitchen/inventory/captures",        to: "inventory#captures",        as: :nyk_inventory_captures
-  post "nykitchen/inventory/captures",        to: "inventory#create_capture"
-  get  "nykitchen/inventory/captures/export", to: "inventory#captures_export", as: :nyk_inventory_captures_export
-  delete "nykitchen/inventory/captures/:id",  to: "inventory#destroy_capture", as: :nyk_inventory_capture
+    # NY Kitchen storage-room alcohol inventory. Lora scans cases IN, Chris scans
+    # bottles OUT; on-hand is the running Σ (in − out). All actions require
+    # sign-in (no public access); enforce_workspace_scope already lets NYK
+    # workspace members reach /nykitchen/*. /items/new must precede /items/:id.
+    get "inventory",            to: "inventory#index",           as: :nyk_inventory
+    get "inventory/receive",    to: "inventory#receive",         as: :nyk_inventory_receive
+    get "inventory/remove",     to: "inventory#remove",          as: :nyk_inventory_remove
+    get "inventory/lookup",     to: "inventory#lookup",          as: :nyk_inventory_lookup
+    get "inventory/import",     to: "inventory#import",          as: :nyk_inventory_import
+    post "inventory/import",     to: "inventory#import_upload"
+    post "inventory/movements",  to: "inventory#create_movement", as: :nyk_inventory_movements
+    get "inventory/items/new",  to: "inventory#new_item",        as: :new_nyk_inventory_item
+    post "inventory/items",      to: "inventory#create_item",     as: :nyk_inventory_items
+    get "inventory/items/:id",      to: "inventory#show_item",   as: :nyk_inventory_item
+    get "inventory/items/:id/edit", to: "inventory#edit_item",   as: :edit_nyk_inventory_item
+    patch "inventory/items/:id",      to: "inventory#update_item"
+    # Photo + price capture log -> monthly CSV (separate from the scan in/out ledger).
+    get "inventory/captures",        to: "inventory#captures",        as: :nyk_inventory_captures
+    post "inventory/captures",        to: "inventory#create_capture"
+    get "inventory/captures/export", to: "inventory#captures_export", as: :nyk_inventory_captures_export
+    delete "inventory/captures/:id",  to: "inventory#destroy_capture", as: :nyk_inventory_capture
+  end
 
   get "crypto", to: "crypto#index", as: :crypto
   resources :news_articles, only: [ :index ], path: "news"

@@ -5,6 +5,7 @@
 # NY Kitchen PDF (full pages then single-station pages).
 class KitchenPacketsController < ApplicationController
   include KitchenTenant
+  before_action :require_kitchen_access
   MAX_PDF_BYTES = 10.megabytes
 
   # The edit and print pages embed the recipe PDF (served by #print) in an

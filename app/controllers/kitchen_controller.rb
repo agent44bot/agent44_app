@@ -16,6 +16,7 @@ class KitchenController < ApplicationController
   # carry no CSRF token (both render layout: false).
   skip_forgery_protection only: %i[display_heartbeat record_print]
 
+  before_action :require_kitchen_access, except: %i[hub display display_heartbeat display_print record_print scan_redirect]
   before_action :set_common_view_state, only: %i[hub list test data ask analyst grocery prices display_settings hours]
   # Super Agent (admin/customer-only): once App Review approved the app, we
   # re-added a gate on /nykitchen/ask so a random signup can't burn our Claude
@@ -1000,13 +1001,13 @@ class KitchenController < ApplicationController
 
   # POST /nykitchen/send_to_workspace — admin clicks "Send to workspace" on a
   # NYK event preview; we create a WorkspaceDraft on the workspace the admin
-  # picked (workspace_slug param) with the current (possibly AI-enhanced)
+  # picked (target_slug param; workspace_slug is the route's tenant) with the current (possibly AI-enhanced)
   # preview text, target all that workspace's connected platforms, status=draft
   # so the admin can review + post from /workspaces/:slug.
   def send_to_workspace
     return render(json: { error: "sign_in_required" }, status: :unauthorized) unless Current.user
 
-    slug = params[:workspace_slug].to_s
+    slug = params[:target_slug].to_s
     # Membership IS the authorization — user.workspaces only includes
     # workspaces they're a member of, so a non-member lookup returns nil
     # and we 404 below.

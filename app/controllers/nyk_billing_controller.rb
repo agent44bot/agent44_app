@@ -150,6 +150,6 @@ class NykBillingController < ApplicationController
     return if Current.user&.admin? # site admin always
     ws = current_workspace
     return if ws&.manager?(Current.user) # NYK workspace owner/admin (e.g. Lora)
-    redirect_to "/nykitchen", alert: "Not available."
+    redirect_to nykitchen_path, alert: "Not available."
   end
 end
