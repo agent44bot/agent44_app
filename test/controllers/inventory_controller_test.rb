@@ -2,6 +2,7 @@ require "test_helper"
 
 class InventoryControllerTest < ActionDispatch::IntegrationTest
   setup do
+    nyk_workspace!
     @user = User.create!(email_address: "inv-#{SecureRandom.hex(4)}@example.com", role: "user")
   end
 

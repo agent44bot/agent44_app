@@ -7,6 +7,7 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
   PHONE = { "User-Agent" => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148" }.freeze
 
   setup do
+    nyk_workspace!
     @snapshot = KitchenSnapshot.create!(taken_on: Date.current)
     @event = @snapshot.kitchen_events.create!(
       url: "https://nykitchen.com/event/pinot-noir-decoded",
@@ -98,7 +99,7 @@ class QrScanTrackingTest < ActionDispatch::IntegrationTest
 
   test "Sam's class list badges each class with its scan count for managers" do
     manager = User.create!(email_address: "mgr-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = manager }
+    nyk_workspace!.memberships.create!(user: manager, role: "admin")
     link = TrackedLink.for_url(@event.url)
     3.times { link.link_scans.create!(scanned_at: Time.current, user_agent: "iPhone") }
 

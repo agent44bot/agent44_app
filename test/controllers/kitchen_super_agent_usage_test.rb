@@ -2,6 +2,8 @@ require "test_helper"
 
 # The admin-only Super Agent usage/cost readout on /nykitchen/ask.
 class KitchenSuperAgentUsageTest < ActionDispatch::IntegrationTest
+  setup { nyk_workspace! }
+
   test "admins see the usage card with cost + tokens" do
     AiCallLog.create!(model: "claude-haiku-4-5", source: "nyk_agent", input_tokens: 1_000, output_tokens: 200)
     sign_in_as(User.create!(email_address: "sa-admin-#{SecureRandom.hex(4)}@example.com", role: "admin"))

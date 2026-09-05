@@ -4,6 +4,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
 
   setup do
+    nyk_workspace!
     @today = Date.today
     @snapshot = KitchenSnapshot.create!(taken_on: @today)
     # Most tests visit /nykitchen/{list,test,data,digests} which require
@@ -380,7 +381,8 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
 
   test "send_to_workspace returns the draft's edit URL for the NYK workspace" do
     admin = User.create!(email_address: "snd-nyk-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    ws    = Workspace.create!(name: "NYK", owner: admin, slug: "nykitchen")
+    ws    = nyk_workspace!
+    ws.memberships.create!(user: admin, role: "admin")
     ws.social_accounts.create!(platform: "x", connected_by: admin, handle: "@nyk", external_id: SecureRandom.hex(4),
       access_token: "AT", refresh_token: "RT", token_expires_at: 2.hours.from_now, status: "active")
     sign_in_as(admin)

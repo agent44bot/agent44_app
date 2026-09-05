@@ -2,6 +2,7 @@ require "test_helper"
 
 class NykBillingControllerTest < ActionDispatch::IntegrationTest
   setup do
+    nyk_workspace!
     @admin = User.create!(email_address: "nyk-bill-admin-#{SecureRandom.hex(4)}@example.com", role: "admin")
     @user  = User.create!(email_address: "nyk-bill-user-#{SecureRandom.hex(4)}@example.com",  role: "user")
     AiCallLog.create!(model: "claude-haiku-4-5-20251001", source: "nyk_enhance",
@@ -123,7 +124,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "NYK workspace admin (not a global admin) can see billing" do
-    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws = nyk_workspace!
     ws.memberships.create!(user: @user, role: "admin")
     sign_in_as(@user)
     get "/nykitchen/billing"
@@ -131,7 +132,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "NYK workspace editor cannot see billing" do
-    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws = nyk_workspace!
     ws.memberships.create!(user: @user, role: "editor")
     sign_in_as(@user)
     get "/nykitchen/billing"
@@ -139,7 +140,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "site admin can set the test-run rate and it re-prices existing runs" do
-    ws  = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws  = nyk_workspace!
     run = SmokeTestRun.create!(name: "nyk_calendar_nav", status: "passed", started_at: Time.current, duration_ms: 60_000)
     sign_in_as(@admin)
     patch "/nykitchen/billing/rate", params: { test_cost_per_minute: "0.044" }
@@ -149,7 +150,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "NYK workspace admin (Lora) cannot change the rate" do
-    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws = nyk_workspace!
     ws.memberships.create!(user: @user, role: "admin")
     sign_in_as(@user)
     patch "/nykitchen/billing/rate", params: { test_cost_per_minute: "0.99" }
@@ -158,7 +159,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "site admin can set flat fee, waive, and discount" do
-    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws = nyk_workspace!
     sign_in_as(@admin)
     patch "/nykitchen/billing/pricing", params: { base_fee_dollars: "75", discount_percent: "10", base_fee_waived: "0" }
     ws.reload
@@ -169,7 +170,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "waiving the fee zeroes the effective base fee" do
-    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws = nyk_workspace!
     sign_in_as(@admin)
     patch "/nykitchen/billing/pricing", params: { base_fee_dollars: "75", base_fee_waived: "1" }
     assert ws.reload.base_fee_waived?
@@ -177,7 +178,7 @@ class NykBillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "NYK workspace admin (Lora) cannot change customer pricing" do
-    ws = Workspace.create!(name: "NY Kitchen", slug: "nykitchen", owner_id: @admin.id)
+    ws = nyk_workspace!
     ws.memberships.create!(user: @user, role: "admin")
     sign_in_as(@user)
     patch "/nykitchen/billing/pricing", params: { base_fee_dollars: "1", discount_percent: "99" }

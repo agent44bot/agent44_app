@@ -1,4 +1,5 @@
 class InventoryItem < ApplicationRecord
+  include KitchenScoped
   has_many :movements, class_name: "InventoryMovement", dependent: :destroy
 
   CATEGORIES = %w[wine spirit beer mixer other].freeze

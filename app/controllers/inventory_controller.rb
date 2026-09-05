@@ -9,13 +9,14 @@ require "csv"
 # an internal ops tool; ApplicationController#enforce_workspace_scope already
 # permits NYK workspace members to reach /nykitchen/*.
 class InventoryController < ApplicationController
+  include KitchenTenant
   before_action :set_item, only: %i[show_item edit_item update_item]
 
   # Stock list — current on-hand per item, with search / category / low-stock
   # filters. on_hand pulled in one grouped query to avoid N+1.
   def index
-    @on_hand = InventoryItem.on_hand_by_item
-    @items   = InventoryItem.by_name.to_a
+    @on_hand = current_workspace.inventory_items.on_hand_by_item
+    @items   = current_workspace.inventory_items.by_name.to_a
 
     if (@category = params[:category].presence)
       @items.select! { |i| i.category == @category }
@@ -28,7 +29,7 @@ class InventoryController < ApplicationController
     @items.select! { |i| i.low_stock?(@on_hand[i.id].to_i) } if @low_only
 
     @total_units = @on_hand.values.sum
-    @low_count   = InventoryItem.where.not(par_level: nil).select { |i| i.low_stock?(@on_hand[i.id].to_i) }.size
+    @low_count   = current_workspace.inventory_items.where.not(par_level: nil).select { |i| i.low_stock?(@on_hand[i.id].to_i) }.size
 
     render "inventory/index", layout: "application"
   end
@@ -48,12 +49,12 @@ class InventoryController < ApplicationController
   # barcode (Chris finds them by typing).
   def lookup
     if (q = params[:q].presence)
-      items = InventoryItem.where("LOWER(name) LIKE ?", "%#{q.strip.downcase}%").by_name.limit(10)
+      items = current_workspace.inventory_items.where("LOWER(name) LIKE ?", "%#{q.strip.downcase}%").by_name.limit(10)
       return render json: { results: items.map { |i| item_json(i) } }
     end
 
     code = params[:code].to_s.strip
-    item = InventoryItem.find_by_code(code)
+    item = current_workspace.inventory_items.find_by_code(code)
     if item
       render json: { found: true, item: item_json(item, scanned_code: code) }
     else
@@ -68,13 +69,13 @@ class InventoryController < ApplicationController
     code = params[:code].to_s.strip
     item =
       if params[:item_id].present?
-        InventoryItem.find_by(id: params[:item_id])
+        current_workspace.inventory_items.find_by(id: params[:item_id])
       else
-        InventoryItem.find_by_code(code)
+        current_workspace.inventory_items.find_by_code(code)
       end
 
     if item.nil? && params[:item].present?
-      item = InventoryItem.new(item_params)
+      item = current_workspace.inventory_items.new(item_params)
       return respond_movement(ok: false, errors: item.errors.full_messages) unless item.save
     end
 
@@ -97,12 +98,12 @@ class InventoryController < ApplicationController
   end
 
   def new_item
-    @item = InventoryItem.new(barcode: params[:code], units_per_case: 12)
+    @item = current_workspace.inventory_items.new(barcode: params[:code], units_per_case: 12)
     render "inventory/item_form", layout: "application"
   end
 
   def create_item
-    @item = InventoryItem.new(item_params)
+    @item = current_workspace.inventory_items.new(item_params)
     if @item.save
       redirect_to nyk_inventory_item_path(@item), notice: "#{@item.name} added to the catalog."
     else
@@ -149,10 +150,10 @@ class InventoryController < ApplicationController
       next if name.blank?
 
       barcode = pick(h, "barcode", "upc", "sku")
-      item = (barcode.present? && InventoryItem.find_by(barcode: barcode)) ||
-             InventoryItem.find_by("LOWER(name) = ?", name.downcase)
+      item = (barcode.present? && current_workspace.inventory_items.find_by(barcode: barcode)) ||
+             current_workspace.inventory_items.find_by("LOWER(name) = ?", name.downcase)
       is_new = item.nil?
-      item ||= InventoryItem.new
+      item ||= current_workspace.inventory_items.new
 
       item.assign_attributes(
         name:           name,
@@ -254,7 +255,7 @@ class InventoryController < ApplicationController
   end
 
   def set_item
-    @item = InventoryItem.find(params[:id])
+    @item = current_workspace.inventory_items.find(params[:id])
   end
 
   def item_params

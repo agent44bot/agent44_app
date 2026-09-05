@@ -21,6 +21,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   EVENT_URL = "https://nykitchen.com/event/fresh-pasta-ravioli-workshop-8-6-26/".freeze
 
   setup do
+    nyk_workspace!
     @user = User.create!(email_address: "packet-#{SecureRandom.hex(4)}@example.com", role: "user")
     sign_in_as(@user)
   end

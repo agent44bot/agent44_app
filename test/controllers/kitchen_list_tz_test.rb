@@ -6,6 +6,8 @@ require "test_helper"
 # before this week's Monday bucket and disappeared from Sam's list until
 # midnight ET. Pin the clock to that boundary and prove the class still renders.
 class KitchenListTzTest < ActionDispatch::IntegrationTest
+  setup { nyk_workspace! }
+
   test "an event happening tonight stays on the list at the UTC/Eastern boundary" do
     # 00:33 UTC on Mon 7/13 == 20:33 ET on Sun 7/12. Date.today (UTC) = 7/13,
     # Date.current (ET) = 7/12. The class is tonight, Sun 7/12 ET.

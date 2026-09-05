@@ -4,6 +4,9 @@ require "minitest/mock"
 
 class Api::V1::KitchenSnapshotsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    # Owner without an email so the workspace exists (tenant resolution) but
+    # adds no push recipient; the recipient-count assertions below assume none.
+    nyk_workspace!(owner: User.create!(pubkey_hex: SecureRandom.hex(32)))
     @token = "test-api-token-#{SecureRandom.hex(16)}"
     ENV["API_TOKEN"] = @token
     @headers = { "Authorization" => "Bearer #{@token}", "Content-Type" => "application/json" }

@@ -3,6 +3,7 @@ require "test_helper"
 # The pantry page: view/edit/delete the latest observed price per ingredient.
 class KitchenPricesTest < ActionDispatch::IntegrationTest
   setup do
+    nyk_workspace!
     @user = User.create!(email_address: "pantry-#{SecureRandom.hex(4)}@example.com", role: "admin")
     sign_in_as(@user)
   end

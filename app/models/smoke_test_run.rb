@@ -5,6 +5,7 @@ class SmokeTestRun < ApplicationRecord
   STATUSES = %w[running passed failed].freeze
   COST_PER_MINUTE = 0.00044 # $0.00044/min
 
+  include KitchenScoped
   has_one_attached :video
   has_one_attached :thumbnail
   has_one_attached :page_source
@@ -73,16 +74,21 @@ class SmokeTestRun < ApplicationRecord
       fail_pct: total.positive? ? (100.0 * failed / total).round : 0 }
   end
 
-  # All smoke runs today belong to the NY Kitchen workspace; bill at its
-  # configured rate (site-admin-set on the billing page), default fallback.
+  # Bill at the run's workspace rate (site-admin-set on the billing page).
+  # Runs created without a workspace (legacy rows, the smoke workflow until
+  # slice 3) fall back to NY Kitchen's rate, then the default.
   def self.nyk_rate_per_minute
-    Workspace.find_by(slug: "nykitchen")&.effective_test_rate || COST_PER_MINUTE
+    Workspace.nykitchen&.effective_test_rate || COST_PER_MINUTE
+  end
+
+  def rate_per_minute
+    workspace&.effective_test_rate || self.class.nyk_rate_per_minute
   end
 
   private
 
   def compute_cost
     minutes = duration_ms / 60_000.0
-    self.cost_dollars = (minutes * self.class.nyk_rate_per_minute).round(6)
+    self.cost_dollars = (minutes * rate_per_minute).round(6)
   end
 end

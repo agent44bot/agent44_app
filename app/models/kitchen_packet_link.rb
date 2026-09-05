@@ -3,6 +3,7 @@
 # a class carries at most one packet.
 class KitchenPacketLink < ApplicationRecord
   belongs_to :kitchen_packet
+  include KitchenScoped
 
-  validates :event_url, presence: true, uniqueness: true
+  validates :event_url, presence: true, uniqueness: { scope: :workspace_id }
 end

@@ -4,6 +4,7 @@
 # edit reviews the recipe with a live PDF preview -> print renders the branded
 # NY Kitchen PDF (full pages then single-station pages).
 class KitchenPacketsController < ApplicationController
+  include KitchenTenant
   MAX_PDF_BYTES = 10.megabytes
 
   # The edit and print pages embed the recipe PDF (served by #print) in an
@@ -20,14 +21,14 @@ class KitchenPacketsController < ApplicationController
     @event_name = params[:event_name].to_s
     # All packets, rendered for the client-side "copy an existing recipe" live
     # filter (recipe-filter controller), matching the class list.
-    @existing = KitchenPacket.order(updated_at: :desc).to_a
+    @existing = current_workspace.kitchen_packets.order(updated_at: :desc).to_a
   end
 
   # The recipe/packet library: a standalone page listing every packet with the
   # same live search, so it doesn't pile up at the bottom of the new-packet page
   # as the collection grows. Browse + manage (open, print, delete).
   def library
-    @packets = KitchenPacket.includes(:links).order(updated_at: :desc).to_a
+    @packets = current_workspace.kitchen_packets.includes(:links).order(updated_at: :desc).to_a
   end
 
   # Open a class's recipe lazily (the "+ recipe" icon on Sam's list points here).
@@ -41,7 +42,7 @@ class KitchenPacketsController < ApplicationController
     event_url = params[:event_url].to_s
     return redirect_to(nyk_list_path, alert: "Missing class.") if event_url.blank?
 
-    if (packet = KitchenPacket.for_event_url(event_url))
+    if (packet = current_workspace.kitchen_packets.for_event_url(event_url))
       return redirect_to edit_nyk_packet_path(packet)
     end
 
@@ -72,7 +73,7 @@ class KitchenPacketsController < ApplicationController
     # touches the packet it came from. Land on edit so the copy can be reviewed
     # and tweaked for this class right away.
     if params[:existing_id].present?
-      source = KitchenPacket.find(params[:existing_id])
+      source = current_workspace.kitchen_packets.find(params[:existing_id])
       return redirect_to nyk_list_path, notice: "#{source.title} ready." if event_url.blank?
 
       packet = source.copy_to!(event_url)
@@ -105,7 +106,7 @@ class KitchenPacketsController < ApplicationController
     # Build it in the background (ExtractRecipeJob) so the upload returns now and
     # the navbar progress bar tracks it while the user roams the app. The packet
     # is created "building" with its source stored; the job fills it in.
-    packet = KitchenPacket.new(
+    packet = current_workspace.kitchen_packets.new(
       title:       params[:event_name].presence || KitchenPacket::BUILDING_TITLE,
       status:      "building",
       build_stage: "queued",
@@ -129,7 +130,7 @@ class KitchenPacketsController < ApplicationController
   # currently building, plus ones that just finished so the bar can show a
   # "ready" link before it clears.
   def active_builds
-    builds = KitchenPacket.active_builds.map do |p|
+    builds = current_workspace.kitchen_packets.active_builds.map do |p|
       { id: p.id, title: (p.title == KitchenPacket::BUILDING_TITLE ? "your recipe" : p.title),
         status: p.status, stage: p.build_stage, error: p.extract_error,
         edit_url: edit_nyk_packet_path(p) }
@@ -145,7 +146,7 @@ class KitchenPacketsController < ApplicationController
   end
 
   def edit
-    @packet = KitchenPacket.find(params[:id])
+    @packet = current_workspace.kitchen_packets.find(params[:id])
     @equipment_catalog = KitchenPacket.equipment_catalog
     @pull_classes = pull_classes_for(@packet)
   end
@@ -155,7 +156,7 @@ class KitchenPacketsController < ApplicationController
   # rice"). Replaces data["recipes"] with the revised set; equipment is left
   # alone. Billed under the same AI line as Generate.
   def regenerate
-    @packet = KitchenPacket.find(params[:id])
+    @packet = current_workspace.kitchen_packets.find(params[:id])
     event = event_for(@packet.links.first&.event_url)
     result = KitchenAi::RecipeExtractor.new(user: Current.user).regenerate(
       class_name:      event&.name.presence || @packet.title,
@@ -181,7 +182,7 @@ class KitchenPacketsController < ApplicationController
   # add/remove). Only touches data["equipment"] so unsaved recipe edits in the
   # form aren't affected.
   def update_equipment
-    packet = KitchenPacket.find(params[:id])
+    packet = current_workspace.kitchen_packets.find(params[:id])
     packet.update!(data: packet.data.merge("equipment" => parse_equipment))
     head :ok
   end
@@ -190,7 +191,7 @@ class KitchenPacketsController < ApplicationController
   # every add/remove). Only touches data["purchase_equipment"]; this list also
   # flows to the aggregate grocery list, not just the pull sheet.
   def update_purchase_equipment
-    packet = KitchenPacket.find(params[:id])
+    packet = current_workspace.kitchen_packets.find(params[:id])
     packet.update!(data: packet.data.merge("purchase_equipment" => parse_equipment))
     head :ok
   end
@@ -200,7 +201,7 @@ class KitchenPacketsController < ApplicationController
   # whatever is already set (so it never wipes manual additions). Lands back on
   # the Equipment Items tab. Billed under the same AI line as Generate.
   def suggest_equipment
-    @packet = KitchenPacket.find(params[:id])
+    @packet = current_workspace.kitchen_packets.find(params[:id])
     event = event_for(@packet.links.first&.event_url)
     result = KitchenAi::RecipeExtractor.new(user: Current.user).suggest_equipment(
       class_name:  event&.name.presence || @packet.title,
@@ -231,7 +232,7 @@ class KitchenPacketsController < ApplicationController
   end
 
   def update
-    @packet = KitchenPacket.find(params[:id])
+    @packet = current_workspace.kitchen_packets.find(params[:id])
     # Equipment now lives on its own tab and auto-saves separately, so it is no
     # longer in this form; merge to keep the saved equipment instead of wiping it.
     @packet.update!(
@@ -249,7 +250,7 @@ class KitchenPacketsController < ApplicationController
   # Remove a recipe packet (and its class links via dependent: :destroy).
   # Open to any signed-in user for now; can be gated to owner/admin later.
   def destroy
-    KitchenPacket.find(params[:id]).destroy!
+    current_workspace.kitchen_packets.find(params[:id]).destroy!
     # Return to the library when deleted from there, else Sam's list. Only
     # allow our own in-app paths (no open redirect).
     back = params[:return_to].to_s
@@ -260,7 +261,7 @@ class KitchenPacketsController < ApplicationController
   # The print page (HTML) embeds the PDF; the .pdf format streams it, used by
   # the preview iframe, the print page, and direct download.
   def print
-    @packet = KitchenPacket.find(params[:id])
+    @packet = current_workspace.kitchen_packets.find(params[:id])
     respond_to do |format|
       format.html { render layout: false }
       format.pdf do
@@ -293,7 +294,7 @@ class KitchenPacketsController < ApplicationController
     )
     return result.error unless result.ok?
 
-    packet = KitchenPacket.create!(
+    packet = current_workspace.kitchen_packets.create!(
       title: name.presence || result.recipes.first["title"],
       data: { "recipes" => result.recipes, "equipment" => Array(result.equipment) },
       source_kind: "generated",
@@ -318,24 +319,24 @@ class KitchenPacketsController < ApplicationController
   # never show two recipes for one class (and a duplicate AI draft is dropped).
   # Avoids attach_to! here because its destroy-first step isn't race-safe.
   def link_or_discard(packet, event_url, auto: false)
-    KitchenPacketLink.create!(kitchen_packet: packet, event_url: event_url, auto: auto)
+    current_workspace.kitchen_packet_links.create!(kitchen_packet: packet, event_url: event_url, auto: auto)
     packet
   rescue ActiveRecord::RecordNotUnique
     packet.destroy
-    KitchenPacket.for_event_url(event_url)
+    current_workspace.kitchen_packets.for_event_url(event_url)
   end
 
   # The current class for an event URL (latest snapshot), for its description.
   def event_for(url)
     return nil if url.blank?
-    KitchenSnapshot.latest&.kitchen_events&.find_by(url: url)
+    current_workspace.kitchen_snapshots.latest&.kitchen_events&.find_by(url: url)
   end
 
   # Classes this recipe is attached to, resolved to current events, ordered for
   # the Pull sheet tab's date dropdown: soonest upcoming run first, then any
   # past runs (most recent first) as a fallback when nothing is upcoming.
   def pull_classes_for(packet)
-    snap = KitchenSnapshot.latest
+    snap = current_workspace.kitchen_snapshots.latest
     return [] unless snap
     events = packet.links.map(&:event_url).uniq.filter_map { |u| snap.kitchen_events.find_by(url: u) }
     now = Time.current

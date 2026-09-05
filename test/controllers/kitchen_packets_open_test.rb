@@ -15,6 +15,7 @@ class KitchenPacketsOpenTest < ActionDispatch::IntegrationTest
   }.freeze
 
   setup do
+    nyk_workspace!
     @user = User.create!(email_address: "open-#{SecureRandom.hex(4)}@example.com", role: "user")
     sign_in_as(@user)
     Setting.delete_key("nyk:auto_recipe_on_open")

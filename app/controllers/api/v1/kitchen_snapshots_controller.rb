@@ -2,15 +2,23 @@ module Api
   module V1
     class KitchenSnapshotsController < ApplicationController
       include ApiTokenAuthentication
+      # Tenant comes from params[:workspace_slug] (the scraper passes it from
+      # slice 3 on) and defaults to NY Kitchen. An unknown slug 404s.
+      include KitchenTenant
 
       skip_before_action :verify_authenticity_token
       allow_unauthenticated_access
       before_action :authenticate_api_token
+      # A workspace_slug that names no kitchen workspace is a JSON 404 on every
+      # action, not Rails' HTML error page.
+      rescue_from ActiveRecord::RecordNotFound do |e|
+        render json: { error: e.message }, status: :not_found
+      end
 
       # GET /api/v1/kitchen_snapshots/upcoming
       # Returns upcoming events from the latest snapshot that still have seats.
       def upcoming
-        snapshot = KitchenSnapshot.order(taken_on: :desc).first
+        snapshot = current_workspace.kitchen_snapshots.order(taken_on: :desc).first
         unless snapshot
           render json: { events: [], message: "No snapshots yet" }
           return
@@ -56,10 +64,10 @@ module Api
         taken_on = Date.parse(params[:taken_on] || Date.today.to_s)
         events_data = Array(params[:events])
 
-        previous = KitchenSnapshot.latest_before(taken_on)
+        previous = current_workspace.kitchen_snapshots.latest_before(taken_on)
         prev_events = previous ? previous.kitchen_events.index_by(&:url) : {}
 
-        snapshot = KitchenSnapshot.find_or_initialize_by(taken_on: taken_on)
+        snapshot = current_workspace.kitchen_snapshots.find_or_initialize_by(taken_on: taken_on)
 
         # Capture current spots before overwriting so we can detect changes
         prev_spots = snapshot.persisted? ? snapshot.kitchen_events.pluck(:url, :spots_left).to_h : {}
@@ -143,6 +151,8 @@ module Api
         notify_wrongly_closed(snapshot, prev_events, prev_avail)
 
         render json: { snapshot_id: snapshot.id, taken_on: taken_on, events_created: created }, status: :created
+      rescue ActiveRecord::RecordNotFound
+        raise
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
       end
@@ -159,7 +169,7 @@ module Api
       # yesterday's snapshot — so neither a twice-daily run nor a new day fires a
       # duplicate.
       def notify_wrongly_closed(snapshot, prev_events, prev_avail)
-        newly = KitchenSnapshot.wrongly_closed_upcoming(snapshot: snapshot).select do |e|
+        newly = current_workspace.kitchen_snapshots.wrongly_closed_upcoming(snapshot: snapshot).select do |e|
           was = prev_avail[e.url] || prev_events[e.url]&.availability
           was.nil? || !was.to_s.downcase.include?("closed")
         end
@@ -296,10 +306,6 @@ module Api
         admin_ids = User.where(role: "admin").pluck(:id)
         member_ids = nyk_workspace&.users&.pluck(:id) || []
         User.where(id: admin_ids + member_ids).where.not(email_address: nil)
-      end
-
-      def nyk_workspace
-        @nyk_workspace ||= Workspace.find_by(slug: "nykitchen")
       end
 
       def serialize_change(c)

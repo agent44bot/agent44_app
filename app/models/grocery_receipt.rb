@@ -3,6 +3,7 @@
 # grocery estimates use real observed prices instead of guesses.
 class GroceryReceipt < ApplicationRecord
   belongs_to :created_by, class_name: "User", optional: true
+  include KitchenScoped
   has_many :ingredient_prices, dependent: :nullify
   has_one_attached :image
 

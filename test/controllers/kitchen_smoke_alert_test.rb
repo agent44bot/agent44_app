@@ -3,6 +3,8 @@ require "test_helper"
 # The hub Super Agent card: the always-on pulse dot, and the smoke-failure
 # alert that (for the trial user) preempts the morning question.
 class KitchenSmokeAlertTest < ActionDispatch::IntegrationTest
+  setup { nyk_workspace! }
+
   def fail_nav_runs(n)
     n.times { |i| SmokeTestRun.create!(name: "nyk_calendar_nav", status: "failed", started_at: (n - i).hours.ago) }
   end

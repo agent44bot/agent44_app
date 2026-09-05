@@ -8,7 +8,7 @@
   <% bc = capture do %>
     <%= render "admin/kitchen/breadcrumbs", current: "Cellar", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %>
   <% end %>
-  <%= render "shared/ws_header", workspace: Workspace.find_by(slug: "nykitchen"), breadcrumbs: bc %>
+  <%= render "shared/ws_header", workspace: nyk_workspace, breadcrumbs: bc %>
 
   <div class="text-orange-500 text-[11px] font-mono tracking-[0.3em] uppercase mb-1">Agent 44 · Cellar</div>
   <h1 class="text-3xl font-black text-white">Storage Room</h1>

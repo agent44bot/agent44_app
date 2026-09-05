@@ -9,6 +9,7 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
   DEFAULT = KitchenController::HUB_CARD_DEFAULT_ORDER
 
   setup do
+    nyk_workspace!
     @user = User.create!(email_address: "hub-#{SecureRandom.hex(4)}@example.com", role: "user")
   end
 
@@ -40,7 +41,8 @@ class KitchenHubCardOrderTest < ActionDispatch::IntegrationTest
 
   test "the field roster shows the workspace member avatars under the header" do
     admin  = User.create!(email_address: "hubadmin-#{SecureRandom.hex(4)}@example.com", role: "admin")
-    ws     = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = admin }
+    ws     = nyk_workspace!
+    ws.memberships.create!(user: admin, role: "admin")
     member = User.create!(email_address: "hubmember-#{SecureRandom.hex(4)}@example.com")
     ws.memberships.find_or_create_by!(user: member) { |m| m.role = "editor" }
 

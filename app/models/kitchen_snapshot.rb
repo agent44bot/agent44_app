@@ -1,8 +1,9 @@
 class KitchenSnapshot < ApplicationRecord
   has_many :kitchen_events, dependent: :destroy
   has_many :kitchen_ticket_digests, dependent: :destroy
+  include KitchenScoped
 
-  validates :taken_on, presence: true, uniqueness: true
+  validates :taken_on, presence: true, uniqueness: { scope: :workspace_id }
 
   def self.latest
     order(taken_on: :desc).first

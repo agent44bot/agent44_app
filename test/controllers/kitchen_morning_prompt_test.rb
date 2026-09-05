@@ -4,6 +4,7 @@ require "test_helper"
 # user named in the kv setting super_agent_daily_prompt_email.
 class KitchenMorningPromptTest < ActionDispatch::IntegrationTest
   setup do
+    nyk_workspace!
     snap = KitchenSnapshot.create!(taken_on: Date.current)
     snap.kitchen_events.create!(url: "https://nykitchen.test/a", name: "Risotto Workshop",
                                 availability: "InStock", spots_left: 1, start_at: 2.days.from_now)
