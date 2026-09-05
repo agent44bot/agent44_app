@@ -255,7 +255,7 @@ class KitchenPacketsController < ApplicationController
     # Return to the library when deleted from there, else Sam's list. Only
     # allow our own in-app paths (no open redirect).
     back = params[:return_to].to_s
-    dest = back.start_with?("/nykitchen/") ? back : nyk_list_path
+    dest = back.start_with?("/#{current_workspace.slug}/") ? back : nyk_list_path
     redirect_to dest, notice: "Packet deleted."
   end
 

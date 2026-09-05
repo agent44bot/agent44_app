@@ -34,6 +34,16 @@ class KitchenRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match %r{href="/nykitchen/}, response.body
   end
 
+  test "the social-post buttons on a tenant's list post back to that tenant" do
+    sign_in_as(@owner)
+    get "/flxculinary/list"
+    assert_match 'data-social-post-log-url-value="/flxculinary/social_post_log"', response.body
+    assert_match 'data-social-post-enhance-url-value="/flxculinary/enhance_post"', response.body
+    assert_no_match "/nykitchen/", response.body
+    post "/flxculinary/social_post_log", params: { event_url: "https://flx.example/e/1", platform: "x", text: "hi" }
+    assert_not_equal 404, response.status
+  end
+
   test "links rendered outside any kitchen page default to NY Kitchen" do
     admin = User.create!(email_address: "adm-#{SecureRandom.hex(3)}@example.com", role: "admin")
     sign_in_as(admin)

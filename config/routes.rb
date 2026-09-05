@@ -182,9 +182,9 @@ Rails.application.routes.draw do
     # Managers email a failed run's report (error + console + artifact links) to
     # any address, e.g. an outside developer. Metered usage event per send.
     post "smoke_runs/:id/report", to: "kitchen#send_smoke_report", as: :nyk_send_smoke_report
-    post "social_post_log", to: "kitchen#social_post_log"
-    post "enhance_post", to: "kitchen#enhance_post"
-    post "send_to_workspace", to: "kitchen#send_to_workspace"
+    post "social_post_log", to: "kitchen#social_post_log", as: :nyk_social_post_log
+    post "enhance_post", to: "kitchen#enhance_post", as: :nyk_enhance_post
+    post "send_to_workspace", to: "kitchen#send_to_workspace", as: :nyk_send_to_workspace
     get "billing",      to: "nyk_billing#show",        as: :nyk_billing
     patch "billing/rate",    to: "nyk_billing#update_rate",    as: :nyk_billing_rate
     patch "billing/pricing", to: "nyk_billing#update_pricing", as: :nyk_billing_pricing

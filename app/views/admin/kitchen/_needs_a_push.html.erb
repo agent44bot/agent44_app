@@ -37,9 +37,9 @@
               data-social-post-url-value="<%= e.url %>"
               data-social-post-description-value="<%= truncate(CGI.unescapeHTML(strip_tags(e.description.to_s)).gsub("&nbsp;", " ").gsub(/([ap]m)([A-Z])/, '\1 \2').gsub(/\n/, ' ').squeeze(' ').strip, length: 200, separator: '. ', omission: '.') %>"
               data-social-post-image-url-value="<%= e.image_url %>"
-              data-social-post-log-url-value="/nykitchen/social_post_log"
-              data-social-post-enhance-url-value="/nykitchen/enhance_post"
-              <% if default_ws %>data-social-post-send-to-workspace-url-value="/nykitchen/send_to_workspace"
+              data-social-post-log-url-value="<%= nyk_social_post_log_path %>"
+              data-social-post-enhance-url-value="<%= nyk_enhance_post_path %>"
+              <% if default_ws %>data-social-post-send-to-workspace-url-value="<%= nyk_send_to_workspace_path %>"
               data-social-post-workspace-slug-value="<%= default_ws.slug %>"<% end %>>
             <span class="shrink-0 w-6 h-6 mt-0.5 rounded-full bg-amber-900/50 text-amber-400 text-xs font-bold flex items-center justify-center">
               <%= i + 1 %>
