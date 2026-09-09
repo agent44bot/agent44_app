@@ -1,9 +1,10 @@
-<%# Review screen: the editable recipe (full width) with a full-width PDF
-    preview below it. Edit, "Save & refresh preview" to redraw the PDF, repeat
-    until it looks right, then "Done" returns to Sam's list. The station column
-    is an AI proposal and the main thing to double-check; spare blank ingredient
-    rows are dropped on save. %>
-<div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+<%# Review screen: the editable recipe beside a live PDF preview (side by side
+    on wide screens, stacked on small ones). Edits autosave about a second after
+    the last keystroke and the preview redraws (packet_autosave controller);
+    "Save" still does a full submit. "Done" returns to Sam's list. The station
+    column is an AI proposal and the main thing to double-check; spare blank
+    ingredient rows are dropped on save. %>
+<div class="max-w-5xl xl:max-w-[100rem] mx-auto px-4 sm:px-6 py-10">
   <div class="flex justify-end mb-3"><%= back_button "← Back to Sam's list", nyk_list_path %></div>
   <h1 class="text-2xl font-bold text-white mb-1"><%= @packet.ready? ? "Review the packet" : "Your packet" %></h1>
 
@@ -78,8 +79,12 @@
     <% end %>
   </div>
 
-  <%# The editable recipe form, full width. %>
-  <%= form_with url: nyk_packet_path(@packet), method: :patch do |f| %>
+  <%# Form left, preview right on xl screens; the autosave controller wraps
+      both so a keystroke in the form can refresh the preview. %>
+  <div data-controller="packet-autosave" class="xl:grid xl:grid-cols-2 xl:gap-8 xl:items-start">
+  <div class="min-w-0">
+  <%= form_with url: nyk_packet_path(@packet), method: :patch,
+        data: { packet_autosave_target: "form", action: "input->packet-autosave#changed change->packet-autosave#changed submit->packet-autosave#cancel" } do |f| %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
       <div>
         <label class="block text-sm font-semibold text-gray-300 mb-1">Recipe title</label>
@@ -154,7 +159,7 @@
     <p class="text-xs text-amber-400/80 mb-4">* The <%= @packet.station_label.downcase %> amounts were proposed by the agent. Please double-check them, especially ranges and "to taste" lines.</p>
 
     <div class="flex items-center gap-3 flex-wrap">
-      <%= submit_tag "Save & refresh preview", class: "px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" %>
+      <%= submit_tag "Save", class: "px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold cursor-pointer" %>
       <%= link_to print_nyk_packet_path(@packet), target: "_blank", rel: "noopener",
             class: "px-5 py-2.5 rounded-lg border border-emerald-600 text-emerald-300 hover:bg-emerald-600/10 font-semibold" do %>
         🖨 Print recipes
@@ -174,24 +179,29 @@
           "Delete this packet? This cannot be undone." },
         class: "text-sm text-red-400 hover:text-red-300 cursor-pointer" %>
 
-  <%# Full-width PDF preview below the form: this is the exact file that prints. %>
-  <div class="mt-10 pt-8 border-t border-gray-800">
+  </div><%# end form column %>
+
+  <%# PDF preview: this is the exact file that prints. Pinned beside the form
+      on xl screens so an edit and its result are on screen together. %>
+  <div class="mt-10 pt-8 border-t border-gray-800 xl:mt-0 xl:pt-0 xl:border-0 xl:sticky xl:top-4 min-w-0">
     <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
       <span class="text-sm font-semibold text-gray-300">PDF preview</span>
       <div class="flex items-center gap-4">
         <%= link_to "Open print page", print_nyk_packet_path(@packet), class: "text-sm text-orange-400 hover:text-orange-300" %>
         <%= link_to "Download PDF", print_nyk_packet_path(@packet, format: :pdf, download: 1, v: @packet.updated_at.to_i), class: "text-sm text-gray-400 hover:text-gray-200" %>
-        <span class="text-xs text-gray-500">Updates each time you save</span>
+        <span class="text-xs text-gray-500" data-packet-autosave-target="status" aria-live="polite">Updates as you type</span>
       </div>
     </div>
     <div class="rounded-xl overflow-hidden border border-gray-800 bg-gray-950">
-      <%# v=updated_at busts the browser's PDF cache so "Save & refresh preview"
-          actually redraws: without it the iframe URL is identical across saves
-          and the stale cached PDF is shown. %>
+      <%# v=updated_at busts the browser's PDF cache so a save actually redraws:
+          without it the iframe URL is identical across saves and the stale
+          cached PDF is shown. The autosave controller swaps src the same way. %>
       <iframe src="<%= print_nyk_packet_path(@packet, format: :pdf, v: @packet.updated_at.to_i) %>"
+              data-packet-autosave-target="frame"
               class="w-full" style="height: 92vh;" title="Recipe PDF preview"></iframe>
     </div>
   </div>
+  </div><%# end packet-autosave grid %>
     </div><%# end Recipes tab panel %>
 
     <%# ===== Equipment Items tab: the per-station setup list. Auto-saves on
