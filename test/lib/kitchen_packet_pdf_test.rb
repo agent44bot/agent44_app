@@ -109,6 +109,27 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     assert_equal "All-purpose flour (~300 g)", rows[0][1]
   end
 
+  test "a long ingredient with a parenthetical still fits the page at the chosen size" do
+    long = "Stone-ground organic heirloom cornmeal from the Finger Lakes mill (~300 g)"
+    recipe = { "title" => "Bread",
+               "ingredients" => (1..8).map { |i| { "qty" => "#{i} c", "station_qty" => "1 c", "item" => long, "section" => nil } },
+               "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] }
+    pdf = KitchenPacketPdf.new(packet([ recipe ]))
+    doc = pdf.send(:new_document)
+    rows = pdf.send(:ingredient_rows, recipe, false)
+    ing_w = (doc.bounds.width - 24) * 0.42
+    avail_h = doc.bounds.top - 120 - KitchenPacketPdf::FOOTER_BAND
+    size, broken = pdf.send(:fit_size, doc, rows, [], ing_w, doc.bounds.width - ing_w - 24, avail_h)
+    height = pdf.send(:table_height, doc, broken, pdf.send(:ing_widths, ing_w), size)
+    assert height <= avail_h, "rows measured with their breaks must fit the budget (#{height} > #{avail_h})"
+    assert size > KitchenPacketPdf::BODY_SIZES.last, "fixture should fit above the smallest size (got #{size})"
+    # The unbroken rows at that size are shorter or equal; the old code sized on
+    # those and then broke, which could overflow. Now the broken rows are what fit.
+    unbroken = pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, ing_w), size)
+    assert unbroken <= height
+    assert broken.all? { |r| r[1].include?("\n(~300 g)") }, "every long item breaks before its parenthetical"
+  end
+
   test "headcount is not printed on the handout" do
     recipe = { "title" => "Rice", "headcount" => 24,
                "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ],

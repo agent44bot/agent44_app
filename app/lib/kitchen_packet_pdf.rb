@@ -126,8 +126,7 @@ class KitchenPacketPdf
     # Auto-fit: pick the largest body size whose taller column still clears the
     # footer, so the whole recipe lands on this one page.
     avail_h = top - FOOTER_BAND
-    size = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
-    keep_parentheticals(doc, ing_rows, ing_widths(ing_w)[1] - 6, size)
+    size, ing_rows = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
 
     # Directions on the right, ingredients on the left. Each in its own box so a
     # long column can't push the other down.
@@ -208,13 +207,19 @@ class KitchenPacketPdf
     [ num_w, dir_w - num_w ]
   end
 
+  # Returns [size, ingredient rows] where the rows carry the parenthetical
+  # breaks for that size: each candidate size is measured with its own breaks
+  # applied, so a forced break can never add a line the fit did not budget.
   def fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
+    item_w = ing_widths(ing_w)[1] - 6
+    broken = nil
     BODY_SIZES.each do |size|
-      ih = table_height(doc, ing_rows, ing_widths(ing_w), size)
+      broken = keep_parentheticals(doc, ing_rows.map(&:dup), item_w, size)
+      ih = table_height(doc, broken, ing_widths(ing_w), size)
       dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size)
-      return size if [ ih, dh ].max <= avail_h
+      return [ size, broken ] if [ ih, dh ].max <= avail_h
     end
-    BODY_SIZES.last
+    [ BODY_SIZES.last, broken || ing_rows ]
   end
 
   def table_height(doc, rows, widths, size)
