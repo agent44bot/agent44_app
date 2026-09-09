@@ -94,6 +94,27 @@ class KitchenPacket < ApplicationRecord
     self.data = data.merge("recipes" => list)
   end
 
+  # Print layout knobs (Lora and Caitlin, 2026-09-09): the recipe title size
+  # and how wide the ingredient column is, so a long item like "All-purpose
+  # flour (~300 g)" can be given room instead of wrapping. Stored in data so
+  # they follow the packet to every run. Values are validated to the menus.
+  TITLE_SIZES = { "small" => 20, "normal" => 24, "large" => 30, "xlarge" => 36 }.freeze
+  INGREDIENT_WIDTHS = { "narrow" => 0.36, "normal" => 0.42, "wide" => 0.50 }.freeze
+
+  def layout
+    data["layout"].is_a?(Hash) ? data["layout"] : {}
+  end
+
+  def layout=(attrs)
+    attrs = attrs.to_h.stringify_keys.slice("title_size", "ingredient_width")
+    attrs["title_size"] = "normal" unless TITLE_SIZES.key?(attrs["title_size"])
+    attrs["ingredient_width"] = "normal" unless INGREDIENT_WIDTHS.key?(attrs["ingredient_width"])
+    self.data = data.merge("layout" => attrs)
+  end
+
+  def title_size_pt = TITLE_SIZES.fetch(layout["title_size"], TITLE_SIZES["normal"])
+  def ingredient_width_ratio = INGREDIENT_WIDTHS.fetch(layout["ingredient_width"], INGREDIENT_WIDTHS["normal"])
+
   # Equipment to set up at each station before class (pots, pans, wooden
   # spoons...). Lives on the packet so it follows the class to every run; the
   # pull sheet prints it as a per-station setup checklist.

@@ -37,7 +37,13 @@ jobs:
           bundler-cache: true
 
       - name: Install libvips (Active Storage variant processor)
-        run: sudo apt-get update && sudo apt-get install -y libvips42
+        # The runner image ships a google-chrome apt source we never use; its
+        # index intermittently fails with "Hash Sum mismatch" and takes the
+        # whole apt-get update down with it. Drop it first (Chrome itself is
+        # already installed on the image).
+        run: |
+          sudo grep -ls 'dl.google.com' /etc/apt/sources.list.d/* | xargs -r sudo rm -f
+          sudo apt-get update && sudo apt-get install -y libvips42
 
       - name: Scan for security vulnerabilities in JavaScript dependencies
         run: bin/importmap audit
@@ -118,7 +124,13 @@ jobs:
           bundler-cache: true
 
       - name: Install libvips (Active Storage variant processor)
-        run: sudo apt-get update && sudo apt-get install -y libvips42
+        # The runner image ships a google-chrome apt source we never use; its
+        # index intermittently fails with "Hash Sum mismatch" and takes the
+        # whole apt-get update down with it. Drop it first (Chrome itself is
+        # already installed on the image).
+        run: |
+          sudo grep -ls 'dl.google.com' /etc/apt/sources.list.d/* | xargs -r sudo rm -f
+          sudo apt-get update && sudo apt-get install -y libvips42
 
       - name: Run tests
         env:
@@ -146,7 +158,13 @@ jobs:
           bundler-cache: true
 
       - name: Install libvips (Active Storage variant processor)
-        run: sudo apt-get update && sudo apt-get install -y libvips42
+        # The runner image ships a google-chrome apt source we never use; its
+        # index intermittently fails with "Hash Sum mismatch" and takes the
+        # whole apt-get update down with it. Drop it first (Chrome itself is
+        # already installed on the image).
+        run: |
+          sudo grep -ls 'dl.google.com' /etc/apt/sources.list.d/* | xargs -r sudo rm -f
+          sudo apt-get update && sudo apt-get install -y libvips42
 
       - name: Run System Tests
         env:

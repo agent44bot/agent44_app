@@ -236,6 +236,7 @@ class KitchenPacketsController < ApplicationController
     @packet = current_workspace.kitchen_packets.find(params[:id])
     # Equipment now lives on its own tab and auto-saves separately, so it is no
     # longer in this form; merge to keep the saved equipment instead of wiping it.
+    @packet.layout = params[:layout].to_unsafe_h if params[:layout].respond_to?(:to_unsafe_h)
     @packet.update!(
       title: params[:title].presence || @packet.title,
       station_label: params[:station_label].presence || @packet.station_label,

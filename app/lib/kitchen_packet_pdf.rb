@@ -32,8 +32,9 @@ class KitchenPacketPdf
   FOOTER_BAND = 40 # points reserved at the page bottom for the footer
 
   # Label for the full-quantity pages (the station amount is half, so the full
-  # batch is two stations' worth).
-  DUAL_STATION_LABEL = "Dual station".freeze
+  # batch is two stations' worth). "Double" / "Single", no "station": Lora and
+  # Caitlin, 2026-09-09.
+  DUAL_STATION_LABEL = "Double".freeze
 
   VULGAR = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞⅐⅑⅒".freeze
 
@@ -77,6 +78,21 @@ class KitchenPacketPdf
     str.to_s.gsub(/(?<=\d)([#{VULGAR}])/, ' \1')
   end
 
+  # A parenthetical like "(~300 g)" must never split across lines ("...(~300"
+  # / "g)"). Prawn wraps at every space and Carlito has no glyph for a
+  # non-breaking space, so once the body size is known, any item that will not
+  # fit its column on one line is broken explicitly before the parenthetical.
+  def keep_parentheticals(doc, rows, item_w, size)
+    rows.each do |row|
+      next unless row.is_a?(Array) && row.size == 2 && row[1].is_a?(String)
+      item = row[1]
+      next unless item.match?(/ \([^()]*\)\z/)
+      next if doc.width_of(item, size: size) <= item_w
+      row[1] = item.sub(/ (\([^()]*\))\z/, "\n\\1")
+    end
+    rows
+  end
+
   def empty(doc)
     doc.text "No recipes on this packet yet.", align: :center, size: 13, color: "777777"
     doc.render
@@ -93,16 +109,14 @@ class KitchenPacketPdf
 
     brand(doc)
     doc.move_down 22
-    doc.font(TITLE_FONT, style: :bold) { doc.text tidy(recipe["title"]), size: 24, align: :center }
-    if (hc = recipe["headcount"].to_i) > 0
-      doc.move_down 6
-      doc.text "Headcount: #{hc}", size: 12, color: "555555", align: :center
-    end
+    # Headcount drives station scaling and the grocery list but is not printed
+    # on the handout (removed 2026-09-09 at Lora's request).
+    doc.font(TITLE_FONT, style: :bold) { doc.text tidy(recipe["title"]), size: @packet.title_size_pt, align: :center }
     doc.move_down 22
 
     top     = doc.cursor
     col_gap = 24
-    ing_w   = (doc.bounds.width - col_gap) * 0.42
+    ing_w   = (doc.bounds.width - col_gap) * @packet.ingredient_width_ratio
     dir_x   = ing_w + col_gap
     dir_w   = doc.bounds.width - dir_x
 
@@ -112,7 +126,7 @@ class KitchenPacketPdf
     # Auto-fit: pick the largest body size whose taller column still clears the
     # footer, so the whole recipe lands on this one page.
     avail_h = top - FOOTER_BAND
-    size = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
+    size, ing_rows = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
 
     # Directions on the right, ingredients on the left. Each in its own box so a
     # long column can't push the other down.
@@ -193,13 +207,19 @@ class KitchenPacketPdf
     [ num_w, dir_w - num_w ]
   end
 
+  # Returns [size, ingredient rows] where the rows carry the parenthetical
+  # breaks for that size: each candidate size is measured with its own breaks
+  # applied, so a forced break can never add a line the fit did not budget.
   def fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
+    item_w = ing_widths(ing_w)[1] - 6
+    broken = nil
     BODY_SIZES.each do |size|
-      ih = table_height(doc, ing_rows, ing_widths(ing_w), size)
+      broken = keep_parentheticals(doc, ing_rows.map(&:dup), item_w, size)
+      ih = table_height(doc, broken, ing_widths(ing_w), size)
       dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size)
-      return size if [ ih, dh ].max <= avail_h
+      return [ size, broken ] if [ ih, dh ].max <= avail_h
     end
-    BODY_SIZES.last
+    [ BODY_SIZES.last, broken || ing_rows ]
   end
 
   def table_height(doc, rows, widths, size)

@@ -230,7 +230,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   test "update parses the review form and drops blank ingredient rows" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: {
         "0" => {
           title: "Fresh Pasta",
@@ -251,7 +251,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   test "update standardizes measurement units on save (Lora's house style)" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: {
         "0" => {
           title: "Fresh Pasta",
@@ -274,7 +274,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   test "update cleans ingredient-name punctuation artifacts and sentence-cases on save" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: {
         "0" => {
           title: "Thai Green Curry",
@@ -391,7 +391,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   test "saving recipes does not wipe the separately-saved equipment" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED, "equipment" => [ "Whisk" ] })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: { "0" => {
         title: "Fresh Pasta",
         ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } }
@@ -402,10 +402,29 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal 1, packet.recipes.size
   end
 
+  test "update saves the print layout selects and the edit page round-trips them" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { title_size: "xlarge", ingredient_width: "wide" }, recipes: recipes }
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_nil flash[:alert]
+    packet.reload
+    assert_equal({ "title_size" => "xlarge", "ingredient_width" => "wide" }, packet.layout)
+    assert_equal 36, packet.title_size_pt
+
+    get edit_nyk_packet_path(packet)
+    assert_select "select[name='layout[title_size]'] option[selected][value=xlarge]"
+    assert_select "select[name='layout[ingredient_width]'] option[selected][value=wide]"
+
+    # A value outside the menu falls back to normal rather than erroring.
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { title_size: "gigantic" }, recipes: recipes }
+    assert_equal "normal", packet.reload.layout["title_size"]
+  end
+
   test "update saves a per-recipe headcount and round-trips it into the edit form" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: {
         "0" => { title: "Recipe A", headcount: "1",
                  ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
@@ -427,7 +446,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   test "blank or non-positive recipe headcount is stored as nil" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: {
         "0" => { title: "Blank", headcount: "",
                  ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
@@ -454,7 +473,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
   test "update keeps blank lines between steps so spacing carries into the PDF" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
-      title: "Packet", station_label: "Single station",
+      title: "Packet", station_label: "Single",
       recipes: { "0" => {
         title: "Sauce",
         ingredients: { "0" => { qty: "2 T", station_qty: "1 T", item: "Butter", section: "" } },
@@ -496,7 +515,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     # "Save & refresh preview" with an added recipe (travel so updated_at advances).
     travel 1.second do
       patch nyk_packet_path(packet), params: {
-        title: "Packet", station_label: "Single station",
+        title: "Packet", station_label: "Single",
         recipes: {
           "0" => { title: "Fresh Pasta",
                    ingredients: { "0" => { qty: "2½ c", station_qty: "1¼ c", item: "All-purpose flour", section: "" } },
@@ -724,7 +743,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     get edit_nyk_packet_path(packet)
     assert_response :success
     # Shared by 3 -> a dropdown; the default frame src points at the soonest upcoming run.
-    assert_select "select option", 3
+    assert_select "select[data-action*=frame-src] option", 3
     default_src = response.body[/data-default-src="([^"]*)"/, 1]
     assert_includes default_src, "sushi-soon", "frame defaults to the soonest upcoming run"
     refute_includes default_src, "sushi-later"

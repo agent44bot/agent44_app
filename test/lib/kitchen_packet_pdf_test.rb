@@ -2,7 +2,7 @@ require "test_helper"
 
 class KitchenPacketPdfTest < ActiveSupport::TestCase
   def packet(recipes)
-    KitchenPacket.new(title: "Packet", station_label: "Single station",
+    KitchenPacket.new(title: "Packet", station_label: "Single",
                        data: { "recipes" => recipes })
   end
 
@@ -59,12 +59,12 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size, "one page for full + one for station, no overflow pages"
   end
 
-  # Every page is labeled: the full-quantity pass is "Dual station" (station
-  # amount is half), the scaled pass is the packet's station_label. (PDF text
-  # is subset-TTF glyphs, so we can't grep the bytes; this pins the label and
+  # Every page is labeled: the full-quantity pass is "Double" (station amount
+  # is half), the scaled pass is the packet's station_label. (PDF text is
+  # subset-TTF glyphs, so we can't grep the bytes; this pins the label and
   # the page count proves both passes still render.)
-  test "full pages are labeled Dual station and both passes render" do
-    assert_equal "Dual station", KitchenPacketPdf::DUAL_STATION_LABEL
+  test "full pages are labeled Double and both passes render" do
+    assert_equal "Double", KitchenPacketPdf::DUAL_STATION_LABEL
     h = packet([
       { "title" => "Rice",
         "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ],
@@ -73,5 +73,75 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     bytes = KitchenPacketPdf.new(h).render
     # 1 recipe x (dual + single) = 2 pages.
     assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size
+  end
+
+  test "title size and ingredient column follow the packet's layout settings" do
+    recipe = { "title" => "Fresh Pasta",
+               "ingredients" => [ { "qty" => "2½ c", "station_qty" => "1¼ c", "item" => "All-purpose flour", "section" => nil } ],
+               "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] }
+    normal = packet([ recipe ])
+    big = packet([ recipe ])
+    big.layout = { "title_size" => "xlarge", "ingredient_width" => "wide" }
+    assert_equal 24, normal.title_size_pt
+    assert_equal 36, big.title_size_pt
+    assert_in_delta 0.50, big.ingredient_width_ratio, 0.001
+    # Both still render a valid two-page PDF.
+    [ normal, big ].each { |h| assert_equal 2, KitchenPacketPdf.new(h).render.scan(%r{/Type\s*/Page[^s]}).size }
+  end
+
+  test "layout rejects values outside the menus" do
+    h = packet([])
+    h.layout = { "title_size" => "gigantic", "ingredient_width" => "huge", "junk" => 1 }
+    assert_equal({ "title_size" => "normal", "ingredient_width" => "normal" }, h.layout)
+  end
+
+  test "a parenthetical like (~300 g) never splits mid-group" do
+    pdf = KitchenPacketPdf.new(packet([]))
+    doc = pdf.send(:new_document)
+    rows = [ [ "2 ½ c", "All-purpose flour (~300 g)" ], [ "1", "Egg (large)" ] ]
+    # Column too narrow for the first item at 12pt: break before the parenthetical.
+    pdf.send(:keep_parentheticals, doc, rows, 90, 12)
+    assert_equal "All-purpose flour\n(~300 g)", rows[0][1]
+    assert_equal "Egg (large)", rows[1][1]
+    # Plenty of room: left alone.
+    rows = [ [ "2 ½ c", "All-purpose flour (~300 g)" ] ]
+    pdf.send(:keep_parentheticals, doc, rows, 400, 12)
+    assert_equal "All-purpose flour (~300 g)", rows[0][1]
+  end
+
+  test "a long ingredient with a parenthetical still fits the page at the chosen size" do
+    long = "Stone-ground organic heirloom cornmeal from the Finger Lakes mill (~300 g)"
+    recipe = { "title" => "Bread",
+               "ingredients" => (1..8).map { |i| { "qty" => "#{i} c", "station_qty" => "1 c", "item" => long, "section" => nil } },
+               "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] }
+    pdf = KitchenPacketPdf.new(packet([ recipe ]))
+    doc = pdf.send(:new_document)
+    rows = pdf.send(:ingredient_rows, recipe, false)
+    ing_w = (doc.bounds.width - 24) * 0.42
+    avail_h = doc.bounds.top - 120 - KitchenPacketPdf::FOOTER_BAND
+    size, broken = pdf.send(:fit_size, doc, rows, [], ing_w, doc.bounds.width - ing_w - 24, avail_h)
+    height = pdf.send(:table_height, doc, broken, pdf.send(:ing_widths, ing_w), size)
+    assert height <= avail_h, "rows measured with their breaks must fit the budget (#{height} > #{avail_h})"
+    assert size > KitchenPacketPdf::BODY_SIZES.last, "fixture should fit above the smallest size (got #{size})"
+    # The unbroken rows at that size are shorter or equal; the old code sized on
+    # those and then broke, which could overflow. Now the broken rows are what fit.
+    unbroken = pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, ing_w), size)
+    assert unbroken <= height
+    assert broken.all? { |r| r[1].include?("\n(~300 g)") }, "every long item breaks before its parenthetical"
+  end
+
+  test "headcount is not printed on the handout" do
+    recipe = { "title" => "Rice", "headcount" => 24,
+               "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ],
+               "directions" => [ { "section" => nil, "steps" => [ "Cook." ] } ] }
+    doc = Prawn::Document.new
+    texts = []
+    doc.define_singleton_method(:text) { |str, *_| texts << str }
+    doc.define_singleton_method(:table) { |*_| nil }
+    doc.define_singleton_method(:make_table) { |*_| Struct.new(:height).new(10) }
+    pdf = KitchenPacketPdf.new(packet([ recipe ]))
+    pdf.send(:recipe_page, doc, recipe, "Double", false)
+    assert_no_match(/Headcount/, texts.join("\n"))
+    assert_includes texts, "Rice"
   end
 end
