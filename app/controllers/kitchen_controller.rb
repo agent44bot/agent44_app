@@ -358,6 +358,33 @@ class KitchenController < ApplicationController
     redirect_back fallback_location: nyk_grocery_path, notice: "Updated ticket portion."
   end
 
+  # Autosave from the editable pull sheet: replace the class's sheet with the
+  # categories exactly as edited. base_key ties the edit to the generated list
+  # it started from so the page can flag when the recipes change later.
+  def update_pull_sheet
+    url = params[:event_url].to_s
+    return render(json: { error: "Missing class." }, status: :unprocessable_entity) if url.blank?
+
+    parsed = JSON.parse(params[:categories].to_s.presence || "[]")
+    return render(json: { error: "Sections must be a list." }, status: :unprocessable_entity) unless parsed.is_a?(Array)
+    categories = PullSheetEdit.clean_categories(parsed)
+    to_taste   = Array(JSON.parse(params[:to_taste].to_s.presence || "[]")).map { |t| t.to_s.strip }.reject(&:blank?)
+    edit = current_workspace.pull_sheet_edits.find_or_initialize_by(event_url: url)
+    edit.base_key ||= params[:base_key].presence
+    edit.assign_attributes(categories: categories, to_taste: to_taste, updated_by: Current.user)
+    edit.save!
+    render json: { saved_at: edit.updated_at, items: categories.sum { |ct| ct["items"].size } }
+  rescue JSON::ParserError, ActiveRecord::RecordInvalid => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  # Drop the hand edits and go back to the generated list.
+  def reset_pull_sheet
+    url = params[:event_url].to_s
+    current_workspace.pull_sheet_edits.where(event_url: url).destroy_all
+    redirect_to nyk_grocery_path(event_url: url, name: params[:name].to_s), notice: "Pull sheet reset to the generated list."
+  end
+
   def test
     load_smoke_data
     render "admin/kitchen/test", layout: "application"
@@ -1376,6 +1403,17 @@ class KitchenController < ApplicationController
       [ c[:tag], lines ]
     end
     return if @with_recipe.empty?
+
+    # A pull sheet someone edited by hand wins over the generated list, and
+    # shows even when no generated list is cached (no Opus call needed).
+    # @sheet_base_key ties a fresh edit to the generated list it starts from.
+    @sheet_base_key = KitchenAi::GroceryList.cache_key(@with_recipe, svc.observed_prices) if @single_class
+    if @single_class && (@sheet_edit = current_workspace.pull_sheet_edits.find_by(event_url: @event_url))
+      @result = @sheet_edit.result
+      @from_cache = true
+      @sheet_stale = @sheet_edit.stale_against?(@sheet_base_key)
+      return
+    end
 
     # Read the cache only. If the list is not built yet, kick off a background
     # build (once) and let the frame poll, so the slow, paid Claude aggregation

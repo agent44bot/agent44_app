@@ -12,6 +12,7 @@ class User < ApplicationRecord
   has_many :device_tokens, dependent: :nullify
   has_many :ai_call_logs, dependent: :nullify
   has_many :connect_chat_messages, dependent: :nullify # keep the workspace's Q&A log if the asker is deleted
+  has_many :pull_sheet_edits, foreign_key: :updated_by_id, inverse_of: :updated_by, dependent: :nullify # the sheet outlives its last editor
   has_many :usage_events, dependent: :nullify        # metered actions this user triggered
   has_many :kitchen_manual_classes, foreign_key: :created_by_id, dependent: :nullify # NYK camps someone added by hand
   has_many :inventory_movements, dependent: :nullify # who scanned stock in/out

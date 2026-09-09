@@ -127,7 +127,37 @@
       </details>
     <% end %>
 
-    <div class="bg-white text-gray-900 rounded-xl p-6 print-sheet">
+    <%# A single-class pull sheet is editable in place: every quantity and
+        item is a contenteditable span, lines can be removed or added, and the
+        pull-sheet-editor controller autosaves the whole sheet to
+        PullSheetEdit about a second after the last keystroke. %>
+    <% editable = single && single_event %>
+    <div <% if editable %>data-controller="pull-sheet-editor"
+         data-pull-sheet-editor-url-value="<%= nyk_pull_sheet_path %>"
+         data-pull-sheet-editor-event-url-value="<%= @event_url %>"
+         data-pull-sheet-editor-base-key-value="<%= @sheet_edit&.base_key || @sheet_base_key %>"<% end %>>
+    <% if editable %>
+      <div class="mb-2 flex items-center justify-between gap-3 flex-wrap no-print text-xs">
+        <span class="text-gray-400">
+          <% if @sheet_edit %>
+            ✏️ Edited by hand<%= @sheet_edit.updated_by ? " by #{@sheet_edit.updated_by.display_identifier}" : "" %>.
+            <% if @sheet_stale %><span class="text-amber-300">The recipes changed since; reset to rebuild from them, or keep your edits.</span><% end %>
+          <% else %>
+            Click any amount or item to edit it. Changes save on their own.
+          <% end %>
+        </span>
+        <span class="flex items-center gap-3">
+          <span data-pull-sheet-editor-target="status" aria-live="polite" class="text-gray-500"></span>
+          <% if @sheet_edit %>
+            <%= button_to "Reset to generated list", nyk_pull_sheet_path, method: :delete,
+                  params: { event_url: @event_url, name: @event_name },
+                  form: { data: { turbo_frame: "grocery_list", turbo_confirm: "Throw away the hand edits and go back to the generated list?" } },
+                  class: "text-orange-400 hover:text-orange-300 underline cursor-pointer" %>
+          <% end %>
+        </span>
+      </div>
+    <% end %>
+    <div class="bg-white text-gray-900 rounded-xl p-6 print-sheet" <% if editable %>data-action="input->pull-sheet-editor#changed"<% end %>>
       <div class="flex items-baseline justify-between border-b-2 border-gray-900 pb-2 mb-4">
         <span class="text-lg font-extrabold"><%= sheet_title %></span>
         <span class="text-xs text-gray-500">
@@ -141,16 +171,21 @@
       <% if single && single_event %>
         <p class="text-sm font-semibold text-gray-700 -mt-2 mb-4"><%= single_event.name %></p>
       <% end %>
+      <div data-pull-sheet-editor-target="categories">
       <% @result.categories.each do |cat| %>
-        <% next if Array(cat["items"]).empty? %>
-        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1"><%= cat["name"] %></h2>
-        <ul class="mb-2">
+        <% next if Array(cat["items"]).empty? && !editable %>
+        <section data-category>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1 flex items-center gap-2">
+          <span data-field="name" <% if editable %>contenteditable="true" spellcheck="false" class="outline-none focus:bg-yellow-50 rounded px-0.5"<% end %>><%= cat["name"] %></span>
+          <% if editable %><button type="button" data-action="pull-sheet-editor#removeCategory" class="no-print text-gray-300 hover:text-red-500 text-xs font-normal normal-case tracking-normal" title="Remove this section">remove section</button><% end %>
+        </h2>
+        <ul class="mb-2" data-items>
           <% cat["items"].each do |it| %>
-            <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100">
+            <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100" data-item data-price="<%= it["price"] %>">
               <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
-              <span class="font-semibold w-24 shrink-0"><%= KitchenUnits.standardize(it["quantity"]) %></span>
+              <span data-field="quantity" class="font-semibold w-24 shrink-0 <%= "outline-none focus:bg-yellow-50 rounded px-0.5" if editable %>" <% if editable %>contenteditable="true" spellcheck="false"<% end %>><%= KitchenUnits.standardize(it["quantity"]) %></span>
               <span class="flex-1 min-w-0">
-                <%= it["item"] %>
+                <span data-field="item" <% if editable %>contenteditable="true" class="outline-none focus:bg-yellow-50 rounded px-0.5"<% end %>><%= it["item"] %></span>
                 <%# Pull sheet (single class) is for the cook line: no prices. %>
                 <% if @show_grocery_prices && !single && it["price"].to_f > 0 %><span class="text-gray-400">~<%= format("$%.2f", it["price"].to_f) %></span><% end %>
               </span>
@@ -168,13 +203,41 @@
                   <% end %>
                 </span>
               <% end %>
+              <% if editable %><button type="button" data-action="pull-sheet-editor#removeItem" class="no-print text-gray-300 hover:text-red-500 shrink-0 px-1" title="Remove this line" aria-label="Remove <%= it["item"] %>">×</button><% end %>
             </li>
           <% end %>
         </ul>
+        <% if editable %>
+          <button type="button" data-action="pull-sheet-editor#addItem" class="no-print text-xs text-orange-600 hover:text-orange-500 mb-2">+ add item</button>
+        <% end %>
+        </section>
       <% end %>
-      <% if @result.to_taste.present? %>
+      </div>
+      <% if editable %>
+        <button type="button" data-action="pull-sheet-editor#addCategory" class="no-print text-xs text-orange-600 hover:text-orange-500 mt-2">+ add section</button>
+        <%# Templates the controller clones for new lines and sections. %>
+        <template data-pull-sheet-editor-target="itemTemplate">
+          <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100" data-item>
+            <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
+            <span data-field="quantity" contenteditable="true" spellcheck="false" class="font-semibold w-24 shrink-0 outline-none focus:bg-yellow-50 rounded px-0.5"></span>
+            <span class="flex-1 min-w-0"><span data-field="item" contenteditable="true" class="outline-none focus:bg-yellow-50 rounded px-0.5"></span></span>
+            <button type="button" data-action="pull-sheet-editor#removeItem" class="no-print text-gray-300 hover:text-red-500 shrink-0 px-1" title="Remove this line" aria-label="Remove line">×</button>
+          </li>
+        </template>
+        <template data-pull-sheet-editor-target="categoryTemplate">
+          <section data-category>
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1 flex items-center gap-2">
+              <span data-field="name" contenteditable="true" spellcheck="false" class="outline-none focus:bg-yellow-50 rounded px-0.5">New section</span>
+              <button type="button" data-action="pull-sheet-editor#removeCategory" class="no-print text-gray-300 hover:text-red-500 text-xs font-normal normal-case tracking-normal" title="Remove this section">remove section</button>
+            </h2>
+            <ul class="mb-2" data-items></ul>
+            <button type="button" data-action="pull-sheet-editor#addItem" class="no-print text-xs text-orange-600 hover:text-orange-500 mb-2">+ add item</button>
+          </section>
+        </template>
+      <% end %>
+      <% if @result.to_taste.present? || editable %>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 mt-4 mb-1">To taste / on hand</h2>
-        <p class="text-sm text-gray-600"><%= @result.to_taste.join(", ") %></p>
+        <p class="text-sm text-gray-600" data-pull-sheet-editor-target="toTaste" <% if editable %>contenteditable="true" class="text-sm text-gray-600 outline-none focus:bg-yellow-50 rounded px-0.5 min-h-5" data-placeholder="salt, pepper, oil…"<% end %>><%= Array(@result.to_taste).join(", ") %></p>
       <% end %>
       <%# Gear per station (owned, just set up): pull sheet ONLY. Read straight
           off the packet (no AI). Grouped by class on a multi-class list. %>
@@ -219,6 +282,7 @@
         Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:stations]} stations)" }.join(" · ") %>
       </div>
     </div>
+    </div><%# end pull-sheet-editor wrapper %>
 
     <div class="mt-4 flex items-center gap-4 no-print">
       <% if @from_cache %>

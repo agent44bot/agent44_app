@@ -31,6 +31,7 @@ class Workspace < ApplicationRecord
   has_many :grocery_receipts,       dependent: :destroy
   has_many :ingredient_prices,      dependent: :destroy
   has_many :inventory_items,        dependent: :destroy
+  has_many :pull_sheet_edits,       dependent: :destroy
 
   # Brand logo for the workspace (white-label: shown on the workspace's pages
   # in place of the generic mark). Stored on the persistent volume via
