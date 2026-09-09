@@ -8,6 +8,8 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-09-09
+  note: Recipe handouts now say Double and Single instead of Dual station and Single station, the headcount line is gone from the printed page, and each recipe has a Title size and Ingredient column setting on its edit page so a long ingredient like flour (~300 g) stays on one line.
 - date: 2026-09-01
   note: The margin on fleet usage is now 2x instead of 3x, so the monthly figure on your billing
     page and usage summary is lower. Invoices already issued keep the rate they were billed at.
