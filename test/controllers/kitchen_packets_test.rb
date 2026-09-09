@@ -421,6 +421,29 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal "normal", packet.reload.layout["title_size"]
   end
 
+  test "autosave: update answers JSON with a fresh preview URL, and a validation error as 422 JSON" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
+    patch nyk_packet_path(packet), params: { title: "Packet", recipes: recipes },
+          headers: { "Accept" => "application/json", "X-Requested-With" => "XMLHttpRequest" }
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_equal print_nyk_packet_path(packet, format: :pdf, v: packet.reload.updated_at.to_i), body["preview_url"]
+
+    patch nyk_packet_path(packet), params: { title: "Packet", recipes: {} },
+          headers: { "Accept" => "application/json", "X-Requested-With" => "XMLHttpRequest" }
+    assert_response :unprocessable_entity
+    assert JSON.parse(response.body)["error"].present?
+  end
+
+  test "the edit page wires the autosave controller around the form and the preview" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    get edit_nyk_packet_path(packet)
+    assert_select "[data-controller='packet-autosave'] form[data-packet-autosave-target='form']"
+    assert_select "[data-controller='packet-autosave'] iframe[data-packet-autosave-target='frame']"
+    assert_select "[data-packet-autosave-target='status']", text: "Updates as you type"
+  end
+
   test "update saves a per-recipe headcount and round-trips it into the edit form" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {

@@ -244,9 +244,17 @@ class KitchenPacketsController < ApplicationController
     )
     # Stay on edit so the refreshed PDF preview shows the change; "Done" on the
     # edit page is what returns to the class list once the packet looks right.
-    redirect_to edit_nyk_packet_path(@packet), notice: "Saved. Preview updated."
+    # The edit page also autosaves as you type (packet_autosave controller) and
+    # asks for JSON: it only needs the new preview URL to swap the iframe.
+    respond_to do |format|
+      format.html { redirect_to edit_nyk_packet_path(@packet), notice: "Saved. Preview updated." }
+      format.json { render json: { preview_url: print_nyk_packet_path(@packet, format: :pdf, v: @packet.updated_at.to_i), saved_at: @packet.updated_at } }
+    end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to edit_nyk_packet_path(@packet), alert: e.message
+    respond_to do |format|
+      format.html { redirect_to edit_nyk_packet_path(@packet), alert: e.message }
+      format.json { render json: { error: e.message }, status: :unprocessable_entity }
+    end
   end
 
   # Remove a recipe packet (and its class links via dependent: :destroy).
