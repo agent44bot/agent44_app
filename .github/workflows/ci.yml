@@ -42,7 +42,7 @@ jobs:
         # whole apt-get update down with it. Drop it first (Chrome itself is
         # already installed on the image).
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list
+          sudo grep -ls 'dl.google.com' /etc/apt/sources.list.d/* | xargs -r sudo rm -f
           sudo apt-get update && sudo apt-get install -y libvips42
 
       - name: Scan for security vulnerabilities in JavaScript dependencies
@@ -129,7 +129,7 @@ jobs:
         # whole apt-get update down with it. Drop it first (Chrome itself is
         # already installed on the image).
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list
+          sudo grep -ls 'dl.google.com' /etc/apt/sources.list.d/* | xargs -r sudo rm -f
           sudo apt-get update && sudo apt-get install -y libvips42
 
       - name: Run tests
@@ -163,7 +163,7 @@ jobs:
         # whole apt-get update down with it. Drop it first (Chrome itself is
         # already installed on the image).
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list
+          sudo grep -ls 'dl.google.com' /etc/apt/sources.list.d/* | xargs -r sudo rm -f
           sudo apt-get update && sudo apt-get install -y libvips42
 
       - name: Run System Tests
