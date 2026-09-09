@@ -402,6 +402,25 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal 1, packet.recipes.size
   end
 
+  test "update saves the print layout selects and the edit page round-trips them" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { title_size: "xlarge", ingredient_width: "wide" }, recipes: recipes }
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_nil flash[:alert]
+    packet.reload
+    assert_equal({ "title_size" => "xlarge", "ingredient_width" => "wide" }, packet.layout)
+    assert_equal 36, packet.title_size_pt
+
+    get edit_nyk_packet_path(packet)
+    assert_select "select[name='layout[title_size]'] option[selected][value=xlarge]"
+    assert_select "select[name='layout[ingredient_width]'] option[selected][value=wide]"
+
+    # A value outside the menu falls back to normal rather than erroring.
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { title_size: "gigantic" }, recipes: recipes }
+    assert_equal "normal", packet.reload.layout["title_size"]
+  end
+
   test "update saves a per-recipe headcount and round-trips it into the edit form" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
