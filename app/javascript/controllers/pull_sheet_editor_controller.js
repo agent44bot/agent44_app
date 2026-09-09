@@ -89,14 +89,15 @@ export default class extends Controller {
     }
   }
 
-  // Serialize the sheet as the server stores it: [{name, items: [{quantity, item, price}]}].
+  // Serialize the sheet as the server stores it: [{name, items: [{quantity, item}]}].
+  // No prices: the pull sheet is for the cook line and never shows cost, so
+  // the estimate is neither echoed into the page nor kept on an edited row.
   #categories() {
     return Array.from(this.categoriesTarget.querySelectorAll("[data-category]")).map(section => ({
       name: this.#text(section.querySelector('[data-field="name"]')),
       items: Array.from(section.querySelectorAll("[data-item]")).map(li => ({
         quantity: this.#text(li.querySelector('[data-field="quantity"]')),
-        item: this.#text(li.querySelector('[data-field="item"]')),
-        price: li.dataset.price || null
+        item: this.#text(li.querySelector('[data-field="item"]'))
       }))
     }))
   }

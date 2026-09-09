@@ -50,6 +50,7 @@ class PullSheetEditTest < ActionDispatch::IntegrationTest
 
   test "the generated pull sheet renders editable fields, the add controls, and no edited badge" do
     body = sheet
+    assert_no_match "data-price", body # the cook-line sheet never carries cost, not even in markup
     assert_match 'data-controller="pull-sheet-editor"', body
     assert_match 'data-field="quantity" class="font-semibold w-24 shrink-0 outline-none', body
     assert_match "+ add item", body
@@ -67,7 +68,7 @@ class PullSheetEditTest < ActionDispatch::IntegrationTest
 
     edit = @nyk.pull_sheet_edits.find_by!(event_url: @url)
     assert_equal [ "Pantry", "Dairy" ], edit.categories.map { |c| c["name"] }
-    assert_equal [ [ "5 c", "00 flour" ] ], edit.categories[0]["items"].map { |i| [ i["quantity"], i["item"] ] } # blank row dropped
+    assert_equal [ { "quantity" => "5 c", "item" => "00 flour" } ], edit.categories[0]["items"] # blank row dropped, no price kept
     assert_equal @user, edit.updated_by
 
     body = sheet

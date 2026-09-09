@@ -16,6 +16,7 @@ class PullSheetEdit < ApplicationRecord
 
   # Normalize a submitted list: strings trimmed, blank items dropped, empty
   # categories kept only if named (so a fresh section survives until filled).
+  # Prices are never kept: a pull sheet is for the cook line and hides cost.
   def self.clean_categories(raw)
     Array(raw).first(MAX_CATEGORIES).filter_map do |cat|
       next unless cat.respond_to?(:to_h) && !cat.is_a?(String)
@@ -27,7 +28,7 @@ class PullSheetEdit < ApplicationRecord
         qty = it["quantity"].to_s.strip
         item = it["item"].to_s.strip
         next if item.blank? && qty.blank?
-        { "quantity" => qty, "item" => item, "price" => it["price"] }.compact
+        { "quantity" => qty, "item" => item }
       end
       next if name.blank? && items.empty?
       { "name" => name.presence || "Items", "items" => items }

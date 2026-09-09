@@ -181,7 +181,7 @@
         </h2>
         <ul class="mb-2" data-items>
           <% cat["items"].each do |it| %>
-            <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100" data-item data-price="<%= it["price"] %>">
+            <li class="flex items-start gap-2 py-1 text-sm border-b border-gray-100" data-item>
               <span class="inline-block w-4 h-4 border border-gray-400 rounded shrink-0 mt-0.5"></span>
               <span data-field="quantity" class="font-semibold w-24 shrink-0 <%= "outline-none focus:bg-yellow-50 rounded px-0.5" if editable %>" <% if editable %>contenteditable="true" spellcheck="false"<% end %>><%= KitchenUnits.standardize(it["quantity"]) %></span>
               <span class="flex-1 min-w-0">
