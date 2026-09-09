@@ -7,20 +7,31 @@ import { Controller } from "@hotwired/stimulus"
 //
 // Wraps both the form and the preview: the form carries the input/change
 // actions, the iframe is the frame target, the status span narrates.
+//
+// Nothing typed is ever dropped: leaving the page (Done link, back button,
+// tab close, Turbo visit) flushes a pending save with a keepalive request,
+// and an edit made while a save is in flight is saved again once it lands.
 export default class extends Controller {
   static targets = ["form", "frame", "status"]
   static values = { delay: { type: Number, default: 900 } }
 
   connect() {
     this.idle = this.hasStatusTarget ? this.statusTarget.textContent : ""
+    this.dirty = false
+    this.flush = this.flush.bind(this)
+    window.addEventListener("pagehide", this.flush)
+    document.addEventListener("turbo:before-visit", this.flush)
   }
 
   disconnect() {
     clearTimeout(this.timer)
+    window.removeEventListener("pagehide", this.flush)
+    document.removeEventListener("turbo:before-visit", this.flush)
   }
 
   // Any keystroke or select change: (re)start the countdown.
   changed() {
+    this.dirty = true
     clearTimeout(this.timer)
     this.#status("Unsaved changes…", "text-gray-400")
     this.timer = setTimeout(() => this.save(), this.delayValue)
@@ -29,11 +40,30 @@ export default class extends Controller {
   // A manual Save submits the whole form and reloads; drop any pending autosave.
   cancel() {
     clearTimeout(this.timer)
+    this.dirty = false
+  }
+
+  // Leaving the page with an unsaved edit: send it now. keepalive lets the
+  // request finish after the page is gone; the preview is not updated since
+  // there is no page left to update.
+  flush() {
+    if (!this.dirty || !this.hasFormTarget) return
+    clearTimeout(this.timer)
+    this.dirty = false
+    fetch(this.formTarget.action, {
+      method: "POST",
+      body: new FormData(this.formTarget),
+      headers: { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" },
+      credentials: "same-origin",
+      keepalive: true
+    }).catch(() => {})
   }
 
   async save() {
-    if (!this.hasFormTarget || this.saving) return
+    if (!this.hasFormTarget) return
+    if (this.saving) { this.queued = true; return } // save again once this one lands
     this.saving = true
+    this.dirty = false
     this.#status("Saving…", "text-gray-400")
     try {
       const response = await fetch(this.formTarget.action, {
@@ -49,9 +79,11 @@ export default class extends Controller {
       clearTimeout(this.resetTimer)
       this.resetTimer = setTimeout(() => this.#status(this.idle, "text-gray-500"), 3000)
     } catch (error) {
+      this.dirty = true
       this.#status(`Couldn't save: ${error.message}`, "text-amber-400")
     } finally {
       this.saving = false
+      if (this.queued) { this.queued = false; this.save() }
     }
   }
 
