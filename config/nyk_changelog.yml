@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-10
+  note: Each recipe in a packet now has a Page spacing setting on its edit page. Normal keeps today's layout, Roomy adds air between the lines, and Fill the page spreads a short recipe down the page with bigger text so it no longer sits crammed at the top. The PDF preview shows the result as you switch.
+
+- date: 2026-09-10
   note: Every recipe in a packet now has a double station count and a single station count (for example 4 double salmon, 2 single and 2 double chicken, 10 double orzo). Set them on the recipe's edit page and the pull sheet buys double stations times the Double amounts plus single stations times the Single amounts for each recipe. The counts also print under each recipe title in the packet so the line cooks the same split that was bought for.
 
 - date: 2026-09-09

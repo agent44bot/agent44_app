@@ -144,4 +144,87 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     assert_no_match(/Headcount/, texts.join("\n"))
     assert_includes texts, "Rice"
   end
+
+  # ---- page spacing (Caitlin, 2026-09-10) ----
+
+  SHORT = { "title" => "Sauce",
+            "ingredients" => [ { "qty" => "2 T", "station_qty" => "1 T", "item" => "Butter", "section" => nil },
+                               { "qty" => "1", "station_qty" => "1/2", "item" => "Lemon", "section" => nil } ],
+            "directions" => [ { "section" => nil, "steps" => [ "Melt.", "Squeeze.", "Stir." ] } ] }.freeze
+
+  def fit(recipe, spacing)
+    pdf = KitchenPacketPdf.new(packet([ recipe ]))
+    doc = pdf.send(:new_document)
+    ing_rows = pdf.send(:ingredient_rows, recipe, false)
+    dir_rows = pdf.send(:direction_rows, recipe)
+    ing_w = (doc.bounds.width - 24) * 0.42
+    dir_w = doc.bounds.width - ing_w - 24
+    avail_h = doc.bounds.top - 120 - KitchenPacketPdf::FOOTER_BAND
+    size, rows, pad, gap = pdf.send(:fit_columns, doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, spacing)
+    tall = [ pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, ing_w), size, pad: pad),
+             pdf.send(:table_height, doc, dir_rows, pdf.send(:dir_widths, dir_w, size), size, pad: pad) ].max
+    { size: size, pad: pad, gap: gap, tall: tall, avail: avail_h }
+  end
+
+  test "spacing reads normal for anything but the three settings" do
+    assert_equal "normal", KitchenPacket.spacing_for({})
+    assert_equal "normal", KitchenPacket.spacing_for("spacing" => "huge")
+    assert_equal "fill", KitchenPacket.spacing_for("spacing" => "fill")
+    assert_equal "roomy", KitchenPacket.spacing_for("spacing" => "roomy")
+  end
+
+  test "normal is the old layout: 12pt cap, base padding, no extra gap" do
+    r = fit(SHORT, "normal")
+    assert_equal [ 12, KitchenPacketPdf::SPACING["normal"][:pad], 0 ], [ r[:size], r[:pad], r[:gap] ]
+  end
+
+  test "roomy keeps the size but pads the rows and the gap under the title" do
+    r = fit(SHORT, "roomy")
+    assert_equal 12, r[:size]
+    assert_equal KitchenPacketPdf::SPACING["roomy"][:pad], r[:pad]
+    assert_operator KitchenPacketPdf::SPACING["roomy"][:gap], :>, KitchenPacketPdf::SPACING["normal"][:gap]
+  end
+
+  test "fill spreads a short recipe: bigger text, a gap under the title, airier rows, still clear of the footer" do
+    r = fit(SHORT, "fill")
+    assert_equal 14, r[:size], "a three-line recipe should get the largest fill size"
+    assert_operator r[:gap], :>, 0
+    assert_operator r[:pad], :>, KitchenPacketPdf::SPACING["normal"][:pad]
+    assert_operator r[:pad], :<=, KitchenPacketPdf::MAX_PAD
+    assert_operator r[:tall] + r[:gap], :<=, r[:avail]
+    normal = fit(SHORT, "normal")
+    assert_operator r[:tall], :>, normal[:tall] * 1.5, "fill should visibly stretch the columns"
+  end
+
+  test "fill on a long recipe falls back to a plain fit and never overflows the page" do
+    long = { "title" => "Bread",
+             "ingredients" => (1..14).map { |i| { "qty" => "#{i} c", "station_qty" => "1 c", "item" => "Flour #{i}", "section" => nil } },
+             "directions" => [ { "section" => nil, "steps" => (1..18).map { |i| "Step #{i}: knead the dough for a while, rest it, fold it, rest it again, then shape it." } } ] }
+    r = fit(long, "fill")
+    assert_operator r[:tall] + r[:gap], :<=, r[:avail]
+    assert_operator r[:size], :<, 14, "a page-filling recipe should not get the biggest size"
+  end
+
+  test "a fill recipe renders on one page with the columns pushed down" do
+    doc = Prawn::Document.new
+    moves = []
+    doc.define_singleton_method(:text) { |*_| nil }
+    doc.define_singleton_method(:table) { |*_| nil }
+    doc.define_singleton_method(:make_table) { |*_| Struct.new(:height).new(10) }
+    doc.define_singleton_method(:move_down) { |n| moves << n }
+    boxes = []
+    doc.define_singleton_method(:bounding_box) { |pos, **_| boxes << pos; nil }
+    KitchenPacketPdf.new(packet([ SHORT.merge("spacing" => "fill") ])).send(:recipe_page, doc, SHORT.merge("spacing" => "fill"), "Double", false)
+    # The first box is the "Double" label float; the last two are the columns,
+    # which start at the same y, below where a normal page would put them.
+    assert_equal 1, boxes.last(2).map { |pos| pos[1] }.uniq.size
+    normal_doc = Prawn::Document.new
+    normal_doc.define_singleton_method(:text) { |*_| nil }
+    normal_doc.define_singleton_method(:table) { |*_| nil }
+    normal_doc.define_singleton_method(:make_table) { |*_| Struct.new(:height).new(10) }
+    nboxes = []
+    normal_doc.define_singleton_method(:bounding_box) { |pos, **_| nboxes << pos; nil }
+    KitchenPacketPdf.new(packet([ SHORT ])).send(:recipe_page, normal_doc, SHORT, "Double", false)
+    assert_operator boxes.last[1], :<, nboxes.last[1]
+  end
 end

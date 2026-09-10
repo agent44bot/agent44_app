@@ -115,6 +115,17 @@ class KitchenPacket < ApplicationRecord
     n.positive? ? n.clamp(1, MAX_STATIONS) : nil
   end
 
+  # Per-recipe page spacing (Caitlin, 2026-09-10): "normal" anchors the
+  # columns under the title, "roomy" adds air, "fill" stretches a short
+  # recipe to fill its page. Stored on the recipe as "spacing"; anything else
+  # (or nothing) reads as normal.
+  SPACINGS = %w[normal roomy fill].freeze
+
+  def self.spacing_for(recipe)
+    v = recipe["spacing"].to_s
+    SPACINGS.include?(v) ? v : "normal"
+  end
+
   # Print layout knobs (Lora and Caitlin, 2026-09-09): the recipe title size
   # and how wide the ingredient column is, so a long item like "All-purpose
   # flour (~300 g)" can be given room instead of wrapping. Stored in data so
