@@ -94,6 +94,27 @@ class KitchenPacket < ApplicationRecord
     self.data = data.merge("recipes" => list)
   end
 
+  # Station counts for one recipe hash (Lora and Caitlin, 2026-09-10): how many
+  # double stations cook its full amounts and how many single stations cook
+  # its half amounts, set per recipe on the edit page and stored on the recipe
+  # as "doubles" / "singles". A recipe with neither set falls back to
+  # `default` (the class's booking-derived KitchenEvent::StationCounts), or to
+  # nil when there is no default (a packet printed with no class run).
+  MAX_STATIONS = 99
+
+  def self.station_counts_for(recipe, default: nil)
+    d = recipe["doubles"]
+    s = recipe["singles"]
+    return default if d.nil? && s.nil?
+    KitchenEvent::StationCounts.new(doubles: d.to_i.clamp(0, MAX_STATIONS), singles: s.to_i.clamp(0, MAX_STATIONS), set: true)
+  end
+
+  # A positive integer, or nil when blank/zero (the edit form's empty field).
+  def self.parse_station_count(raw)
+    n = raw.to_s.strip.to_i
+    n.positive? ? n.clamp(1, MAX_STATIONS) : nil
+  end
+
   # Print layout knobs (Lora and Caitlin, 2026-09-09): the recipe title size
   # and how wide the ingredient column is, so a long item like "All-purpose
   # flour (~300 g)" can be given room instead of wrapping. Stored in data so

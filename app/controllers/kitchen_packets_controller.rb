@@ -269,17 +269,13 @@ class KitchenPacketsController < ApplicationController
   end
 
   # The print page (HTML) embeds the PDF; the .pdf format streams it, used by
-  # the preview iframe, the print page, and direct download. ?event_url picks
-  # which class run's station counts print under each recipe title (a shared
-  # recipe can be attached to several runs); default is the soonest upcoming
-  # run, then the most recent past one.
+  # the preview iframe, the print page, and direct download.
   def print
     @packet = current_workspace.kitchen_packets.find(params[:id])
-    @event  = event_for(params[:event_url]) || pull_classes_for(@packet).first
     respond_to do |format|
       format.html { render layout: false }
       format.pdf do
-        send_data KitchenPacketPdf.new(@packet, event: @event).render,
+        send_data KitchenPacketPdf.new(@packet).render,
                   filename: "#{@packet.title.parameterize}.pdf",
                   type: "application/pdf",
                   disposition: params[:download].present? ? "attachment" : "inline"
@@ -382,16 +378,18 @@ class KitchenPacketsController < ApplicationController
         next if steps.empty?
         { "section" => d[:section].presence, "steps" => steps }
       end
-      { "title" => r[:title].to_s.strip, "headcount" => parse_headcount(r[:headcount]),
-        "ingredients" => ingredients, "directions" => directions }
+      # Station counts: both blank means "not set" (the class default applies);
+      # one blank with the other set stores 0 for it, so "4 double, no single"
+      # is representable.
+      doubles = KitchenPacket.parse_station_count(r[:doubles])
+      singles = KitchenPacket.parse_station_count(r[:singles])
+      recipe = { "title" => r[:title].to_s.strip, "ingredients" => ingredients, "directions" => directions }
+      if doubles || singles
+        recipe["doubles"] = doubles.to_i
+        recipe["singles"] = singles.to_i
+      end
+      recipe
     end.reject { |r| r["title"].blank? }
-  end
-
-  # Per-recipe headcount: a positive integer, or nil when left blank.
-  def parse_headcount(raw)
-    n = raw.to_s.strip
-    return nil if n.blank?
-    [ n.to_i, 0 ].max.then { |v| v.positive? ? v : nil }
   end
 
   # Equipment list from the textarea: one item per line, blanks dropped.

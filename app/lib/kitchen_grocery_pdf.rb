@@ -139,7 +139,7 @@ class KitchenGroceryPdf
     doc.stroke_horizontal_rule
     doc.move_down 8
     doc.text(
-      "Covers: #{@with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{stations_label(c)})" }.join(' | ')}",
+      "Covers: #{@with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked; #{stations_label(c)})" }.join(' | ')}",
       size: 9,
       color: "777777"
     )
@@ -167,10 +167,10 @@ class KitchenGroceryPdf
     @single ? "NY Kitchen Pull Sheet" : "NY Kitchen Grocery List"
   end
 
-  # "3 double stations, 1 single station" for a with_recipe entry; falls back
-  # to the plain station total for callers that only pass stations:.
+  # "Salmon 4 double; Chicken 2 double, 2 single" for a with_recipe entry;
+  # falls back to the plain station total for callers that only pass stations:.
   def stations_label(c)
-    return c[:event].station_counts.label if c[:event].respond_to?(:station_counts)
+    return c[:stations_summary] if c[:stations_summary].present?
     plural(c[:stations], "station")
   end
 

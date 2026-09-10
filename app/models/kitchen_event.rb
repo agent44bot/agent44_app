@@ -133,22 +133,17 @@ class KitchenEvent < ApplicationRecord
     TWO_PER_TICKET.match?("#{name} #{description}") ? 2 : nil
   end
 
-  # --- Station counts (for grocery math + the printed packet) ----------------
-  # A class is cooked at some number of DOUBLE stations (each cooks the full
-  # "Double" recipe amounts) and SINGLE stations (each cooks the half "Single"
-  # amounts). The pull sheet buys doubles x Double + singles x Single, and the
-  # packet prints both counts above every recipe so the line matches the buy.
-  #
-  # Until someone sets the counts by hand, the default reproduces the old
-  # math: every booked pair is one single station (ceil(people / 2), at least
-  # 1), and there are no doubles. Stored in Setting keyed by `url`, like the
-  # ticket-portion override, so it survives the nightly snapshot rebuild.
-  STATIONS_OVERRIDE_PREFIX = "nyk:stations:".freeze
-  MAX_STATIONS = 99
-
-  StationCounts = Struct.new(:doubles, :singles, :overridden, keyword_init: true) do
+  # --- Station counts --------------------------------------------------------
+  # A recipe is cooked at some number of DOUBLE stations (each cooks the full
+  # "Double" amounts) and SINGLE stations (each cooks the half "Single"
+  # amounts). The counts live on each recipe in the packet (Caitlin sets them
+  # per recipe: "4 double salmon, 2 single + 2 double chicken, 10 double orzo");
+  # this is the booking-derived fallback for a recipe nobody has set yet,
+  # which reproduces the old math: every booked pair is one single station
+  # (ceil(people / 2), at least 1), no doubles.
+  StationCounts = Struct.new(:doubles, :singles, :set, keyword_init: true) do
     def total = doubles + singles
-    def overridden? = overridden
+    def set? = set
 
     # "3 double stations, 1 single station" (zero counts are dropped unless
     # both are zero).
@@ -158,31 +153,18 @@ class KitchenEvent < ApplicationRecord
       parts << "#{singles} single #{'station'.pluralize(singles)}" if singles.positive?
       parts.empty? ? "0 stations" : parts.join(", ")
     end
+
+    # Compact form for a list of recipes: "4 double" / "2 double, 2 single".
+    def short
+      parts = []
+      parts << "#{doubles} double" if doubles.positive?
+      parts << "#{singles} single" if singles.positive?
+      parts.empty? ? "0 stations" : parts.join(", ")
+    end
   end
 
-  def station_counts
-    if (raw = Setting.get("#{STATIONS_OVERRIDE_PREFIX}#{url}")).present?
-      parsed = JSON.parse(raw) rescue nil
-      if parsed.is_a?(Hash)
-        d = parsed["doubles"].to_i.clamp(0, MAX_STATIONS)
-        s = parsed["singles"].to_i.clamp(0, MAX_STATIONS)
-        return StationCounts.new(doubles: d, singles: s, overridden: true) if d + s > 0
-      end
-    end
+  def default_station_counts
     people = tickets_sold.to_i * people_per_ticket
-    StationCounts.new(doubles: 0, singles: [ (people / 2.0).ceil, 1 ].max, overridden: false)
-  end
-
-  # Save (or, when both are blank/zero, clear) the by-hand station counts for
-  # a class url. Returns the resulting counts.
-  def self.set_station_counts(url, doubles:, singles:)
-    key = "#{STATIONS_OVERRIDE_PREFIX}#{url}"
-    d = doubles.to_i.clamp(0, MAX_STATIONS)
-    s = singles.to_i.clamp(0, MAX_STATIONS)
-    if d + s > 0
-      Setting.set(key, { doubles: d, singles: s }.to_json)
-    else
-      Setting.delete_key(key)
-    end
+    StationCounts.new(doubles: 0, singles: [ (people / 2.0).ceil, 1 ].max, set: false)
   end
 end

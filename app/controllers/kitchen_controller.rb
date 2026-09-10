@@ -358,18 +358,6 @@ class KitchenController < ApplicationController
     redirect_back fallback_location: nyk_grocery_path, notice: "Updated ticket portion."
   end
 
-  # How many double and single stations a class runs, keyed by the class url
-  # (same durability as the ticket-portion override). Both blank or zero
-  # clears the override and falls back to the booking-derived default. The
-  # counts are part of the grocery cache key, so the list rebuilds with the
-  # new amounts on the redirect. Same access level as the sibling edits.
-  def update_stations
-    url = params[:url].to_s
-    return head :bad_request if url.blank?
-    KitchenEvent.set_station_counts(url, doubles: params[:doubles], singles: params[:singles])
-    redirect_back fallback_location: nyk_grocery_path, notice: "Updated station counts."
-  end
-
   # Autosave from the editable pull sheet: replace the class's sheet with the
   # categories exactly as edited. base_key ties the edit to the generated list
   # it started from so the page can flag when the recipes change later.

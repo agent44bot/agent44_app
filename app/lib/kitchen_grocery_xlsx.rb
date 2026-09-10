@@ -158,7 +158,7 @@ class KitchenGroceryXlsx
   end
 
   def stations_label(c)
-    return c[:event].station_counts.label if c[:event].respond_to?(:station_counts)
+    return c[:stations_summary] if c[:stations_summary].present?
     plural(c[:stations], "station")
   end
 

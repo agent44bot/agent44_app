@@ -5,12 +5,11 @@
 # their files are present). Each recipe is printed twice: full quantities first,
 # then single-station (half) amounts. Pure Prawn, no headless browser.
 #
-#   KitchenPacketPdf.new(packet).render                # => PDF bytes (String)
-#   KitchenPacketPdf.new(packet, event: event).render  # + station counts line
+#   KitchenPacketPdf.new(packet).render  # => PDF bytes (String)
 #
-# With an event (the class run this print is for), every recipe page carries
-# the class's double and single station counts under the title, so the line
-# cooks the same split the pull sheet bought for.
+# A recipe with station counts set ("doubles" / "singles" on the recipe) gets
+# them printed under its title, so the line cooks the same split the pull
+# sheet bought for.
 class KitchenPacketPdf
   FOOTER = "800 South Main Street, Canandaigua, NY 14424   |   www.nykitchen.com   |   (585) 394-7070".freeze
   # Points (72 = 1in): a 7.5 x 10in text area with 0.5in margins.
@@ -43,15 +42,14 @@ class KitchenPacketPdf
 
   VULGAR = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞⅐⅑⅒".freeze
 
-  def initialize(packet, event: nil)
+  def initialize(packet)
     @packet = packet
-    @event  = event
   end
 
-  # "3 double stations, 1 single station", or nil when no class run is known.
-  def stations_line
-    return nil unless @event.respond_to?(:station_counts)
-    @event.station_counts.label
+  # "3 double stations, 1 single station" for a recipe, or nil when its
+  # counts were never set.
+  def stations_line(recipe)
+    KitchenPacket.station_counts_for(recipe)&.label
   end
 
   def render
@@ -124,10 +122,10 @@ class KitchenPacketPdf
     # Headcount drives station scaling and the grocery list but is not printed
     # on the handout (removed 2026-09-09 at Lora's request).
     doc.font(TITLE_FONT, style: :bold) { doc.text tidy(recipe["title"]), size: @packet.title_size_pt, align: :center }
-    # Station counts for this class run (Lora and Caitlin, 2026-09-10): the
-    # cook line sees how many stations cook the Double amounts and how many
-    # cook the Single amounts, matching what the pull sheet bought.
-    if (line = stations_line)
+    # Station counts for this recipe (Lora and Caitlin, 2026-09-10): the cook
+    # line sees how many stations cook the Double amounts and how many cook
+    # the Single amounts, matching what the pull sheet bought.
+    if (line = stations_line(recipe))
       doc.move_down 4
       doc.text tidy(line), size: 10, color: "444444", align: :center
       doc.move_down 14
