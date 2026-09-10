@@ -47,7 +47,8 @@
   <p class="text-sm text-gray-400 mb-6">
     <% if single && single_event %>
       <%= single_event.start_at.strftime("%a %b %-d") %> ·
-      <%= pluralize(@total_headcount, "person") %> booked
+      <%= pluralize(@total_headcount, "person") %> booked ·
+      <%= @with_recipe.first[:stations_summary] %>
     <% else %>
       <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
       <%= pluralize(@with_recipe.size, "class") %> with recipes ·
@@ -127,6 +128,22 @@
       </details>
     <% end %>
 
+    <%# Station counts are set per recipe on the packet's edit page (Caitlin:
+        "4 double salmon, 2 single + 2 double chicken, 10 double orzo"); the
+        sheet shows them and links there. Recipes with none set use the
+        booking default (every booked pair = one single station). %>
+    <% if single && single_event && !params[:embedded] %>
+      <div class="mb-4 no-print text-xs text-gray-400 flex items-center gap-2 flex-wrap">
+        <span>Stations:</span>
+        <% @with_recipe.first[:recipe_stations].each do |title, sc| %>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-700 text-gray-300">
+            <%= title %> <span class="<%= sc.set? ? 'text-orange-300' : 'text-gray-500' %>"><%= sc.short %><%= sc.set? ? "" : " (auto)" %></span>
+          </span>
+        <% end %>
+        <%= link_to "Set counts per recipe", edit_nyk_packet_path(@with_recipe.first[:packet]), data: { turbo_frame: "_top" }, class: "text-orange-400 hover:text-orange-300 underline" %>
+      </div>
+    <% end %>
+
     <%# A single-class pull sheet is editable in place: every quantity and
         item is a contenteditable span, lines can be removed or added, and the
         pull-sheet-editor controller autosaves the whole sheet to
@@ -141,7 +158,7 @@
         <span class="text-gray-400">
           <% if @sheet_edit %>
             ✏️ Edited by hand<%= @sheet_edit.updated_by ? " by #{@sheet_edit.updated_by.display_identifier}" : "" %>.
-            <% if @sheet_stale %><span class="text-amber-300">The recipes changed since; reset to rebuild from them, or keep your edits.</span><% end %>
+            <% if @sheet_stale %><span class="text-amber-300">The recipes or station counts changed since; reset to rebuild from them, or keep your edits.</span><% end %>
           <% else %>
             Click any amount or item to edit it. Changes save on their own.
           <% end %>
@@ -169,7 +186,8 @@
         </span>
       </div>
       <% if single && single_event %>
-        <p class="text-sm font-semibold text-gray-700 -mt-2 mb-4"><%= single_event.name %></p>
+        <p class="text-sm font-semibold text-gray-700 -mt-2 mb-1"><%= single_event.name %></p>
+        <p class="text-xs text-gray-600 mb-4"><%= @with_recipe.first[:stations_summary] %> · <%= pluralize(@total_headcount, "person") %> booked</p>
       <% end %>
       <div data-pull-sheet-editor-target="categories">
       <% @result.categories.each do |cat| %>
@@ -279,7 +297,7 @@
         <p class="text-xs text-gray-500 mt-1">Rough estimate of typical US grocery prices, for budgeting only. Actual cost varies by store and season.</p>
       <% end %>
       <div class="mt-6 pt-3 border-t border-gray-200 text-xs text-gray-500">
-        Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:stations]} stations)" }.join(" · ") %>
+        Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked; #{c[:stations_summary]})" }.join(" · ") %>
       </div>
     </div>
     </div><%# end pull-sheet-editor wrapper %>

@@ -18,11 +18,29 @@ module KitchenAi
         event.tickets_sold.to_i * event.people_per_ticket
       end
 
-      # Hands-On stations are ~2 people each, and recipe station_qty is per
-      # station. Round up so a half-full station still gets bought for; at least
-      # 1 so a booked class always contributes.
-      def stations(event)
-        [ (headcount(event) / 2.0).ceil, 1 ].max
+      # Station counts per recipe in the packet, for one class: the recipe's
+      # own doubles/singles when set on the edit page, else the class's
+      # booking-derived default (KitchenEvent#default_station_counts). Doubles
+      # cook the full amounts, singles the half amounts; the aggregator buys
+      # for both. Returns [ [ recipe_title, StationCounts ], ... ].
+      def recipe_stations(event, packet)
+        default = event.default_station_counts
+        packet.recipes.map { |r| [ r["title"].to_s, KitchenPacket.station_counts_for(r, default: default) ] }
+      end
+
+      # Stations physically set up for the class (equipment checklist): the
+      # busiest recipe's total, else the booking default.
+      def stations(event, packet = nil)
+        return event.default_station_counts.total unless packet
+        recipe_stations(event, packet).map { |_, sc| sc.total }.max || event.default_station_counts.total
+      end
+
+      # "Salmon 4 double; Chicken 2 double, 2 single" for the sheet header and
+      # Covers line. A one-recipe packet just gets the plain label.
+      def stations_summary(event, packet)
+        rs = recipe_stations(event, packet)
+        return rs.first&.last&.label.to_s if rs.size <= 1
+        rs.map { |title, sc| "#{title} #{sc.short}" }.join("; ")
       end
 
       # Short, mostly-unique chip label for a class: drop the trailing date and
@@ -47,10 +65,12 @@ module KitchenAi
         # the pull sheet renders live from the packet and which has no bearing
         # on the ingredient/price aggregation. Keeping it here would re-bill Opus
         # every time someone tweaks an equipment tag.
+        # Recipe-level station counts ride along in packet data; the booking
+        # default (for recipes with none set) is keyed explicitly.
         recipes = with_recipe.sort_by { |c| c[:event].url }
-                             .map { |c| [ c[:event].url, c[:tag], c[:stations], c[:packet].data.except("equipment") ] }
+                             .map { |c| [ c[:event].url, c[:tag], c[:default_stations], c[:packet].data.except("equipment") ] }
         payload = { recipes: recipes, observed: observed.sort.to_h }.to_json
-        "nyk_grocery_list:v3:#{Digest::SHA256.hexdigest(payload)}"
+        "nyk_grocery_list:v4:#{Digest::SHA256.hexdigest(payload)}"
       end
 
       # Estimated $ total across a built list's line items, or nil.
@@ -86,8 +106,12 @@ module KitchenAi
       packets = packets_by_event_url
       events.filter_map do |e|
         h = packets[e.url] or next
+        default = e.default_station_counts
         { event: e, packet: h, tag: self.class.tag(e),
-          headcount: self.class.headcount(e), stations: self.class.stations(e),
+          headcount: self.class.headcount(e), stations: self.class.stations(e, h),
+          default_stations: [ default.doubles, default.singles ],
+          recipe_stations: self.class.recipe_stations(e, h),
+          stations_summary: self.class.stations_summary(e, h),
           per_ticket: e.people_per_ticket, per_ticket_overridden: e.portion_overridden? }
       end
     end
@@ -103,7 +127,13 @@ module KitchenAi
       end
       return [ nil, false ] unless write
 
-      items = with_recipe.map { |c| { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: c[:packet].recipes } }
+      # Each recipe goes to the aggregator with its resolved station counts.
+      items = with_recipe.map do |c|
+        recipes = c[:packet].recipes.zip(c[:recipe_stations]).map do |r, (_, sc)|
+          r.merge("doubles" => sc.doubles, "singles" => sc.singles)
+        end
+        { class_name: c[:event].name, tag: c[:tag], stations: c[:stations], recipes: recipes }
+      end
       result = KitchenAi::GroceryAggregator.new(user: @user).build(items, observed_prices: observed)
       Rails.cache.write(key, result, expires_in: CACHE_TTL) if result&.ok?
       [ result, false ]

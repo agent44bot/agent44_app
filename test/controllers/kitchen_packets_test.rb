@@ -444,42 +444,45 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_select "[data-packet-autosave-target='status']", text: "Updates as you type"
   end
 
-  test "update saves a per-recipe headcount and round-trips it into the edit form" do
+  test "update saves per-recipe double and single station counts and round-trips them into the edit form" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single",
       recipes: {
-        "0" => { title: "Recipe A", headcount: "1",
+        "0" => { title: "Salmon", doubles: "4", singles: "",
                  ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
-        "1" => { title: "Recipe B", headcount: "2",
+        "1" => { title: "Chicken", doubles: "2", singles: "2",
                  ingredients: { "0" => { qty: "4 c", station_qty: "2 c", item: "Water", section: "" } } },
-        "2" => { title: "Recipe C", headcount: "3",
+        "2" => { title: "Orzo", doubles: "", singles: "",
                  ingredients: { "0" => { qty: "1 t", station_qty: "1 t", item: "Salt", section: "" } } }
       }
     }
     packet.reload
-    assert_equal [ 1, 2, 3 ], packet.recipes.map { |r| r["headcount"] }
+    assert_equal [ [ 4, 0 ], [ 2, 2 ], [ nil, nil ] ], packet.recipes.map { |r| [ r["doubles"], r["singles"] ] }
+    refute packet.recipes[2].key?("doubles"), "both blank = not set, so the class default applies"
 
     get edit_nyk_packet_path(packet)
     assert_response :success
-    assert_select "input[name='recipes[0][headcount]'][value='1']"
-    assert_select "input[name='recipes[2][headcount]'][value='3']"
+    assert_select "input[name='recipes[0][doubles]'][value='4']"
+    assert_select "input[name='recipes[0][singles]'][value='0']"
+    assert_select "input[name='recipes[1][singles]'][value='2']"
+    assert_select "input[name='recipes[2][doubles]']:not([value])"
   end
 
-  test "blank or non-positive recipe headcount is stored as nil" do
+  test "zero, negative, and oversized station counts are normalized" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
       title: "Packet", station_label: "Single",
       recipes: {
-        "0" => { title: "Blank", headcount: "",
+        "0" => { title: "Zeroes", doubles: "0", singles: "0",
                  ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
-        "1" => { title: "Zero", headcount: "0",
+        "1" => { title: "Wild", doubles: "-3", singles: "500",
                  ingredients: { "0" => { qty: "1 c", station_qty: "1 c", item: "Sugar", section: "" } } }
       }
     }
     packet.reload
-    assert_nil packet.recipes[0]["headcount"]
-    assert_nil packet.recipes[1]["headcount"]
+    refute packet.recipes[0].key?("doubles") # 0 and 0 is the same as not set
+    assert_equal [ 0, KitchenPacket::MAX_STATIONS ], [ packet.recipes[1]["doubles"], packet.recipes[1]["singles"] ]
   end
 
   test "the packet PDF renders a recipe headcount without error" do

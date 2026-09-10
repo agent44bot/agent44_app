@@ -1,5 +1,6 @@
-# Turns a set of class recipes (with how many stations of each are booked)
-# into one consolidated grocery list: ingredients scaled by station count,
+# Turns a set of class recipes (each with how many double and single stations
+# cook it) into one consolidated grocery list: ingredients scaled by
+# doubles x full amount + singles x half amount,
 # duplicates merged across classes, organized into store sections. Quantities
 # are display text, so the model does the unit math and merging (the same
 # reason RecipeExtractor leaves them as text) and a human sanity-checks.
@@ -28,7 +29,10 @@ module KitchenAi
     end
 
     # items: array of { class_name:, stations:, recipes: [ KitchenPacket#recipes ] }.
-    # stations is the multiplier for that class's per-station amounts.
+    # Each recipe carries "doubles" / "singles": doubles multiplies its
+    # ingredients' full ("Double") amounts, singles their half ("Single")
+    # station_qty. A recipe without them falls back to the item's stations:
+    # as that many single stations (legacy shape).
     # observed_prices: optional hash of canonical_name => { "price" => dollars,
     # "unit" => unit } from past receipts; the model prefers these over guesses.
     def build(items, observed_prices: {})
@@ -71,9 +75,13 @@ module KitchenAi
       {"categories": [{"name": "Produce", "items": [{"item": "Lemons", "quantity": "3", "price": 1.50, "classes": ["Coq au Vin"]}]}],
        "to_taste": ["Salt", "Black pepper"]}
 
-      Input: several classes, each with a short TAG. Each lists how many STATIONS are booked and its recipes.
-      Each ingredient shows a per-station amount (station_qty). Compute the total to buy:
-      - Multiply each ingredient's per-station amount by that class's station count.
+      Input: several classes, each with a short TAG, each listing its recipes. Every RECIPE says
+      how many DOUBLE stations and how many SINGLE stations cook it (counts differ per recipe).
+      Each ingredient line gives two amounts: the DOUBLE amount (what one double station cooks)
+      and the SINGLE amount (what one single station cooks). Compute the total to buy:
+      - For each ingredient, using ITS OWN recipe's counts:
+        (double stations x DOUBLE amount) + (single stations x SINGLE amount).
+        A recipe with 0 of a station kind contributes nothing from that amount.
       - Then sum the same ingredient across every class and recipe into one line.
       - Combine units sensibly (e.g. 3 T + 1/4 c -> about 1/2 c; round up to friendly
         shopping amounts). Use ASCII fractions like 1/2, 1/4, 2 1/2.
@@ -84,7 +92,7 @@ module KitchenAi
         Leave other units (oz, lb, g, ml, cloves, etc.) as written.
       - When an amount is a RANGE (e.g. "2-3", "1-2 cups", or a recipe that "serves
         6 to 8"), always buy for the HIGHER end so we never run short. Treat
-        "2-3 cloves" as 3 before multiplying by the station count.
+        "2-3 cloves" as 3 before multiplying by the station counts.
       - Set "classes" on each item to the exact TAGS of the classes that need it (one or
         more). Use the tags given in the input verbatim.
       - Set "price" on each item to a rough typical US grocery cost in dollars for the
@@ -105,13 +113,16 @@ module KitchenAi
 
     def build_prompt(items, observed_prices = {})
       lines = items.map do |it|
-        recipe_text = Array(it[:recipes]).flat_map do |r|
-          Array(r["ingredients"]).map do |ing|
-            amt = ing["station_qty"].presence || ing["qty"].to_s
-            "    - #{amt} #{ing['item']}".rstrip
+        recipe_text = Array(it[:recipes]).map do |r|
+          doubles, singles = station_split(r, it)
+          ings = Array(r["ingredients"]).map do |ing|
+            full = ing["qty"].to_s.strip
+            half = ing["station_qty"].presence || full
+            "    - #{ing['item']}: DOUBLE #{full.presence || '(none)'} | SINGLE #{half.presence || '(none)'}"
           end
+          "  Recipe: #{r['title']} (#{doubles} double stations, #{singles} single stations)\n#{ings.join("\n")}"
         end.join("\n")
-        "Class tag: #{it[:tag].presence || it[:class_name]} (#{it[:stations]} stations)\n#{recipe_text}"
+        "Class tag: #{it[:tag].presence || it[:class_name]}\n#{recipe_text}"
       end
       prompt = "Build the grocery list for these classes:\n\n#{lines.join("\n\n")}"
       if observed_prices.present?
@@ -122,6 +133,16 @@ module KitchenAi
         prompt += "\n\nKNOWN RECENT PRICES (from past receipts; prefer these over guesses):\n#{known.join("\n")}"
       end
       prompt
+    end
+
+    # [doubles, singles] for a recipe; one without counts takes the item's
+    # legacy stations: as all singles.
+    def station_split(recipe, it)
+      if recipe.key?("doubles") || recipe.key?("singles")
+        [ recipe["doubles"].to_i, recipe["singles"].to_i ]
+      else
+        [ 0, it[:stations].to_i ]
+      end
     end
 
     def parse(response)

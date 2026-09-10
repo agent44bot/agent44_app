@@ -132,4 +132,39 @@ class KitchenEvent < ApplicationRecord
   def detected_people_per_ticket
     TWO_PER_TICKET.match?("#{name} #{description}") ? 2 : nil
   end
+
+  # --- Station counts --------------------------------------------------------
+  # A recipe is cooked at some number of DOUBLE stations (each cooks the full
+  # "Double" amounts) and SINGLE stations (each cooks the half "Single"
+  # amounts). The counts live on each recipe in the packet (Caitlin sets them
+  # per recipe: "4 double salmon, 2 single + 2 double chicken, 10 double orzo");
+  # this is the booking-derived fallback for a recipe nobody has set yet,
+  # which reproduces the old math: every booked pair is one single station
+  # (ceil(people / 2), at least 1), no doubles.
+  StationCounts = Struct.new(:doubles, :singles, :set, keyword_init: true) do
+    def total = doubles + singles
+    def set? = set
+
+    # "3 double stations, 1 single station" (zero counts are dropped unless
+    # both are zero).
+    def label
+      parts = []
+      parts << "#{doubles} double #{'station'.pluralize(doubles)}" if doubles.positive?
+      parts << "#{singles} single #{'station'.pluralize(singles)}" if singles.positive?
+      parts.empty? ? "0 stations" : parts.join(", ")
+    end
+
+    # Compact form for a list of recipes: "4 double" / "2 double, 2 single".
+    def short
+      parts = []
+      parts << "#{doubles} double" if doubles.positive?
+      parts << "#{singles} single" if singles.positive?
+      parts.empty? ? "0 stations" : parts.join(", ")
+    end
+  end
+
+  def default_station_counts
+    people = tickets_sold.to_i * people_per_ticket
+    StationCounts.new(doubles: 0, singles: [ (people / 2.0).ceil, 1 ].max, set: false)
+  end
 end

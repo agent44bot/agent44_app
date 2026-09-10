@@ -6,6 +6,10 @@
 # then single-station (half) amounts. Pure Prawn, no headless browser.
 #
 #   KitchenPacketPdf.new(packet).render  # => PDF bytes (String)
+#
+# A recipe with station counts set ("doubles" / "singles" on the recipe) gets
+# them printed under its title, so the line cooks the same split the pull
+# sheet bought for.
 class KitchenPacketPdf
   FOOTER = "800 South Main Street, Canandaigua, NY 14424   |   www.nykitchen.com   |   (585) 394-7070".freeze
   # Points (72 = 1in): a 7.5 x 10in text area with 0.5in margins.
@@ -40,6 +44,12 @@ class KitchenPacketPdf
 
   def initialize(packet)
     @packet = packet
+  end
+
+  # "3 double stations, 1 single station" for a recipe, or nil when its
+  # counts were never set.
+  def stations_line(recipe)
+    KitchenPacket.station_counts_for(recipe)&.label
   end
 
   def render
@@ -112,7 +122,16 @@ class KitchenPacketPdf
     # Headcount drives station scaling and the grocery list but is not printed
     # on the handout (removed 2026-09-09 at Lora's request).
     doc.font(TITLE_FONT, style: :bold) { doc.text tidy(recipe["title"]), size: @packet.title_size_pt, align: :center }
-    doc.move_down 22
+    # Station counts for this recipe (Lora and Caitlin, 2026-09-10): the cook
+    # line sees how many stations cook the Double amounts and how many cook
+    # the Single amounts, matching what the pull sheet bought.
+    if (line = stations_line(recipe))
+      doc.move_down 4
+      doc.text tidy(line), size: 10, color: "444444", align: :center
+      doc.move_down 14
+    else
+      doc.move_down 22
+    end
 
     top     = doc.cursor
     col_gap = 24
