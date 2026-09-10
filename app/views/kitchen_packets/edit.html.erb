@@ -135,8 +135,18 @@
             Single
             <%= number_field_tag "recipes[#{ri}][singles]", recipe["singles"], min: 0, max: KitchenPacket::MAX_STATIONS, placeholder: "0", title: "Single stations: cook the half amounts", class: "w-20 sm:w-24 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base font-normal normal-case tracking-normal px-3 py-2 focus:border-amber-500 focus:outline-none" %>
           </label>
+          <%# Page spacing (Caitlin, 2026-09-10): a short recipe can be spread
+              down the page instead of sitting crammed at the top. Per recipe,
+              because one packet mixes long and short recipes. %>
+          <label class="flex flex-col gap-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            Page spacing
+            <%= select_tag "recipes[#{ri}][spacing]",
+                  options_for_select([ [ "Normal", "normal" ], [ "Roomy", "roomy" ], [ "Fill the page", "fill" ] ], KitchenPacket.spacing_for(recipe)),
+                  title: "How the ingredients and directions sit on the printed page",
+                  class: "w-32 sm:w-36 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base font-normal normal-case tracking-normal px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+          </label>
         </div>
-        <p class="text-xs text-gray-500 -mt-2 mb-4">Stations: how many <span class="text-gray-300">double</span> (full amounts) and <span class="text-gray-300">single</span> (half amounts) stations cook this recipe. The pull sheet buys for exactly that, and it prints under the recipe title.</p>
+        <p class="text-xs text-gray-500 -mt-2 mb-4">Stations: how many <span class="text-gray-300">double</span> (full amounts) and <span class="text-gray-300">single</span> (half amounts) stations cook this recipe; the pull sheet buys for exactly that and it prints under the title. Page spacing: <span class="text-gray-300">Roomy</span> adds air between lines, <span class="text-gray-300">Fill the page</span> spreads a short recipe down the page (bigger text, more space) so it is not crammed at the top.</p>
 
         <%# Column header only makes sense beside the 4-up desktop grid; on mobile
             each field is full-width with its own placeholder, so hide it there. %>

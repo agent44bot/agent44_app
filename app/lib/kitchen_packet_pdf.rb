@@ -25,6 +25,20 @@ class KitchenPacketPdf
 
   # Largest body size that still fits the recipe on one page wins (auto-fit).
   BODY_SIZES = [ 12, 11, 10, 9, 8 ].freeze
+  # "Fill the page" may go bigger than the everyday cap, so a short recipe is
+  # not a small block at the top of an empty page.
+  FILL_SIZES = [ 14, 13, *BODY_SIZES ].freeze
+
+  # Per-recipe page spacing (Caitlin, 2026-09-10: short recipes looked
+  # "crammed to the top"). Each setting is [gap under the title, vertical cell
+  # padding in the two columns]; "fill" computes both from the leftover page.
+  SPACING = {
+    "normal" => { gap: 22, pad: 1.5 },
+    "roomy"  => { gap: 44, pad: 4.0 },
+    "fill"   => { gap: 22, pad: 1.5 }
+  }.freeze
+  MAX_PAD  = 14.0 # cap on padding so "fill" never turns a 3-line recipe into a ladder
+  FILL_TOP = 0.90 # fill stretches the columns to about this share of the page
 
   # Optional footer marks: NY Kitchen's own brand files. Rendered only when
   # present, so the PDF still builds (address only) without them.
@@ -125,12 +139,14 @@ class KitchenPacketPdf
     # Station counts for this recipe (Lora and Caitlin, 2026-09-10): the cook
     # line sees how many stations cook the Double amounts and how many cook
     # the Single amounts, matching what the pull sheet bought.
+    spacing = KitchenPacket.spacing_for(recipe)
+    gap     = SPACING.fetch(spacing)[:gap]
     if (line = stations_line(recipe))
       doc.move_down 4
       doc.text tidy(line), size: 10, color: "444444", align: :center
-      doc.move_down 14
+      doc.move_down gap - 8
     else
-      doc.move_down 22
+      doc.move_down gap
     end
 
     top     = doc.cursor
@@ -143,14 +159,16 @@ class KitchenPacketPdf
     dir_rows = direction_rows(recipe)
 
     # Auto-fit: pick the largest body size whose taller column still clears the
-    # footer, so the whole recipe lands on this one page.
+    # footer, so the whole recipe lands on this one page. "fill" then spends
+    # the leftover page on a bigger gap under the title and airier rows.
     avail_h = top - FOOTER_BAND
-    size, ing_rows = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
+    size, ing_rows, pad, extra_gap = fit_columns(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, spacing)
+    top -= extra_gap
 
     # Directions on the right, ingredients on the left. Each in its own box so a
     # long column can't push the other down.
-    doc.bounding_box([ dir_x, top ], width: dir_w) { render_directions(doc, dir_rows, dir_w, size) }
-    doc.bounding_box([ 0, top ], width: ing_w) { render_ingredients(doc, ing_rows, ing_w, size) }
+    doc.bounding_box([ dir_x, top ], width: dir_w) { render_directions(doc, dir_rows, dir_w, size, pad: pad) }
+    doc.bounding_box([ 0, top ], width: ing_w) { render_ingredients(doc, ing_rows, ing_w, size, pad: pad) }
 
     footer(doc)
   end
@@ -226,43 +244,72 @@ class KitchenPacketPdf
     [ num_w, dir_w - num_w ]
   end
 
+  # Returns [size, ingredient rows, pad, extra gap] for a spacing setting.
+  # "normal" and "roomy" fit at their fixed padding; "fill" fits at the base
+  # padding (allowing the larger FILL_SIZES), then spreads the leftover page:
+  # a quarter of it as extra gap under the title, the rest as row padding on
+  # the taller column, capped so the layout never looks stretched, and always
+  # re-measured so it still clears the footer.
+  def fit_columns(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, spacing)
+    pad = SPACING.fetch(spacing)[:pad]
+    return [ *fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, pad: pad), pad, 0 ] unless spacing == "fill"
+
+    size, broken = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, sizes: FILL_SIZES, pad: pad)
+    ih = table_height(doc, broken, ing_widths(ing_w), size, pad: pad)
+    dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: pad)
+    tall_h = [ ih, dh ].max
+    tall_n = (ih >= dh ? broken : dir_rows).size
+    leftover = avail_h - tall_h
+    return [ size, broken, pad, 0 ] if leftover <= 0 || tall_n.zero?
+
+    extra_gap = (leftover * 0.25).floor
+    target_h  = avail_h * FILL_TOP - extra_gap
+    # Each row carries the padding twice (top + bottom), so this is the padding
+    # that lands the taller column on the target height.
+    fill_pad = (pad + (target_h - tall_h) / (2.0 * tall_n)).clamp(pad, MAX_PAD)
+    ih = table_height(doc, broken, ing_widths(ing_w), size, pad: fill_pad)
+    dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: fill_pad)
+    return [ size, broken, pad, 0 ] if [ ih, dh ].max > avail_h - extra_gap
+    [ size, broken, fill_pad, extra_gap ]
+  end
+
   # Returns [size, ingredient rows] where the rows carry the parenthetical
   # breaks for that size: each candidate size is measured with its own breaks
   # applied, so a forced break can never add a line the fit did not budget.
-  def fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h)
+  def fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, sizes: BODY_SIZES, pad: SPACING["normal"][:pad])
     item_w = ing_widths(ing_w)[1] - 6
     broken = nil
-    BODY_SIZES.each do |size|
+    sizes.each do |size|
       broken = keep_parentheticals(doc, ing_rows.map(&:dup), item_w, size)
-      ih = table_height(doc, broken, ing_widths(ing_w), size)
-      dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size)
+      ih = table_height(doc, broken, ing_widths(ing_w), size, pad: pad)
+      dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: pad)
       return [ size, broken ] if [ ih, dh ].max <= avail_h
     end
-    [ BODY_SIZES.last, broken || ing_rows ]
+    [ sizes.last, broken || ing_rows ]
   end
 
-  def table_height(doc, rows, widths, size)
+  def table_height(doc, rows, widths, size, pad: SPACING["normal"][:pad])
     return 0 if rows.blank?
     doc.make_table(rows, column_widths: widths,
-                         cell_style: { borders: [], padding: [ 1.5, 6, 1.5, 0 ], size: size }).height
+                         cell_style: { borders: [], padding: [ pad, 6, pad, 0 ], size: size }).height
   rescue StandardError
     1_000_000
   end
 
-  def render_ingredients(doc, rows, ing_w, size)
+  def render_ingredients(doc, rows, ing_w, size, pad: SPACING["normal"][:pad])
     underlined(doc, "Ingredients", size)
     doc.move_down 4
     return if rows.blank?
     doc.table(rows, column_widths: ing_widths(ing_w),
-                    cell_style: { borders: [], padding: [ 1.5, 6, 1.5, 0 ], size: size })
+                    cell_style: { borders: [], padding: [ pad, 6, pad, 0 ], size: size })
   end
 
-  def render_directions(doc, rows, dir_w, size)
+  def render_directions(doc, rows, dir_w, size, pad: SPACING["normal"][:pad])
     underlined(doc, "Directions", size)
     doc.move_down 4
     return if rows.blank?
     doc.table(rows, column_widths: dir_widths(dir_w, size),
-                    cell_style: { borders: [], padding: [ 2, 6, 2, 0 ], size: size, valign: :top })
+                    cell_style: { borders: [], padding: [ pad + 0.5, 6, pad + 0.5, 0 ], size: size, valign: :top })
   end
 
   def underlined(doc, label, size)

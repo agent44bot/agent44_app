@@ -388,6 +388,8 @@ class KitchenPacketsController < ApplicationController
         recipe["doubles"] = doubles.to_i
         recipe["singles"] = singles.to_i
       end
+      spacing = KitchenPacket.spacing_for("spacing" => r[:spacing])
+      recipe["spacing"] = spacing unless spacing == "normal"
       recipe
     end.reject { |r| r["title"].blank? }
   end

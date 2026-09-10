@@ -485,6 +485,28 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal [ 0, KitchenPacket::MAX_STATIONS ], [ packet.recipes[1]["doubles"], packet.recipes[1]["singles"] ]
   end
 
+  test "update saves a per-recipe page spacing, drops normal, and round-trips the select" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
+      title: "Packet", station_label: "Single",
+      recipes: {
+        "0" => { title: "Long", spacing: "normal",
+                 ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } },
+        "1" => { title: "Short", spacing: "fill",
+                 ingredients: { "0" => { qty: "1 c", station_qty: "1 c", item: "Sugar", section: "" } } },
+        "2" => { title: "Junk", spacing: "enormous",
+                 ingredients: { "0" => { qty: "1 t", station_qty: "1 t", item: "Salt", section: "" } } }
+      }
+    }
+    packet.reload
+    assert_equal [ nil, "fill", nil ], packet.recipes.map { |r| r["spacing"] }
+
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_select "select[name='recipes[1][spacing]'] option[value=fill][selected]"
+    assert_select "select[name='recipes[0][spacing]'] option[value=normal][selected]"
+  end
+
   test "the packet PDF renders a recipe headcount without error" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => [
       { "title" => "Sushi Rice", "headcount" => 2,
