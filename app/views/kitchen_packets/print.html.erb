@@ -22,11 +22,15 @@
     <span class="title"><%= @packet.title %></span>
     <a class="btn" href="<%= edit_nyk_packet_path(@packet) %>">Edit</a>
     <a class="btn" href="<%= nyk_list_path %>">Sam's list</a>
-    <a class="btn" href="<%= print_nyk_packet_path(@packet, format: :pdf, download: 1, v: @packet.updated_at.to_i) %>">Download</a>
+    <%# event_url keeps the chosen class run (its station counts) on the PDF;
+        v folds those counts in with updated_at so a changed count busts the
+        browser's PDF cache too. %>
+    <% sc = @event&.station_counts %>
+    <% pdf_params = { format: :pdf, event_url: @event&.url, v: [ @packet.updated_at.to_i, sc&.doubles, sc&.singles ].compact.join("-") } %>
+    <a class="btn" href="<%= print_nyk_packet_path(@packet, pdf_params.merge(download: 1)) %>">Download</a>
     <button class="btn btn-primary" id="print-btn" type="button">🖨 Print</button>
   </div>
-  <%# v=updated_at busts the browser PDF cache so a fresh save shows fresh pages. %>
-  <iframe id="pdf" src="<%= print_nyk_packet_path(@packet, format: :pdf, v: @packet.updated_at.to_i) %>" title="<%= @packet.title %>"></iframe>
+  <iframe id="pdf" src="<%= print_nyk_packet_path(@packet, pdf_params) %>" title="<%= @packet.title %>"></iframe>
 
   <%= javascript_tag nonce: true do %>
     document.getElementById("print-btn")?.addEventListener("click", function () {

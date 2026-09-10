@@ -47,7 +47,8 @@
   <p class="text-sm text-gray-400 mb-6">
     <% if single && single_event %>
       <%= single_event.start_at.strftime("%a %b %-d") %> ·
-      <%= pluralize(@total_headcount, "person") %> booked
+      <%= pluralize(@total_headcount, "person") %> booked ·
+      <%= @with_recipe.first[:event].station_counts.label %>
     <% else %>
       <%= @range.first.strftime("%a %b %-d") %> to <%= @range.last.strftime("%a %b %-d") %> ·
       <%= pluralize(@with_recipe.size, "class") %> with recipes ·
@@ -127,6 +128,47 @@
       </details>
     <% end %>
 
+    <%# Station counts: how many double stations (full recipe amounts) and
+        single stations (half amounts) the class runs. The pull sheet buys
+        doubles x Double + singles x Single, so these are the numbers to get
+        right. Saved per class url; changing them rebuilds the list. Shown
+        inline on a pull sheet, tucked in a details on the weekly list. %>
+    <% stations_form = lambda do |c| %>
+      <%= form_with url: nyk_grocery_stations_path, method: :patch, data: { turbo: false }, class: "flex items-center gap-1.5 flex-wrap" do %>
+        <%= hidden_field_tag :url, c[:event].url, id: nil %>
+        <label class="flex items-center gap-1 text-xs text-gray-300">
+          <%= number_field_tag :doubles, c[:doubles], id: nil, min: 0, max: KitchenEvent::MAX_STATIONS, "aria-label": "Double stations",
+                class: "w-14 rounded border border-gray-700 bg-gray-900 text-gray-100 text-xs px-1.5 py-0.5 focus:border-orange-500 focus:outline-none" %>
+          double
+        </label>
+        <label class="flex items-center gap-1 text-xs text-gray-300">
+          <%= number_field_tag :singles, c[:singles], id: nil, min: 0, max: KitchenEvent::MAX_STATIONS, "aria-label": "Single stations",
+                class: "w-14 rounded border border-gray-700 bg-gray-900 text-gray-100 text-xs px-1.5 py-0.5 focus:border-orange-500 focus:outline-none" %>
+          single
+        </label>
+        <button type="submit" class="px-2 py-0.5 rounded border border-gray-700 text-xs text-gray-300 hover:border-orange-500 cursor-pointer">Save</button>
+        <span class="text-xs text-gray-500"><%= c[:stations_overridden] ? "set by hand" : "auto from bookings" %></span>
+      <% end %>
+    <% end %>
+    <% if single && single_event && !params[:embedded] %>
+      <div class="mb-4 no-print text-sm flex items-center gap-3 flex-wrap">
+        <span class="text-gray-400">Stations for this class:</span>
+        <% stations_form.call(@with_recipe.first) %>
+      </div>
+    <% elsif !single %>
+      <details class="mb-5 no-print text-sm">
+        <summary class="cursor-pointer text-gray-400 hover:text-orange-400">Stations per class (double cooks the full amounts, single cooks half)</summary>
+        <div class="mt-2 space-y-1.5">
+          <% @with_recipe.each do |c| %>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full border <%= chip.call(c[:tag]) %>"><%= c[:tag] %></span>
+              <% stations_form.call(c) %>
+            </div>
+          <% end %>
+        </div>
+      </details>
+    <% end %>
+
     <%# A single-class pull sheet is editable in place: every quantity and
         item is a contenteditable span, lines can be removed or added, and the
         pull-sheet-editor controller autosaves the whole sheet to
@@ -141,7 +183,7 @@
         <span class="text-gray-400">
           <% if @sheet_edit %>
             ✏️ Edited by hand<%= @sheet_edit.updated_by ? " by #{@sheet_edit.updated_by.display_identifier}" : "" %>.
-            <% if @sheet_stale %><span class="text-amber-300">The recipes changed since; reset to rebuild from them, or keep your edits.</span><% end %>
+            <% if @sheet_stale %><span class="text-amber-300">The recipes or station counts changed since; reset to rebuild from them, or keep your edits.</span><% end %>
           <% else %>
             Click any amount or item to edit it. Changes save on their own.
           <% end %>
@@ -169,7 +211,8 @@
         </span>
       </div>
       <% if single && single_event %>
-        <p class="text-sm font-semibold text-gray-700 -mt-2 mb-4"><%= single_event.name %></p>
+        <p class="text-sm font-semibold text-gray-700 -mt-2 mb-1"><%= single_event.name %></p>
+        <p class="text-xs text-gray-600 mb-4"><%= @with_recipe.first[:event].station_counts.label %> · <%= pluralize(@total_headcount, "person") %> booked</p>
       <% end %>
       <div data-pull-sheet-editor-target="categories">
       <% @result.categories.each do |cat| %>
@@ -279,7 +322,7 @@
         <p class="text-xs text-gray-500 mt-1">Rough estimate of typical US grocery prices, for budgeting only. Actual cost varies by store and season.</p>
       <% end %>
       <div class="mt-6 pt-3 border-t border-gray-200 text-xs text-gray-500">
-        Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:stations]} stations)" }.join(" · ") %>
+        Covers: <%= @with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:event].station_counts.label})" }.join(" · ") %>
       </div>
     </div>
     </div><%# end pull-sheet-editor wrapper %>

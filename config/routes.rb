@@ -106,6 +106,7 @@ Rails.application.routes.draw do
     post "hours/timesheets", to: "kitchen#generate_timesheets", as: :nyk_generate_timesheets
     post "grocery/receipts", to: "kitchen#upload_receipt", as: :nyk_grocery_receipts
     patch "grocery/portion", to: "kitchen#update_portion", as: :nyk_grocery_portion
+    patch "grocery/stations", to: "kitchen#update_stations", as: :nyk_grocery_stations
     # Hand-edited pull sheet for one class (autosaved from the sheet itself).
     patch  "grocery/sheet", to: "kitchen#update_pull_sheet", as: :nyk_pull_sheet
     delete "grocery/sheet", to: "kitchen#reset_pull_sheet"

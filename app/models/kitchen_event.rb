@@ -132,4 +132,57 @@ class KitchenEvent < ApplicationRecord
   def detected_people_per_ticket
     TWO_PER_TICKET.match?("#{name} #{description}") ? 2 : nil
   end
+
+  # --- Station counts (for grocery math + the printed packet) ----------------
+  # A class is cooked at some number of DOUBLE stations (each cooks the full
+  # "Double" recipe amounts) and SINGLE stations (each cooks the half "Single"
+  # amounts). The pull sheet buys doubles x Double + singles x Single, and the
+  # packet prints both counts above every recipe so the line matches the buy.
+  #
+  # Until someone sets the counts by hand, the default reproduces the old
+  # math: every booked pair is one single station (ceil(people / 2), at least
+  # 1), and there are no doubles. Stored in Setting keyed by `url`, like the
+  # ticket-portion override, so it survives the nightly snapshot rebuild.
+  STATIONS_OVERRIDE_PREFIX = "nyk:stations:".freeze
+  MAX_STATIONS = 99
+
+  StationCounts = Struct.new(:doubles, :singles, :overridden, keyword_init: true) do
+    def total = doubles + singles
+    def overridden? = overridden
+
+    # "3 double stations, 1 single station" (zero counts are dropped unless
+    # both are zero).
+    def label
+      parts = []
+      parts << "#{doubles} double #{'station'.pluralize(doubles)}" if doubles.positive?
+      parts << "#{singles} single #{'station'.pluralize(singles)}" if singles.positive?
+      parts.empty? ? "0 stations" : parts.join(", ")
+    end
+  end
+
+  def station_counts
+    if (raw = Setting.get("#{STATIONS_OVERRIDE_PREFIX}#{url}")).present?
+      parsed = JSON.parse(raw) rescue nil
+      if parsed.is_a?(Hash)
+        d = parsed["doubles"].to_i.clamp(0, MAX_STATIONS)
+        s = parsed["singles"].to_i.clamp(0, MAX_STATIONS)
+        return StationCounts.new(doubles: d, singles: s, overridden: true) if d + s > 0
+      end
+    end
+    people = tickets_sold.to_i * people_per_ticket
+    StationCounts.new(doubles: 0, singles: [ (people / 2.0).ceil, 1 ].max, overridden: false)
+  end
+
+  # Save (or, when both are blank/zero, clear) the by-hand station counts for
+  # a class url. Returns the resulting counts.
+  def self.set_station_counts(url, doubles:, singles:)
+    key = "#{STATIONS_OVERRIDE_PREFIX}#{url}"
+    d = doubles.to_i.clamp(0, MAX_STATIONS)
+    s = singles.to_i.clamp(0, MAX_STATIONS)
+    if d + s > 0
+      Setting.set(key, { doubles: d, singles: s }.to_json)
+    else
+      Setting.delete_key(key)
+    end
+  end
 end

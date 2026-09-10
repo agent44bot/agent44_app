@@ -60,7 +60,7 @@ class KitchenGroceryXlsx
 
   def summary_line
     if @single && @single_event
-      "#{@single_event.name} | #{@single_event.start_at.strftime('%a %b %-d')} | #{plural(@total_headcount, 'person')} booked"
+      "#{@single_event.name} | #{@single_event.start_at.strftime('%a %b %-d')} | #{plural(@total_headcount, 'person')} booked | #{stations_label(@with_recipe.first)}"
     else
       "#{@range.first.strftime('%a %b %-d')} to #{@range.last.strftime('%a %b %-d')} | " \
         "#{plural(@with_recipe.size, 'class')} with recipes | #{plural(@total_headcount, 'person')} booked"
@@ -74,9 +74,9 @@ class KitchenGroceryXlsx
     return if @single || @with_recipe.empty?
 
     row [ "Classes in this list" ], style: @s[:section]
-    row [ "Class", "Date", "People booked" ], style: @s[:head]
+    row [ "Class", "Date", "People booked", "Stations" ], style: @s[:head]
     @with_recipe.each do |c|
-      row [ c[:event].name.to_s, c[:event].start_at.strftime("%a %b %-d"), c[:headcount].to_i ]
+      row [ c[:event].name.to_s, c[:event].start_at.strftime("%a %b %-d"), c[:headcount].to_i, stations_label(c) ]
     end
     row []
   end
@@ -155,6 +155,11 @@ class KitchenGroceryXlsx
 
   def sheet_title
     @single ? "NY Kitchen Pull Sheet" : "NY Kitchen Grocery List"
+  end
+
+  def stations_label(c)
+    return c[:event].station_counts.label if c[:event].respond_to?(:station_counts)
+    plural(c[:stations], "station")
   end
 
   def plural(count, noun)

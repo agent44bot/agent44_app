@@ -57,7 +57,7 @@ class KitchenGroceryPdf
 
     if @single && @single_event
       doc.text @single_event.name.to_s, size: 14, style: :bold
-      doc.text "#{@single_event.start_at.strftime('%b %-d')} | #{plural(@total_headcount, 'person')} booked", size: 11, color: "666666"
+      doc.text "#{@single_event.start_at.strftime('%b %-d')} | #{plural(@total_headcount, 'person')} booked | #{stations_label(@with_recipe.first)}", size: 11, color: "666666"
     else
       doc.text "#{@range.first.strftime('%b %-d')} to #{@range.last.strftime('%b %-d')} | #{plural(@with_recipe.size, 'class')} with recipes | #{plural(@total_headcount, 'person')} booked", size: 11, color: "666666"
     end
@@ -139,7 +139,7 @@ class KitchenGroceryPdf
     doc.stroke_horizontal_rule
     doc.move_down 8
     doc.text(
-      "Covers: #{@with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{c[:stations]} stations)" }.join(' | ')}",
+      "Covers: #{@with_recipe.map { |c| "#{c[:event].name} (#{c[:headcount]} booked, #{stations_label(c)})" }.join(' | ')}",
       size: 9,
       color: "777777"
     )
@@ -165,6 +165,13 @@ class KitchenGroceryPdf
 
   def sheet_title
     @single ? "NY Kitchen Pull Sheet" : "NY Kitchen Grocery List"
+  end
+
+  # "3 double stations, 1 single station" for a with_recipe entry; falls back
+  # to the plain station total for callers that only pass stations:.
+  def stations_label(c)
+    return c[:event].station_counts.label if c[:event].respond_to?(:station_counts)
+    plural(c[:stations], "station")
   end
 
   def plural(count, noun)

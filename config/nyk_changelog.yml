@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-09-10
+  note: Each class now has a double station count and a single station count. Set them on the pull sheet (or under "Stations per class" on the weekly grocery list) and the shopping amounts are computed as double stations times the Double amounts plus single stations times the Single amounts. The counts also print above every recipe in the packet so the line cooks the same split that was bought for.
+
 - date: 2026-09-09
   note: The pull sheet for a class is now editable in place. Click any amount, item, or section name to change it, remove lines or add new ones, and it saves on its own. The print, PDF, and Excel versions follow your edits, and Reset brings back the generated list.
 - date: 2026-09-09

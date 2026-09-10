@@ -111,7 +111,7 @@ class PullSheetEditTest < ActionDispatch::IntegrationTest
     packet.update!(data: packet.data.merge("recipes" => [ RECIPE[0].merge("title" => "Ravioli v2") ]))
     body = sheet
     assert_match "Kept", body
-    assert_match "recipes changed", body
+    assert_match "recipes or station counts changed", body
   end
 
   test "reset drops the edits and goes back to the generated list" do

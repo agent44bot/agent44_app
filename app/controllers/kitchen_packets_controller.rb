@@ -269,13 +269,17 @@ class KitchenPacketsController < ApplicationController
   end
 
   # The print page (HTML) embeds the PDF; the .pdf format streams it, used by
-  # the preview iframe, the print page, and direct download.
+  # the preview iframe, the print page, and direct download. ?event_url picks
+  # which class run's station counts print under each recipe title (a shared
+  # recipe can be attached to several runs); default is the soonest upcoming
+  # run, then the most recent past one.
   def print
     @packet = current_workspace.kitchen_packets.find(params[:id])
+    @event  = event_for(params[:event_url]) || pull_classes_for(@packet).first
     respond_to do |format|
       format.html { render layout: false }
       format.pdf do
-        send_data KitchenPacketPdf.new(@packet).render,
+        send_data KitchenPacketPdf.new(@packet, event: @event).render,
                   filename: "#{@packet.title.parameterize}.pdf",
                   type: "application/pdf",
                   disposition: params[:download].present? ? "attachment" : "inline"
