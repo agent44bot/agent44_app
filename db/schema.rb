@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_09_200000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -584,6 +584,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_180000) do
     t.index ["user_id"], name: "index_posts_on_user_id"
   end
 
+  create_table "pull_sheet_edits", force: :cascade do |t|
+    t.string "base_key"
+    t.json "categories", default: [], null: false
+    t.datetime "created_at", null: false
+    t.string "event_url", null: false
+    t.json "to_taste", default: [], null: false
+    t.datetime "updated_at", null: false
+    t.integer "updated_by_id"
+    t.integer "workspace_id", null: false
+    t.index ["updated_by_id"], name: "index_pull_sheet_edits_on_updated_by_id"
+    t.index ["workspace_id", "event_url"], name: "index_pull_sheet_edits_on_workspace_id_and_event_url", unique: true
+    t.index ["workspace_id"], name: "index_pull_sheet_edits_on_workspace_id"
+  end
+
   create_table "revenue_entries", force: :cascade do |t|
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.datetime "created_at", null: false
@@ -951,6 +965,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_180000) do
   add_foreign_key "notifications", "users"
   add_foreign_key "page_views", "users"
   add_foreign_key "posts", "users"
+  add_foreign_key "pull_sheet_edits", "users", column: "updated_by_id"
+  add_foreign_key "pull_sheet_edits", "workspaces"
   add_foreign_key "saved_jobs", "jobs"
   add_foreign_key "saved_jobs", "users"
   add_foreign_key "sessions", "users"
