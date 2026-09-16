@@ -686,7 +686,7 @@ class NykSmokeBase < ActiveSupport::TestCase
       ActionMailer::Base.smtp_settings = {
         address: "smtp-relay.brevo.com",
         port: 587,
-        user_name: ENV.fetch("BREVO_SMTP_LOGIN", "a5ec98001@smtp-brevo.com"),
+        user_name: ENV.fetch("BREVO_SMTP_LOGIN", "b2378d001@smtp-brevo.com"),
         password: ENV["BREVO_SMTP_KEY"],
         authentication: :plain,
         enable_starttls_auto: true
