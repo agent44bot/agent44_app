@@ -400,9 +400,7 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
-    simple_oauth (0.4.1)
-      base64
-      cgi
+    simple_oauth (1.0.0)
     simpleidn (0.2.3)
     solid_cable (4.0.2)
       actioncable (>= 7.2)
@@ -536,7 +534,7 @@ DEPENDENCIES
   rubocop-rails-omakase
   ruby-vips (~> 2.2)
   selenium-webdriver
-  simple_oauth (~> 0.3)
+  simple_oauth (~> 1.0)
   solid_cable
   solid_cache
   solid_queue
