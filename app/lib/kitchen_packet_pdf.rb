@@ -40,6 +40,19 @@ class KitchenPacketPdf
   MAX_PAD  = 14.0 # cap on padding so "fill" never turns a 3-line recipe into a ladder
   FILL_TOP = 0.90 # fill stretches the columns to about this share of the page
 
+  # Ingredient column geometry, matching the kitchen's Word original
+  # (Caitlin, 2026-09-21).
+  #
+  # AMOUNT_TAB: the amount column is a 0.5in tab, so every ingredient name
+  # starts half an inch in ("3 c<tab>Diced potatoes") instead of floating out
+  # at a third of the column. Widened only when an amount would otherwise wrap.
+  # ING_EXTRA_PAD: ingredients breathe a little more than directions do. The
+  # ask was "more space between ingredients", not between the steps.
+  AMOUNT_TAB    = 36.0
+  AMOUNT_GUTTER = 6.0 # the cell's right padding; an amount has this much clear air after it
+  ING_EXTRA_PAD = 2.0
+  DIR_EXTRA_PAD = 0.5
+
   # Optional footer marks: NY Kitchen's own brand files. Rendered only when
   # present, so the PDF still builds (address only) without them.
   LEFT_LOGO   = Rails.root.join("app/assets/images/nyk/iloveny.png").freeze
@@ -210,7 +223,14 @@ class KitchenPacketPdf
       if item.match?(/\bflour/i) && (g = KitchenUnits.flour_grams(qty))
         item = "#{item} (~#{g} g)"
       end
-      rows << [ tidy(qty), tidy(item) ]
+      # An ingredient with no amount ("Salt, to taste") starts at the left
+      # margin like the kitchen's Word original, instead of sitting indented in
+      # the name column under the amounts. (Caitlin, 2026-09-21.)
+      rows << if tidy(qty).blank?
+        [ { content: tidy(item), colspan: 2 } ]
+      else
+        [ tidy(qty), tidy(item) ]
+      end
     end
     rows
   end
@@ -235,9 +255,24 @@ class KitchenPacketPdf
 
   # ---- fit + render ----
 
-  def ing_widths(ing_w)
-    [ ing_w * 0.34, ing_w * 0.66 ]
+  # [amount column, name column]. The amount column is a 0.5in tab, grown only
+  # as far as the widest amount needs ("1 ½ cups" at a big body size) so the
+  # tab never costs an amount a wrapped line, and never eats the name column.
+  def ing_widths(doc, rows, ing_w, size)
+    w = [ AMOUNT_TAB, widest_amount(doc, rows, size) + AMOUNT_GUTTER ].max.clamp(AMOUNT_TAB, ing_w * 0.5)
+    [ w, ing_w - w ]
   end
+
+  def widest_amount(doc, rows, size)
+    Array(rows).filter_map { |r|
+      next unless r.is_a?(Array) && r.size == 2
+      doc.width_of(r[0].to_s, size: size)
+    }.max.to_f
+  end
+
+  # Ingredients carry a touch more vertical air than the steps beside them.
+  def ing_pad(pad) = pad + ING_EXTRA_PAD
+  def dir_pad(pad) = pad + DIR_EXTRA_PAD
 
   def dir_widths(dir_w, size)
     num_w = size * 1.9
@@ -255,8 +290,8 @@ class KitchenPacketPdf
     return [ *fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, pad: pad), pad, 0 ] unless spacing == "fill"
 
     size, broken = fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, sizes: FILL_SIZES, pad: pad)
-    ih = table_height(doc, broken, ing_widths(ing_w), size, pad: pad)
-    dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: pad)
+    ih = table_height(doc, broken, ing_widths(doc, broken, ing_w, size), size, pad: ing_pad(pad))
+    dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: dir_pad(pad))
     tall_h = [ ih, dh ].max
     tall_n = (ih >= dh ? broken : dir_rows).size
     leftover = avail_h - tall_h
@@ -267,8 +302,8 @@ class KitchenPacketPdf
     # Each row carries the padding twice (top + bottom), so this is the padding
     # that lands the taller column on the target height.
     fill_pad = (pad + (target_h - tall_h) / (2.0 * tall_n)).clamp(pad, MAX_PAD)
-    ih = table_height(doc, broken, ing_widths(ing_w), size, pad: fill_pad)
-    dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: fill_pad)
+    ih = table_height(doc, broken, ing_widths(doc, broken, ing_w, size), size, pad: ing_pad(fill_pad))
+    dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: dir_pad(fill_pad))
     return [ size, broken, pad, 0 ] if [ ih, dh ].max > avail_h - extra_gap
     [ size, broken, fill_pad, extra_gap ]
   end
@@ -277,12 +312,14 @@ class KitchenPacketPdf
   # breaks for that size: each candidate size is measured with its own breaks
   # applied, so a forced break can never add a line the fit did not budget.
   def fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, sizes: BODY_SIZES, pad: SPACING["normal"][:pad])
-    item_w = ing_widths(ing_w)[1] - 6
     broken = nil
     sizes.each do |size|
+      # The name column is measured at this size, because the amount column
+      # (and so the room left for names) depends on the size too.
+      item_w = ing_widths(doc, ing_rows, ing_w, size)[1] - AMOUNT_GUTTER
       broken = keep_parentheticals(doc, ing_rows.map(&:dup), item_w, size)
-      ih = table_height(doc, broken, ing_widths(ing_w), size, pad: pad)
-      dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: pad)
+      ih = table_height(doc, broken, ing_widths(doc, broken, ing_w, size), size, pad: ing_pad(pad))
+      dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: dir_pad(pad))
       return [ size, broken ] if [ ih, dh ].max <= avail_h
     end
     [ sizes.last, broken || ing_rows ]
@@ -300,8 +337,8 @@ class KitchenPacketPdf
     underlined(doc, "Ingredients", size)
     doc.move_down 4
     return if rows.blank?
-    doc.table(rows, column_widths: ing_widths(ing_w),
-                    cell_style: { borders: [], padding: [ pad, 6, pad, 0 ], size: size })
+    doc.table(rows, column_widths: ing_widths(doc, rows, ing_w, size),
+                    cell_style: { borders: [], padding: [ ing_pad(pad), AMOUNT_GUTTER, ing_pad(pad), 0 ], size: size })
   end
 
   def render_directions(doc, rows, dir_w, size, pad: SPACING["normal"][:pad])
@@ -309,7 +346,7 @@ class KitchenPacketPdf
     doc.move_down 4
     return if rows.blank?
     doc.table(rows, column_widths: dir_widths(dir_w, size),
-                    cell_style: { borders: [], padding: [ pad + 0.5, 6, pad + 0.5, 0 ], size: size, valign: :top })
+                    cell_style: { borders: [], padding: [ dir_pad(pad), AMOUNT_GUTTER, dir_pad(pad), 0 ], size: size, valign: :top })
   end
 
   def underlined(doc, label, size)

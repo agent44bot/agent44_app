@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-21
+  note: Recipe handouts now match the kitchen's Word originals. An ingredient with no amount (like "Salt, to taste") starts at the left margin instead of sitting indented, ingredient names line up a half inch in after the amount, and there is a little more space between ingredients.
+
+- date: 2026-09-21
   note: Anyone on the team (not just Lora) can now add a class that is not on the website. Use "Add a class" on Sam's list for private bookings, virtual classes, camps, and WST events, then build the recipe and pull sheet for it the same way as any other class.
 
 - date: 2026-09-10
