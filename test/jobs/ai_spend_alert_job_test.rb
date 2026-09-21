@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class AiSpendAlertJobTest < ActiveSupport::TestCase
   setup do
@@ -63,6 +64,27 @@ class AiSpendAlertJobTest < ActiveSupport::TestCase
     assert_difference -> { Notification.count }, 1 do
       AiSpendAlertJob.perform_now
     end
+  end
+
+  test "a failed alert does not spend the day's one notification" do
+    log("nyk_recipe_extract", 300_000)
+    Notification.stub(:notify!, nil) do
+      AiSpendAlertJob.perform_now
+    end
+    assert_nil Setting.get(AiSpendAlertJob::ALERTED_ON), "the day is not marked done"
+
+    # The next hourly run tries again and gets through.
+    assert_difference -> { Notification.count }, 1 do
+      AiSpendAlertJob.perform_now
+    end
+    assert_equal Date.current.to_s, Setting.get(AiSpendAlertJob::ALERTED_ON)
+  end
+
+  test "the day's window is the Eastern day, not the container's UTC day" do
+    # Regression guard: prod runs with TZ=UTC and Time.zone Eastern, so a spend
+    # range built from Date.current must still resolve through Time.zone.
+    assert_equal Time.current.all_day.first.to_i, Date.current.all_day.first.to_i
+    assert_equal(-4 * 3600, Date.current.all_day.first.utc_offset, "Eastern, not UTC")
   end
 
   test "the threshold is settable, and a junk value falls back to the default" do

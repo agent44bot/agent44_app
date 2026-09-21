@@ -26,8 +26,7 @@ class AiSpendAlertJob < ApplicationJob
     spend = logs.sum(&:cost_dollars)
     return if spend < threshold
 
-    Setting.set(ALERTED_ON, today.to_s)
-    Notification.notify!(
+    sent = Notification.notify!(
       level: "warning",
       source: "ai_spend",
       title: "Anthropic spend today is #{money(spend)}",
@@ -36,6 +35,12 @@ class AiSpendAlertJob < ApplicationJob
       apns_user: alert_user,
       apns_url: "/nykitchen/billing"
     )
+    # Mark the day done only once the alert actually exists. notify! swallows
+    # its own failures and returns nil, and marking first would spend the day's
+    # one alert on a push that never arrived; this way the next hourly run
+    # tries again. A partial failure (record saved, push rejected) still
+    # returns the record, so a working alert is never sent twice.
+    Setting.set(ALERTED_ON, today.to_s) if sent
   end
 
   private
