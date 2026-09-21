@@ -166,6 +166,43 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     { size: size, pad: pad, gap: gap, tall: tall, avail: avail_h }
   end
 
+  # --- section headings + dashes (found testing 2026-09-21) ----------------
+
+  test "a section heading prints one colon whether or not the saved name has one" do
+    recipe = { "title" => "Kabobs", "ingredients" => [
+      { "qty" => "1 T", "station_qty" => "1 T", "item" => "Olive oil", "section" => "Marinade" }
+    ], "directions" => [
+      { "section" => "Parmesan herb sauce:", "steps" => [ "Whisk." ] },
+      { "section" => "Assembly",             "steps" => [ "Skewer." ] }
+    ] }
+    pdf = KitchenPacketPdf.new(packet([ recipe ]))
+
+    assert_equal "Marinade:", pdf.send(:ingredient_rows, recipe, false).first.first[:content]
+    headings = pdf.send(:direction_rows, recipe).filter_map { |r| r.first[:content] if r.first.is_a?(Hash) }
+    assert_equal [ "Parmesan herb sauce:", "Assembly:" ], headings, "never a double colon"
+  end
+
+  test "em and en dashes never reach the page" do
+    pdf = KitchenPacketPdf.new(packet([]))
+    assert_equal "Cook for 10-12 minutes.", pdf.send(:tidy, "Cook for 10–12 minutes.")
+    assert_equal "Let it rest, then slice.", pdf.send(:tidy, "Let it rest — then slice.")
+    assert_equal "Fresh-picked", pdf.send(:tidy, "Fresh–picked")
+    assert_no_match(/[—–]/, pdf.send(:tidy, "10–12 min — stir, off-heat"))
+  end
+
+  test "a saved recipe is stored without dashes, at every depth" do
+    p = KitchenPacket.new(title: "P")
+    p.recipes = [ { "title" => "Ribs — Slow", "ingredients" => [
+      { "qty" => "2–3 lb", "item" => "Pork", "section" => "Rub — dry" }
+    ], "directions" => [ { "section" => nil, "steps" => [ "Smoke 3–4 hours — rest." ] } ] } ]
+    r = p.recipes.first
+
+    assert_equal "Ribs, Slow", r["title"]
+    assert_equal "2-3 lb", r["ingredients"].first["qty"]
+    assert_equal "Rub, dry", r["ingredients"].first["section"]
+    assert_equal "Smoke 3-4 hours, rest.", r["directions"].first["steps"].first
+  end
+
   # --- ingredient column geometry (Caitlin, 2026-09-21) --------------------
 
   test "an ingredient with no amount spans the column so it starts at the left margin" do

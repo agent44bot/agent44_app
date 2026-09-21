@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-21
+  note: Two cleanups on recipe handouts. A section heading like "Parmesan herb sauce" no longer prints with two colons after it, and long dashes are gone from recipe text (a range now reads 10-12 minutes).
+
+- date: 2026-09-21
   note: Recipe handouts now match the kitchen's Word originals. An ingredient with no amount (like "Salt, to taste") starts at the left margin instead of sitting indented, ingredient names line up a half inch in after the amount, and there is a little more space between ingredients.
 
 - date: 2026-09-21
