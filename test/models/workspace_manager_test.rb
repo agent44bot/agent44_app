@@ -31,6 +31,17 @@ class WorkspaceManagerTest < ActiveSupport::TestCase
     refute @ws.manager?(nil), "nil"
   end
 
+  test "contributor? includes editors but not viewers or strangers" do
+    assert @ws.contributor?(@site_admin), "site admin"
+    assert @ws.contributor?(@owner), "workspace owner"
+    assert @ws.contributor?(@editor), "editor"
+    viewer = user
+    @ws.memberships.create!(user: viewer, role: "viewer")
+    refute @ws.contributor?(viewer), "viewer"
+    refute @ws.contributor?(@stranger), "non-member"
+    refute @ws.contributor?(nil), "nil"
+  end
+
   test "pricing_visible_for? follows manager? when the members toggle is off" do
     refute @ws.pricing_visible_to_members?
     assert @ws.pricing_visible_for?(@owner)

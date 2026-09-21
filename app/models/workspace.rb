@@ -143,6 +143,15 @@ class Workspace < ApplicationRecord
     user.admin? || %w[owner admin].include?(role_for(user))
   end
 
+  # Can add/edit this workspace's own content (a hand-added class, a recipe
+  # packet): everyone but a viewer. Deliberately wider than manager? -- the
+  # people who build the pulls (Caitlin, Chris) are editors, and nothing here
+  # touches money or team settings.
+  def contributor?(user)
+    return false unless user
+    user.admin? || %w[owner admin editor].include?(role_for(user))
+  end
+
   # Site admins + the workspace owner/admin always see pricing. Other members
   # (editor/viewer) see it only when the workspace-level toggle is on.
   # Non-members never see it.

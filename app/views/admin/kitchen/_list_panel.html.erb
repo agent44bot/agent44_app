@@ -97,12 +97,12 @@
             <%# The grocery list + Upload receipt tools used to live here, per
                 week. They now sit once at the top of the page (below the search
                 box), and the grocery page's own date picker covers any range. %>
-            <%# Scraped events and manual classes (e.g. day camps) share the week
-                in date order, so a Tuesday camp sits above a Friday class instead
-                of being shoved to the bottom. Both respond to start_at. %>
+            <%# Scraped events and hand-added classes share the week in date
+                order, so a Tuesday private class sits above a Friday class
+                instead of being shoved to the bottom. Both respond to start_at. %>
             <% (week[:events] + week[:manual_classes]).sort_by { |i| i.start_at || Time.zone.at(0) }.each do |item| %>
               <% if item.is_a?(KitchenManualClass) %>
-                <%= render "admin/kitchen/manual_class_card", manual: item, can_manage: @nyk_manager %>
+                <%= render "admin/kitchen/manual_class_card", manual: item, can_manage: can_remove_manual_class?(item) %>
               <% else %>
                 <%= render partial: "admin/kitchen/event_card", locals: { event: item, show_date: true } %>
               <% end %>
