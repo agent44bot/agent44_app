@@ -120,12 +120,12 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     ing_w = (doc.bounds.width - 24) * 0.42
     avail_h = doc.bounds.top - 120 - KitchenPacketPdf::FOOTER_BAND
     size, broken = pdf.send(:fit_size, doc, rows, [], ing_w, doc.bounds.width - ing_w - 24, avail_h)
-    height = pdf.send(:table_height, doc, broken, pdf.send(:ing_widths, ing_w), size)
+    height = pdf.send(:table_height, doc, broken, pdf.send(:ing_widths, doc, broken, ing_w, size), size)
     assert height <= avail_h, "rows measured with their breaks must fit the budget (#{height} > #{avail_h})"
     assert size > KitchenPacketPdf::BODY_SIZES.last, "fixture should fit above the smallest size (got #{size})"
     # The unbroken rows at that size are shorter or equal; the old code sized on
     # those and then broke, which could overflow. Now the broken rows are what fit.
-    unbroken = pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, ing_w), size)
+    unbroken = pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, doc, rows, ing_w, size), size)
     assert unbroken <= height
     assert broken.all? { |r| r[1].include?("\n(~300 g)") }, "every long item breaks before its parenthetical"
   end
@@ -161,9 +161,78 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     dir_w = doc.bounds.width - ing_w - 24
     avail_h = doc.bounds.top - 120 - KitchenPacketPdf::FOOTER_BAND
     size, rows, pad, gap = pdf.send(:fit_columns, doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, spacing)
-    tall = [ pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, ing_w), size, pad: pad),
-             pdf.send(:table_height, doc, dir_rows, pdf.send(:dir_widths, dir_w, size), size, pad: pad) ].max
+    tall = [ pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, doc, rows, ing_w, size), size, pad: pdf.send(:ing_pad, pad)),
+             pdf.send(:table_height, doc, dir_rows, pdf.send(:dir_widths, dir_w, size), size, pad: pdf.send(:dir_pad, pad)) ].max
     { size: size, pad: pad, gap: gap, tall: tall, avail: avail_h }
+  end
+
+  # --- ingredient column geometry (Caitlin, 2026-09-21) --------------------
+
+  test "an ingredient with no amount spans the column so it starts at the left margin" do
+    recipe = { "title" => "Mashed Potatoes", "ingredients" => [
+      { "qty" => "3 c", "station_qty" => "1½ c", "item" => "Diced potatoes", "section" => nil },
+      { "qty" => "",    "station_qty" => "",     "item" => "Salt, to taste", "section" => nil }
+    ], "directions" => [ { "section" => nil, "steps" => [ "Mash." ] } ] }
+    pdf  = KitchenPacketPdf.new(packet([ recipe ]))
+    rows = pdf.send(:ingredient_rows, recipe, false)
+
+    assert_equal [ "3 c", "Diced potatoes" ], rows.first
+    salt = rows.last
+    assert_equal 1, salt.size, "a blank amount collapses to one spanning cell"
+    assert_equal 2, salt.first[:colspan]
+    assert_equal "Salt, to taste", salt.first[:content]
+    refute salt.first[:font_style], "it is a plain ingredient, not a bold section heading"
+  end
+
+  test "a blank amount also spans at station scale, and renders" do
+    recipe = { "title" => "Soup", "ingredients" => [
+      { "qty" => "2 T", "station_qty" => "1 T", "item" => "Butter", "section" => nil },
+      { "qty" => "",    "station_qty" => nil,   "item" => "Pepper, to taste", "section" => nil }
+    ], "directions" => [ { "section" => nil, "steps" => [ "Simmer." ] } ] }
+    pdf = KitchenPacketPdf.new(packet([ recipe ]))
+    assert_equal 2, pdf.send(:ingredient_rows, recipe, true).last.first[:colspan]
+    assert KitchenPacketPdf.new(packet([ recipe ])).render.start_with?("%PDF")
+  end
+
+  test "the amount column is a half-inch tab, widening only for an amount that would wrap" do
+    pdf = KitchenPacketPdf.new(packet([]))
+    doc = pdf.send(:new_document)
+    ing_w = (doc.bounds.width - 24) * 0.42
+
+    short = [ [ "3 c", "Diced potatoes" ], [ "2 T", "Butter" ] ]
+    amount_w, name_w = pdf.send(:ing_widths, doc, short, ing_w, 12)
+    assert_in_delta KitchenPacketPdf::AMOUNT_TAB, amount_w, 0.01, "short amounts get the plain 0.5in tab"
+    assert_in_delta ing_w, amount_w + name_w, 0.01, "the two columns still fill the ingredient box"
+
+    wide = [ [ "2 ½ quarts", "Chicken stock" ] ]
+    wide_w = pdf.send(:ing_widths, doc, wide, ing_w, 12).first
+    assert_operator wide_w, :>, KitchenPacketPdf::AMOUNT_TAB, "a long amount widens the tab rather than wrapping"
+    assert_operator doc.width_of("2 ½ quarts", size: 12), :<=, wide_w, "the widened column fits the amount"
+    assert_operator wide_w, :<=, ing_w * 0.5, "but never eats more than half the ingredient box"
+  end
+
+  test "ingredients get more vertical air than the directions beside them" do
+    pad = KitchenPacketPdf::SPACING["normal"][:pad]
+    pdf = KitchenPacketPdf.new(packet([]))
+    assert_operator pdf.send(:ing_pad, pad), :>, pdf.send(:dir_pad, pad)
+    assert_operator pdf.send(:ing_pad, pad), :>, pad
+  end
+
+  test "the half-inch tab does not push a full recipe off its page" do
+    recipe = { "title" => "Mashed Potatoes", "ingredients" => [
+      { "qty" => "3 c", "station_qty" => "1½ c", "item" => "Diced potatoes", "section" => nil },
+      { "qty" => "2 T", "station_qty" => "1 T",  "item" => "Butter", "section" => nil },
+      { "qty" => "2 T", "station_qty" => "1 T",  "item" => "Half & Half", "section" => nil },
+      { "qty" => "",    "station_qty" => "",     "item" => "Salt, to taste", "section" => nil }
+    ], "directions" => [ { "section" => nil, "steps" => [
+      "In a medium sauce pan, drop in potatoes, cover with water.",
+      "Bring to a boil and let boil for about 10-15 minutes, until fork tender.",
+      "Strain the potatoes into a colander.",
+      "Mash potatoes with the butter and cream, add salt to taste."
+    ] } ] }
+    bytes = KitchenPacketPdf.new(packet([ recipe ])).render
+    assert bytes.start_with?("%PDF")
+    assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size, "one page per pass, no spillover"
   end
 
   test "spacing reads normal for anything but the three settings" do
