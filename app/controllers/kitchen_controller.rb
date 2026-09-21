@@ -28,7 +28,7 @@ class KitchenController < ApplicationController
   before_action :require_nyk_manager, only: %i[generate_report send_smoke_report hours generate_timesheets refresh_classes]
   # Adding a class by hand is chef work, not manager work: any member but a
   # viewer may do it. (require_kitchen_access above already keeps non-members out.)
-  before_action :require_kitchen_contributor, only: %i[create_manual_class destroy_manual_class]
+  before_action :require_kitchen_contributor, only: %i[create_manual_class update_manual_class destroy_manual_class]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.

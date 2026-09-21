@@ -1162,6 +1162,22 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_equal 10, theirs.reload.expected_headcount
   end
 
+  # can_remove_manual_class? alone would still say yes to the creator of a class
+  # who has since been downgraded, so the contributor gate has to cover the
+  # headcount edit the same way it covers adding and removing.
+  test "a viewer cannot change the headcount even on a class they added" do
+    ws = ensure_nyk_workspace
+    viewer = User.create!(email_address: "viewer-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: viewer, role: "editor")
+    mine = KitchenManualClass.create!(name: "My Private Class", start_at: 2.days.from_now,
+                                      expected_headcount: 10, created_by: viewer)
+    ws.memberships.find_by(user: viewer).update!(role: "viewer")
+    sign_in_as(viewer)
+
+    patch "/nykitchen/classes/#{mine.id}", params: { expected_headcount: "99" }
+    assert_equal 10, mine.reload.expected_headcount
+  end
+
   test "adding a manual class needs a name, date, and start time" do
     ensure_nyk_workspace
     assert_no_difference -> { KitchenManualClass.count } do
