@@ -112,7 +112,15 @@ class KitchenPacketPdf
   # Carlito renders vulgar fractions natively; put a space between a number and a
   # glued fraction ("2½" -> "2 ½") so it reads cleanly.
   def tidy(str)
-    str.to_s.gsub(/(?<=\d)([#{VULGAR}])/, ' \1')
+    no_dashes(str.to_s.gsub(/(?<=\d)([#{VULGAR}])/, ' \1'))
+  end
+
+  def no_dashes(str) = KitchenText.no_dashes(str)
+
+  # A section heading prints with exactly one colon, whether or not the saved
+  # name already carries one ("Parmesan herb sauce:" used to render as "::").
+  def section_heading(name)
+    "#{tidy(name).sub(/:+\z/, '')}:"
   end
 
   # A parenthetical like "(~300 g)" must never split across lines ("...(~300"
@@ -215,7 +223,7 @@ class KitchenPacketPdf
     Array(recipe["ingredients"]).each do |ing|
       section = ing["section"]
       if section.present? && section != last_section
-        rows << [ { content: "#{tidy(section)}:", colspan: 2, font_style: :bold } ]
+        rows << [ { content: section_heading(section), colspan: 2, font_style: :bold } ]
       end
       last_section = section
       qty  = KitchenUnits.standardize(scaled ? ing["station_qty"] : ing["qty"])
@@ -242,7 +250,7 @@ class KitchenPacketPdf
     n = 0
     Array(recipe["directions"]).each do |group|
       if group["section"].present?
-        rows << [ { content: "#{tidy(group['section'])}:", colspan: 2, font_style: :bold } ]
+        rows << [ { content: section_heading(group["section"]), colspan: 2, font_style: :bold } ]
       end
       Array(group["steps"]).each do |step|
         next if step.to_s.strip.empty?

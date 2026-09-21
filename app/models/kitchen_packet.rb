@@ -90,8 +90,11 @@ class KitchenPacket < ApplicationRecord
     " (cost #{format('$%.2f', extract_cost_cents / 100.0)})"
   end
 
+  # Every recipe write funnels through here (AI draft, manual edit, import), so
+  # this is where saved text is normalized: no em or en dashes, whatever wrote
+  # them. The PDF scrubs again at render time for recipes saved before this.
   def recipes=(list)
-    self.data = data.merge("recipes" => list)
+    self.data = data.merge("recipes" => KitchenText.scrub(list))
   end
 
   # Station counts for one recipe hash (Lora and Caitlin, 2026-09-10): how many
