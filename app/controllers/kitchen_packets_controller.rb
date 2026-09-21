@@ -237,10 +237,13 @@ class KitchenPacketsController < ApplicationController
     # Equipment now lives on its own tab and auto-saves separately, so it is no
     # longer in this form; merge to keep the saved equipment instead of wiping it.
     @packet.layout = params[:layout].to_unsafe_h if params[:layout].respond_to?(:to_unsafe_h)
+    # Through the setter, NOT data.merge: KitchenPacket#recipes= is where saved
+    # recipe text is normalized (no em or en dashes), and writing data directly
+    # skipped it, so the editor kept showing dashes the handout had stripped.
+    @packet.recipes = parse_recipes_params
     @packet.update!(
       title: params[:title].presence || @packet.title,
-      station_label: params[:station_label].presence || @packet.station_label,
-      data: @packet.data.merge("recipes" => parse_recipes_params)
+      station_label: params[:station_label].presence || @packet.station_label
     )
     # Stay on edit so the refreshed PDF preview shows the change; "Done" on the
     # edit page is what returns to the class list once the packet looks right.

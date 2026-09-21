@@ -421,6 +421,51 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal "normal", packet.reload.layout["title_size"]
   end
 
+  # The scrub lives in KitchenPacket#recipes=; update used to write data
+  # directly and skip it, so the editor kept showing dashes the PDF stripped.
+  test "saving from the edit page stores recipe text with no em or en dashes" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    recipes = { "0" => {
+      title: "Ribs — Slow",
+      ingredients: { "0" => { qty: "2–3 lb", station_qty: "1 lb", item: "Pork — shoulder", section: "Rub — dry" } },
+      directions: { "0" => { section: "Smoke — low", steps: "Cook 10–12 minutes.\nRest 5 minutes — then slice." } }
+    } }
+    patch nyk_packet_path(packet), params: { title: "Packet", recipes: recipes }
+    assert_redirected_to edit_nyk_packet_path(packet)
+
+    r = packet.reload.recipes.first
+    assert_equal "Ribs, Slow", r["title"]
+    ing = r["ingredients"].first
+    assert_equal [ "2-3 lb", "Pork, shoulder", "Rub, dry" ], [ ing["qty"], ing["item"], ing["section"] ]
+    dir = r["directions"].first
+    assert_equal "Smoke, low", dir["section"]
+    assert_equal [ "Cook 10-12 minutes.", "Rest 5 minutes, then slice." ], dir["steps"]
+
+    # And the editor shows the cleaned text back, which is the bit that failed.
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_match "Cook 10-12 minutes.", response.body
+    assert_match "Rest 5 minutes, then slice.", response.body
+    assert_no_match(/Cook 10[—–]12/, response.body, "the editor must not show a dash the handout stripped")
+    assert_no_match(/Rest 5 minutes [—–]/, response.body)
+  end
+
+  test "a save still keeps everything else on the packet" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    packet.equipment = [ "Whisk" ]
+    packet.layout = { "single_pages" => "0" }
+    packet.save!
+    recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
+
+    patch nyk_packet_path(packet), params: { title: "New title", station_label: "Half", recipes: recipes }
+    packet.reload
+    assert_equal "New title", packet.title
+    assert_equal "Half", packet.station_label
+    assert_equal [ "Whisk" ], packet.equipment, "equipment lives on its own tab and must survive"
+    refute packet.single_pages?, "the layout flag survives a recipes save"
+    assert_equal 1, packet.recipes.size
+  end
+
   test "the half-amount pages can be switched off from the edit page and back on" do
     packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
     recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
