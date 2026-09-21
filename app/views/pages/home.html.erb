@@ -51,7 +51,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-10 gap-2 sm:gap-3 md:gap-4 items-start">
       <%# Hero — full width on mobile, 60% on desktop %>
       <div class="col-span-1 sm:col-span-6 sm:col-start-1 text-left sm:pr-6 md:pr-10 lg:pr-16">
-        <% tagline = { before: "Smarter. Faster. Cheaper.", highlight: "Add agents to your workforce.", after: "" } %>
+        <% tagline = { before: "Building agents", highlight: "for business and everyday life.", after: "" } %>
         <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
           <%= tagline[:before] %><br><span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent"><%= tagline[:highlight] %></span><%= tagline[:after] %>
         </h1>
@@ -125,44 +125,6 @@
     </div>
 
     <!-- Live pulse: latest NYK smoke run -->
-    <% if false && @nyk_latest_run.present? # Hidden for now — bring back later %>
-      <div class="mt-16 max-w-2xl mx-auto">
-        <div class="bg-gray-900/80 rounded-2xl border border-gray-800 p-6 backdrop-blur">
-          <div class="flex items-center justify-between gap-3 mb-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="relative flex h-2.5 w-2.5 flex-shrink-0">
-                <% if @nyk_latest_run.passed? %>
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60"></span>
-                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                <% else %>
-                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                <% end %>
-              </span>
-              <h3 class="text-sm font-semibold text-white truncate">Latest smoke run · NY Kitchen</h3>
-            </div>
-            <span class="text-xs text-gray-500 flex-shrink-0"><%= time_ago_in_words(@nyk_latest_run.started_at) %> ago</span>
-          </div>
-          <div class="grid <%= @can_see_nyk_pricing ? 'grid-cols-3' : 'grid-cols-2' %> gap-4 text-center">
-            <div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Status</div>
-              <div class="mt-1 text-sm font-semibold <%= @nyk_latest_run.passed? ? 'text-green-400' : 'text-red-400' %>">
-                <%= @nyk_latest_run.passed? ? "Passed" : "Failed" %>
-              </div>
-            </div>
-            <div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Duration</div>
-              <div class="mt-1 text-sm font-semibold text-white"><%= @nyk_latest_run.duration_label %></div>
-            </div>
-            <% if @can_see_nyk_pricing %>
-              <div>
-                <div class="text-xs text-gray-500 uppercase tracking-wide">Cost</div>
-                <div class="mt-1 text-sm font-semibold text-white">$<%= sprintf("%.4f", @nyk_latest_run.cost_dollars || 0) %></div>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    <% end %>
 
   </div>
 </section>
@@ -193,9 +155,6 @@
         <p class="text-sm text-gray-400 leading-relaxed mb-5">
           Sign up, name your workspace, connect the accounts you want agents to work in (X, Bluesky, Threads, Facebook). 60 seconds.
         </p>
-        <div class="<%= phone_frame %>">
-          <%= image_tag "marketing/iphone-home.png", alt: "Agent44 Labs home screen on iPhone with the live AI agents fleet", class: phone_image %>
-        </div>
       </div>
 
       <!-- Step 2: They work 24/7 -->
@@ -207,9 +166,6 @@
         <p class="text-sm text-gray-400 leading-relaxed mb-5">
           Agents run on their own cadence: scrape every few hours, smoke-test hourly, draft and post on schedule. You see green dots when everything's healthy.
         </p>
-        <div class="<%= phone_frame %>">
-          <%= image_tag "marketing/iphone-nyk-hub.png", alt: "A workspace on iPhone with five active Agent44 Labs agents", class: phone_image %>
-        </div>
       </div>
 
       <!-- Step 3: Real results -->
@@ -219,153 +175,26 @@
           <h3 class="text-lg sm:text-xl font-bold text-white">Real results, live</h3>
         </div>
         <p class="text-sm text-gray-400 leading-relaxed mb-5">
-          Sales tracked, posts published, regressions caught. Real numbers from a live workspace, not mockups.
+          Sales tracked, posts published, regressions caught. Your own numbers, updated as the agents work.
         </p>
-        <div class="<%= phone_frame %>">
-          <%= image_tag "marketing/iphone-list.png", alt: "List Agent on iPhone showing a sales trend and weekly performance", class: phone_image %>
-        </div>
+      </div>
+    </div>
+
+    <div class="mt-12 sm:mt-16 flex justify-center">
+      <div class="<%= phone_frame %> max-w-[260px]">
+        <%= image_tag "marketing/iphone-home.png", alt: "Agent44 Labs on iPhone with a live fleet of agents", class: phone_image %>
       </div>
     </div>
 
     <div class="mt-12 sm:mt-16 text-center">
-      <a href="/nykitchen" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gray-800 rounded-full hover:bg-gray-700 transition border border-gray-700">
-        See a live workspace
+      <a href="<%= new_registration_path %>" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gray-800 rounded-full hover:bg-gray-700 transition border border-gray-700">
+        Start your workspace
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       </a>
     </div>
   </div>
 </section>
 
-<% if false # Hidden for now — bring back later %>
-<!-- Services -->
-<section id="services" class="border-t border-gray-800">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl md:text-4xl font-bold text-white">Meet the agents</h2>
-      <p class="mt-3 text-gray-500">Hire bots to monitor, test, and help with content — no QA headcount required.</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <!-- Watchtower -->
-      <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 hover:border-orange-800 transition">
-        <div class="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-white mb-2">Watchtower</h3>
-        <p class="text-sm text-gray-500 leading-relaxed">
-          Runs your site's critical flows on a schedule, records video when something breaks, and emails you the moment it does.
-        </p>
-      </div>
-
-      <!-- Scout -->
-      <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 hover:border-orange-800 transition">
-        <div class="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-white mb-2">Scout</h3>
-        <p class="text-sm text-gray-500 leading-relaxed">
-          Scrapes your catalog every night and emails a daily digest of what changed — new items, sold-out, prices, removals.
-        </p>
-      </div>
-
-      <!-- Copywriter -->
-      <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 hover:border-orange-800 transition">
-        <div class="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-white mb-2">Copywriter</h3>
-        <p class="text-sm text-gray-500 leading-relaxed">
-          Turns one-line product or event details into polished social posts with one click, and logs what was drafted, copied, and posted.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Case Studies -->
-<section id="case-studies" class="bg-gray-900 border-t border-gray-800">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl md:text-4xl font-bold text-white">Who we watch</h2>
-      <p class="mt-3 text-gray-500">Real sites. Real coverage. Real receipts.</p>
-    </div>
-
-    <!-- NY Kitchen -->
-    <div class="bg-gray-950 rounded-2xl border border-gray-800 overflow-hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2">
-        <!-- Left: story -->
-        <div class="p-8 md:p-10">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-900/40 border border-green-800/60 text-xs font-semibold text-green-300 mb-4">
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            Actively monitored
-          </div>
-          <h3 class="text-2xl font-bold text-white mb-3">NY Kitchen</h3>
-          <p class="text-sm text-gray-400 leading-relaxed mb-6">
-            Cooking-class calendar with 90+ upcoming events across four months. Our agents flip through every month, compare before/after, and flag drift the moment a class disappears.
-          </p>
-
-          <!-- Quote slot -->
-          <blockquote class="border-l-2 border-orange-600 pl-4 my-6">
-            <p class="text-base text-gray-300 italic leading-relaxed">
-              <span class="text-gray-600">&ldquo;</span>Placeholder for Lora's quote — e.g. what the smoke tests caught, how often, and what it replaced.<span class="text-gray-600">&rdquo;</span>
-            </p>
-            <footer class="mt-3 text-xs text-gray-500 not-italic">
-              — Lora, NY Kitchen <span class="text-gray-700">(testimonial pending)</span>
-            </footer>
-          </blockquote>
-
-          <a href="/nykitchen" class="inline-flex items-center text-sm font-semibold text-orange-500 hover:text-orange-300 transition">
-            See live test runs
-            <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          </a>
-        </div>
-
-        <!-- Right: stats -->
-        <div class="bg-gray-900 p-8 md:p-10 border-t md:border-t-0 md:border-l border-gray-800">
-          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-6">Coverage to date</h4>
-          <dl class="space-y-5">
-            <div class="flex items-baseline justify-between gap-4">
-              <dt class="text-sm text-gray-400">Total runs</dt>
-              <dd class="text-2xl font-bold text-white"><%= @nyk_total_runs || 0 %></dd>
-            </div>
-            <% if @nyk_pass_rate %>
-              <div class="flex items-baseline justify-between gap-4">
-                <dt class="text-sm text-gray-400">Pass rate</dt>
-                <dd class="text-2xl font-bold text-green-400"><%= @nyk_pass_rate %>%</dd>
-              </div>
-            <% end %>
-            <% if @can_see_nyk_pricing %>
-              <div class="flex items-baseline justify-between gap-4">
-                <dt class="text-sm text-gray-400">Cost to run</dt>
-                <dd class="text-2xl font-bold text-white">$<%= sprintf("%.2f", @nyk_total_cost || 0) %></dd>
-              </div>
-            <% end %>
-            <div class="flex items-baseline justify-between gap-4">
-              <dt class="text-sm text-gray-400">Schedule</dt>
-              <dd class="text-sm font-semibold text-white">3× daily</dd>
-            </div>
-          </dl>
-          <div class="mt-6 pt-6 border-t border-gray-800">
-            <p class="text-xs text-gray-500 leading-relaxed">
-              Hiring humans to monitor, test, or write content runs $300+/day per role. Our agents cover all three — always on, for pennies.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<% end %>
 
 <%# QR Code — mobile only, pinned at the very bottom of the page. Scroll down
     and show your phone to another phone to scan: /get routes iPhones to the
