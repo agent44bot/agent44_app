@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-21
+  note: Pull sheets now work for classes that aren't on the website. A private booking, a camp or any class you add by hand can have a recipe packet and a pull sheet, same as a class from the calendar. When you add the class, put in how many people you are cooking for and the pull sheet scales the amounts to it. You can change that number later from the class on Sam's list.
+
+- date: 2026-09-21
   note: The half amount pages on a recipe packet are now optional. There is a checkbox on the recipe edit page ("Print the single (half amount) pages"); turn it off for a class like Chef's Table that only cooks full amounts and the handout prints the full amounts only. It stays on unless you turn it off.
 
 - date: 2026-09-21

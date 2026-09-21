@@ -338,6 +338,12 @@
             </div>
           </div>
 
+          <% if first.is_a?(KitchenManualClass) && first.headcount_missing? %>
+            <div class="mb-4 rounded-lg border border-amber-700/50 bg-amber-900/15 px-4 py-3 text-sm text-amber-200/90">
+              No headcount set for this class yet, so the amounts below are for a single station. Add the number of people on <%= link_to "Sam's list", nyk_list_path, class: "underline hover:text-amber-100" %> and reopen this tab.
+            </div>
+          <% end %>
+
           <%# The frame starts with NO src, so nothing loads (no AI cost) until the
               Pull sheet tab is opened: the tab button's frame-src#reload sets the
               src (first open) or reloads it (later opens) so it always reflects
@@ -357,7 +363,7 @@
         </div>
       <% else %>
         <div class="max-w-3xl mx-auto rounded-xl border border-gray-800 bg-gray-900/40 p-6 text-center">
-          <p class="text-sm text-gray-400">This recipe isn't attached to a class yet, so there's no pull sheet to show. Attach it from <%= link_to "Sam's list", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>.</p>
+          <p class="text-sm text-gray-400">This recipe isn't attached to a class yet, so there's no pull sheet to show. Attach it from <%= link_to "Sam's list", nyk_list_path, class: "text-orange-400 hover:text-orange-300" %>, where you can also add a class that isn't on the website.</p>
         </div>
       <% end %>
     </div>

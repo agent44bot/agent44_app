@@ -298,11 +298,25 @@ class KitchenController < ApplicationController
     current_workspace.kitchen_manual_classes.create!(
       name: name, start_at: start_at, end_at: end_at,
       price: params[:price].presence, notes: params[:notes].presence,
-      venue: params[:venue].presence, created_by: Current.user
+      venue: params[:venue].presence, created_by: Current.user,
+      expected_headcount: parse_expected_headcount(params[:expected_headcount])
     )
     redirect_to nyk_list_path, notice: "Added #{name} to the schedule."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to nyk_list_path, alert: "Could not add the class: #{e.record.errors.full_messages.to_sentence}."
+  end
+
+  # Headcount for a hand-added class, edited from its card on Sam's list. It is
+  # the only number the pull sheet can scale a private class by, so it has to be
+  # fixable without deleting the class (deleting unlinks its recipe packet).
+  def update_manual_class
+    mc = current_workspace.kitchen_manual_classes.find_by(id: params[:id])
+    # Same rule (and same 404) as removing one: a manager edits any class, an
+    # editor only the ones they added.
+    return head :not_found unless mc && can_remove_manual_class?(mc)
+
+    mc.update!(expected_headcount: parse_expected_headcount(params[:expected_headcount]))
+    redirect_to nyk_list_path, notice: "Saved the headcount for #{mc.name}."
   end
 
   # Managers remove any hand-added class; an editor removes the ones they added
@@ -1334,6 +1348,13 @@ class KitchenController < ApplicationController
   end
   helper_method :can_remove_manual_class?
 
+  # A positive number of people, or nil when blank/zero so the sheet can flag
+  # the class instead of shopping for an empty room.
+  def parse_expected_headcount(raw)
+    n = raw.to_s.strip.to_i
+    n.positive? ? n : nil
+  end
+
   def parse_date(str)
     Date.parse(str.to_s)
   rescue ArgumentError, TypeError
@@ -1395,7 +1416,13 @@ class KitchenController < ApplicationController
     # need to shop for (unlike the promo flyer, which hides sold-out classes).
     # A pull sheet (@single_class) scopes to one class by URL; otherwise the
     # whole date window.
-    events = if snapshot
+    events = if @single_class && KitchenManualClass.packet_url?(@event_url)
+      # A hand-added class isn't in the snapshot, so a pull sheet for one has to
+      # come from its own table (see KitchenManualClass, which answers enough of
+      # KitchenEvent's shape for the grocery math).
+      id = KitchenManualClass.id_from_packet_url(@event_url)
+      [ id && current_workspace.kitchen_manual_classes.find_by(id: id) ].compact
+    elsif snapshot
       scope = snapshot.kitchen_events.upcoming
       scope = if @single_class
         scope.select { |e| e.url == @event_url }

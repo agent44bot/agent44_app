@@ -342,6 +342,36 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     assert_equal "Ravioli", @captured.first[:class_name]
   end
 
+  # Hand-added classes (private bookings, camps) are not in the snapshot, so the
+  # single-class path has to read them from their own table or the sheet comes
+  # back empty for every class that never hit the website.
+  test "the pull sheet builds for a class that isn't on the website" do
+    manual = KitchenManualClass.create!(name: "Private Party", start_at: 1.day.from_now.change(hour: 18),
+                                        expected_headcount: 12, created_by: @user)
+    packet = KitchenPacket.create!(title: "Private Party", data: { "recipes" => RECIPE })
+    packet.attach_to!(manual.packet_url)
+    add_class("Other Class", "groc-other", 1, booked: 8)
+
+    frame_grocery(event_url: manual.packet_url, name: manual.name)
+    assert_response :success
+    assert_match "NY Kitchen Pull Sheet", response.body
+    assert_match "Flour", response.body
+    assert_equal 1, @captured.size, "only the hand-added class goes to the aggregator"
+    assert_equal "Private Party", @captured.first[:class_name]
+    # 12 people over 2-person stations = 6 stations of recipe amounts.
+    assert_equal 6, @captured.first[:stations]
+  end
+
+  test "a hand-added class with no headcount still builds, at one station" do
+    manual = KitchenManualClass.create!(name: "Unsized Camp", start_at: 1.day.from_now, created_by: @user)
+    packet = KitchenPacket.create!(title: "Unsized Camp", data: { "recipes" => RECIPE })
+    packet.attach_to!(manual.packet_url)
+
+    frame_grocery(event_url: manual.packet_url, name: manual.name)
+    assert_response :success
+    assert_equal 1, @captured.first[:stations]
+  end
+
   test "the pull sheet flags a class that has no recipe" do
     url = add_class("No Recipe", "groc-no", 1, booked: 4, recipe: false)
     frame_grocery(event_url: url, name: "No Recipe")

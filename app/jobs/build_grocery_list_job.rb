@@ -9,11 +9,8 @@ class BuildGroceryListJob < ApplicationJob
   queue_as :extraction # shares the one-at-a-time AI queue
 
   def perform(scope, user_id = nil)
-    snapshot = KitchenSnapshot.latest
-    return unless snapshot
-
     svc    = KitchenAi::GroceryList.new(user: User.find_by(id: user_id))
-    events = select_events(snapshot, scope)
+    events = select_events(KitchenSnapshot.latest, scope)
     wr     = svc.with_recipe(events)
     return if wr.empty?
 
@@ -34,9 +31,20 @@ class BuildGroceryListJob < ApplicationJob
   private
 
   def select_events(snapshot, scope)
+    url = scope["event_url"]
+    # A hand-added class (private booking, camp) is keyed "manual-<id>" and
+    # lives outside the snapshot, so it resolves from its own table. It can also
+    # be the only class there is, which is why a missing snapshot no longer ends
+    # the job.
+    if KitchenManualClass.packet_url?(url)
+      id = KitchenManualClass.id_from_packet_url(url)
+      return [ id && KitchenManualClass.find_by(id: id) ].compact
+    end
+    return [] unless snapshot
+
     events = snapshot.kitchen_events.upcoming
-    if scope["event_url"].present?
-      events.select { |e| e.url == scope["event_url"] }
+    if url.present?
+      events.select { |e| e.url == url }
     else
       from = Date.parse(scope["from"].to_s)
       to   = Date.parse(scope["to"].to_s)

@@ -110,6 +110,7 @@ Rails.application.routes.draw do
     patch  "grocery/sheet", to: "kitchen#update_pull_sheet", as: :nyk_pull_sheet
     delete "grocery/sheet", to: "kitchen#reset_pull_sheet"
     post "classes",     to: "kitchen#create_manual_class", as: :nyk_manual_classes
+    patch "classes/:id",  to: "kitchen#update_manual_class"
     delete "classes/:id", to: "kitchen#destroy_manual_class", as: :nyk_manual_class
     get "prices",     to: "kitchen#prices",       as: :nyk_prices
     patch "prices/:id", to: "kitchen#update_price", as: :nyk_price

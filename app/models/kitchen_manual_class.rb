@@ -28,4 +28,40 @@ class KitchenManualClass < ApplicationRecord
   def packet_url
     "manual-#{id}"
   end
+
+  # True when packet_url points at a hand-added class rather than a scraped one.
+  def self.packet_url?(url)
+    url.to_s.start_with?("manual-")
+  end
+
+  # The row id embedded in a packet_url ("manual-12" -> 12), or nil.
+  def self.id_from_packet_url(url)
+    url.to_s.delete_prefix("manual-").then { |s| s.match?(/\A\d+\z/) ? s.to_i : nil }
+  end
+
+  # --- Enough of KitchenEvent's shape for the pull sheet -------------------
+  # KitchenAi::GroceryList does its math against a scraped event (url,
+  # tickets_sold, people_per_ticket, portion_overridden?). A hand-added class
+  # has no ticket data at all, so expected_headcount stands in for the room:
+  # one "ticket" per person, never an override. Without these the pull sheet
+  # silently skipped every private class.
+
+  def url = packet_url
+
+  def tickets_sold = expected_headcount.to_i
+
+  def people_per_ticket = 1
+
+  def portion_overridden? = false
+
+  # Same shape and math as KitchenEvent#default_station_counts, off
+  # expected_headcount instead of ticket sales: two people per station, at least
+  # one, and never pre-set to doubles.
+  def default_station_counts
+    KitchenEvent::StationCounts.new(doubles: 0, singles: [ (tickets_sold / 2.0).ceil, 1 ].max, set: false)
+  end
+
+  # No headcount entered yet, so the sheet can say so instead of quietly
+  # shopping for a single station.
+  def headcount_missing? = expected_headcount.to_i.zero?
 end

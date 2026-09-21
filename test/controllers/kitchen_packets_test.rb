@@ -882,4 +882,49 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "isn't attached to a class yet", response.body
   end
+
+  # A private booking or camp lives in kitchen_manual_classes, not in the
+  # scraped snapshot, so it used to fall through pull_classes_for and show the
+  # "not attached to a class" empty state even when a packet was attached.
+  test "Pull sheet tab works for a class that isn't on the website" do
+    manual = KitchenManualClass.create!(name: "Private Party", start_at: 3.days.from_now.change(hour: 18),
+                                        expected_headcount: 12, created_by: @default_user)
+    packet = KitchenPacket.create!(title: "Private Party", data: { "recipes" => EXTRACTED })
+    packet.attach_to!(manual.packet_url)
+
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    refute_match "isn't attached to a class yet", response.body
+    assert_match "Private Party", response.body
+    default_src = response.body[/data-default-src="([^"]*)"/, 1]
+    assert_includes default_src, "manual-#{manual.id}"
+    refute_match "No headcount set for this class", response.body
+  end
+
+  test "Pull sheet tab flags a hand-added class with no headcount" do
+    manual = KitchenManualClass.create!(name: "Unsized Camp", start_at: 2.days.from_now, created_by: @default_user)
+    packet = KitchenPacket.create!(title: "Unsized Camp", data: { "recipes" => EXTRACTED })
+    packet.attach_to!(manual.packet_url)
+
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_match "No headcount set for this class", response.body
+  end
+
+  test "Pull sheet tab orders scraped and hand-added runs of one recipe together" do
+    snap = KitchenSnapshot.create!(taken_on: Date.current)
+    scraped = "https://nykitchen.com/event/pasta-later/"
+    snap.kitchen_events.create!(name: "Pasta LATER", url: scraped, start_at: 9.days.from_now,
+                                availability: "InStock", capacity: 24, spots_left: 2)
+    manual = KitchenManualClass.create!(name: "Pasta SOON", start_at: 2.days.from_now,
+                                        expected_headcount: 10, created_by: @default_user)
+    packet = KitchenPacket.create!(title: "Pasta", data: { "recipes" => EXTRACTED })
+    [ scraped, manual.packet_url ].each { |u| packet.links.create!(event_url: u) }
+
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_select "select[data-action*=frame-src] option", 2
+    assert_includes response.body[/data-default-src="([^"]*)"/, 1], "manual-#{manual.id}",
+                    "the soonest run wins whether it is scraped or hand-added"
+  end
 end
