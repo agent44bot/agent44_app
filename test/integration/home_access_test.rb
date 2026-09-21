@@ -27,12 +27,13 @@ class HomeAccessTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "hero headline uses the three-word tagline order" do
+  test "hero headline carries the mission line" do
     get "/"
-    assert_select "h1", text: /Smarter\. Faster\. Cheaper\./
+    assert_select "h1", text: /Building agents/
+    assert_select "h1 span", text: /for business and everyday life\./
   end
 
-  test "hero headline keeps Smarter white" do
+  test "hero headline keeps the first line white" do
     get "/"
     assert_select "h1.text-white"
     assert_select "h1 span.text-purple-400", false
