@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-21
+  note: Metric amounts on recipe handouts are now right on the half-amount pages. A recipe written with "Water (150 ml)" no longer prints that same 150 ml next to the halved amount, and flour never shows two different weights at once. Short abbreviations like AP flour keep their capitals.
+
+- date: 2026-09-21
   note: Two cleanups on recipe handouts. A section heading like "Parmesan herb sauce" no longer prints with two colons after it, and long dashes are gone from recipe text (a range now reads 10-12 minutes).
 
 - date: 2026-09-21

@@ -166,6 +166,56 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     { size: size, pad: pad, gap: gap, tall: tall, avail: avail_h }
   end
 
+  # --- baked-in metrics (found testing packet 65 in prod, 2026-09-21) ------
+
+  def pierogi
+    { "title" => "Pierogi", "ingredients" => [
+      { "qty" => "2 c",  "station_qty" => "1 c",  "item" => "AP flour (250 g)", "section" => nil },
+      { "qty" => "½ c",  "station_qty" => "¼ c",  "item" => "Water (150 ml)",   "section" => nil },
+      { "qty" => "3 T",  "station_qty" => "1½ T", "item" => "Butter (1.4 oz)",  "section" => nil }
+    ], "directions" => [ { "section" => nil, "steps" => [ "Mix." ] } ] }
+  end
+
+  test "flour that already states a weight does not also get a computed one" do
+    rows = KitchenPacketPdf.new(packet([ pierogi ])).send(:ingredient_rows, pierogi, false)
+    assert_equal "AP flour (250 g)", rows.first[1]
+    refute_match(/~/, rows.first[1], "no second, contradicting gram figure")
+  end
+
+  test "flour with no stated weight still gets the computed grams" do
+    r = { "title" => "Bread", "ingredients" => [
+      { "qty" => "2 c", "station_qty" => "1 c", "item" => "AP flour", "section" => nil }
+    ], "directions" => [] }
+    assert_match(/\(~\d+ g\)/, KitchenPacketPdf.new(packet([ r ])).send(:ingredient_rows, r, false).first[1])
+  end
+
+  test "a metric baked into the name is dropped on the half-amount pages" do
+    rows = KitchenPacketPdf.new(packet([ pierogi ])).send(:ingredient_rows, pierogi, true)
+    # The recipe's own "(250 g)" was for the full batch, so it goes. Flour then
+    # has no stated weight and picks up grams computed from the HALF amount, so
+    # the single station gets a right number instead of a wrong one.
+    assert_equal [ "1 c", "AP flour (~120 g)" ], rows[0]
+    # Water and butter have no converter, and a missing number beats a wrong one.
+    assert_equal [ "¼ c", "Water" ], rows[1]
+    assert_equal [ "1 ½ T", "Butter" ], rows[2]
+  end
+
+  test "the full-amount pages keep the metric the recipe was written with" do
+    rows = KitchenPacketPdf.new(packet([ pierogi ])).send(:ingredient_rows, pierogi, false)
+    assert_equal "Water (150 ml)", rows[1][1]
+    assert_equal "Butter (1.4 oz)", rows[2][1]
+  end
+
+  test "only a pure measurement parenthetical is dropped, never a note" do
+    r = { "title" => "Notes", "ingredients" => [
+      { "qty" => "1", "station_qty" => "1", "item" => "Lemongrass paste (Note 2)", "section" => nil },
+      { "qty" => "2", "station_qty" => "1", "item" => "Ginger (finely grated)",    "section" => nil },
+      { "qty" => "1", "station_qty" => "1", "item" => "Eggs (optional)",           "section" => nil }
+    ], "directions" => [] }
+    items = KitchenPacketPdf.new(packet([ r ])).send(:ingredient_rows, r, true).map { |x| x[1] }
+    assert_equal [ "Lemongrass paste (Note 2)", "Ginger (finely grated)", "Eggs (optional)" ], items
+  end
+
   # --- section headings + dashes (found testing 2026-09-21) ----------------
 
   test "a section heading prints one colon whether or not the saved name has one" do

@@ -22,12 +22,27 @@ module IngredientText
   # all-caps words ("KOSHER SALT" -> "kosher salt"), then capitalize the first
   # letter of the line. Mixed-case words (Dijon, McCormick, brand names) are
   # left alone, so proper nouns keep their capitals.
+  # Short all-caps words are abbreviations, not shouting: "AP flour", "EVOO",
+  # "DOP tomatoes", "IPA". Lowercasing those read as a typo on the handout
+  # ("Ap flour"), so only longer words are toned down -- unless the whole line
+  # is caps ("KOSHER SALT"), which is shouting whatever the word lengths are.
+  ABBREV_MAX = 4
+
   def self.sentence_case(text)
     s = text.to_s.strip
     return s if s.empty?
 
-    s = s.gsub(/\b\p{Lu}{2,}\b/) { |w| w.downcase } # ALL-CAPS word -> lowercase
-    s.sub(/\p{L}/) { |c| c.upcase }                 # capitalize first letter
+    s = if shouting?(s)
+      s.downcase
+    else
+      s.gsub(/\b\p{Lu}{#{ABBREV_MAX + 1},}\b/) { |w| w.downcase }
+    end
+    s.sub(/\p{L}/) { |c| c.upcase } # capitalize first letter
+  end
+
+  # The whole line is upper case (it has letters, and none of them are lower).
+  def self.shouting?(text)
+    text.match?(/\p{Lu}/) && !text.match?(/\p{Ll}/)
   end
 
   # Both passes in packet order: fix punctuation artifacts, then sentence-case.
