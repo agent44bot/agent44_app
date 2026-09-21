@@ -20,6 +20,23 @@
       <span><%= manual.venue_label %></span>
       <% if manual.notes.present? %><span>&middot;</span><span class="break-words"><%= manual.notes %></span><% end %>
     </div>
+
+    <%# Headcount drives the pull sheet's amounts, and nothing else here can
+        supply it (no tickets are sold for these), so it stays editable inline
+        rather than forcing a delete-and-re-add. %>
+    <% if can_manage %>
+      <%= form_with url: nyk_manual_class_path(manual), method: :patch, class: "flex items-center gap-2 mt-2" do %>
+        <label class="text-xs text-gray-500" for="headcount-<%= manual.id %>">People</label>
+        <%= number_field_tag :expected_headcount, manual.expected_headcount, id: "headcount-#{manual.id}", min: 1,
+              placeholder: "set", class: "w-16 rounded-md bg-black border border-gray-700 text-gray-200 text-xs px-2 py-1 focus:border-orange-500 focus:outline-none" %>
+        <%= submit_tag "Save", class: "px-2 py-1 rounded-md bg-gray-800 border border-gray-700 hover:border-gray-500 text-gray-300 text-xs cursor-pointer" %>
+        <% if manual.headcount_missing? %>
+          <span class="text-xs text-amber-400/80">needed for the pull sheet</span>
+        <% end %>
+      <% end %>
+    <% elsif manual.expected_headcount.present? %>
+      <div class="mt-2 text-xs text-gray-500"><%= manual.expected_headcount %> people</div>
+    <% end %>
   </div>
 
   <div class="shrink-0 flex items-stretch justify-end divide-x divide-gray-800 border-t border-gray-800 pt-2 sm:border-t-0 sm:pt-0 sm:border-l">

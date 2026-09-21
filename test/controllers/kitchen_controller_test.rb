@@ -1119,6 +1119,65 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to nyk_list_path
   end
 
+  # Headcount is the only thing the pull sheet can scale a private class by,
+  # since none of these are ticketed.
+  test "a manual class stores the headcount the pull sheet scales by" do
+    ensure_nyk_workspace
+    post nyk_manual_classes_path, params: {
+      name: "Private Party", date: 3.days.from_now.to_date.to_s, start_time: "18:00",
+      expected_headcount: "12"
+    }
+    assert_equal 12, KitchenManualClass.last.expected_headcount
+  end
+
+  test "a manual class added without a headcount leaves it unset" do
+    ensure_nyk_workspace
+    post nyk_manual_classes_path, params: {
+      name: "Unsized Camp", date: 3.days.from_now.to_date.to_s, start_time: "09:00", expected_headcount: ""
+    }
+    mc = KitchenManualClass.last
+    assert_nil mc.expected_headcount
+    assert mc.headcount_missing?
+  end
+
+  test "the headcount is fixable without deleting the class" do
+    ensure_nyk_workspace
+    mc = KitchenManualClass.create!(name: "Private Party", start_at: 2.days.from_now,
+                                    expected_headcount: 8, created_by: @default_user)
+    patch "/nykitchen/classes/#{mc.id}", params: { expected_headcount: "14" }
+    assert_redirected_to nyk_list_path
+    assert_equal 14, mc.reload.expected_headcount
+  end
+
+  test "an editor cannot change the headcount on another member's class" do
+    ws = ensure_nyk_workspace
+    editor = User.create!(email_address: "chef-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: editor, role: "editor")
+    theirs = KitchenManualClass.create!(name: "Lora Camp", start_at: 2.days.from_now,
+                                        expected_headcount: 10, created_by: @default_user)
+    sign_in_as(editor)
+
+    patch "/nykitchen/classes/#{theirs.id}", params: { expected_headcount: "99" }
+    assert_response :not_found
+    assert_equal 10, theirs.reload.expected_headcount
+  end
+
+  # can_remove_manual_class? alone would still say yes to the creator of a class
+  # who has since been downgraded, so the contributor gate has to cover the
+  # headcount edit the same way it covers adding and removing.
+  test "a viewer cannot change the headcount even on a class they added" do
+    ws = ensure_nyk_workspace
+    viewer = User.create!(email_address: "viewer-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: viewer, role: "editor")
+    mine = KitchenManualClass.create!(name: "My Private Class", start_at: 2.days.from_now,
+                                      expected_headcount: 10, created_by: viewer)
+    ws.memberships.find_by(user: viewer).update!(role: "viewer")
+    sign_in_as(viewer)
+
+    patch "/nykitchen/classes/#{mine.id}", params: { expected_headcount: "99" }
+    assert_equal 10, mine.reload.expected_headcount
+  end
+
   test "adding a manual class needs a name, date, and start time" do
     ensure_nyk_workspace
     assert_no_difference -> { KitchenManualClass.count } do

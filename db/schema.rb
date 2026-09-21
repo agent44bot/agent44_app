@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_170000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -417,6 +417,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_200000) do
     t.datetime "created_at", null: false
     t.integer "created_by_id"
     t.datetime "end_at"
+    t.integer "expected_headcount"
     t.string "name", null: false
     t.text "notes"
     t.string "price"

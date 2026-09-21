@@ -349,9 +349,22 @@ class KitchenPacketsController < ApplicationController
   # the Pull sheet tab's date dropdown: soonest upcoming run first, then any
   # past runs (most recent first) as a fallback when nothing is upcoming.
   def pull_classes_for(packet)
-    snap = current_workspace.kitchen_snapshots.latest
-    return [] unless snap
-    events = packet.links.map(&:event_url).uniq.filter_map { |u| snap.kitchen_events.find_by(url: u) }
+    urls = packet.links.map(&:event_url).uniq
+    manual_urls, scraped_urls = urls.partition { |u| KitchenManualClass.packet_url?(u) }
+
+    # Hand-added classes live in their own table, keyed "manual-<id>", so they
+    # never resolve against a snapshot. Looking them up too is what lets a
+    # private booking have a pull sheet at all.
+    events = manual_urls.filter_map do |u|
+      id = KitchenManualClass.id_from_packet_url(u) or next
+      current_workspace.kitchen_manual_classes.find_by(id: id)
+    end
+
+    if (snap = current_workspace.kitchen_snapshots.latest)
+      events += scraped_urls.filter_map { |u| snap.kitchen_events.find_by(url: u) }
+    end
+    return [] if events.empty?
+
     now = Time.current
     upcoming, past = events.partition { |e| e.start_at >= now }
     upcoming.sort_by(&:start_at) + past.sort_by(&:start_at).reverse
