@@ -228,7 +228,15 @@ class KitchenPacketPdf
       last_section = section
       qty  = KitchenUnits.standardize(scaled ? ing["station_qty"] : ing["qty"])
       item = IngredientText.normalize(ing["item"])
-      if item.match?(/\bflour/i) && (g = KitchenUnits.flour_grams(qty))
+      # A metric baked into the ingredient name ("Water (150 ml)") was written
+      # for the full amounts, so it is wrong on the half-amount pages: the
+      # amount halves and the parenthetical does not. Drop it there rather than
+      # print a number that would have a single station double the water.
+      item = drop_measure(item) if scaled
+      # ... and only compute grams for flour when the name does not already
+      # carry a weight, so a recipe never shows two different numbers for the
+      # same thing ("Ap flour (250 g) (~240 g)").
+      if item.match?(/\bflour/i) && !measure?(item) && (g = KitchenUnits.flour_grams(qty))
         item = "#{item} (~#{g} g)"
       end
       # An ingredient with no amount ("Salt, to taste") starts at the left
@@ -242,6 +250,15 @@ class KitchenPacketPdf
     end
     rows
   end
+
+  # A parenthetical that is nothing but a measurement: "(250 g)", "(150 ml)",
+  # "(1.4 oz)", "(~240 g)". Deliberately narrow, so "(Note 2)", "(optional)"
+  # and "(finely grated)" are never touched.
+  MEASURE = /\s*\(\s*~?\s*[\d.,]+\s*(?:g|kg|ml|l|oz|lb)\s*\)/i
+
+  def measure?(item) = item.match?(MEASURE)
+
+  def drop_measure(item) = item.gsub(MEASURE, "").strip
 
   # [number, step] rows, numbered continuously; a section sub-heading is a
   # spanning bold row that does not consume a number.

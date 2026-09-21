@@ -54,6 +54,15 @@ class IngredientTextTest < ActiveSupport::TestCase
     assert_cased "Smoked paprika",     "smoked PAPRIKA"
   end
 
+  test "sentence case: keeps short all-caps abbreviations" do
+    assert_cased "AP flour",           "AP flour"
+    assert_cased "EVOO, for drizzling", "EVOO, for drizzling"
+    assert_cased "DOP tomatoes",       "DOP tomatoes"
+    # A line that is caps all the way through is still shouting, whatever the
+    # word lengths are.
+    assert_cased "Ap flour",           "AP FLOUR"
+  end
+
   test "sentence case: keeps mixed-case proper nouns and brands" do
     assert_cased "Dijon mustard",      "Dijon mustard"
     assert_cased "Parmesan, grated",   "Parmesan, grated"
