@@ -1,7 +1,9 @@
-<%# One hand-added camp/class in Sam's week list (locals: manual, can_manage).
-    Same recipe-packet column as a scraped class, keyed by manual.packet_url, so
-    Caitlin can build/edit a packet. No ticket/sold-out data (camps aren't
-    ticketed). A left sky rule + "Camp" tag mark it as manually added. %>
+<%# One hand-added class in Sam's week list (locals: manual, can_manage): a
+    private booking, a virtual class, a camp, a WST event -- anything that isn't
+    on nykitchen.com. Same recipe-packet column as a scraped class, keyed by
+    manual.packet_url, so Caitlin can build/edit a packet and pull sheet. No
+    ticket/sold-out data (these aren't sold on the site). A left sky rule +
+    "Added" tag mark it as manually added. %>
 <div data-kitchen-filter-target="card" data-status="manual"
      data-search-text="<%= [ manual.name, manual.notes ].compact.join(" ").downcase %>"
      class="bg-gray-900 rounded-lg p-4 flex flex-col sm:flex-row sm:items-stretch gap-3 border-l-2 border-sky-500/50">
@@ -11,7 +13,7 @@
         <%= manual.start_at.strftime("%a %-m/%-d %-I:%M %p") %><%= manual.end_at ? " - #{manual.end_at.strftime('%-I:%M %p')}" : "" %>
       </span>
       <span class="text-sm font-medium text-white break-words"><%= manual.name %></span>
-      <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300">Camp</span>
+      <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300">Added</span>
     </div>
     <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
       <% if manual.price.present? %><span><%= manual.price %></span><span>&middot;</span><% end %>

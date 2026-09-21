@@ -25,7 +25,10 @@ class KitchenController < ApplicationController
   # The POST action (ask_message) has its own inline check that returns JSON.
   before_action :require_nyk_super_agent_access, only: :ask
   # On-demand report actions are for NY Kitchen managers (Lora + Rich) only.
-  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report create_manual_class destroy_manual_class hours generate_timesheets refresh_classes]
+  before_action :require_nyk_manager, only: %i[generate_report send_smoke_report hours generate_timesheets refresh_classes]
+  # Adding a class by hand is chef work, not manager work: any member but a
+  # viewer may do it. (require_kitchen_access above already keeps non-members out.)
+  before_action :require_kitchen_contributor, only: %i[create_manual_class destroy_manual_class]
 
   def hub
     # Legacy bookmarks: /nykitchen?tab=smoke → /nykitchen/test, ?tab=scrapes → /nykitchen/data.
@@ -274,9 +277,10 @@ class KitchenController < ApplicationController
     redirect_to nyk_list_path, notice: "Receipt uploaded. Reading the items now; the prices will save in a minute and sharpen future grocery estimates."
   end
 
-  # Manager-only (Lora): add a class/camp that isn't on nykitchen.com's calendar
-  # (e.g. day kids camps). Stored in kitchen_manual_classes so the scrape can't
-  # touch it; shown in Sam's weekly list. Times are entered in Eastern.
+  # Add a class that isn't on nykitchen.com's calendar: a private booking, a
+  # virtual class, a kids camp, a WST event Caitlin still has to cook for.
+  # Stored in kitchen_manual_classes so the scrape can't touch it; shown in
+  # Sam's weekly list. Times are entered in Eastern.
   def create_manual_class
     name  = params[:name].to_s.strip
     date  = params[:date].to_s.strip
@@ -301,8 +305,12 @@ class KitchenController < ApplicationController
     redirect_to nyk_list_path, alert: "Could not add the class: #{e.record.errors.full_messages.to_sentence}."
   end
 
+  # Managers remove any hand-added class; an editor removes the ones they added
+  # (so one chef can't delete another's work out from under them).
   def destroy_manual_class
     mc = current_workspace.kitchen_manual_classes.find_by(id: params[:id])
+    return head :not_found if mc && !can_remove_manual_class?(mc)
+
     if mc
       # Unlink its recipe packet so a later camp that reuses this row id can't
       # inherit it (the packet itself stays, reusable via search).
@@ -1315,6 +1323,17 @@ class KitchenController < ApplicationController
     head :not_found unless @nyk_workspace&.manager?(Current.user)
   end
 
+  # Owner/admin/editor: may add or remove a hand-added class. Viewers may not.
+  def require_kitchen_contributor
+    @nyk_workspace = current_workspace
+    head :not_found unless @nyk_workspace&.contributor?(Current.user)
+  end
+
+  def can_remove_manual_class?(manual)
+    current_workspace.manager?(Current.user) || manual.created_by_id == Current.user&.id
+  end
+  helper_method :can_remove_manual_class?
+
   def parse_date(str)
     Date.parse(str.to_s)
   rescue ArgumentError, TypeError
@@ -1477,9 +1496,11 @@ class KitchenController < ApplicationController
     @show_grocery_prices = @nyk_workspace&.show_grocery_prices? || false
     @workspace_agents = @nyk_workspace ? WorkspaceAgent::KINDS.index_with { |k| @nyk_workspace.agent_for(k) } : {}
     @my_workspace_role = @nyk_workspace && Current.user ? @nyk_workspace.role_for(Current.user) : nil
-    # Manager = site admin or NYK owner/admin (Lora). Gates the manual "Add a
-    # class" form + per-camp delete on the list.
+    # Manager = site admin or NYK owner/admin (Lora). Gates the money + team
+    # views (billing, hours, reports).
     @nyk_manager = @nyk_workspace&.manager?(Current.user) || false
+    # Gates the "Add a class" form on the list: everyone but a viewer.
+    @nyk_can_add_class = @nyk_workspace&.contributor?(Current.user) || false
   end
 
   # Hub cards self-organize: the agents you open most rise to the top.
@@ -1589,40 +1610,6 @@ class KitchenController < ApplicationController
     snapshot = current_workspace.kitchen_snapshots.latest
     if snapshot
       @events = snapshot.kitchen_events.upcoming.order(:start_at)
-      # Use the app's zone (Eastern), NOT Date.today (the server's UTC date). On
-      # the UTC-hosted prod machine, Date.today rolls to "tomorrow" at 8pm ET, so
-      # a Sunday-evening class would fall before this Monday's week bucket and
-      # vanish from the list until midnight ET. Date.current is zone-aware.
-      today = Date.current
-      days_until_sunday = (7 - today.cwday) % 7
-      this_sunday = today + days_until_sunday
-
-      # Build dynamic weekly buckets covering all events. The current week starts
-      # on Monday (not today) so its grocery button pulls the full Mon-Sun range,
-      # matching every later week and Lora's request.
-      # Hand-added camps/classes (Lora), merged in for display only — they stay
-      # out of the revenue/sold-out/grocery rollups below, which read @events.
-      @manual_classes = current_workspace.kitchen_manual_classes.upcoming.to_a
-
-      @weeks = []
-      labels = [ "Current Week", "Next Week" ]
-      # Extend the range so a future week that holds only a manual camp still
-      # gets a bucket.
-      last_event_date = [ @events.last&.start_at&.to_date, @manual_classes.last&.start_at&.to_date, today ].compact.max
-      week_start = today.beginning_of_week(:monday)
-      week_end = this_sunday
-
-      while week_start <= last_event_date
-        week_range   = (week_start..week_end)
-        week_events  = @events.select { |e| week_range.cover?(e.start_at.to_date) }
-        week_manual  = @manual_classes.select { |m| week_range.cover?(m.start_at.to_date) }
-        label = @weeks.size < labels.size ? labels[@weeks.size] : week_start.strftime("Week of %b %-d")
-        @weeks << { label: label, events: week_events, manual_classes: week_manual,
-                    expanded: @weeks.size < 2, start: week_start, end: week_end }
-        week_start = week_end + 1
-        week_end = week_start + 6
-      end
-
       @total = @events.size
       @sold_out = @events.count(&:sold_out?)
       @last_updated = snapshot.taken_on
@@ -1670,7 +1657,6 @@ class KitchenController < ApplicationController
       @ended_emptiest  = current_workspace.kitchen_snapshots.ended_emptiest(snapshot: snapshot)
     else
       @events = []
-      @weeks = []
       @total = 0
       @sold_out = 0
       @top_sellers = []
@@ -1685,6 +1671,46 @@ class KitchenController < ApplicationController
       @rev_sold = @rev_total = @rev_left = 0
       @weekly_sales = []
       @monthly_sales = []
+    end
+
+    build_week_buckets
+  end
+
+  # Weekly buckets for the list page. Built from the scraped events AND the
+  # hand-added classes, outside the snapshot branch above, so a private class
+  # someone entered still shows when the scrape is missing or came back empty.
+  # Manual classes are display-only here: the revenue/sold-out/grocery rollups
+  # read @events, not these.
+  def build_week_buckets
+    @manual_classes = current_workspace.kitchen_manual_classes.upcoming.to_a
+
+    # Use the app's zone (Eastern), NOT Date.today (the server's UTC date). On
+    # the UTC-hosted prod machine, Date.today rolls to "tomorrow" at 8pm ET, so
+    # a Sunday-evening class would fall before this Monday's week bucket and
+    # vanish from the list until midnight ET. Date.current is zone-aware.
+    today = Date.current
+    days_until_sunday = (7 - today.cwday) % 7
+    this_sunday = today + days_until_sunday
+
+    # The current week starts on Monday (not today) so its grocery button pulls
+    # the full Mon-Sun range, matching every later week and Lora's request.
+    @weeks = []
+    labels = [ "Current Week", "Next Week" ]
+    # Extend the range so a future week that holds only a hand-added class still
+    # gets a bucket.
+    last_event_date = [ @events.last&.start_at&.to_date, @manual_classes.last&.start_at&.to_date, today ].compact.max
+    week_start = today.beginning_of_week(:monday)
+    week_end = this_sunday
+
+    while week_start <= last_event_date
+      week_range   = (week_start..week_end)
+      week_events  = @events.select { |e| week_range.cover?(e.start_at.to_date) }
+      week_manual  = @manual_classes.select { |m| week_range.cover?(m.start_at.to_date) }
+      label = @weeks.size < labels.size ? labels[@weeks.size] : week_start.strftime("Week of %b %-d")
+      @weeks << { label: label, events: week_events, manual_classes: week_manual,
+                  expanded: @weeks.size < 2, start: week_start, end: week_end }
+      week_start = week_end + 1
+      week_end = week_start + 6
     end
   end
 

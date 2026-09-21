@@ -1,8 +1,9 @@
-# A class/camp added by hand (e.g. Lora's kids camps) that isn't on
-# nykitchen.com's events calendar. Kept in its own table — NOT as a
-# KitchenEvent — so the daily scrape (which destroy_all's + rebuilds a
-# snapshot's events) can't wipe it. Merged into Sam's weekly list at read
-# time. Camps aren't ticketed, so there's no capacity/sold-out data.
+# A class added by hand that isn't on nykitchen.com's events calendar: a
+# private booking, a virtual class, a kids camp, a WST event the kitchen still
+# has to cook for. Kept in its own table (NOT as a KitchenEvent) so the daily
+# scrape, which destroy_all's + rebuilds a snapshot's events, can't wipe it.
+# Merged into Sam's weekly list at read time. These aren't sold on the site, so
+# there's no capacity/sold-out data.
 class KitchenManualClass < ApplicationRecord
   DEFAULT_VENUE = "New York Kitchen, Canandaigua".freeze
 
@@ -23,7 +24,7 @@ class KitchenManualClass < ApplicationRecord
   # event_url). Unlike a scraped class this has no nykitchen.com URL, so we use a
   # synthetic one tied to the row. Persistent, so a packet Caitlin builds stays
   # attached. (The controller deletes the link on destroy, so a reused id can't
-  # inherit an old camp's packet.)
+  # inherit an old class's packet.)
   def packet_url
     "manual-#{id}"
   end

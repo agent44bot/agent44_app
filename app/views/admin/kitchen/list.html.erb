@@ -20,7 +20,7 @@
     <%= render "admin/kitchen/breadcrumbs", kind: "list", wrapper_class: "flex items-center gap-2 min-w-0 text-base text-gray-400" %>
   <% end %>
   <% list_actions = capture do %>
-    <% if @nyk_manager %>
+    <% if @nyk_can_add_class %>
       <button type="button" data-action="click->dialog#open"
               class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition">
         <span class="text-base leading-none">+</span><span>Add a class</span>
@@ -46,9 +46,10 @@
   <% end %>
   <%= render "shared/ws_header", workspace: @nyk_workspace, breadcrumbs: list_crumbs, actions: list_actions %>
 
-  <%# Manager-only: add a class/camp that isn't on nykitchen.com's calendar.
-      Opens as a modal so the page doesn't jump; posts to create_manual_class. %>
-  <% if @nyk_manager %>
+  <%# Add a class that isn't on nykitchen.com's calendar (a private booking, a
+      virtual class, a camp, a WST event). Opens as a modal so the page doesn't
+      jump; posts to create_manual_class. Everyone but a viewer sees it. %>
+  <% if @nyk_can_add_class %>
     <dialog data-dialog-target="modal" data-action="click->dialog#backdropClose"
             class="bg-transparent backdrop:bg-black/80 p-0 w-[92vw] max-w-lg fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0">
       <div class="bg-gray-900 rounded-xl border border-gray-800">
@@ -60,7 +61,7 @@
           <% field_class = "w-full rounded-md bg-black border border-gray-700 text-white px-3 py-2 text-base focus:border-orange-500 focus:outline-none" %>
           <div>
             <label class="block text-xs text-gray-400 mb-1">Class name</label>
-            <%= text_field_tag :name, nil, required: true, placeholder: "Summer Kids Camp", class: field_class %>
+            <%= text_field_tag :name, nil, required: true, placeholder: "Private class, virtual class, camp, WST event", class: field_class %>
           </div>
           <div class="flex flex-wrap gap-3">
             <div class="flex-1 min-w-[130px]">
@@ -83,7 +84,7 @@
             </div>
             <div class="flex-1 min-w-[130px]">
               <label class="block text-xs text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
-              <%= text_field_tag :notes, nil, placeholder: "Ages 8-12", class: field_class %>
+              <%= text_field_tag :notes, nil, placeholder: "Private party, 12 guests", class: field_class %>
             </div>
           </div>
           <div class="flex items-center justify-end gap-2 pt-1">
@@ -106,7 +107,10 @@
     </p>
   </div>
 
-  <% if @events.empty? %>
+  <%# Hand-added classes keep the week list alive even when the scrape came back
+      empty, so a private class someone entered never disappears behind the
+      "nothing scraped yet" state. %>
+  <% if @events.empty? && @manual_classes.blank? %>
     <div class="bg-gray-900 rounded-xl p-8 text-center">
       <p class="text-gray-400">No events scraped yet. The scraper runs every 3 hours.</p>
     </div>

@@ -1037,7 +1037,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     refute_includes subs.call, @default_user.id, "second toggle unsubscribes"
   end
 
-  # --- Manual classes (Lora's hand-added camps) ---------------------------
+  # --- Manual classes (hand-added private/virtual/camp classes) -----------
 
   def ensure_nyk_workspace
     Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @default_user }
@@ -1060,7 +1060,63 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     get nyk_list_path
     assert_response :success
     assert_match "Summer Kids Camp", response.body
-    assert_match "Camp", response.body
+    assert_match ">Added</span>", response.body
+  end
+
+  # Chefs (Caitlin, Chris) are editors, not managers -- they build the pulls, so
+  # they are the ones who need to add a class the website doesn't list.
+  test "an editor can add a manual class" do
+    ws = ensure_nyk_workspace
+    editor = User.create!(email_address: "chef-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: editor, role: "editor")
+    sign_in_as(editor)
+
+    assert_difference -> { KitchenManualClass.count }, 1 do
+      post nyk_manual_classes_path, params: {
+        name: "Private Party", date: 3.days.from_now.to_date.to_s, start_time: "18:00"
+      }
+    end
+    assert_redirected_to nyk_list_path
+    assert_equal editor.id, KitchenManualClass.last.created_by_id
+
+    get nyk_list_path
+    assert_response :success
+    assert_match "Add a class", response.body
+  end
+
+  test "a viewer cannot add a manual class" do
+    ws = ensure_nyk_workspace
+    viewer = User.create!(email_address: "viewer-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: viewer, role: "viewer")
+    sign_in_as(viewer)
+
+    assert_no_difference -> { KitchenManualClass.count } do
+      post nyk_manual_classes_path, params: { name: "Nope", date: 2.days.from_now.to_date.to_s, start_time: "10:00" }
+    end
+    assert_response :not_found
+
+    get nyk_list_path
+    assert_response :success
+    assert_no_match "Add a class", response.body
+  end
+
+  test "an editor removes their own manual class but not another member's" do
+    ws = ensure_nyk_workspace
+    editor = User.create!(email_address: "chef-#{SecureRandom.hex(4)}@example.com", role: "user")
+    ws.memberships.create!(user: editor, role: "editor")
+    mine   = KitchenManualClass.create!(name: "My Private Class", start_at: 2.days.from_now, created_by: editor)
+    theirs = KitchenManualClass.create!(name: "Lora Camp", start_at: 2.days.from_now, created_by: @default_user)
+    sign_in_as(editor)
+
+    assert_no_difference -> { KitchenManualClass.count } do
+      delete nyk_manual_class_path(theirs)
+    end
+    assert_response :not_found
+
+    assert_difference -> { KitchenManualClass.count }, -1 do
+      delete nyk_manual_class_path(mine)
+    end
+    assert_redirected_to nyk_list_path
   end
 
   test "adding a manual class needs a name, date, and start time" do
@@ -1072,7 +1128,7 @@ class KitchenControllerTest < ActionDispatch::IntegrationTest
     assert_match(/name/i, flash[:alert])
   end
 
-  test "a non-manager cannot add or remove a manual class" do
+  test "a non-member cannot add or remove a manual class" do
     ensure_nyk_workspace
     sign_in_as(User.create!(email_address: "outsider-#{SecureRandom.hex(4)}@example.com", role: "user"))
     post nyk_manual_classes_path, params: { name: "Sneaky", date: 2.days.from_now.to_date.to_s, start_time: "10:00" }
