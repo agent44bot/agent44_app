@@ -126,6 +126,12 @@ production:
   plan_status_report:
     class: PlanStatusReportJob
     schedule: "0 7 * * 1"
+  # Hourly check of the day's Anthropic spend; pushes Rich once on the day it
+  # crosses the threshold (Setting "ai_spend.daily_alert_dollars", default $1).
+  # Cron form to stay a valid Fugit::Cron (guarded by recurring_schedule_test).
+  ai_spend_alert:
+    class: AiSpendAlertJob
+    schedule: "0 * * * *"
   device_token_prune:
     class: DeviceTokenPruneJob
     schedule: every monday at 4:41am
