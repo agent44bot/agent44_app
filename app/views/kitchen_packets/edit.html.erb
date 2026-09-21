@@ -115,6 +115,20 @@
               class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
         <p class="text-xs text-gray-500 mt-1">Widen it when a long ingredient wraps awkwardly; directions get the rest of the page.</p>
       </div>
+      <%# Half-amount pages on/off (Caitlin, 2026-09-21): a Chef's Table only
+          ever cooks the full amounts, so the second set of pages is waste.
+          The hidden field makes an unchecked box post "0" instead of nothing. %>
+      <div class="sm:col-span-2">
+        <label class="flex items-start gap-3 rounded-lg bg-gray-900 border border-gray-800 px-3 py-2.5 cursor-pointer">
+          <%= hidden_field_tag "layout[single_pages]", "0", id: nil %>
+          <%= check_box_tag "layout[single_pages]", "1", @packet.single_pages?,
+                class: "mt-0.5 h-4 w-4 shrink-0 accent-orange-600 cursor-pointer" %>
+          <span>
+            <span class="block text-sm font-semibold text-gray-300">Print the <%= @packet.station_label.downcase %> (half amount) pages</span>
+            <span class="block text-xs text-gray-500 mt-0.5">On, every recipe prints twice: full amounts, then half amounts. Off, you get the full amounts only, which is what a Chef's Table needs.</span>
+          </span>
+        </label>
+      </div>
     </div>
 
     <% @packet.recipes.each_with_index do |recipe, ri| %>

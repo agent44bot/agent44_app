@@ -85,7 +85,7 @@ class KitchenPacketPdf
     return empty(doc) if recipes.empty?
 
     first = true
-    [ [ DUAL_STATION_LABEL, false ], [ @packet.station_label, true ] ].each do |label, scaled|
+    passes.each do |label, scaled|
       recipes.each do |recipe|
         doc.start_new_page unless first
         first = false
@@ -96,6 +96,16 @@ class KitchenPacketPdf
   end
 
   private
+
+  # The full amounts, then the half amounts. A packet with the half-amount
+  # pages switched off prints the full amounts only, and then the "Double"
+  # label would be the only thing on the page saying so, which reads as a
+  # mistake when there is nothing to contrast it with -- so it is dropped too.
+  def passes
+    return [ [ nil, false ] ] unless @packet.single_pages?
+
+    [ [ DUAL_STATION_LABEL, false ], [ @packet.station_label, true ] ]
+  end
 
   def new_document
     doc = Prawn::Document.new(page_size: PAGE, margin: MARGIN)
