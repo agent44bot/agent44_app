@@ -409,7 +409,7 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_nyk_packet_path(packet)
     assert_nil flash[:alert]
     packet.reload
-    assert_equal({ "title_size" => "xlarge", "ingredient_width" => "wide" }, packet.layout)
+    assert_equal({ "title_size" => "xlarge", "ingredient_width" => "wide", "single_pages" => "1" }, packet.layout)
     assert_equal 36, packet.title_size_pt
 
     get edit_nyk_packet_path(packet)
@@ -419,6 +419,38 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     # A value outside the menu falls back to normal rather than erroring.
     patch nyk_packet_path(packet), params: { title: "Packet", layout: { title_size: "gigantic" }, recipes: recipes }
     assert_equal "normal", packet.reload.layout["title_size"]
+  end
+
+  test "the half-amount pages can be switched off from the edit page and back on" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
+    assert packet.single_pages?, "a packet starts with both passes"
+
+    # The box renders checked, with the hidden companion so unchecking posts "0".
+    get edit_nyk_packet_path(packet)
+    assert_select "input[type=hidden][name='layout[single_pages]'][value='0']"
+    assert_select "input[type=checkbox][name='layout[single_pages]'][value='1'][checked]"
+
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { single_pages: "0" }, recipes: recipes }
+    refute packet.reload.single_pages?
+    assert_equal 1, KitchenPacketPdf.new(packet).render.scan(%r{/Type\s*/Page[^s]}).size
+
+    get edit_nyk_packet_path(packet)
+    assert_select "input[type=checkbox][name='layout[single_pages]'][checked]", 0, "the box renders unchecked"
+
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { single_pages: "1" }, recipes: recipes }
+    assert packet.reload.single_pages?
+    assert_equal 2, KitchenPacketPdf.new(packet).render.scan(%r{/Type\s*/Page[^s]}).size
+  end
+
+  test "a save that carries no single_pages field leaves the setting alone" do
+    packet = KitchenPacket.create!(title: "Packet", station_label: "Single", data: { "recipes" => EXTRACTED })
+    recipes = { "0" => { title: "Recipe A", ingredients: { "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" } } } }
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { single_pages: "0" }, recipes: recipes }
+    refute packet.reload.single_pages?
+
+    patch nyk_packet_path(packet), params: { title: "Packet", layout: { title_size: "large" }, recipes: recipes }
+    refute packet.reload.single_pages?, "omitting the field must not flip it back on"
   end
 
   test "autosave: update answers JSON with a fresh preview URL, and a validation error as 422 JSON" do

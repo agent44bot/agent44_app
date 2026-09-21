@@ -141,11 +141,25 @@ class KitchenPacket < ApplicationRecord
   end
 
   def layout=(attrs)
-    attrs = attrs.to_h.stringify_keys.slice("title_size", "ingredient_width")
+    attrs = attrs.to_h.stringify_keys.slice("title_size", "ingredient_width", "single_pages")
     attrs["title_size"] = "normal" unless TITLE_SIZES.key?(attrs["title_size"])
     attrs["ingredient_width"] = "normal" unless INGREDIENT_WIDTHS.key?(attrs["ingredient_width"])
+    # Only an explicitly posted value changes this. A form that does not carry
+    # the field at all leaves the packet's current setting alone, so the
+    # half-amount pages can never be switched off by omission.
+    attrs["single_pages"] = if attrs.key?("single_pages")
+      attrs["single_pages"].to_s == "1" ? "1" : "0"
+    else
+      single_pages? ? "1" : "0"
+    end
     self.data = data.merge("layout" => attrs)
   end
+
+  # Print the half-amount pages? Off for a class that only ever cooks the full
+  # amounts (Caitlin, 2026-09-21: "for Chef's Table I do not need nor want a
+  # single recipe"). Defaults ON, so a packet saved before this keeps both
+  # passes; only an explicit "0" turns them off.
+  def single_pages? = layout.fetch("single_pages", "1").to_s != "0"
 
   def title_size_pt = TITLE_SIZES.fetch(layout["title_size"], TITLE_SIZES["normal"])
   def ingredient_width_ratio = INGREDIENT_WIDTHS.fetch(layout["ingredient_width"], INGREDIENT_WIDTHS["normal"])

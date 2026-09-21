@@ -92,7 +92,8 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
   test "layout rejects values outside the menus" do
     h = packet([])
     h.layout = { "title_size" => "gigantic", "ingredient_width" => "huge", "junk" => 1 }
-    assert_equal({ "title_size" => "normal", "ingredient_width" => "normal" }, h.layout)
+    assert_equal({ "title_size" => "normal", "ingredient_width" => "normal", "single_pages" => "1" }, h.layout)
+    assert_nil h.layout["junk"], "keys outside the menus are dropped"
   end
 
   test "a parenthetical like (~300 g) never splits mid-group" do
@@ -164,6 +165,58 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     tall = [ pdf.send(:table_height, doc, rows, pdf.send(:ing_widths, doc, rows, ing_w, size), size, pad: pdf.send(:ing_pad, pad)),
              pdf.send(:table_height, doc, dir_rows, pdf.send(:dir_widths, dir_w, size), size, pad: pdf.send(:dir_pad, pad)) ].max
     { size: size, pad: pad, gap: gap, tall: tall, avail: avail_h }
+  end
+
+  # --- optional half-amount pages (Caitlin, 2026-09-21) --------------------
+
+  def two_recipes
+    [ { "title" => "Kabobs", "ingredients" => [
+          { "qty" => "1 lb", "station_qty" => "½ lb", "item" => "Chicken", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Grill." ] } ] },
+      { "title" => "Sauce", "ingredients" => [
+          { "qty" => "2 T", "station_qty" => "1 T", "item" => "Butter", "section" => nil } ],
+        "directions" => [ { "section" => nil, "steps" => [ "Melt." ] } ] } ]
+  end
+
+  def page_count(bytes) = bytes.scan(%r{/Type\s*/Page[^s]}).size
+
+  test "a packet prints both passes by default" do
+    h = packet(two_recipes)
+    assert h.single_pages?, "defaults on, so packets saved before the toggle are unchanged"
+    assert_equal 4, page_count(KitchenPacketPdf.new(h).render)
+  end
+
+  test "switching the half-amount pages off prints the full amounts only" do
+    h = packet(two_recipes)
+    h.layout = { "single_pages" => "0" }
+    refute h.single_pages?
+    bytes = KitchenPacketPdf.new(h).render
+    assert_equal 2, page_count(bytes), "one page per recipe, no second pass"
+  end
+
+  test "with one pass there is no Double label to contrast against" do
+    h = packet(two_recipes)
+    pdf = KitchenPacketPdf.new(h)
+    assert_equal [ [ KitchenPacketPdf::DUAL_STATION_LABEL, false ], [ h.station_label, true ] ], pdf.send(:passes)
+
+    h.layout = { "single_pages" => "0" }
+    assert_equal [ [ nil, false ] ], KitchenPacketPdf.new(h).send(:passes)
+  end
+
+  test "the toggle survives a save that does not carry the field" do
+    h = packet(two_recipes)
+    h.layout = { "single_pages" => "0", "title_size" => "large" }
+    refute h.single_pages?
+
+    h.layout = { "title_size" => "small" } # e.g. a form that never rendered the box
+    refute h.single_pages?, "omitting the field must not switch the pages back on or off"
+    assert_equal "small", h.layout["title_size"]
+  end
+
+  test "an empty packet with the pages off still renders" do
+    h = packet([])
+    h.layout = { "single_pages" => "0" }
+    assert KitchenPacketPdf.new(h).render.start_with?("%PDF")
   end
 
   # --- baked-in metrics (found testing packet 65 in prod, 2026-09-21) ------
