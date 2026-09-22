@@ -1,0 +1,49 @@
+<% content_for :title, "Send feedback" %>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <%= link_to "← Back", feedback_page_path(@feedback) || root_path,
+        class: "inline-block text-sm text-gray-400 hover:text-orange-400 mb-3" %>
+  <h1 class="text-2xl font-bold text-white mb-1">Send feedback</h1>
+  <p class="text-sm text-gray-400 mb-6">
+    Something to fix, change, or add? Tell us here and attach screenshots or files if they help.
+    It goes straight to Rich, and you'll get an email when it's done.
+  </p>
+
+  <% if @feedback.errors.any? %>
+    <div class="rounded-lg border border-red-700 bg-red-950/40 p-4 mb-5 text-sm text-red-200">
+      <% @feedback.errors.full_messages.each do |msg| %>
+        <p><%= msg %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= form_with model: @feedback, url: feedbacks_path, multipart: true, class: "space-y-5" do |f| %>
+    <%= f.hidden_field :page_url %>
+
+    <div>
+      <%= f.label :message, "Your message", class: "block text-sm font-semibold text-gray-300 mb-1" %>
+      <%# 16px (text-base) so iOS doesn't zoom the page on focus; no autofocus. %>
+      <%= f.text_area :message, rows: 8, required: true, maxlength: 10_000,
+            placeholder: "What should we fix or change? The more detail the better.",
+            class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-100 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+    </div>
+
+    <div>
+      <%= f.label :attachments, "Screenshots or files (optional)", class: "block text-sm font-semibold text-gray-300 mb-1" %>
+      <%= f.file_field :attachments, multiple: true,
+            accept: "image/*,.heic,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.pptx",
+            class: "block w-full text-base text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gray-200 hover:file:bg-gray-700" %>
+      <p class="text-xs text-gray-500 mt-1">Up to <%= Feedback::MAX_FILES %> files, <%= Feedback::MAX_FILE_SIZE / 1.megabyte %> MB each. Photos, PDFs, Word, Excel.</p>
+    </div>
+
+    <% if @feedback.page_url.present? %>
+      <p class="text-xs text-gray-500">Sent from <span class="text-gray-400"><%= @feedback.page_url %></span></p>
+    <% end %>
+
+    <div class="flex items-center gap-4">
+      <%= f.submit "Send feedback", data: { disable_with: "Sending..." },
+            class: "inline-flex items-center px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-base font-semibold cursor-pointer" %>
+      <%= link_to "Your past feedback", feedbacks_path, class: "text-sm text-gray-400 hover:text-orange-400" %>
+    </div>
+  <% end %>
+</div>

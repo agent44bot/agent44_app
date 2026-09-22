@@ -1,0 +1,68 @@
+<% content_for :title, "Feedback" %>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Feedback</h1>
+      <p class="text-sm text-gray-400 mt-1"><%= pluralize(@open_count, "open item") %></p>
+    </div>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <%= link_to "All", admin_feedbacks_path, class: "px-3 py-1 rounded-full border #{@status ? 'border-gray-700 text-gray-400' : 'border-orange-500 text-orange-300'}" %>
+      <% Feedback::STATUSES.each do |s| %>
+        <%= link_to Feedback::LABELS[s], admin_feedbacks_path(status: s), class: "px-3 py-1 rounded-full border #{@status == s ? 'border-orange-500 text-orange-300' : 'border-gray-700 text-gray-400'}" %>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @feedbacks.empty? %>
+    <div class="rounded-lg bg-gray-900 border border-gray-700 p-8 text-center">
+      <p class="text-gray-400">No feedback here.</p>
+    </div>
+  <% else %>
+    <div class="space-y-4">
+      <% @feedbacks.each do |fb| %>
+        <div id="<%= dom_id(fb) %>" class="rounded-lg bg-gray-900 border border-gray-700 p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="text-sm">
+              <span class="font-semibold text-white"><%= fb.user.display_identifier %></span>
+              <% if fb.workspace %><span class="text-gray-500"> · <%= fb.workspace.name %></span><% end %>
+              <span class="text-gray-500"> · <%= fb.created_at.strftime("%b %-d, %-l:%M %p") %></span>
+            </div>
+            <%= render "feedbacks/status_badge", feedback: fb %>
+          </div>
+
+          <p class="text-sm text-gray-200 whitespace-pre-line"><%= fb.message %></p>
+          <% if (page = feedback_page_path(fb)) %>
+            <p class="text-xs text-gray-500 mt-2">From <%= link_to page, page, class: "text-gray-400 underline hover:text-orange-400" %></p>
+          <% end %>
+
+          <% if fb.attachments.attached? %>
+            <div class="flex flex-wrap gap-3 mt-3">
+              <% fb.attachments.each do |file| %>
+                <% if file.image? && file.variable? %>
+                  <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", rel: "noopener" do %>
+                    <%= image_tag file.variant(resize_to_limit: [ 240, 240 ]), class: "h-28 w-auto rounded border border-gray-700", alt: file.filename.to_s %>
+                  <% end %>
+                <% else %>
+                  <%= link_to "📎 #{file.filename}", rails_blob_path(file, disposition: "attachment"),
+                        class: "inline-flex items-center px-3 py-2 rounded border border-gray-700 text-sm text-gray-300 hover:text-orange-400" %>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%= form_with model: fb, url: admin_feedback_path(fb), method: :patch, class: "mt-4 flex flex-col sm:flex-row gap-2" do |f| %>
+            <%= f.select :status, Feedback::STATUSES.map { |s| [ Feedback::LABELS[s], s ] }, {},
+                  class: "rounded-md bg-gray-950 border border-gray-700 text-gray-200 text-base px-2 py-1.5" %>
+            <%= f.text_field :reply, placeholder: "Note to the sender (shown on their list and in the Live email)",
+                  class: "flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 text-gray-200 text-base px-3 py-1.5" %>
+            <%= f.submit "Save", class: "px-4 py-1.5 rounded-md bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold cursor-pointer" %>
+          <% end %>
+          <% if fb.shipped_at %>
+            <p class="text-xs text-emerald-400/80 mt-2">Live email sent <%= fb.shipped_at.strftime("%b %-d") %>.</p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

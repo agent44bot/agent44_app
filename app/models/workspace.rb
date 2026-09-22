@@ -19,6 +19,7 @@ class Workspace < ApplicationRecord
   has_many :usage_events,      dependent: :destroy # metered billable actions
   has_many :ai_call_logs,      dependent: :nullify # keep usage history if a workspace is deleted
   has_many :connect_chat_messages, dependent: :destroy # connect-help Q&A transcripts
+  has_many :feedbacks,         dependent: :nullify # keep a user's feedback if the workspace goes
 
   # Kitchen feature set (calendar scrapes, display, packets, grocery, cellar,
   # smoke tests). Only workspaces with kitchen_enabled run it; NY Kitchen is

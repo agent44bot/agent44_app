@@ -1,0 +1,8 @@
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Hi <%= @feedback.user.display_name.presence || "there" %>,</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">
+  Thanks, we got your feedback<%= " and #{pluralize(@feedback.attachments.size, 'file')}" if @feedback.attachments.attached? %>.
+  We'll email you again when it's done. You can check on it any time on
+  <%= link_to "your feedback page", @list_url, style: "color:#ea580c;" %>.
+</p>
+<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#374151;white-space:pre-line;border-left:3px solid #e5e7eb;padding-left:12px;"><%= @feedback.message %></div>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Cheers,<br>Rich</p>

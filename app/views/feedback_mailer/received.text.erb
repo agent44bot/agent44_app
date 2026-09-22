@@ -1,0 +1,8 @@
+Hi <%= @feedback.user.display_name.presence || "there" %>,
+
+Thanks, we got your feedback<%= " and #{pluralize(@feedback.attachments.size, 'file')}" if @feedback.attachments.attached? %>. We'll email you again when it's done. You can check on it any time here: <%= @list_url %>
+
+"<%= @feedback.message %>"
+
+Cheers,
+Rich

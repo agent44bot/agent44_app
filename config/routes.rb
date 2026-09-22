@@ -47,6 +47,7 @@ Rails.application.routes.draw do
   delete "settings/passkeys/:id",       to: "passkeys#destroy",          as: :passkey
   post   "sign_in/passkey/challenge",   to: "passkeys#auth_challenge",   as: :passkey_auth_challenge
   post   "sign_in/passkey",             to: "passkeys#authenticate",     as: :passkey_authenticate
+  resources :feedbacks, path: "feedback", only: [ :index, :new, :create ]
   resource :settings, only: [ :show, :destroy ] do
     post  :verify_password
     patch :update_email
@@ -338,6 +339,7 @@ Rails.application.routes.draw do
     get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
+    resources :feedbacks, only: [ :index, :update ]
     resources :notifications, only: [ :index, :update, :destroy ] do
       collection do
         post :mark_all_read
