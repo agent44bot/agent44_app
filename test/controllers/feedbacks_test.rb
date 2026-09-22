@@ -96,7 +96,7 @@ class FeedbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/workspaces"
   end
 
-  test "marking it Live emails the sender once, with the note" do
+  test "Mark Live by hand emails the sender once, with the note" do
     fb = Feedback.create!(user: @user, message: "Drop the Double label")
     sign_in_as @admin
     get admin_feedbacks_path
@@ -104,26 +104,18 @@ class FeedbacksTest < ActionDispatch::IntegrationTest
     assert_match "Drop the Double label", response.body
 
     assert_enqueued_emails 1 do
-      patch admin_feedback_path(fb), params: { feedback: { status: "shipped", reply: "Gone from every packet." } }
+      post ship_admin_feedback_path(fb), params: { note: "Gone from every packet." }
     end
+    assert_redirected_to admin_feedback_path(fb)
     fb.reload
     assert fb.shipped?
     assert_equal "Gone from every packet.", fb.reply
     assert fb.shipped_at
 
     assert_no_enqueued_emails do
-      patch admin_feedback_path(fb), params: { feedback: { status: "shipped", reply: "" } }
+      post ship_admin_feedback_path(fb), params: { note: "" }
     end
     assert_equal "Gone from every packet.", fb.reload.reply, "a blank note keeps the old one"
-  end
-
-  test "moving to In progress sends nothing" do
-    fb = Feedback.create!(user: @user, message: "x")
-    sign_in_as @admin
-    assert_no_enqueued_emails do
-      patch admin_feedback_path(fb), params: { feedback: { status: "in_progress" } }
-    end
-    assert_equal "in_progress", fb.reload.status
   end
 
   test "deleting the user deletes their feedback (Apple delete-account)" do

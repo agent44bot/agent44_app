@@ -79,11 +79,13 @@
             <% end %>
           <% end %>
           <%= link_to "Home", root_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
-          <%= link_to "Jobs", jobs_path, class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
-          <span class="text-gray-400">|</span>
-          <span class="text-sm text-gray-500"><%= Current.user.display_identifier %></span>
+          <%# Phone width: pushes deep-link here (feedback items), so the bar
+              must fit a phone. The extras show from sm up. %>
+          <%= link_to "Jobs", jobs_path, class: "hidden sm:inline text-sm text-gray-400 hover:text-orange-400 transition" %>
+          <span class="hidden sm:inline text-gray-400">|</span>
+          <span class="hidden sm:inline text-sm text-gray-500"><%= Current.user.display_identifier %></span>
           <%= button_to "Sign Out", session_path, method: :delete,
-                class: "text-sm text-gray-400 hover:text-orange-400 transition" %>
+                class: "hidden sm:inline text-sm text-gray-400 hover:text-orange-400 transition" %>
         </div>
       </div>
     </div>

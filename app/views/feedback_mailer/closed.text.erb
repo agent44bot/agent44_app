@@ -1,0 +1,9 @@
+Hi <%= @feedback.user.display_name.presence || "there" %>,
+
+<%= @feedback.reply %>
+
+Your feedback: "<%= @feedback.excerpt(200) %>"
+<%= @list_url %>
+
+Cheers,
+Rich

@@ -47,7 +47,9 @@ Rails.application.routes.draw do
   delete "settings/passkeys/:id",       to: "passkeys#destroy",          as: :passkey
   post   "sign_in/passkey/challenge",   to: "passkeys#auth_challenge",   as: :passkey_auth_challenge
   post   "sign_in/passkey",             to: "passkeys#authenticate",     as: :passkey_authenticate
-  resources :feedbacks, path: "feedback", only: [ :index, :new, :create ]
+  resources :feedbacks, path: "feedback", only: [ :index, :new, :create ] do
+    post :answer, on: :member
+  end
   resource :settings, only: [ :show, :destroy ] do
     post  :verify_password
     patch :update_email
@@ -286,6 +288,17 @@ Rails.application.routes.draw do
       resources :jobs, only: [ :create ]
       resources :scrapers, only: [ :update ]
       # Apply queue for the Mac-Mini Playwright runner (Phase 2).
+      # Feedback pipeline queue for the Mac mini agent (docs/feedback_pipeline.md).
+      resources :feedbacks, only: [] do
+        get :queue, on: :collection
+        member do
+          post :claim
+          post :plan
+          post :pr
+          post :shipped
+          post :error
+        end
+      end
       resources :apply_requests, only: [ :index, :update ] do
         # The Mac-Mini daemon clears the "Run now" flag once it acts on it.
         delete :run_request, on: :collection, action: :clear_run_request
@@ -339,7 +352,17 @@ Rails.application.routes.draw do
     get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
-    resources :feedbacks, only: [ :index, :update ]
+    resources :feedbacks, only: [ :index, :show ] do
+      member do
+        post :approve
+        post :ask
+        post :close
+        post :request_changes
+        post :merge
+        post :ship
+        post :retry
+      end
+    end
     resources :notifications, only: [ :index, :update, :destroy ] do
       collection do
         post :mark_all_read

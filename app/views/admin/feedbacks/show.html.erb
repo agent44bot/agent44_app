@@ -1,0 +1,137 @@
+<% content_for :title, "Feedback ##{@feedback.id}" %>
+<% fb = @feedback %>
+<% btn = "px-4 py-2 rounded-md text-sm font-semibold cursor-pointer" %>
+<% field = "w-full rounded-md bg-gray-950 border border-gray-700 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
+  <%= link_to "← All feedback", admin_feedbacks_path, class: "inline-block text-sm text-gray-400 hover:text-orange-400" %>
+
+  <%# ---- the feedback itself ---- %>
+  <section class="rounded-lg bg-gray-900 border border-gray-700 p-5">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div class="text-sm">
+        <span class="font-semibold text-white"><%= fb.user.display_identifier %></span>
+        <% if fb.workspace %><span class="text-gray-500"> · <%= fb.workspace.name %></span><% end %>
+        <span class="text-gray-500"> · <%= fb.created_at.strftime("%b %-d, %-l:%M %p") %></span>
+      </div>
+      <%= render "feedbacks/status_badge", feedback: fb, label: fb.status_label %>
+    </div>
+    <p class="text-base text-gray-100 whitespace-pre-line"><%= fb.message %></p>
+    <% if (page = feedback_page_path(fb)) %>
+      <p class="text-xs text-gray-500 mt-2">From <%= link_to page, page, class: "text-gray-400 underline hover:text-orange-400" %></p>
+    <% end %>
+    <%= render "admin/feedbacks/attachments", feedback: fb %>
+
+    <% if fb.thread.any? { |t| t["kind"] != "draft_question" } %>
+      <div class="mt-4 space-y-2">
+        <% fb.thread.reject { |t| t["kind"] == "draft_question" }.each do |t| %>
+          <div class="rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-sm">
+            <span class="text-xs font-semibold <%= t['from'] == 'sender' ? 'text-sky-400' : 'text-orange-400' %>">
+              <%= { "question" => "You asked", "answer" => "#{fb.user.display_identifier} answered", "changes" => "You requested changes" }.fetch(t["kind"], t["kind"]) %>
+            </span>
+            <p class="text-gray-300 whitespace-pre-line mt-0.5"><%= t["body"] %></p>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <%# ---- stuck ---- %>
+  <% if fb.stuck? %>
+    <section class="rounded-lg border border-red-700 bg-red-950/40 p-4">
+      <p class="text-sm font-semibold text-red-300 mb-1">The agent got stuck</p>
+      <p class="text-sm text-red-200 whitespace-pre-line"><%= fb.agent_error %></p>
+      <%= button_to "Retry", retry_admin_feedback_path(fb), class: "#{btn} mt-3 bg-red-700 hover:bg-red-600 text-white" %>
+    </section>
+  <% end %>
+
+  <%# ---- the plan, and gate (1) ---- %>
+  <% if fb.plan.present? %>
+    <section class="rounded-lg bg-gray-900 border <%= fb.status == 'planned' ? 'border-orange-600' : 'border-gray-700' %> p-5">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-400 mb-2">The agent's plan</h2>
+      <div class="text-sm text-gray-200 whitespace-pre-line"><%= fb.plan %></div>
+
+      <% if fb.status == "planned" %>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <%= button_to "Work on it", approve_admin_feedback_path(fb), class: "#{btn} bg-orange-600 hover:bg-orange-700 text-white" %>
+        </div>
+        <details class="mt-3" <%= "open" if fb.draft_question %>>
+          <summary class="text-sm text-gray-400 cursor-pointer hover:text-orange-400">Ask them a question</summary>
+          <%= form_with url: ask_admin_feedback_path(fb), method: :post, class: "mt-2 space-y-2" do %>
+            <%= text_area_tag :question, fb.draft_question, rows: 3, class: field, placeholder: "What do you need to know? This is emailed to them." %>
+            <%= submit_tag "Email the question", class: "#{btn} bg-gray-700 hover:bg-gray-600 text-white" %>
+          <% end %>
+        </details>
+      <% end %>
+    </section>
+  <% elsif fb.status == "received" %>
+    <section class="rounded-lg bg-gray-900 border border-gray-700 p-5 text-sm text-gray-400">
+      Waiting for the agent's plan. You'll get a push when it's ready.
+    </section>
+  <% end %>
+
+  <%# ---- the PR, and gate (2) ---- %>
+  <% if fb.pr_url.present? %>
+    <section class="rounded-lg bg-gray-900 border <%= fb.status == 'pr_ready' ? 'border-orange-600' : 'border-gray-700' %> p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-400">Pull request</h2>
+        <span class="text-xs font-semibold <%= { 'green' => 'text-emerald-400', 'red' => 'text-red-400' }.fetch(fb.pr_checks.to_s, 'text-amber-400') %>">
+          Checks: <%= fb.pr_checks.presence || "pending" %>
+        </span>
+      </div>
+      <% if (pr_link = feedback_pr_url(fb)) %>
+        <%= link_to "View PR ##{fb.pr_number} on GitHub", pr_link, target: "_blank", rel: "noopener",
+              class: "inline-flex items-center px-4 py-2 rounded-md border border-gray-600 text-sm font-semibold text-gray-100 hover:border-orange-500" %>
+      <% end %>
+      <% if fb.pr_summary.present? %>
+        <div class="mt-3 text-sm text-gray-300 whitespace-pre-line"><%= fb.pr_summary %></div>
+      <% end %>
+      <p class="text-xs text-gray-500 mt-2">Head <code><%= fb.pr_head_sha.to_s.first(7) %></code></p>
+
+      <% if fb.status == "pr_ready" %>
+        <%= form_with url: merge_admin_feedback_path(fb), method: :post, class: "mt-4 space-y-2" do %>
+          <%= hidden_field_tag :sha, fb.pr_head_sha %>
+          <label class="block text-xs font-semibold text-gray-400">Note to <%= fb.user.display_identifier %> in the "it's live" email</label>
+          <%= text_area_tag :note, fb.ship_note, rows: 3, class: field %>
+          <%= submit_tag "Merge it", class: "#{btn} bg-orange-600 hover:bg-orange-700 text-white",
+                data: { turbo_confirm: "Merge PR ##{fb.pr_number} and ship it to production?" } %>
+        <% end %>
+        <details class="mt-3">
+          <summary class="text-sm text-gray-400 cursor-pointer hover:text-orange-400">Request changes</summary>
+          <%= form_with url: request_changes_admin_feedback_path(fb), method: :post, class: "mt-2 space-y-2" do %>
+            <%= text_area_tag :note, nil, rows: 3, class: field, placeholder: "What should the agent change?" %>
+            <%= submit_tag "Send back to the agent", class: "#{btn} bg-gray-700 hover:bg-gray-600 text-white" %>
+          <% end %>
+        </details>
+      <% elsif fb.status == "merge_requested" %>
+        <p class="text-sm text-amber-300 mt-3">Merging <code><%= fb.merge_requested_sha.to_s.first(7) %></code> and waiting for the deploy. You'll get a push when it's live.</p>
+      <% end %>
+    </section>
+  <% elsif fb.status.in?(%w[approved changes_requested]) %>
+    <section class="rounded-lg bg-gray-900 border border-gray-700 p-5 text-sm text-gray-400">
+      The agent is building this. You'll get a push when the PR is ready.
+    </section>
+  <% end %>
+
+  <%# ---- done, or finish by hand ---- %>
+  <% if fb.done? %>
+    <section class="rounded-lg bg-gray-900 border border-gray-700 p-5 text-sm">
+      <p class="text-gray-300"><%= fb.shipped? ? "Live since #{fb.shipped_at&.strftime('%b %-d')}." : "Closed #{fb.closed_at&.strftime('%b %-d')}." %></p>
+      <% if fb.reply.present? %><p class="text-gray-400 mt-1">Note to sender: <%= fb.reply %></p><% end %>
+    </section>
+  <% else %>
+    <details class="rounded-lg bg-gray-900 border border-gray-800 p-5">
+      <summary class="text-sm text-gray-400 cursor-pointer hover:text-orange-400">Finish by hand (Mark Live or Close)</summary>
+      <div class="mt-3 grid sm:grid-cols-2 gap-4">
+        <%= form_with url: ship_admin_feedback_path(fb), method: :post, class: "space-y-2" do %>
+          <%= text_area_tag :note, fb.ship_note, rows: 3, class: field, placeholder: "Note in the \"it's live\" email" %>
+          <%= submit_tag "Mark Live", class: "#{btn} bg-emerald-700 hover:bg-emerald-600 text-white" %>
+        <% end %>
+        <%= form_with url: close_admin_feedback_path(fb), method: :post, class: "space-y-2" do %>
+          <%= text_area_tag :note, nil, rows: 3, class: field, placeholder: "Why (emailed to them if you write something)" %>
+          <%= submit_tag "Close", class: "#{btn} bg-gray-700 hover:bg-gray-600 text-white" %>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+</div>

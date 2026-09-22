@@ -29,6 +29,15 @@ class FeedbacksController < ApplicationController
     end
   end
 
+  # The sender's answer to Rich's question: back to the agent for a new plan.
+  def answer
+    feedback = Current.user.feedbacks.find(params[:id])
+    feedback.answer!(params[:answer])
+    redirect_to feedbacks_path(anchor: helpers.dom_id(feedback)), notice: "Thanks! Your answer was sent."
+  rescue Feedback::InvalidTransition => e
+    redirect_to feedbacks_path, alert: e.message
+  end
+
   private
 
   # Keep only a path on this site ("/nykitchen/packets/90/edit"), never an
