@@ -2,5 +2,8 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <%= link_to "← Back", admin_feedback_path(@feedback), class: "inline-block text-sm text-gray-400 hover:text-orange-400 mb-3" %>
   <h1 class="text-2xl font-bold text-white mb-6">Edit item</h1>
+  <% unless @feedback.stage.in?(%w[pre_dev done]) %>
+    <p class="-mt-4 mb-5 text-sm text-amber-300">This is in <%= @feedback.stage_label %>. The agent's plan and PR won't pick up an edit; for a real change, send it back to Pre-dev.</p>
+  <% end %>
   <%= render "form", feedback: @feedback %>
 </div>
