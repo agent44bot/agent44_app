@@ -1,0 +1,12 @@
+Hi <%= @feedback.user.display_name.presence || "there" %>,
+
+Thanks for your feedback. One question before we start on it:
+
+<%= @question %>
+
+Answer here: <%= @answer_url %>
+
+Your feedback: "<%= @feedback.excerpt(200) %>"
+
+Cheers,
+Rich

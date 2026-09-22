@@ -1,0 +1,6 @@
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Hi <%= @feedback.user.display_name.presence || "there" %>,</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Thanks for your feedback. One question before we start on it:</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;white-space:pre-line;border-left:3px solid #ea580c;padding-left:12px;"><%= @question %></p>
+<p><%= link_to "Answer here", @answer_url, style: "display:inline-block;padding:10px 18px;background:#ea580c;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;" %></p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#6b7280;">Your feedback: "<%= @feedback.excerpt(200) %>"</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Cheers,<br>Rich</p>

@@ -1,0 +1,97 @@
+# Feedback pipeline
+
+In-app feedback that turns into a reviewed PR, with Rich approving twice.
+
+- **Phase 1 (live, PR #529):** the Feedback button, `Feedback` records with
+  attachments, a push to Rich, an email copy to agent44bot@gmail.com, a
+  "got it" email to the sender, and `/admin/feedbacks`, where marking an item
+  Live emails the sender.
+- **Phase 2 (this doc):** the Mac mini reads each item, proposes a plan,
+  builds it after Rich approves, opens a PR, and merges only when Rich taps
+  Merge it.
+
+## The flow
+
+```
+received ──(mini: plan)──▶ planned ──① Work on it──▶ approved ──(mini: build, PR, CI green)──▶ pr_ready
+    ▲                        │  │                        ▲                                       │  │
+    │            Ask them ◀──┘  └──▶ Close               └──────── Request changes ◀───────────────┘  │
+    │               │                                                                                ② Merge it
+    │         needs_info                                                                               │
+    └── sender answers                                                     shipped ◀──(mini: merged + deploy verified)
+```
+
+| Status | Who acts next | What happens |
+|---|---|---|
+| `received` | mini | Reads the message, attachments, and the code (read-only), and posts a plan. **Push: "Plan ready".** |
+| `planned` | Rich | **① Work on it**, **Ask them** (question emailed to the sender, answered on their feedback page), or **Close** (optional note to the sender). |
+| `needs_info` | sender | Their answer puts the item back to `received`, and the mini re-plans with it. **Push: "Answer from ...".** |
+| `approved` / `changes_requested` | mini | Builds on a branch, opens or updates the PR, and waits for CI and the auto-review. Reports the PR and head SHA. **Push: "Ready to merge".** |
+| `pr_ready` | Rich | Views the PR on GitHub, then **② Merge it** or **Request changes** (a note the mini acts on). |
+| `merge_requested` | mini | Merges with `gh pr merge --squash --match-head-commit <sha>`, waits for the auto-deploy, and verifies prod (200 and `SolidQueue::Process.count > 0`). |
+| `shipped` | nobody | The app emails the sender "it's live" with the note (drafted by the agent, editable by Rich at ②). |
+| `closed` | nobody | Done without a change. |
+
+If the mini fails at any step, it records `agent_error` and Rich gets
+**Push: "Stuck: ..."**. The status does not move, so fixing the problem and
+pressing **Retry** re-queues the item.
+
+Rich can also ship an item by hand at any point (Mark Live with a note), for
+the cases he fixes himself.
+
+## Guardrails
+
+- **Feedback text is untrusted input.** The plan step runs with read-only
+  tools. Nothing is built until Rich approves the plan (①). The agent never
+  gets Fly or production credentials; the deploy check uses the same
+  read-only commands the runbook uses.
+- **Merging is Rich's call (②).** The Merge it button sends the head SHA Rich
+  was looking at. The app refuses it unless that SHA is still the PR's
+  latest reported head and checks are green. The mini re-checks against
+  GitHub and merges with `--match-head-commit`, so a push after Rich looked
+  can never be merged by that tap. (This closes the #141 gotcha where a merge
+  during check lag squashed an earlier commit.)
+- **One worker, one item at a time.** Each item is claimed with
+  `agent_claimed_at` so a restarted worker never double-builds.
+- The usual house rules (PR-only, worktrees, no em dashes, the
+  `nyk_changelog.yml` line) apply to agent-built PRs exactly as to hand-built
+  ones.
+
+## Pieces
+
+**App (Rails, PR "Feedback phase 2: app side")**
+- `feedbacks` gains `plan`, `thread` (JSON questions and answers), PR fields
+  (`pr_number`, `pr_url`, `pr_head_sha`, `pr_checks`, `pr_summary`),
+  `ship_note`, `merge_requested_sha`, `agent_error`, `agent_claimed_at`, and
+  timestamps for each gate.
+- `/admin/feedbacks/:id` shows one item with the gate buttons. Every push
+  deep-links there.
+- The sender's feedback page shows a plain status (Received, Question for
+  you, In progress, Live, Closed) and an answer box when asked a question.
+- The token API (`API_TOKEN`, like `apply_requests`):
+  - `GET /api/v1/feedbacks/queue`: items waiting on the mini, with signed
+    attachment URLs.
+  - `POST /api/v1/feedbacks/:id/claim`
+  - `POST /api/v1/feedbacks/:id/plan` with `plan`, optional `question`
+  - `POST /api/v1/feedbacks/:id/pr` with `number`, `url`, `head_sha`,
+    `checks`, `summary`, `ship_note`
+  - `POST /api/v1/feedbacks/:id/shipped` with `sha`
+  - `POST /api/v1/feedbacks/:id/error` with `message`
+
+**Mini (next PR)**
+- `bin/feedback-agent`: polls the queue (every minute, and immediately on a
+  push-style nudge later). For each item:
+  - plan: `claude -p` with read-only tools
+  - build: `claude -p` in a fresh `origin/main` worktree, then `gh pr create`
+  - merge: `gh pr merge --squash --match-head-commit`, then watch
+    `fly-deploy.yml` and run the two prod checks
+- A launchd agent (`ai.agent44.feedback-agent`) keeps it running. It uses the
+  mini's existing `gh`, `fly` and Claude Code logins.
+
+## Open items
+
+- A preview link on the phone: `bin/preview` runs on the mini, so it is
+  reachable only on home Wi-Fi until it is exposed (for example with
+  Tailscale).
+- Skipping ① for tiny copy changes, once the plans have earned trust.
+- Telegram is muted app-wide; pushes are the channel.

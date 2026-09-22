@@ -1,0 +1,14 @@
+<% if feedback.attachments.attached? %>
+  <div class="flex flex-wrap gap-3 mt-3">
+    <% feedback.attachments.each do |file| %>
+      <% if file.image? && file.variable? %>
+        <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", rel: "noopener" do %>
+          <%= image_tag file.variant(resize_to_limit: [ 240, 240 ]), class: "h-28 w-auto rounded border border-gray-700", alt: file.filename.to_s %>
+        <% end %>
+      <% else %>
+        <%= link_to "📎 #{file.filename}", rails_blob_path(file, disposition: "attachment"),
+              class: "inline-flex items-center px-3 py-2 rounded border border-gray-700 text-sm text-gray-300 hover:text-orange-400" %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

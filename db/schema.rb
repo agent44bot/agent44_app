@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_190000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -181,12 +181,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_180000) do
   end
 
   create_table "feedbacks", force: :cascade do |t|
+    t.datetime "agent_claimed_at"
+    t.text "agent_error"
+    t.datetime "approved_at"
+    t.datetime "closed_at"
     t.datetime "created_at", null: false
+    t.datetime "merge_requested_at"
+    t.string "merge_requested_sha"
     t.text "message", null: false
     t.string "page_url"
+    t.text "plan"
+    t.datetime "planned_at"
+    t.string "pr_checks"
+    t.string "pr_head_sha"
+    t.integer "pr_number"
+    t.datetime "pr_ready_at"
+    t.text "pr_summary"
+    t.string "pr_url"
     t.text "reply"
+    t.text "ship_note"
     t.datetime "shipped_at"
     t.string "status", default: "received", null: false
+    t.json "thread", default: [], null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.integer "workspace_id"

@@ -1,0 +1,5 @@
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Hi <%= @feedback.user.display_name.presence || "there" %>,</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;white-space:pre-line;"><%= @feedback.reply %></p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#6b7280;">Your feedback: "<%= @feedback.excerpt(200) %>"</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;"><%= link_to "Your feedback", @list_url, style: "color:#ea580c;" %></p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Cheers,<br>Rich</p>
