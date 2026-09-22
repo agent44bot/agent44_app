@@ -352,8 +352,9 @@ Rails.application.routes.draw do
     get "kitchen", to: redirect("/nykitchen", status: 301)
     post "kitchen/trigger_smoke", to: "kitchen#trigger_smoke", as: :trigger_smoke
     resources :smoke_runs, only: [ :destroy ]
-    resources :feedbacks, only: [ :index, :show ] do
+    resources :feedbacks do
       member do
+        post :reset
         post :approve
         post :ask
         post :close

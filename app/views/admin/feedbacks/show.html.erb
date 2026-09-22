@@ -4,7 +4,10 @@
 <% field = "w-full rounded-md bg-gray-950 border border-gray-700 text-gray-200 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
 
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
-  <%= link_to "← All feedback", admin_feedbacks_path, class: "inline-block text-sm text-gray-400 hover:text-orange-400" %>
+  <div class="flex items-center justify-between gap-3">
+    <%= link_to "← Board", admin_feedbacks_path, class: "text-sm text-gray-400 hover:text-orange-400" %>
+    <span class="text-xs font-semibold uppercase tracking-wide text-gray-500"><%= fb.stage_label %></span>
+  </div>
 
   <%# ---- the feedback itself ---- %>
   <section class="rounded-lg bg-gray-900 border border-gray-700 p-5">
@@ -113,15 +116,19 @@
     </section>
   <% end %>
 
-  <%# ---- done, or finish by hand ---- %>
+  <%# ---- done, or move by hand ---- %>
   <% if fb.done? %>
     <section class="rounded-lg bg-gray-900 border border-gray-700 p-5 text-sm">
       <p class="text-gray-300"><%= fb.shipped? ? "Live since #{fb.shipped_at&.strftime('%b %-d')}." : "Closed #{fb.closed_at&.strftime('%b %-d')}." %></p>
       <% if fb.reply.present? %><p class="text-gray-400 mt-1">Note to sender: <%= fb.reply %></p><% end %>
+      <%= button_to "Reopen in Pre-dev", reset_admin_feedback_path(fb), class: "#{btn} mt-3 bg-gray-700 hover:bg-gray-600 text-white" %>
     </section>
   <% else %>
     <details class="rounded-lg bg-gray-900 border border-gray-800 p-5">
-      <summary class="text-sm text-gray-400 cursor-pointer hover:text-orange-400">Finish by hand (Mark Live or Close)</summary>
+      <summary class="text-sm text-gray-400 cursor-pointer hover:text-orange-400">Move by hand (Pre-dev, Live, Closed)</summary>
+      <% unless fb.status.in?(%w[received merge_requested]) %>
+        <%= button_to "Send back to Pre-dev (re-plan)", reset_admin_feedback_path(fb), class: "#{btn} mt-3 bg-gray-700 hover:bg-gray-600 text-white" %>
+      <% end %>
       <div class="mt-3 grid sm:grid-cols-2 gap-4">
         <%= form_with url: ship_admin_feedback_path(fb), method: :post, class: "space-y-2" do %>
           <%= text_area_tag :note, fb.ship_note, rows: 3, class: field, placeholder: "Note in the \"it's live\" email" %>
@@ -134,4 +141,12 @@
       </div>
     </details>
   <% end %>
+
+  <div class="flex items-center justify-between gap-3 pt-2">
+    <%= link_to "Edit message", edit_admin_feedback_path(fb), class: "text-sm text-gray-400 hover:text-orange-400" %>
+    <% if fb.deletable? %>
+      <%= button_to "Delete", admin_feedback_path(fb), method: :delete, class: "text-sm text-red-400 hover:text-red-300",
+            form: { data: { turbo_confirm: "Delete this item and its files? This can't be undone." } } %>
+    <% end %>
+  </div>
 </div>

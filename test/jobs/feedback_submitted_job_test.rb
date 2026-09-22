@@ -5,15 +5,15 @@ class FeedbackSubmittedJobTest < ActiveJob::TestCase
 
   setup do
     @admin = User.create!(email_address: "rich-#{SecureRandom.hex(3)}@example.com", role: "admin")
-    Setting.set(FeedbackSubmittedJob::ALERT_EMAIL_KEY, @admin.email_address)
+    Setting.set(FeedbackAlerts::ALERT_EMAIL_KEY, @admin.email_address)
     @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin")
     @fb = Feedback.create!(user: @user, message: "Keep every recipe on one page please")
     @fb.attachments.attach(io: file_fixture("sample_bottle.png").open, filename: "shot.png", content_type: "image/png")
   end
 
-  test "pushes Rich, emails a copy to the inbox, and acknowledges the sender" do
+  test "pushes Rich and acknowledges the sender, with no inbox copy" do
     assert_difference -> { Notification.count }, 1 do
-      assert_enqueued_emails 2 do
+      assert_enqueued_emails 1 do
         FeedbackSubmittedJob.perform_now(@fb)
       end
     end
@@ -21,21 +21,8 @@ class FeedbackSubmittedJobTest < ActiveJob::TestCase
     assert_equal "feedback", n.source
     assert_equal @admin.id, n.user_id
     assert_equal "Feedback from Caitlin", n.title
+    assert_equal "/admin/feedbacks/#{@fb.id}", n.url
     assert_match "one page", n.body
-  end
-
-  test "the inbox copy carries the files and replies to the sender" do
-    mail = FeedbackMailer.copy(@fb, to: FeedbackSubmittedJob::DEFAULT_COPY_EMAIL)
-    assert_equal [ "agent44bot@gmail.com" ], mail.to
-    assert_equal [ @user.email_address ], mail.reply_to
-    assert_equal [ "shot.png" ], mail.attachments.map(&:filename)
-    assert_match "Keep every recipe on one page", mail.html_part.body.to_s
-  end
-
-  test "two files with the same name both reach the inbox copy" do
-    @fb.attachments.attach(io: file_fixture("sample_bottle.png").open, filename: "shot.png", content_type: "image/png")
-    mail = FeedbackMailer.copy(@fb, to: "x@example.com")
-    assert_equal [ "shot.png", "shot-2.png" ], mail.attachments.map(&:filename)
   end
 
   test "the acknowledgement and Live emails go to the sender with no dashes" do

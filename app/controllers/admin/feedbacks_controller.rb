@@ -1,19 +1,71 @@
 module Admin
-  # Rich's Feedback inbox. The list shows everything, open items first; each
-  # item's page carries the buttons for its step in the pipeline
-  # (docs/feedback_pipeline.md): Work on it / Ask them / Close after a plan,
-  # Merge it / Request changes once the PR is green, Mark Live by hand.
+  # Rich's Feedback board: Pre-dev, Dev, Post-dev, Review PR, Deploy, Done
+  # (docs/feedback_pipeline.md). Items can be added, edited, deleted and
+  # moved by hand (back to Pre-dev, Live, Closed). Each item's page carries
+  # the buttons for its step: Work on it / Ask them after a plan, Merge it /
+  # Request changes once the PR is green.
   class FeedbacksController < BaseController
-    before_action :set_feedback, except: :index
+    before_action :set_feedback, except: %i[index new create]
 
+    DONE_SHOWN = 20 # the Done column shows the most recent only
+
+    # The board: one column per stage. Done shows the latest DONE_SHOWN.
     def index
-      @status = params[:status].presence_in(Feedback::STATUSES)
-      scope = Feedback.includes(:user, :workspace).with_attached_attachments.recent_first
-      @feedbacks = @status ? scope.where(status: @status) : scope.limit(200)
-      @open_count = Feedback.open.count
+      items = Feedback.includes(:user, :workspace).recent_first
+      open_items = items.where.not(status: Feedback::DONE).to_a
+      @columns = Feedback::STAGES.keys.index_with { [] }
+      open_items.each { |f| @columns[f.stage] << f }
+      @columns["done"] = items.where(status: Feedback::DONE).limit(DONE_SHOWN).to_a
+      @waiting_count = open_items.count(&:waiting_on_rich?)
     end
 
     def show
+    end
+
+    # + New item: Rich's own ideas go straight onto the board, with no push
+    # or "got it" email to himself.
+    def new
+      @feedback = Feedback.new
+    end
+
+    def create
+      @feedback = Current.user.feedbacks.new(message: params.dig(:feedback, :message), skip_notifications: true)
+      files = Array(params.dig(:feedback, :attachments)).compact_blank
+      @feedback.attachments.attach(files) if files.any?
+      if @feedback.save
+        redirect_to admin_feedback_path(@feedback), notice: "Added to Pre-dev."
+      else
+        render :new, status: :unprocessable_entity
+      end
+    end
+
+    def edit
+    end
+
+    def update
+      if @feedback.update(message: params.dig(:feedback, :message))
+        redirect_to admin_feedback_path(@feedback), notice: "Saved."
+      else
+        render :edit, status: :unprocessable_entity
+      end
+    end
+
+    def destroy
+      unless @feedback.deletable?
+        return redirect_to admin_feedback_path(@feedback),
+                           alert: "It's in #{@feedback.stage_label}. Send it back to Pre-dev or finish it first."
+      end
+      @feedback.destroy!
+      redirect_to admin_feedbacks_path, notice: "Deleted."
+    end
+
+    # Back to Pre-dev for a fresh plan (also reopens a Done item). An open PR
+    # is forgotten here, so the notice says to close it on GitHub.
+    def reset
+      open_pr = @feedback.pr_number unless @feedback.done?
+      notice = "Back in Pre-dev. The agent will re-plan it."
+      notice += " Close PR ##{open_pr} on GitHub." if open_pr
+      transition(notice) { @feedback.reset! }
     end
 
     # Work on it (1).
