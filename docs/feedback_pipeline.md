@@ -64,6 +64,19 @@ only through the agent and Rich's Merge it.
   tools. Nothing is built until Rich approves the plan (①). The agent never
   gets Fly or production credentials; the deploy check uses the same
   read-only commands the runbook uses.
+- **Containment of each Claude Code run** (`FeedbackAgent::Worker#claude_settings`):
+  - Read is blocked outside the worktree and attachments folder, and the
+    mini's secret files are denied outright.
+  - Edit/Write are allowed only inside the worktree (`Edit(//<worktree>/**)`).
+  - Every Bash command, including test code the agent writes, runs in Claude
+    Code's OS sandbox. It can write only in the worktree and tmp, cannot read
+    the secret paths, and has **no network**. Only the Ruby toolchain folders
+    are readable in the home folder.
+  - The env files' secrets (`API_TOKEN`, Brevo keys, `ANTHROPIC_API_KEY`) are
+    removed from the agent's environment.
+  - A live probe on 2026-09-22 confirmed that reading `~/.agent44_smoke_env`,
+    writing to the home folder, and reaching `example.com` were all blocked,
+    while `bin/rails test` still passed.
 - **Merging is Rich's call (②).** The Merge it button sends the head SHA Rich
   was looking at. The app refuses it unless that SHA is still the PR's
   latest reported head and checks are green. The mini re-checks against

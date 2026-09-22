@@ -7,18 +7,30 @@ module FeedbackAgent
   # "stuck" on the item, and Rich can Retry it from the board.
   class Worker
     PLAN_TOOLS = %w[Read Grep Glob].freeze
+    # Edit and Write are added per run, scoped to that run's worktree.
     BUILD_TOOLS = [
-      "Read", "Edit", "Write", "Grep", "Glob",
+      "Read", "Grep", "Glob",
       "Bash(bin/rails test:*)", "Bash(bin/rails db:migrate:*)", "Bash(bin/rails generate:*)",
       "Bash(bin/rubocop:*)", "Bash(bin/brakeman:*)",
-      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git add:*)", "Bash(git commit:*)",
-      "Bash(ls:*)", "Bash(cat:*)", "Bash(grep:*)"
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git add:*)", "Bash(git commit:*)"
     ].freeze
     # Never available to the agent: no network, no pushing or merging, no
     # production access. The worker does those itself, after Rich's gates.
     DENIED_TOOLS = [ "WebFetch", "WebSearch", "Bash(git push:*)", "Bash(gh:*)", "Bash(fly:*)",
                      "Bash(flyctl:*)", "Bash(curl:*)" ].freeze
-    REQUIRED_CHECKS = [ "test", "claude / auto-review" ].freeze
+    # Every CI check on main, so "Ready to merge" never fires while one is
+    # still running (branch protection would then refuse Rich's Merge it).
+    # Secret files on the mini. Denied to Read, and to every Bash command
+    # (including test code the agent writes) through the OS sandbox.
+    SECRET_PATHS = %w[~/.agent44_smoke_env ~/.ssh ~/.fly ~/.config/gh ~/.appstoreconnect ~/.android-keys
+                      ~/.buzzrc ~/.buzz ~/.aws ~/.netrc].freeze
+    TOOLCHAIN_PATHS = %w[~/.rvm ~/.gem ~/.bundle ~/.local/openssl ~/.local/libyaml ~/.cache ~/Library/Caches].freeze
+    REQUIRED_CHECKS = [ "lint", "scan_ruby", "scan_js", "scan_secrets", "test", "system-test",
+                        "claude / auto-review" ].freeze
+    # Secrets the mini's env files export. Claude Code (and any test code it
+    # runs) never sees them; it only needs the machine's Claude login.
+    SCRUBBED_ENV = %w[ANTHROPIC_API_KEY API_TOKEN BREVO_SMTP_KEY BREVO_SMTP_LOGIN NYK_SMOKE_RECIPIENTS
+                      FLY_API_TOKEN GH_TOKEN GITHUB_TOKEN].freeze
 
     Config = Struct.new(:repo_dir, :work_root, :gh_repo, :prod_url, :fly_app, :claude_bin, :model,
                         :checks_timeout, :deploy_timeout, :poll_interval, keyword_init: true)
@@ -120,15 +132,45 @@ module FeedbackAgent
 
     private
 
+    # Containment for a run on untrusted feedback (the plan is Rich-approved,
+    # but the feedback text still reaches the model):
+    # - Read is blocked outside the worktree and attachments dir, and secret
+    #   files are denied outright;
+    # - Edit/Write are allowed only inside the worktree (build step);
+    # - every Bash command runs in Claude Code's OS sandbox: writes only in
+    #   the worktree and tmp, no reads of the secret paths, no network.
+    def claude_settings(chdir, add_dirs)
+      {
+        "permissions" => { "blockReadsOutsideWorkingDirectories" => true },
+        "sandbox" => {
+          "enabled" => true,
+          "failIfUnavailable" => true,
+          "allowUnsandboxedCommands" => false,
+          "filesystem" => {
+            "allowWrite" => [ chdir, *add_dirs, "/tmp", "/private/tmp", "/private/var/folders" ],
+            "denyRead" => SECRET_PATHS,
+            # The Ruby toolchain lives in the home folder, which the sandbox
+            # otherwise hides: without these, bin/rails test can't start.
+            "allowRead" => TOOLCHAIN_PATHS
+          },
+          "network" => { "allowedDomains" => [], "strictAllowlist" => true }
+        }
+      }
+    end
+
     def claude(prompt, chdir:, tools:, mode:, schema:, add_dirs: [])
+      if mode == "acceptEdits"
+        tools = [ *tools, "Edit(/#{chdir}/**)", "Write(/#{chdir}/**)" ] # "//abs/path" = an absolute path
+      end
+      denied = [ *DENIED_TOOLS, *SECRET_PATHS.map { |p| "Read(#{p}/**)" }, *SECRET_PATHS.map { |p| "Read(#{p})" } ]
       cmd = [ @c.claude_bin, "-p", prompt, "--output-format", "json", "--json-schema", JSON.generate(schema),
-              "--permission-mode", mode ]
+              "--permission-mode", mode, "--settings", JSON.generate(claude_settings(chdir, add_dirs)) ]
       cmd += [ "--model", @c.model ] if @c.model
       add_dirs.each { |d| cmd += [ "--add-dir", d ] }
-      cmd += [ "--allowedTools", *tools, "--disallowedTools", *DENIED_TOOLS ]
-      # Use this machine's Claude Code login, not the API key the smoke env
-      # exports (that would bill the app's API key).
-      raw = @sh.run(*cmd, chdir: chdir, env: { "ANTHROPIC_API_KEY" => nil })
+      cmd += [ "--allowedTools", *tools, "--disallowedTools", *denied ]
+      # The machine's Claude Code login bills the run (not the app's API key),
+      # and none of the env files' secrets reach the agent or its tests.
+      raw = @sh.run(*cmd, chdir: chdir, env: SCRUBBED_ENV.to_h { |k| [ k, nil ] })
       res = JSON.parse(raw)
       raise "claude: #{res['result'].to_s[0, 500]}" if res["is_error"]
       @log.call("claude #{mode}: $#{res['total_cost_usd']&.round(2)}, #{res['num_turns']} turns")
