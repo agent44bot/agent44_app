@@ -11,7 +11,7 @@ module Admin
 
     # The board: one column per stage. Done shows the latest DONE_SHOWN.
     def index
-      items = Feedback.includes(:user, :workspace).recent_first
+      items = Feedback.includes(:user, :workspace).with_attached_attachments.recent_first
       open_items = items.where.not(status: Feedback::DONE).to_a
       @columns = Feedback::STAGES.keys.index_with { [] }
       open_items.each { |f| @columns[f.stage] << f }
