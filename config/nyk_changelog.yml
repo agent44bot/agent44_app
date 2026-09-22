@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-22
+  note: Admins can now change a teammate's role in Settings under People. Pick admin, editor, or viewer from the menu next to their name and it saves right away.
+
+- date: 2026-09-22
   note: There is a new Feedback button at the top of every page. Write what you want fixed or changed, attach photos or files, and send it. It goes straight to Rich, you get an email that it arrived, and another when it is done. Your feedback page shows where each one stands.
 
 - date: 2026-09-22

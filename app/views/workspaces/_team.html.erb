@@ -34,7 +34,15 @@
           </div>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-          <span class="text-xs uppercase tracking-wide text-gray-400"><%= m.role %></span>
+          <% if admin && !m.owner? %>
+            <%= form_with url: workspace_membership_path(workspace_slug: workspace.slug, id: m.id), method: :patch, local: true do |f| %>
+              <%= f.select :role, options_for_select(%w[admin editor viewer], m.role), {},
+                  onchange: "this.form.requestSubmit()", aria: { label: "Role for #{m.user.display_identifier}" },
+                  class: "rounded-md bg-gray-900 border border-gray-700 text-white text-base px-2 py-1 focus:border-orange-500 focus:outline-none" %>
+            <% end %>
+          <% else %>
+            <span class="text-xs uppercase tracking-wide text-gray-400"><%= m.role %></span>
+          <% end %>
           <% if admin && !m.owner? %>
             <%= button_to "Remove", workspace_membership_path(workspace_slug: workspace.slug, id: m.id),
                 method: :delete, form: { data: { turbo_confirm: "Remove #{m.user.display_identifier} from #{workspace.name}?" } },
