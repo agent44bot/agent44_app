@@ -29,7 +29,19 @@ class Feedback < ApplicationRecord
   # handed out again.
   CLAIM_TTL = 45.minutes
 
+  # The board's columns, in order (Rich, 2026-09-22). Each status lands in
+  # exactly one; see #stage.
+  STAGES = {
+    "pre_dev" => "Pre-dev", "dev" => "Dev", "post_dev" => "Post-dev",
+    "review_pr" => "Review PR", "deploy" => "Deploy", "done" => "Done"
+  }.freeze
+  # Columns where Rich is the one who acts next.
+  WAITING_ON_RICH = %w[planned pr_ready].freeze
+
   class InvalidTransition < StandardError; end
+
+  # Set on items Rich adds from the board: no push or "got it" email to himself.
+  attribute :skip_notifications, :boolean, default: false
 
   MAX_FILES     = 10
   MAX_FILE_SIZE = 15.megabytes
@@ -60,14 +72,33 @@ class Feedback < ApplicationRecord
       .order(:created_at)
   }
 
-  after_create_commit -> { FeedbackSubmittedJob.perform_later(self) }
+  after_create_commit -> { FeedbackSubmittedJob.perform_later(self) unless skip_notifications }
 
-  def status_label = LABELS.fetch(status, status.humanize)
+  def status_label
+    return "Checks running" if stage == "post_dev"
+    LABELS.fetch(status, status.humanize)
+  end
   def sender_status_label = SENDER_LABELS.fetch(status, "In progress")
   def shipped? = status == "shipped"
   def done? = DONE.include?(status)
   def agent_step = AGENT_STEPS[status]
   def stuck? = agent_error.present?
+  def waiting_on_rich? = WAITING_ON_RICH.include?(status) && !stuck?
+
+  # Which board column the item sits in. "Post-dev" is a PR that exists but
+  # isn't green yet; the agent is still on it until checks pass.
+  def stage
+    case status
+    when "received", "planned", "needs_info" then "pre_dev"
+    when "approved" then pr_url.present? ? "post_dev" : "dev"
+    when "changes_requested", "in_progress" then "dev"
+    when "pr_ready" then "review_pr"
+    when "merge_requested" then "deploy"
+    else "done"
+    end
+  end
+
+  def stage_label = STAGES.fetch(stage)
 
   # The question the agent suggested asking, if its plan had one.
   def draft_question
@@ -123,6 +154,14 @@ class Feedback < ApplicationRecord
     raise InvalidTransition, "Checks aren't green." unless pr_checks == "green"
     update!(status: "merge_requested", merge_requested_sha: sha, merge_requested_at: Time.current,
             ship_note: note.presence || ship_note, agent_claimed_at: nil)
+  end
+
+  # Back to Pre-dev for a fresh plan (a card dragged back, or a closed item
+  # reopened). Not while a merge is in flight: that PR is already approved.
+  def reset!
+    raise InvalidTransition, "It's merging now; wait for it to finish." if status == "merge_requested"
+    update!(status: "received", plan: nil, planned_at: nil, agent_error: nil, agent_claimed_at: nil,
+            closed_at: nil)
   end
 
   # Clears a stuck item so the mini tries its step again.

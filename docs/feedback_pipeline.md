@@ -3,9 +3,13 @@
 In-app feedback that turns into a reviewed PR, with Rich approving twice.
 
 - **Phase 1 (live, PR #529):** the Feedback button, `Feedback` records with
-  attachments, a push to Rich, an email copy to agent44bot@gmail.com, a
-  "got it" email to the sender, and `/admin/feedbacks`, where marking an item
-  Live emails the sender.
+  attachments, a push to Rich, a "got it" email to the sender, and
+  `/admin/feedbacks`, where marking an item Live emails the sender.
+- **The board (2026-09-22):** `/admin/feedbacks` is a board with the columns
+  Pre-dev, Dev, Post-dev, Review PR, Deploy and Done. Rich can add, edit and
+  delete items there. Everything lives in the app: the agent44bot@gmail.com
+  inbox copy was dropped. Senders still get their three emails (got it, a
+  question, it's live).
 - **Phase 2 (this doc):** the Mac mini reads each item, proposes a plan,
   builds it after Rich approves, opens a PR, and merges only when Rich taps
   Merge it.
@@ -38,6 +42,21 @@ pressing **Retry** re-queues the item.
 
 Rich can also ship an item by hand at any point (Mark Live with a note), for
 the cases he fixes himself.
+
+## Board columns
+
+| Column | Statuses |
+|---|---|
+| Pre-dev | `received`, `planned`, `needs_info` |
+| Dev | `approved` with no PR yet, `changes_requested` |
+| Post-dev | `approved` with a PR whose checks aren't green yet |
+| Review PR | `pr_ready` |
+| Deploy | `merge_requested` |
+| Done | `shipped`, `closed` |
+
+Manual moves are limited to "back to Pre-dev" (a re-plan, which also
+reopens a Done item), Mark Live, and Close. Review PR and Deploy are reached
+only through the agent and Rich's Merge it.
 
 ## Guardrails
 

@@ -1,0 +1,7 @@
+<% content_for :title, "New item" %>
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <%= link_to "← Board", admin_feedbacks_path, class: "inline-block text-sm text-gray-400 hover:text-orange-400 mb-3" %>
+  <h1 class="text-2xl font-bold text-white mb-1">New item</h1>
+  <p class="text-sm text-gray-400 mb-6">Goes into Pre-dev; the agent writes a plan for you to approve.</p>
+  <%= render "form", feedback: @feedback %>
+</div>

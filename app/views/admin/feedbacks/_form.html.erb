@@ -1,0 +1,21 @@
+<% if feedback.errors.any? %>
+  <div class="rounded-lg border border-red-700 bg-red-950/40 p-4 mb-5 text-sm text-red-200">
+    <% feedback.errors.full_messages.each do |msg| %><p><%= msg %></p><% end %>
+  </div>
+<% end %>
+<%= form_with model: feedback, url: (feedback.persisted? ? admin_feedback_path(feedback) : admin_feedbacks_path), multipart: true, class: "space-y-5" do |f| %>
+  <div>
+    <%= f.label :message, "What should change?", class: "block text-sm font-semibold text-gray-300 mb-1" %>
+    <%= f.text_area :message, rows: 8, required: true, maxlength: 10_000,
+          class: "w-full rounded-lg bg-gray-900 border border-gray-800 text-gray-100 text-base px-3 py-2 focus:border-orange-500 focus:outline-none" %>
+  </div>
+  <% unless feedback.persisted? %>
+    <div>
+      <%= f.label :attachments, "Screenshots or files (optional)", class: "block text-sm font-semibold text-gray-300 mb-1" %>
+      <%= f.file_field :attachments, multiple: true, accept: "image/*,.heic,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.pptx",
+            class: "block w-full text-base text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gray-200" %>
+    </div>
+  <% end %>
+  <%= f.submit (feedback.persisted? ? "Save" : "Add to Pre-dev"),
+        class: "inline-flex items-center px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-base font-semibold cursor-pointer" %>
+<% end %>

@@ -1,0 +1,6 @@
+<% content_for :title, "Edit item" %>
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <%= link_to "← Back", admin_feedback_path(@feedback), class: "inline-block text-sm text-gray-400 hover:text-orange-400 mb-3" %>
+  <h1 class="text-2xl font-bold text-white mb-6">Edit item</h1>
+  <%= render "form", feedback: @feedback %>
+</div>
