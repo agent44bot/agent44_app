@@ -81,6 +81,29 @@ class FeedbackBoardTest < ActionDispatch::IntegrationTest
     assert_equal "pre_dev", done.reload.stage
   end
 
+  test "items in Dev through Deploy can't be deleted" do
+    %w[approved pr_ready merge_requested].each do |st|
+      fb = item(st, pr_url: "https://github.com/a/b/pull/1")
+      assert_no_difference -> { Feedback.count }, st do
+        delete admin_feedback_path(fb)
+      end
+    end
+  end
+
+  test "sending a PR'd item back to Pre-dev forgets the PR, so a re-approve starts in Dev" do
+    fb = item("pr_ready", pr_number: 7, pr_url: "https://github.com/a/b/pull/7", pr_head_sha: "a" * 40,
+              pr_checks: "green", ship_note: "old note")
+    post reset_admin_feedback_path(fb)
+    follow_redirect!
+    assert_match "Close PR #7 on GitHub", response.body
+    fb.reload
+    assert_nil fb.pr_url
+    assert_nil fb.pr_head_sha
+    assert_nil fb.ship_note
+    fb.update!(status: "approved")
+    assert_equal "dev", fb.stage
+  end
+
   test "a merge in flight can't be sent back" do
     fb = item("merge_requested", merge_requested_sha: "a" * 40)
     post reset_admin_feedback_path(fb)

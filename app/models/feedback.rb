@@ -161,8 +161,14 @@ class Feedback < ApplicationRecord
   def reset!
     raise InvalidTransition, "It's merging now; wait for it to finish." if status == "merge_requested"
     update!(status: "received", plan: nil, planned_at: nil, agent_error: nil, agent_claimed_at: nil,
-            closed_at: nil)
+            closed_at: nil, pr_number: nil, pr_url: nil, pr_head_sha: nil, pr_checks: nil,
+            pr_summary: nil, pr_ready_at: nil, merge_requested_sha: nil, merge_requested_at: nil,
+            ship_note: nil)
   end
+
+  # Only in Pre-dev or Done: an item in Dev through Deploy may have an agent
+  # mid-build or an open PR that would be orphaned.
+  def deletable? = stage.in?(%w[pre_dev done])
 
   # Clears a stuck item so the mini tries its step again.
   def retry!

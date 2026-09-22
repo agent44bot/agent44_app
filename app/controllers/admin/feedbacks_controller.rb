@@ -51,12 +51,22 @@ module Admin
     end
 
     def destroy
+      unless @feedback.deletable?
+        return redirect_to admin_feedback_path(@feedback),
+                           alert: "It's in #{@feedback.stage_label}. Send it back to Pre-dev or finish it first."
+      end
       @feedback.destroy!
       redirect_to admin_feedbacks_path, notice: "Deleted."
     end
 
-    # Back to Pre-dev for a fresh plan (also reopens a Done item).
-    def reset = transition("Back in Pre-dev. The agent will re-plan it.") { @feedback.reset! }
+    # Back to Pre-dev for a fresh plan (also reopens a Done item). An open PR
+    # is forgotten here, so the notice says to close it on GitHub.
+    def reset
+      open_pr = @feedback.pr_number unless @feedback.done?
+      notice = "Back in Pre-dev. The agent will re-plan it."
+      notice += " Close PR ##{open_pr} on GitHub." if open_pr
+      transition(notice) { @feedback.reset! }
+    end
 
     # Work on it (1).
     def approve = transition("Approved. The agent will start building.") { @feedback.approve! }

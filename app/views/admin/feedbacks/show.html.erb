@@ -144,7 +144,9 @@
 
   <div class="flex items-center justify-between gap-3 pt-2">
     <%= link_to "Edit message", edit_admin_feedback_path(fb), class: "text-sm text-gray-400 hover:text-orange-400" %>
-    <%= button_to "Delete", admin_feedback_path(fb), method: :delete, class: "text-sm text-red-400 hover:text-red-300",
-          form: { data: { turbo_confirm: "Delete this item and its files? This can't be undone." } } %>
+    <% if fb.deletable? %>
+      <%= button_to "Delete", admin_feedback_path(fb), method: :delete, class: "text-sm text-red-400 hover:text-red-300",
+            form: { data: { turbo_confirm: "Delete this item and its files? This can't be undone." } } %>
+    <% end %>
   </div>
 </div>
