@@ -25,6 +25,7 @@ class FeedbacksTest < ActionDispatch::IntegrationTest
     assert_select "input[type=hidden][name='feedback[page_url]'][value=?]", "/#{@ws.slug}/packets/90/edit?tab=1"
     assert_select "textarea[name='feedback[message]']"
     assert_select "input[type=file][name='feedback[attachments][]'][multiple]"
+    assert_select "p", text: /We read every one, and you will get an email when it is live\./
   end
 
   test "an outside URL is never kept as the page" do
