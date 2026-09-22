@@ -1,0 +1,8 @@
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Hi <%= @feedback.user.display_name.presence || "there" %>,</p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">The feedback you sent on <%= @feedback.created_at.strftime("%b %-d") %> is done and live now.</p>
+<% if @feedback.reply.present? %>
+  <p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;white-space:pre-line;"><%= @feedback.reply %></p>
+<% end %>
+<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#6b7280;white-space:pre-line;border-left:3px solid #e5e7eb;padding-left:12px;"><%= @feedback.message %></div>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Take a look and let us know if anything's off. <%= link_to "Your feedback", @list_url, style: "color:#ea580c;" %></p>
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">Cheers,<br>Rich</p>

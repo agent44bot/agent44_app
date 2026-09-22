@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_180000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -178,6 +178,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_170000) do
     t.string "vendor", null: false
     t.index ["fingerprint"], name: "index_expenses_on_fingerprint", unique: true
     t.index ["tax_year"], name: "index_expenses_on_tax_year"
+  end
+
+  create_table "feedbacks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "message", null: false
+    t.string "page_url"
+    t.text "reply"
+    t.datetime "shipped_at"
+    t.string "status", default: "received", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.integer "workspace_id"
+    t.index ["status", "created_at"], name: "index_feedbacks_on_status_and_created_at"
+    t.index ["user_id"], name: "index_feedbacks_on_user_id"
+    t.index ["workspace_id"], name: "index_feedbacks_on_workspace_id"
   end
 
   create_table "fleet_requests", force: :cascade do |t|
@@ -938,6 +953,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_170000) do
   add_foreign_key "connect_chat_messages", "workspaces"
   add_foreign_key "credentials", "users"
   add_foreign_key "device_tokens", "users"
+  add_foreign_key "feedbacks", "users"
+  add_foreign_key "feedbacks", "workspaces"
   add_foreign_key "fleet_requests", "users"
   add_foreign_key "grocery_receipts", "users", column: "created_by_id"
   add_foreign_key "grocery_receipts", "workspaces"

@@ -1,0 +1,9 @@
+Feedback from <%= @feedback.user.display_identifier %> (<%= @feedback.user.email_address %>)
+<% if @feedback.workspace %>Workspace: <%= @feedback.workspace.name %>
+<% end %><% if @feedback.page_url.present? %>From: <%= @feedback.page_url %>
+<% end %>
+<%= @feedback.message %>
+
+<% if @feedback.attachments.attached? %><%= pluralize(@feedback.attachments.size, "file") %> <%= @attached ? "attached." : "too large to attach, see the admin page." %>
+<% end %>
+Admin: <%= @admin_url %>

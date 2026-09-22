@@ -1,0 +1,12 @@
+Hi <%= @feedback.user.display_name.presence || "there" %>,
+
+The feedback you sent on <%= @feedback.created_at.strftime("%b %-d") %> is done and live now.
+<% if @feedback.reply.present? %>
+<%= @feedback.reply %>
+<% end %>
+"<%= @feedback.message %>"
+
+Take a look and let us know if anything's off: <%= @list_url %>
+
+Cheers,
+Rich

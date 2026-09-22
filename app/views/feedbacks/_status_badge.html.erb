@@ -1,0 +1,5 @@
+<% color = { "received" => "bg-gray-800 text-gray-300 border-gray-700",
+             "in_progress" => "bg-amber-950/60 text-amber-300 border-amber-800",
+             "shipped" => "bg-emerald-950/60 text-emerald-300 border-emerald-800",
+             "closed" => "bg-gray-900 text-gray-500 border-gray-800" }.fetch(feedback.status, "") %>
+<span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full border <%= color %>"><%= feedback.status_label %></span>

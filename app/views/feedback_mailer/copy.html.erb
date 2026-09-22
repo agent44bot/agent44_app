@@ -1,0 +1,15 @@
+<h2 style="font-family:Helvetica,Arial,sans-serif;">Feedback from <%= @feedback.user.display_identifier %></h2>
+<p style="font-family:Helvetica,Arial,sans-serif;color:#6b7280;font-size:13px;">
+  <%= @feedback.user.email_address %>
+  <% if @feedback.workspace %> · <%= @feedback.workspace.name %><% end %>
+  · <%= @feedback.created_at.strftime("%b %-d, %Y %-l:%M %p") %>
+  <% if @feedback.page_url.present? %><br>From <%= @feedback.page_url %><% end %>
+</p>
+<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;white-space:pre-line;border-left:3px solid #ea580c;padding-left:12px;"><%= @feedback.message %></div>
+<% if @feedback.attachments.attached? %>
+  <p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#6b7280;">
+    <%= pluralize(@feedback.attachments.size, "file") %>
+    <%= @attached ? "attached to this email." : "too large to attach here, open them on the admin page." %>
+  </p>
+<% end %>
+<p><%= link_to "Open in admin", @admin_url, style: "display:inline-block;padding:10px 18px;background:#ea580c;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;" %></p>
