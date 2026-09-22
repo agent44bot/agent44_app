@@ -1,5 +1,8 @@
 # Started by bin/feedback-agent (not directly). Kept out of lib/ so Rails
 # never eager-loads a file that runs a loop.
+# Feedback text and Claude's output are UTF-8 whatever the locale says.
+Encoding.default_external = Encoding::UTF_8
+Encoding.default_internal = Encoding::UTF_8
 require_relative "../lib/feedback_agent"
 %w[api shell prompts worker].each { |f| require_relative "../lib/feedback_agent/#{f}" }
 
