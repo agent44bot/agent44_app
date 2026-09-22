@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# The Mac mini feedback agent (docs/feedback_pipeline.md).
+#
+#   bin/feedback-agent            # run forever (what launchd does)
+#   bin/feedback-agent --once     # one pass over the queue, then exit
+#   bin/feedback-agent install    # install + start the launchd agent
+#   bin/feedback-agent uninstall  # stop + remove it
+#
+# Secrets come from ~/.agent44_smoke_env (API_TOKEN), like the smoke scripts.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LABEL="ai.agent44.feedback-agent"
+PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+LOG_DIR="$HOME/.feedback-agent"
+
+case "${1:-}" in
+  install)
+    mkdir -p "$LOG_DIR"
+    sed -e "s#__ROOT__#$ROOT#g" -e "s#__HOME__#$HOME#g" "$ROOT/config/launchd/$LABEL.plist" > "$PLIST"
+    launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+    launchctl bootstrap "gui/$(id -u)" "$PLIST"
+    echo "installed $LABEL; logs in $LOG_DIR/agent.log"
+    exit 0 ;;
+  uninstall)
+    launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+    rm -f "$PLIST"
+    echo "removed $LABEL"
+    exit 0 ;;
+esac
+
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+if [[ -f "$HOME/.agent44_smoke_env" ]]; then
+  source "$HOME/.agent44_smoke_env"
+else
+  echo "ERROR: ~/.agent44_smoke_env not found (needs API_TOKEN)." >&2
+  exit 1
+fi
+export PATH="$HOME/.local/bin:$HOME/.fly/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+exec ruby "$ROOT/bin/feedback_agent_loop.rb" "$@"
