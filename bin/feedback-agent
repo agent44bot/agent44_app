@@ -6,7 +6,7 @@
 #   bin/feedback-agent install    # install + start the launchd agent
 #   bin/feedback-agent uninstall  # stop + remove it
 #
-# Secrets come from ~/.agent44_smoke_env (API_TOKEN), like the smoke scripts.
+# API_TOKEN is fetched from the Fly app at start, like bin/smoke.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LABEL="ai.agent44.feedback-agent"
@@ -28,12 +28,23 @@ case "${1:-}" in
     exit 0 ;;
 esac
 
+# rvm's scripts aren't written for `set -u`.
+set +u
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
-if [[ -f "$HOME/.agent44_smoke_env" ]]; then
-  source "$HOME/.agent44_smoke_env"
-else
-  echo "ERROR: ~/.agent44_smoke_env not found (needs API_TOKEN)." >&2
+set -u
+export PATH="$HOME/.local/bin:$HOME/.fly/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# launchd starts with no locale; without UTF-8, Ruby reads feedback text as
+# US-ASCII and chokes on the first curly quote or emoji.
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
+# The live API token, fetched from the Fly app at start like bin/smoke does
+# (so nothing sits on disk, and it can't go stale). $API_TOKEN wins if set.
+if [[ -z "${API_TOKEN:-}" ]]; then
+  API_TOKEN="$(fly ssh console -C 'printenv API_TOKEN' --app agent44-app 2>/dev/null | tr -d '\r\n')"
+fi
+if [[ -z "${API_TOKEN:-}" ]]; then
+  echo "ERROR: could not fetch API_TOKEN from Fly (is 'fly auth' current?)" >&2
   exit 1
 fi
-export PATH="$HOME/.local/bin:$HOME/.fly/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+export API_TOKEN
 exec ruby "$ROOT/bin/feedback_agent_loop.rb" "$@"
