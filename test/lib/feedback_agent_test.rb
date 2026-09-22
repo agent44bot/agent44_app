@@ -81,7 +81,9 @@ class FeedbackAgentTest < ActiveSupport::TestCase
     assert_includes denied, "Bash(gh:*)"
     assert_includes cmd, "WebFetch"
     assert_equal "default", cmd[cmd.index("--permission-mode") + 1]
-    assert claude[:env].key?("ANTHROPIC_API_KEY") && claude[:env]["ANTHROPIC_API_KEY"].nil?, "the API key is unset"
+    %w[ANTHROPIC_API_KEY API_TOKEN BREVO_SMTP_KEY].each do |k|
+      assert claude[:env].key?(k) && claude[:env][k].nil?, "#{k} is unset for the agent"
+    end
     assert_match "<feedback>", cmd[2]
     assert_match "Add a gap between ingredient lists", cmd[2]
     assert_match "1-shot.png", cmd[2], "attachments are handed over by path"
@@ -102,7 +104,7 @@ class FeedbackAgentTest < ActiveSupport::TestCase
   test "build: commits on feedback/<id>, pushes, opens the PR, reports pending then green" do
     item = @item.merge("step" => "build", "plan" => "Add a spacer row.")
     revs = %w[base111 head222]
-    checks_json = JSON.generate([ { "name" => "test", "bucket" => "pass" }, { "name" => "claude / auto-review", "bucket" => "pass" } ])
+    checks_json = JSON.generate(FeedbackAgent::Worker::REQUIRED_CHECKS.map { |n| { "name" => n, "bucket" => "pass" } })
     w = worker([ item ], [
       [ starts("git", "rev-parse", "HEAD"), ->(_) { revs.shift } ],
       [ starts("git", "status", "--porcelain"), "" ],
@@ -119,6 +121,18 @@ class FeedbackAgentTest < ActiveSupport::TestCase
     assert_equal "acceptEdits", cmd[cmd.index("--permission-mode") + 1]
     assert_includes cmd, "Bash(bin/rails test:*)"
     refute_includes cmd[(cmd.index("--allowedTools") + 1)...cmd.index("--disallowedTools")], "Bash(gh:*)"
+    allowed = cmd[(cmd.index("--allowedTools") + 1)...cmd.index("--disallowedTools")]
+    wt = File.join(@work, "worktrees", "build-5")
+    assert_includes allowed, "Edit(/#{wt}/**)", "edits are scoped to the worktree (//abs path)"
+    refute_includes allowed, "Edit", "never a bare, unscoped Edit"
+    refute_includes allowed, "Write"
+    settings = JSON.parse(cmd[cmd.index("--settings") + 1])
+    assert settings.dig("sandbox", "enabled")
+    assert settings.dig("sandbox", "failIfUnavailable")
+    assert_equal [], settings.dig("sandbox", "network", "allowedDomains"), "no network for the agent's commands"
+    assert_includes settings.dig("sandbox", "filesystem", "denyRead"), "~/.agent44_smoke_env"
+    assert_includes settings.dig("sandbox", "filesystem", "allowWrite"), wt
+    assert settings.dig("permissions", "blockReadsOutsideWorkingDirectories")
     assert @sh.ran?("git", "push", "-u", "origin", "feedback/5")
 
     prs = @api.calls.select { |c| c.first == :pr }
@@ -126,6 +140,27 @@ class FeedbackAgentTest < ActiveSupport::TestCase
     assert_equal 540, prs.last.last[:number]
     assert_equal "head222", prs.last.last[:head_sha]
     assert_equal "Lists now have a gap.", prs.last.last[:ship_note]
+  end
+
+  test "a PR isn't Ready to merge while any CI check is still running" do
+    item = @item.merge("step" => "build", "plan" => "x")
+    revs = %w[a b]
+    polls = [
+      FeedbackAgent::Worker::REQUIRED_CHECKS.map { |n| { "name" => n, "bucket" => n == "lint" ? "pending" : "pass" } },
+      FeedbackAgent::Worker::REQUIRED_CHECKS.first(2).map { |n| { "name" => n, "bucket" => "pass" } }, # others not listed yet
+      FeedbackAgent::Worker::REQUIRED_CHECKS.map { |n| { "name" => n, "bucket" => "pass" } }
+    ]
+    w = worker([ item ], [
+      [ starts("git", "rev-parse", "HEAD"), ->(_) { revs.shift } ],
+      [ starts("git", "status", "--porcelain"), "" ],
+      [ starts("claude"), claude_json("title" => "t", "summary" => "s", "ship_note" => "n") ],
+      [ starts("gh", "pr", "create"), "https://github.com/agent44bot/agent44_app/pull/542" ],
+      [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "b") ],
+      [ starts("gh", "pr", "checks"), ->(_) { JSON.generate(polls.shift) } ]
+    ])
+    assert_equal :build, w.tick
+    assert_empty polls, "it kept polling until every check had passed"
+    assert_equal "green", @api.calls.last.last[:checks]
   end
 
   test "build with no changes is reported stuck" do
@@ -149,7 +184,7 @@ class FeedbackAgentTest < ActiveSupport::TestCase
       [ starts("claude"), claude_json("title" => "t", "summary" => "s", "ship_note" => "n") ],
       [ starts("gh", "pr", "create"), "https://github.com/agent44bot/agent44_app/pull/541" ],
       [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "b") ],
-      [ starts("gh", "pr", "checks"), JSON.generate([ { "name" => "test", "bucket" => "fail" }, { "name" => "claude / auto-review", "bucket" => "pass" } ]) ]
+      [ starts("gh", "pr", "checks"), JSON.generate(FeedbackAgent::Worker::REQUIRED_CHECKS.map { |n| { "name" => n, "bucket" => n == "test" ? "fail" : "pass" } }) ]
     ])
     assert_equal :error, w.tick
     assert_match "checks failed on PR #541: test", @api.calls.last.last[:message]
