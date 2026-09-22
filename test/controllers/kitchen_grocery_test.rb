@@ -222,7 +222,7 @@ class KitchenGroceryTest < ActionDispatch::IntegrationTest
     frame_grocery
     assert_response :success
     assert_match "2 T", response.body
-    assert_match "1/2 c", response.body
+    assert_match "½ c", response.body
     assert_no_match(/2 Tablespoons/, response.body)
     assert_no_match(%r{1/2 cup}, response.body)
   end

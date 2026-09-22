@@ -59,20 +59,47 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size, "one page for full + one for station, no overflow pages"
   end
 
-  # Every page is labeled: the full-quantity pass is "Double" (station amount
-  # is half), the scaled pass is the packet's station_label. (PDF text is
-  # subset-TTF glyphs, so we can't grep the bytes; this pins the label and
-  # the page count proves both passes still render.)
-  test "full pages are labeled Double and both passes render" do
-    assert_equal "Double", KitchenPacketPdf::DUAL_STATION_LABEL
+  # Only the half-amount pass is labeled; the full amounts are the kitchen's
+  # standard and print with no corner label (Caitlin, 2026-09-22).
+  test "full pages carry no label, half pages the station label, and both passes render" do
     h = packet([
       { "title" => "Rice",
         "ingredients" => [ { "qty" => "4 c", "station_qty" => "2 c", "item" => "Rice", "section" => nil } ],
         "directions" => [ { "section" => nil, "steps" => [ "Cook." ] } ] }
     ])
+    assert_equal [ [ nil, false ], [ h.station_label, true ] ], KitchenPacketPdf.new(h).send(:passes)
     bytes = KitchenPacketPdf.new(h).render
-    # 1 recipe x (dual + single) = 2 pages.
+    # 1 recipe x (full + single) = 2 pages.
     assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size
+  end
+
+  # Fresh Bagels (packet 104, 2026-09-22): sub-headed directions made Prawn's
+  # make_table height come up ~50pt short, so the recipe "fit" and spilled
+  # onto a second page. Measured by a real draw now.
+  test "a recipe with sub-headed directions stays on one page per pass" do
+    long = "Lightly grease a bowl with oil or nonstick spray. Place dough ball in bowl, turning it to coat all sides in the oil. Cover the bowl with a clean kitchen towel. Allow the dough to rise at room temperature for about 40 minutes."
+    directions = [ { "section" => nil, "steps" => [ "Preheat oven to 425." ] } ] +
+      [ "Prepare the dough", "Shape the bagels", "Water bath" ].map { |sec| { "section" => sec, "steps" => [ long, long ] } }
+    ingredients = (1..8).map { |i| { "qty" => "#{i} c", "station_qty" => "1 c", "item" => "Item #{i}", "section" => i > 6 ? "Egg Wash" : nil } }
+    bytes = KitchenPacketPdf.new(packet([ { "title" => "Fresh Bagels", "ingredients" => ingredients, "directions" => directions } ])).render
+    assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size
+  end
+
+  test "an oversized recipe drops below the everyday 8pt floor rather than spill" do
+    ingredients = (1..36).map { |i| { "qty" => "#{i} c", "station_qty" => "1 c", "item" => "Ingredient number #{i}", "section" => nil } }
+    steps = (1..20).map { |i| "Do step number #{i}, which has a reasonably long sentence to force wrapping onto the next line." }
+    bytes = KitchenPacketPdf.new(packet([ { "title" => "Huge", "ingredients" => ingredients,
+                                            "directions" => [ { "section" => nil, "steps" => steps } ] } ])).render
+    assert_equal 2, bytes.scan(%r{/Type\s*/Page[^s]}).size
+  end
+
+  test "a blank row separates ingredient sub-lists, but not before the first" do
+    pdf = KitchenPacketPdf.new(packet([]))
+    rows = pdf.send(:ingredient_rows, { "ingredients" => [
+      { "qty" => "1 lb", "item" => "Chicken", "section" => "Chicken" },
+      { "qty" => "1 c", "item" => "Tomatoes", "section" => "Sauce" } ] }, false)
+    kinds = rows.map { |r| r.first.is_a?(Hash) ? (r.first[:content].empty? ? :gap : :heading) : :item }
+    assert_equal %i[heading item gap heading item], kinds
   end
 
   test "title size and ingredient column follow the packet's layout settings" do
@@ -194,10 +221,8 @@ class KitchenPacketPdfTest < ActiveSupport::TestCase
     assert_equal 2, page_count(bytes), "one page per recipe, no second pass"
   end
 
-  test "with one pass there is no Double label to contrast against" do
+  test "with one pass there are no labels at all" do
     h = packet(two_recipes)
-    pdf = KitchenPacketPdf.new(h)
-    assert_equal [ [ KitchenPacketPdf::DUAL_STATION_LABEL, false ], [ h.station_label, true ] ], pdf.send(:passes)
 
     h.layout = { "single_pages" => "0" }
     assert_equal [ [ nil, false ] ], KitchenPacketPdf.new(h).send(:passes)

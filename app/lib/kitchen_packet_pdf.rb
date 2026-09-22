@@ -24,6 +24,9 @@ class KitchenPacketPdf
   # "Fill the page" may go bigger than the everyday cap, so a short recipe is
   # not a small block at the top of an empty page.
   FILL_SIZES = [ 14, 13, *BODY_SIZES ].freeze
+  # Below the everyday floor, only when nothing else fits: a small page beats
+  # one ingredient stranded on a second page (Caitlin, 2026-09-22).
+  LAST_RESORT_SIZES = [ 7.5, 7, 6.5, 6 ].freeze
 
   # Per-recipe page spacing (Caitlin, 2026-09-10: short recipes looked
   # "crammed to the top"). Each setting is [gap under the title, vertical cell
@@ -57,11 +60,11 @@ class KitchenPacketPdf
   # fallback if the file is missing so the PDF always builds.
   HEADER_LOGO = Rails.root.join("app/assets/images/nyk/nyk_header.png").freeze
   FOOTER_BAND = 40 # points reserved at the page bottom for the footer
+  SECTION_GAP = 10 # points of blank space before the second and later ingredient sub-lists
 
-  # Label for the full-quantity pages (the station amount is half, so the full
-  # batch is two stations' worth). "Double" / "Single", no "station": Lora and
-  # Caitlin, 2026-09-09.
-  DUAL_STATION_LABEL = "Double".freeze
+  # Only the half-amount pages are labeled ("Single"). The full amounts are
+  # the kitchen's standard, so those pages carry no label at all: Caitlin,
+  # 2026-09-22, a "Double" in the corner confused staff and guests.
 
   VULGAR = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞⅐⅑⅒".freeze
 
@@ -87,14 +90,13 @@ class KitchenPacketPdf
 
   private
 
-  # The full amounts, then the half amounts. A packet with the half-amount
-  # pages switched off prints the full amounts only, and then the "Double"
-  # label would be the only thing on the page saying so, which reads as a
-  # mistake when there is nothing to contrast it with -- so it is dropped too.
+  # The full amounts (unlabeled), then the half amounts, labeled with the
+  # packet's station_label. With the half-amount pages switched off it is the
+  # full amounts only.
   def passes
     return [ [ nil, false ] ] unless @packet.single_pages?
 
-    [ [ DUAL_STATION_LABEL, false ], [ @packet.station_label, true ] ]
+    [ [ nil, false ], [ @packet.station_label, true ] ]
   end
 
   def new_document
@@ -214,6 +216,9 @@ class KitchenPacketPdf
     Array(recipe["ingredients"]).each do |ing|
       section = ing["section"]
       if section.present? && section != last_section
+        # A blank line between one sub-list and the next ("Chicken:" ...,
+        # then "Sauce:"), not before the first (Caitlin, 2026-09-22).
+        rows << [ { content: "", colspan: 2, height: SECTION_GAP } ] if rows.any?
         rows << [ { content: section_heading(section), colspan: 2, font_style: :bold } ]
       end
       last_section = section
@@ -311,6 +316,7 @@ class KitchenPacketPdf
     tall_h = [ ih, dh ].max
     tall_n = (ih >= dh ? broken : dir_rows).size
     leftover = avail_h - tall_h
+    leftover -= column_label_height(doc, size)
     return [ size, broken, pad, 0 ] if leftover <= 0 || tall_n.zero?
 
     extra_gap = (leftover * 0.25).floor
@@ -320,7 +326,7 @@ class KitchenPacketPdf
     fill_pad = (pad + (target_h - tall_h) / (2.0 * tall_n)).clamp(pad, MAX_PAD)
     ih = table_height(doc, broken, ing_widths(doc, broken, ing_w, size), size, pad: ing_pad(fill_pad))
     dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: dir_pad(fill_pad))
-    return [ size, broken, pad, 0 ] if [ ih, dh ].max > avail_h - extra_gap
+    return [ size, broken, pad, 0 ] if [ ih, dh ].max > avail_h - extra_gap - column_label_height(doc, size)
     [ size, broken, fill_pad, extra_gap ]
   end
 
@@ -329,25 +335,41 @@ class KitchenPacketPdf
   # applied, so a forced break can never add a line the fit did not budget.
   def fit_size(doc, ing_rows, dir_rows, ing_w, dir_w, avail_h, sizes: BODY_SIZES, pad: SPACING["normal"][:pad])
     broken = nil
-    sizes.each do |size|
+    (sizes + LAST_RESORT_SIZES).each do |size|
       # The name column is measured at this size, because the amount column
       # (and so the room left for names) depends on the size too.
       item_w = ing_widths(doc, ing_rows, ing_w, size)[1] - AMOUNT_GUTTER
       broken = keep_parentheticals(doc, ing_rows.map(&:dup), item_w, size)
       ih = table_height(doc, broken, ing_widths(doc, broken, ing_w, size), size, pad: ing_pad(pad))
       dh = table_height(doc, dir_rows, dir_widths(dir_w, size), size, pad: dir_pad(pad))
-      return [ size, broken ] if [ ih, dh ].max <= avail_h
+      return [ size, broken ] if [ ih, dh ].max <= avail_h - column_label_height(doc, size)
     end
-    [ sizes.last, broken || ing_rows ]
+    [ LAST_RESORT_SIZES.last, broken || ing_rows ]
   end
 
+  # Height of a column's table, measured by drawing it on a scratch page.
+  # Prawn's make_table(...).height undercounts rows with a colspan cell (the
+  # section headings), which let a recipe with sub-headed directions "fit" and
+  # then spill onto a second page (Fresh Bagels, 2026-09-22).
   def table_height(doc, rows, widths, size, pad: SPACING["normal"][:pad])
     return 0 if rows.blank?
-    doc.make_table(rows, column_widths: widths,
-                         cell_style: { borders: [], padding: [ pad, 6, pad, 0 ], size: size }).height
+    scratch = new_document
+    top = scratch.cursor
+    scratch.table(rows, column_widths: widths,
+                        cell_style: { borders: [], padding: [ pad, AMOUNT_GUTTER, pad, 0 ], size: size, valign: :top })
+    return 1_000_000 if scratch.page_count > 1
+    top - scratch.cursor
   rescue StandardError
     1_000_000
   end
+
+  # The "Ingredients:" / "Directions:" label and the gap under it, which sit
+  # above each table and so come out of the same page budget.
+  def column_label_height(doc, size)
+    doc.height_of("Ingredients:", size: column_label_size(size), style: :bold) + 4
+  end
+
+  def column_label_size(size) = [ size + 2, 13 ].min
 
   def render_ingredients(doc, rows, ing_w, size, pad: SPACING["normal"][:pad])
     underlined(doc, "Ingredients", size)
@@ -366,7 +388,7 @@ class KitchenPacketPdf
   end
 
   def underlined(doc, label, size)
-    doc.formatted_text [ { text: "#{label}:", styles: [ :bold, :underline ], size: [ size + 2, 13 ].min } ]
+    doc.formatted_text [ { text: "#{label}:", styles: [ :bold, :underline ], size: column_label_size(size) } ]
   end
 
   # ---- footer ----

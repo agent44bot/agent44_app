@@ -34,7 +34,64 @@ module KitchenUnits
     s = s.gsub(/\bt\b/, "tsp")
     s = s.gsub(/\bC\b/, "c")
 
+    s = fraction_glyphs(s)
     s.gsub(/\s{2,}/, " ").strip
+  end
+
+  # Typed fractions and decimals -> the glyphs the rest of the packet uses, so
+  # "1/2 tsp", "1 1/2 T" and "1.5 T" print as "½ tsp", "1½ T" (Caitlin's
+  # 2026-09-22 packet mixed both). Only the common kitchen fractions; anything
+  # else ("2/5", "1.3") is left as typed.
+  TYPED_FRACTIONS = {
+    "1/2" => "½", "1/3" => "⅓", "2/3" => "⅔", "1/4" => "¼", "3/4" => "¾",
+    "1/8" => "⅛", "3/8" => "⅜", "5/8" => "⅝", "7/8" => "⅞"
+  }.freeze
+  DECIMAL_FRACTIONS = { "5" => "½", "25" => "¼", "75" => "¾" }.freeze
+
+  def self.fraction_glyphs(s)
+    s = s.gsub(%r{(?<![\d/.])(?:(\d+)[\s-]+)?(\d/\d)(?![\d/])}) do
+      glyph = TYPED_FRACTIONS[$2]
+      glyph ? "#{$1 unless $1.to_i.zero?}#{glyph}" : $&
+    end
+    # Decimals only on volumes and counts: a weight ("1.5 kg") keeps its
+    # number as written.
+    s.gsub(/(?<![\d.])(\d+)\.(5|25|75)0*(?![\d.])(?!\s*(?:kg|g|oz|lb|ml|l)\b)/i) do
+      "#{$1 unless $1.to_i.zero?}#{DECIMAL_FRACTIONS[$2]}"
+    end
+  end
+
+  # Teaspoons per standardized volume unit, for comparing amounts across units.
+  TSP_PER_UNIT = { "c" => 48.0, "T" => 3.0, "tsp" => 1.0 }.freeze
+
+  # True when a single-station amount is clearly not half of the full amount
+  # ("1/2 tsp" full, "⅛ tsp" single), e.g. the full amount was edited and the
+  # single one left stale. Compares across c/T/tsp and sums "¼ c + 2 T".
+  # Anything it can't read (blank, "to taste", mismatched or unknown units)
+  # is not flagged.
+  def self.half_mismatch?(full, single)
+    f = amount_in_tsp(standardize(full))
+    h = amount_in_tsp(standardize(single))
+    return false unless f && h && f[1] == h[1] && f[0].positive?
+
+    (h[0] - f[0] / 2).abs > f[0] * 0.05
+  end
+
+  # [amount, :volume | unit word | nil] for a qty string, or nil when a part
+  # has no leading number.
+  def self.amount_in_tsp(text)
+    parts = text.to_s.split("+").map(&:strip)
+    return nil if parts.empty? || parts.any?(&:empty?)
+
+    kinds = []
+    total = parts.sum do |part|
+      amount = leading_amount(part) or return nil
+      unit = part[/\b(c|T|tsp)\b/, 1]
+      kinds << (unit ? :volume : part.sub(/\A[\d\s.\/#{VULGAR_FRACTIONS.keys.join}-]+/, "")[/\A[a-z]+/i])
+      amount * (unit ? TSP_PER_UNIT[unit] : 1)
+    end
+    return nil if kinds.uniq.size > 1
+
+    [ total, kinds.first ]
   end
 
   # Approximate grams of all-purpose flour per standardized volume unit. Flour
