@@ -39,6 +39,16 @@ class HomeAccessTest < ActionDispatch::IntegrationTest
     assert_select "h1 span.text-purple-400", false
   end
 
+  # Feedback #2 (Rich, 2026-09-22): the phone-only QR pinned under the hero
+  # is gone. The only QR left is the desktop one beside the App Store badge.
+  test "the page has one QR, the desktop one beside the badge, even for the admin" do
+    sign_in_as(@admin)
+    get "/"
+    assert_select "a[aria-label='Scan or tap to visit agent44labs.ai']", count: 1
+    assert_select "section.sm\\:hidden svg", false
+    assert_no_match(/qr-code-container/, response.body)
+  end
+
   test "non-admin is still sandboxed off other marketing pages" do
     sign_in_as(@non_admin)
     get "/jobs"
