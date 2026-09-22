@@ -10,7 +10,7 @@ class KitchenUnitsTest < ActiveSupport::TestCase
     assert_std "1 T",     "1 tablespoon"
     assert_std "3 tsp",   "3 teaspoons"
     assert_std "1 tsp",   "1 Teaspoon"
-    assert_std "1/2 c",   "1/2 cup"
+    assert_std "½ c",     "1/2 cup"
     assert_std "2 c",     "2 Cups"
   end
 
@@ -96,5 +96,31 @@ class KitchenUnitsTest < ActiveSupport::TestCase
     assert_nil KitchenUnits.flour_grams("to taste")
     assert_nil KitchenUnits.flour_grams("")
     assert_nil KitchenUnits.flour_grams(nil)
+  end
+
+  test "typed fractions and volume decimals print as fraction glyphs (Caitlin, 2026-09-22)" do
+    assert_std "½ tsp", "1/2 tsp"
+    assert_std "¾ c",   "3/4 c"
+    assert_std "1½ T",  "1 1/2 T"
+    assert_std "1½ T",  "1.5 T"
+    assert_std "2½ c",  "2.50 c"
+    assert_std "⅛ tsp", "1/8 tsp"
+    assert_std "2/5 c", "2/5 c"     # not a kitchen fraction, left as typed
+    assert_std "1.3 c", "1.3 c"
+    assert_std "2-3 c", "2-3 c"     # a range, not a fraction
+    assert_std "1.5 kg", "1.5 kg"   # weights keep their decimals
+  end
+
+  test "half_mismatch? flags a single amount that is not half the full one" do
+    assert KitchenUnits.half_mismatch?("1/2 tsp", "⅛ tsp")   # the Street Corn packet
+    assert KitchenUnits.half_mismatch?("1 c", "3 T")
+    refute KitchenUnits.half_mismatch?("1/2 tsp", "¼ tsp")
+    refute KitchenUnits.half_mismatch?("1 T", "1½ tsp")       # across units
+    refute KitchenUnits.half_mismatch?("3/4 c", "¼ c + 2 T")  # summed parts
+    refute KitchenUnits.half_mismatch?("1 clove", "½ clove")
+    refute KitchenUnits.half_mismatch?("2-3", "1-2")
+    refute KitchenUnits.half_mismatch?("1 lb", "8 oz")        # unreadable units: not flagged
+    refute KitchenUnits.half_mismatch?("", "")
+    refute KitchenUnits.half_mismatch?("Salt, to taste", "")
   end
 end

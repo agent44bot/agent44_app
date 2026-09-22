@@ -267,8 +267,8 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     ings = packet.recipes.first["ingredients"]
     assert_equal "2 T", ings[0]["qty"]
     assert_equal "1 T", ings[0]["station_qty"]
-    assert_equal "1/2 c", ings[1]["qty"]
-    assert_equal "1/4 c", ings[1]["station_qty"]
+    assert_equal "½ c", ings[1]["qty"]
+    assert_equal "¼ c", ings[1]["station_qty"]
   end
 
   test "update cleans ingredient-name punctuation artifacts and sentence-cases on save" do

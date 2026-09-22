@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-09-22
+  note: Recipe handouts, four fixes from Caitlin. Every recipe now stays on one page (a long recipe shrinks its text instead of spilling onto a second page). Ingredient sub-lists like Chicken and Sauce get a blank line between them. The full-amount pages no longer say Double in the corner, only the Single pages are labeled. Typed fractions like 1/2 and 1.5 print as ½ and 1½, and the recipe editor points out any Single amount that is not half of its full amount.
+
+- date: 2026-09-22
   note: Recipe handouts no longer print the station count line under the recipe title. The double and single station numbers still set the pull sheet amounts.
 
 - date: 2026-09-21
