@@ -97,15 +97,38 @@ only through the agent and Rich's Merge it.
   - `POST /api/v1/feedbacks/:id/shipped` with `sha`
   - `POST /api/v1/feedbacks/:id/error` with `message`
 
-**Mini (next PR)**
-- `bin/feedback-agent`: polls the queue (every minute, and immediately on a
-  push-style nudge later). For each item:
-  - plan: `claude -p` with read-only tools
-  - build: `claude -p` in a fresh `origin/main` worktree, then `gh pr create`
-  - merge: `gh pr merge --squash --match-head-commit`, then watch
-    `fly-deploy.yml` and run the two prod checks
-- A launchd agent (`ai.agent44.feedback-agent`) keeps it running. It uses the
-  mini's existing `gh`, `fly` and Claude Code logins.
+**Mini: `bin/feedback-agent`** (`lib/feedback_agent/`, launchd `ai.agent44.feedback-agent`)
+- Polls the queue every minute, and goes straight to the next item after
+  real work. One worker per machine (a lock file). Loads `API_TOKEN` from
+  `~/.agent44_smoke_env` like the smoke scripts. Runs Claude Code on the
+  mini's own login: `ANTHROPIC_API_KEY` is stripped so the app's API key
+  isn't billed.
+- **plan:** `claude -p` in a detached `origin/main` worktree with only
+  Read/Grep/Glob, attachments downloaded and passed with `--add-dir`, and
+  structured output `{plan, question}`.
+- **build:** a worktree on `feedback/<id>` (new from `origin/main`, or the
+  existing branch after Request changes or Retry). `claude -p` in
+  acceptEdits mode, allowed only edits, `bin/rails test`, rubocop,
+  brakeman and local git; `git push`, `gh`, `fly`, `curl` and the web are
+  denied. The worker commits any leftovers, pushes, opens the PR, reports
+  it as pending, waits for `test` and `claude / auto-review` to settle, and
+  reports green (or stuck with the failing checks).
+- **merge:** re-reads the PR from GitHub. It must be open, its head must be
+  the SHA Rich approved, and no checks may be failing. Then
+  `gh pr merge --squash --match-head-commit`, wait for the `fly-deploy.yml`
+  run on the merge commit, verify prod (200 and SolidQueue processes), and
+  report shipped.
+- Any failure is reported as stuck with the reason, and **Retry** re-runs
+  the step.
+
+Install and run on the mini:
+```sh
+bin/feedback-agent install     # launchd agent; logs in ~/.feedback-agent/agent.log
+bin/feedback-agent --once      # one pass by hand
+bin/feedback-agent uninstall
+```
+Set `FEEDBACK_AGENT_MODEL` to change the model (default `claude-opus-5-5`).
+A plan costs about $0.35; a build costs more, depending on size.
 
 ## Open items
 
