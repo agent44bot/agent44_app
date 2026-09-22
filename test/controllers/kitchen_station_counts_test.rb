@@ -166,17 +166,14 @@ class KitchenStationCountsTest < ActionDispatch::IntegrationTest
 
   # ---- packet ----
 
-  test "the packet prints each recipe's counts under its title, and nothing for a recipe with none set" do
+  test "the packet prints nothing under the title, even when station counts are set" do
     get print_nyk_packet_path(@packet, format: :pdf)
     assert_response :success
     assert_equal "application/pdf", response.media_type
 
     # Embedded-font text is glyph-encoded in the PDF bytes, so capture the
     # strings a recipe page draws instead (same trick as kitchen_packet_pdf_test).
-    texts = page_texts(RECIPES[1])
-    assert_equal texts.index("Chicken") + 1, texts.index("2 double stations, 2 single stations"), "counts sit right under the title"
-    assert_includes page_texts(RECIPES[0]), "4 double stations"
-    assert_no_match(/station/, page_texts(RECIPES[2]).join("\n"))
+    RECIPES.each { |r| assert_no_match(/station/, page_texts(r).join("\n")) }
   end
 
   def page_texts(recipe)

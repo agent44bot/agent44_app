@@ -8,6 +8,9 @@
 #   - date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
+- date: 2026-09-22
+  note: Recipe handouts no longer print the station count line under the recipe title. The double and single station numbers still set the pull sheet amounts.
+
 - date: 2026-09-21
   note: Pull sheets now work for classes that aren't on the website. A private booking, a camp or any class you add by hand can have a recipe packet and a pull sheet, same as a class from the calendar. When you add the class, put in how many people you are cooking for and the pull sheet scales the amounts to it. You can change that number later from the class on Sam's list.
 
