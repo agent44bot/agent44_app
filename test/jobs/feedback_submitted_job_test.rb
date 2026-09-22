@@ -32,6 +32,12 @@ class FeedbackSubmittedJobTest < ActiveJob::TestCase
     assert_match "Keep every recipe on one page", mail.html_part.body.to_s
   end
 
+  test "two files with the same name both reach the inbox copy" do
+    @fb.attachments.attach(io: file_fixture("sample_bottle.png").open, filename: "shot.png", content_type: "image/png")
+    mail = FeedbackMailer.copy(@fb, to: "x@example.com")
+    assert_equal [ "shot.png", "shot-2.png" ], mail.attachments.map(&:filename)
+  end
+
   test "the acknowledgement and Live emails go to the sender with no dashes" do
     [ FeedbackMailer.received(@fb), FeedbackMailer.shipped(@fb) ].each do |mail|
       assert_equal [ @user.email_address ], mail.to

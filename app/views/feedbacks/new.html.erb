@@ -1,7 +1,7 @@
 <% content_for :title, "Send feedback" %>
 
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <%= link_to "← Back", @feedback.page_url.presence || root_path,
+  <%= link_to "← Back", feedback_page_path(@feedback) || root_path,
         class: "inline-block text-sm text-gray-400 hover:text-orange-400 mb-3" %>
   <h1 class="text-2xl font-bold text-white mb-1">Send feedback</h1>
   <p class="text-sm text-gray-400 mb-6">

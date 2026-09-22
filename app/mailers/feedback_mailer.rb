@@ -9,7 +9,15 @@ class FeedbackMailer < ApplicationMailer
     @admin_url = admin_feedbacks_url(anchor: ActionView::RecordIdentifier.dom_id(feedback))
     @attached = feedback.attachments.sum { |a| a.blob.byte_size } <= ATTACH_LIMIT
     if @attached
-      feedback.attachments.each { |a| attachments[a.filename.to_s] = a.download }
+      # Two uploads named "image.jpg" (common from phones) must not overwrite
+      # each other, so repeats get a numbered name.
+      seen = Hash.new(0)
+      feedback.attachments.each do |a|
+        name = a.filename.to_s
+        seen[name] += 1
+        name = "#{a.filename.base}-#{seen[name]}.#{a.filename.extension}" if seen[name] > 1
+        attachments[name] = a.download
+      end
     end
     mail to: to,
          reply_to: feedback.user.email_address.presence || ApplicationMailer.default[:reply_to],

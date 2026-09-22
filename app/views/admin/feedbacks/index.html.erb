@@ -32,8 +32,8 @@
           </div>
 
           <p class="text-sm text-gray-200 whitespace-pre-line"><%= fb.message %></p>
-          <% if fb.page_url.present? %>
-            <p class="text-xs text-gray-500 mt-2">From <%= link_to fb.page_url, fb.page_url, class: "text-gray-400 underline hover:text-orange-400" %></p>
+          <% if (page = feedback_page_path(fb)) %>
+            <p class="text-xs text-gray-500 mt-2">From <%= link_to page, page, class: "text-gray-400 underline hover:text-orange-400" %></p>
           <% end %>
 
           <% if fb.attachments.attached? %>
