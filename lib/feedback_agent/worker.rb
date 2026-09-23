@@ -114,16 +114,25 @@ module FeedbackAgent
       id, number, sha = item["id"], item.dig("pr", "number"), item["merge_requested_sha"]
       raise "no PR or approved SHA to merge" unless number && sha
 
-      pr = gh_json("pr", "view", number.to_s, "--json", "headRefOid,state")
-      raise "PR ##{number} is #{pr['state']}, not open" unless pr["state"] == "OPEN"
-      raise "PR ##{number} moved to #{pr['headRefOid'][0, 7]} after Rich approved #{sha[0, 7]}" unless pr["headRefOid"] == sha
-      failed = failing_checks(number)
-      raise "checks not green on PR ##{number}: #{failed.join(', ')}" if failed.any?
+      pr = gh_json("pr", "view", number.to_s, "--json", "headRefOid,state,mergeCommit")
+      unless pr["headRefOid"] == sha
+        raise "PR ##{number} moved to #{pr['headRefOid'][0, 7]} after Rich approved #{sha[0, 7]}"
+      end
 
-      @sh.run("gh", "pr", "merge", number.to_s, "--repo", @c.gh_repo, "--squash", "--delete-branch",
-              "--match-head-commit", sha, chdir: @c.work_root)
-      merged = gh_json("pr", "view", number.to_s, "--json", "mergeCommit,state")
-      raise "PR ##{number} did not merge (#{merged['state']})" unless merged["state"] == "MERGED"
+      # A Retry after the merge itself went through (say the prod check failed
+      # on an expired Fly login) picks up from the deploy instead of failing
+      # on "not open". Only for the exact SHA Rich approved, checked above.
+      merged = pr if pr["state"] == "MERGED"
+      unless merged
+        raise "PR ##{number} is #{pr['state']}, not open" unless pr["state"] == "OPEN"
+        failed = failing_checks(number)
+        raise "checks not green on PR ##{number}: #{failed.join(', ')}" if failed.any?
+
+        @sh.run("gh", "pr", "merge", number.to_s, "--repo", @c.gh_repo, "--squash", "--delete-branch",
+                "--match-head-commit", sha, chdir: @c.work_root)
+        merged = gh_json("pr", "view", number.to_s, "--json", "mergeCommit,state")
+        raise "PR ##{number} did not merge (#{merged['state']})" unless merged["state"] == "MERGED"
+      end
       wait_for_deploy(merged.dig("mergeCommit", "oid"))
       verify_prod
       @api.shipped(id, sha: sha)
@@ -290,8 +299,14 @@ module FeedbackAgent
     def verify_prod
       code = @sh.run("curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", @c.prod_url).strip
       raise "prod returned #{code} after the deploy" unless code == "200"
-      out = @sh.run("fly", "ssh", "console", "-a", @c.fly_app, "-C",
-                    "bin/rails runner 'puts SolidQueue::Process.count'", chdir: @c.work_root)
+      begin
+        out = @sh.run("fly", "ssh", "console", "-a", @c.fly_app, "-C",
+                      "bin/rails runner 'puts SolidQueue::Process.count'", chdir: @c.work_root)
+      rescue Shell::Failed => e
+        raise unless e.message.match?(/access token|flyctl auth login|not logged in/i)
+        raise "merged and deployed, but Fly is logged out on the mini, so prod couldn't be checked. " \
+              "Run `fly auth login` on the mini, then Retry."
+      end
       count = out.lines.map(&:strip).grep(/\A\d+\z/).last.to_i
       raise "prod has no SolidQueue processes after the deploy" unless count.positive?
     end
