@@ -30,9 +30,21 @@
 
     <div>
       <%= f.label :attachments, "Screenshots or files (optional)", class: "block text-sm font-semibold text-gray-300 mb-1" %>
-      <%= f.file_field :attachments, multiple: true,
-            accept: "image/*,.heic,.pdf,.txt,.csv,.docx,.xlsx,.pptx",
-            class: "block w-full text-base text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gray-200 hover:file:bg-gray-700" %>
+      <%# Drop zone around the real input, so tapping it still opens the picker on phones. %>
+      <div class="rounded-lg border-2 border-dashed border-gray-700 p-4"
+           data-controller="feedback-dropzone"
+           data-feedback-dropzone-extensions-value="<%= %w[png jpg jpeg gif webp heic heif pdf txt csv docx xlsx pptx].to_json %>"
+           data-feedback-dropzone-max-files-value="<%= Feedback::MAX_FILES %>"
+           data-feedback-dropzone-max-size-value="<%= Feedback::MAX_FILE_SIZE %>"
+           data-action="dragover->feedback-dropzone#over dragleave->feedback-dropzone#leave drop->feedback-dropzone#drop">
+        <p class="text-sm text-gray-400 mb-2">Drag files here or click to choose</p>
+        <%= f.file_field :attachments, multiple: true,
+              accept: "image/*,.heic,.pdf,.txt,.csv,.docx,.xlsx,.pptx",
+              data: { feedback_dropzone_target: "input", action: "change->feedback-dropzone#picked" },
+              class: "block w-full text-base text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gray-200 hover:file:bg-gray-700" %>
+        <p class="text-sm text-gray-300 mt-2" data-feedback-dropzone-target="list"></p>
+        <p class="text-xs text-amber-400 mt-1" data-feedback-dropzone-target="note"></p>
+      </div>
       <p class="text-xs text-gray-500 mt-1">Up to <%= Feedback::MAX_FILES %> files, <%= Feedback::MAX_FILE_SIZE / 1.megabyte %> MB each. Photos, PDFs, Word (.docx), Excel (.xlsx).</p>
     </div>
 
