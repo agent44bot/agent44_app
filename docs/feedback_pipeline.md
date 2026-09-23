@@ -77,6 +77,25 @@ only through the agent and Rich's Merge it.
   - A live probe on 2026-09-22 confirmed that reading `~/.agent44_smoke_env`,
     writing to the home folder, and reaching `example.com` were all blocked,
     while `bin/rails test` still passed.
+- **Who can send feedback:** only users Rich switches on
+  (`users.feedback_access`, the Feedback switch on `/admin/users`, off by
+  default). A new sign-up can't put text in front of the agent.
+- **Uploads are identified by their bytes** (`Feedback.acceptable_file?`):
+  photos, PDF, .docx/.xlsx/.pptx and UTF-8 text only. An executable or HTML
+  file renamed `.png` is refused, and old macro-capable .doc/.xls files
+  aren't accepted.
+- **Protected files:** the worker refuses to push any change touching
+  `.github/`, `Gemfile*`, `Dockerfile`, `fly.toml`, `bin/`, credentials,
+  `config/importmap.rb`, `vendor/`, JS lockfiles, or the agent's own code
+  (`FeedbackAgent::Worker::PROTECTED_PATHS`). CI workflows in a PR run with
+  repo secrets, and dependency and deploy files change what gets installed
+  and shipped, so a person changes those by hand.
+- **Security-sensitive PRs are flagged:** files touching sign-in, sessions,
+  permissions, roles, impersonation or API tokens are reported, and the
+  board and item page show a red "read the diff carefully" warning.
+- **CI holds no production secrets:** tests use test-only encryption keys,
+  and the workflow token is read-only (PR #541). PR code, including
+  agent-built code, runs in CI before anyone merges it.
 - **Merging is Rich's call (②).** The Merge it button sends the head SHA Rich
   was looking at. The app refuses it unless that SHA is still the PR's
   latest reported head and checks are green. The mini re-checks against

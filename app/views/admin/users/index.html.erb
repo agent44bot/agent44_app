@@ -15,6 +15,7 @@
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auth Method</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" title="Can see the Feedback button and send feedback">Feedback</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
           <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sessions</th>
@@ -45,6 +46,12 @@
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= user.admin? ? 'bg-orange-900/50 text-orange-400' : 'bg-gray-800 text-gray-200' %>">
                 <%= user.role %>
               </span>
+            </td>
+            <td class="px-6 py-4">
+              <%= button_to (user.feedback_access? ? "On" : "Off"), toggle_feedback_access_admin_user_path(user),
+                    method: :patch,
+                    title: "Feedback form access: tap to turn #{user.feedback_access? ? 'off' : 'on'}",
+                    class: "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer border #{user.feedback_access? ? 'bg-emerald-900/50 text-emerald-300 border-emerald-700' : 'bg-gray-800 text-gray-400 border-gray-700'}" %>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">
               <%= user.created_at.strftime("%b %d, %Y") %>

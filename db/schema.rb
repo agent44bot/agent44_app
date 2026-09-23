@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_100000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -196,6 +196,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_190000) do
     t.string "pr_head_sha"
     t.integer "pr_number"
     t.datetime "pr_ready_at"
+    t.json "pr_sensitive_files", default: [], null: false
     t.text "pr_summary"
     t.string "pr_url"
     t.text "reply"
@@ -806,6 +807,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_190000) do
     t.string "email_address"
     t.string "email_verification_token"
     t.datetime "email_verified_at"
+    t.boolean "feedback_access", default: false, null: false
     t.boolean "ios_push_enabled", default: true, null: false
     t.string "npub"
     t.string "password_digest"

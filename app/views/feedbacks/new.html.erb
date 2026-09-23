@@ -31,9 +31,9 @@
     <div>
       <%= f.label :attachments, "Screenshots or files (optional)", class: "block text-sm font-semibold text-gray-300 mb-1" %>
       <%= f.file_field :attachments, multiple: true,
-            accept: "image/*,.heic,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.pptx",
+            accept: "image/*,.heic,.pdf,.txt,.csv,.docx,.xlsx,.pptx",
             class: "block w-full text-base text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gray-200 hover:file:bg-gray-700" %>
-      <p class="text-xs text-gray-500 mt-1">Up to <%= Feedback::MAX_FILES %> files, <%= Feedback::MAX_FILE_SIZE / 1.megabyte %> MB each. Photos, PDFs, Word, Excel.</p>
+      <p class="text-xs text-gray-500 mt-1">Up to <%= Feedback::MAX_FILES %> files, <%= Feedback::MAX_FILE_SIZE / 1.megabyte %> MB each. Photos, PDFs, Word (.docx), Excel (.xlsx).</p>
     </div>
 
     <% if @feedback.page_url.present? %>

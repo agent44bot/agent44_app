@@ -338,7 +338,9 @@ Rails.application.routes.draw do
         post :run
       end
     end
-    resources :users, only: [ :index, :destroy ]
+    resources :users, only: [ :index, :destroy ] do
+      patch :toggle_feedback_access, on: :member
+    end
     get "track", to: "track#index", as: :track
     get    "finance",              to: "finance#index",           as: :finance
     post   "finance/import",       to: "finance#import",          as: :finance_import

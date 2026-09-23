@@ -45,16 +45,42 @@ class Feedback < ApplicationRecord
 
   MAX_FILES     = 10
   MAX_FILE_SIZE = 15.megabytes
-  # Photos (incl. iPhone HEIC), PDFs, and the office/text files a kitchen
-  # manager might forward. Anything else is refused rather than stored.
-  ALLOWED_TYPES = %w[
-    image/png image/jpeg image/gif image/webp image/heic image/heif
-    application/pdf text/plain text/csv
+  # Photos (incl. iPhone HEIC), PDFs, modern Office files and plain text.
+  # Old .doc/.xls (which can carry macros) are not accepted. Every upload is
+  # identified by its bytes, not the name or what the browser claims, so an
+  # .exe renamed shot.png is refused (see .acceptable_file?).
+  IMAGE_TYPES = %w[image/png image/jpeg image/gif image/webp image/heic image/heif].freeze
+  OFFICE_TYPES = %w[
     application/vnd.openxmlformats-officedocument.wordprocessingml.document
     application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
     application/vnd.openxmlformats-officedocument.presentationml.presentation
-    application/msword application/vnd.ms-excel
   ].freeze
+  TEXT_TYPES = %w[text/plain text/csv].freeze
+  ALLOWED_TYPES = [ *IMAGE_TYPES, "application/pdf", *OFFICE_TYPES, *TEXT_TYPES ].freeze
+
+  # Is this upload really one of ALLOWED_TYPES? `named` is Marcel's call with
+  # the filename (magic bytes win over the extension); the content must also
+  # stand on its own: images and PDFs by their magic bytes, Office files as
+  # zips, text as NUL-free UTF-8.
+  def self.acceptable_file?(io, filename)
+    io.rewind
+    named = Marcel::MimeType.for(io, name: filename.to_s)
+    io.rewind
+    magic = Marcel::MimeType.for(io)
+    io.rewind
+    head = io.read(8_192).to_s
+    io.rewind
+
+    case named
+    when *IMAGE_TYPES
+      magic == named || (%w[image/heic image/heif].include?(named) && %w[image/heic image/heif].include?(magic))
+    when "application/pdf" then magic == "application/pdf"
+    when *OFFICE_TYPES then [ "application/zip", named ].include?(magic)
+    when *TEXT_TYPES
+      !head.include?("\0") && head.dup.force_encoding(Encoding::UTF_8).valid_encoding?
+    else false
+    end
+  end
 
   validates :message, presence: true, length: { maximum: 10_000 }
   validates :status, inclusion: { in: STATUSES }
@@ -83,6 +109,8 @@ class Feedback < ApplicationRecord
   def done? = DONE.include?(status)
   def agent_step = AGENT_STEPS[status]
   def stuck? = agent_error.present?
+  # The PR touches sign-in, permissions or roles: read the diff carefully.
+  def security_sensitive? = pr_sensitive_files.present?
   def waiting_on_rich? = WAITING_ON_RICH.include?(status) && !stuck?
 
   # Which board column the item sits in. "Post-dev" is a PR that exists but
@@ -196,12 +224,13 @@ class Feedback < ApplicationRecord
 
   # The PR as it stands. Green checks move it to pr_ready (one push per new
   # head); pending or red keep it building under the same claim.
-  def record_pr!(number:, url:, head_sha:, checks:, summary: nil, ship_note: nil)
+  def record_pr!(number:, url:, head_sha:, checks:, summary: nil, ship_note: nil, sensitive_files: nil)
     require_status!("approved", "changes_requested", "pr_ready")
     raise InvalidTransition, "PR number, url and head_sha are required." if [ number, url, head_sha ].any?(&:blank?)
     new_head = head_sha != pr_head_sha
     attrs = { pr_number: number, pr_url: url, pr_head_sha: head_sha, pr_checks: checks,
               pr_summary: summary.presence || pr_summary, ship_note: ship_note.presence || self.ship_note }
+    attrs[:pr_sensitive_files] = Array(sensitive_files).map(&:to_s).first(50) unless sensitive_files.nil?
     if checks == "green"
       update!(attrs.merge(status: "pr_ready", pr_ready_at: Time.current, agent_claimed_at: nil))
       FeedbackAlerts.push(self, "Ready to merge: #{excerpt(60)}", "PR ##{number} · checks green. #{pr_summary}".strip) if new_head || saved_change_to_status?
@@ -249,6 +278,14 @@ class Feedback < ApplicationRecord
     self.thread = thread + [ { "from" => from, "kind" => kind, "body" => body.to_s.strip, "at" => Time.current.iso8601 } ]
   end
 
+  def upload_io(upload)
+    if upload.respond_to?(:tempfile) && upload.respond_to?(:original_filename)
+      [ upload.tempfile, upload.original_filename ] # a form upload
+    elsif upload.is_a?(Hash)
+      [ upload[:io], upload[:filename] ]
+    end
+  end
+
   def attachments_are_acceptable
     return unless attachments.attached?
 
@@ -260,6 +297,15 @@ class Feedback < ApplicationRecord
       end
       unless ALLOWED_TYPES.include?(blob.content_type)
         errors.add(:attachments, "#{blob.filename} is not a photo, PDF, or document we can take")
+      end
+    end
+
+    # New uploads are checked by their bytes before anything is stored.
+    Array(attachment_changes["attachments"]&.attachables).each do |upload|
+      io, name = upload_io(upload)
+      next unless io
+      unless self.class.acceptable_file?(io, name)
+        errors.add(:attachments, "#{name} is not a photo, PDF, or document we can take")
       end
     end
   end

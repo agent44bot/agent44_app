@@ -163,6 +163,37 @@ class FeedbackAgentTest < ActiveSupport::TestCase
     assert_equal "green", @api.calls.last.last[:checks]
   end
 
+  test "build refuses to push a change to CI workflows, dependencies or its own code" do
+    item = @item.merge("step" => "build", "plan" => "x")
+    revs = %w[a b]
+    w = worker([ item ], [
+      [ starts("git", "rev-parse", "HEAD"), ->(_) { revs.shift } ],
+      [ starts("git", "status", "--porcelain"), "" ],
+      [ starts("git", "diff", "--name-only"), "app/views/pages/home.html.erb\n.github/workflows/ci.yml\nGemfile\n" ],
+      [ starts("claude"), claude_json("title" => "t", "summary" => "s", "ship_note" => "n") ]
+    ])
+    assert_equal :error, w.tick
+    assert_match "may not change", @api.calls.last.last[:message]
+    assert_match ".github/workflows/ci.yml, Gemfile", @api.calls.last.last[:message]
+    refute @sh.ran?("git", "push"), "nothing leaves the mini"
+  end
+
+  test "build reports security-sensitive files so the board can flag the PR" do
+    item = @item.merge("step" => "build", "plan" => "x")
+    revs = %w[a b]
+    w = worker([ item ], [
+      [ starts("git", "rev-parse", "HEAD"), ->(_) { revs.shift } ],
+      [ starts("git", "status", "--porcelain"), "" ],
+      [ starts("git", "diff", "--name-only"), "app/controllers/workspace_memberships_controller.rb\napp/views/workspaces/_team.html.erb\n" ],
+      [ starts("claude"), claude_json("title" => "t", "summary" => "s", "ship_note" => "n") ],
+      [ starts("gh", "pr", "create"), "https://github.com/agent44bot/agent44_app/pull/543" ],
+      [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "b") ],
+      [ starts("gh", "pr", "checks"), JSON.generate(FeedbackAgent::Worker::REQUIRED_CHECKS.map { |n| { "name" => n, "bucket" => "pass" } }) ]
+    ])
+    assert_equal :build, w.tick
+    assert_equal [ "app/controllers/workspace_memberships_controller.rb" ], @api.calls.last.last[:sensitive_files]
+  end
+
   test "build with no changes is reported stuck" do
     item = @item.merge("step" => "build", "plan" => "x")
     w = worker([ item ], [
