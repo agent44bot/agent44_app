@@ -25,11 +25,12 @@ module Api
       # POST /api/v1/feedbacks/:id/plan  { plan:, question: }
       def plan = report { @feedback.record_plan!(params[:plan], question: params[:question]) }
 
-      # POST /api/v1/feedbacks/:id/pr  { number:, url:, head_sha:, checks:, summary:, ship_note: }
+      # POST /api/v1/feedbacks/:id/pr  { number:, url:, head_sha:, checks:, summary:, ship_note:, sensitive_files: [] }
       def pr
         report do
           @feedback.record_pr!(number: params[:number], url: params[:url], head_sha: params[:head_sha],
-                               checks: params[:checks], summary: params[:summary], ship_note: params[:ship_note])
+                               checks: params[:checks], summary: params[:summary], ship_note: params[:ship_note],
+                               sensitive_files: params.key?(:sensitive_files) ? Array(params[:sensitive_files]) : nil)
         end
       end
 
@@ -60,7 +61,8 @@ module Api
           message: f.message, page_url: f.page_url,
           sender: f.user.display_identifier, workspace: f.workspace&.slug,
           thread: f.thread, plan: f.plan,
-          pr: { number: f.pr_number, url: f.pr_url, head_sha: f.pr_head_sha, checks: f.pr_checks, summary: f.pr_summary },
+          pr: { number: f.pr_number, url: f.pr_url, head_sha: f.pr_head_sha, checks: f.pr_checks, summary: f.pr_summary,
+                sensitive_files: f.pr_sensitive_files },
           merge_requested_sha: f.merge_requested_sha, ship_note: f.ship_note,
           agent_error: f.agent_error, agent_claimed_at: f.agent_claimed_at&.iso8601,
           attachments: f.attachments.map { |a|

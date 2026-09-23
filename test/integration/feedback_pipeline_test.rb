@@ -12,7 +12,7 @@ class FeedbackPipelineTest < ActionDispatch::IntegrationTest
     @api = { "Authorization" => "Bearer #{@token}" }
     @admin = User.create!(email_address: "rich-#{SecureRandom.hex(3)}@example.com", role: "admin")
     Setting.set(FeedbackAlerts::ALERT_EMAIL_KEY, @admin.email_address)
-    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin")
+    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin", feedback_access: true)
     @fb = Feedback.create!(user: @user, message: "Please remove the QR code from the hero")
     @fb.attachments.attach(io: file_fixture("sample_bottle.png").open, filename: "shot.png", content_type: "image/png")
     Notification.delete_all
@@ -147,7 +147,7 @@ class FeedbackPipelineTest < ActionDispatch::IntegrationTest
   end
 
   test "a sender can't answer someone else's feedback" do
-    other = User.create!(email_address: "o-#{SecureRandom.hex(3)}@example.com")
+    other = User.create!(email_address: "o-#{SecureRandom.hex(3)}@example.com", feedback_access: true)
     @fb.update!(status: "needs_info")
     sign_in_as other
     post answer_feedback_path(@fb), params: { answer: "hi" }

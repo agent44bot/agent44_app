@@ -1,7 +1,10 @@
-# The Feedback button: any signed-in user, any workspace. They write a
+# The Feedback button: signed-in users Rich has given feedback access. They write a
 # message, attach photos or files, and it lands with Rich (see Feedback).
 # The list shows what they have sent and where each item stands.
 class FeedbacksController < ApplicationController
+  # Only people Rich switched on (users.feedback_access, set on /admin/users)
+  # can send feedback: it becomes input to the feedback agent.
+  before_action :require_feedback_access
   rate_limit to: 10, within: 1.hour, only: :create, by: RATE_LIMIT_BY_CLIENT_IP,
              with: -> { redirect_to new_feedback_path, alert: "That's a lot of feedback at once. Please try again in a bit." }
 
@@ -39,6 +42,11 @@ class FeedbacksController < ApplicationController
   end
 
   private
+
+  def require_feedback_access
+    return if Current.user&.feedback_access?
+    redirect_to root_path, alert: "Feedback isn't turned on for your account."
+  end
 
   # Keep only a path on this site ("/nykitchen/packets/90/edit"), never an
   # outside URL, so the admin page and emails can link to it safely.

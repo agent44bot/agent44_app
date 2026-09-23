@@ -8,7 +8,7 @@ class FeedbackBoardTest < ActionDispatch::IntegrationTest
   setup do
     @admin = User.create!(email_address: "rich-#{SecureRandom.hex(3)}@example.com", role: "admin")
     Setting.set(FeedbackAlerts::ALERT_EMAIL_KEY, @admin.email_address)
-    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin")
+    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin", feedback_access: true)
     sign_in_as @admin
   end
 

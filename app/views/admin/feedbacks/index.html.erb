@@ -47,6 +47,7 @@
                 <% end %>
                 <% if fb.attachments.attached? %><span class="text-[11px] text-gray-500">📎 <%= fb.attachments.size %></span><% end %>
                 <% if fb.pr_number %><span class="text-[11px] text-gray-500">PR #<%= fb.pr_number %></span><% end %>
+                <% if fb.security_sensitive? %><span class="text-[11px] font-semibold text-red-400">Security</span><% end %>
               </div>
             <% end %>
           <% end %>

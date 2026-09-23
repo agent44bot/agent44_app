@@ -82,6 +82,12 @@
           Checks: <%= fb.pr_checks.presence || "pending" %>
         </span>
       </div>
+      <% if fb.security_sensitive? %>
+        <div class="mb-3 rounded-md border border-red-700 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+          <p class="font-semibold">Security-sensitive: read the diff carefully before merging.</p>
+          <p class="text-xs text-red-300/80 mt-1">It touches sign-in, permissions or roles: <%= fb.pr_sensitive_files.join(", ") %></p>
+        </div>
+      <% end %>
       <% if (pr_link = feedback_pr_url(fb)) %>
         <%= link_to "View PR ##{fb.pr_number} on GitHub", pr_link, target: "_blank", rel: "noopener",
               class: "inline-flex items-center px-4 py-2 rounded-md border border-gray-600 text-sm font-semibold text-gray-100 hover:border-orange-500" %>

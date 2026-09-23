@@ -6,7 +6,7 @@ class FeedbackSubmittedJobTest < ActiveJob::TestCase
   setup do
     @admin = User.create!(email_address: "rich-#{SecureRandom.hex(3)}@example.com", role: "admin")
     Setting.set(FeedbackAlerts::ALERT_EMAIL_KEY, @admin.email_address)
-    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin")
+    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin", feedback_access: true)
     @fb = Feedback.create!(user: @user, message: "Keep every recipe on one page please")
     @fb.attachments.attach(io: file_fixture("sample_bottle.png").open, filename: "shot.png", content_type: "image/png")
   end

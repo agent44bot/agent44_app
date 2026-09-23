@@ -32,6 +32,20 @@ module FeedbackAgent
     SCRUBBED_ENV = %w[ANTHROPIC_API_KEY API_TOKEN BREVO_SMTP_KEY BREVO_SMTP_LOGIN NYK_SMOKE_RECIPIENTS
                       FLY_API_TOKEN GH_TOKEN GITHUB_TOKEN].freeze
 
+    # Files an agent-built PR may never touch; a person changes these by hand.
+    # CI workflows run with repo secrets on the PR itself, dependency and
+    # deploy files change what gets installed and shipped, and the agent's
+    # own code and launcher would let it rewrite its rules.
+    PROTECTED_PATHS = %r{\A(?:\.github/|Gemfile|Dockerfile|\.dockerignore|fly\.toml|bin/|config/credentials|
+                           config/master\.key|config/importmap\.rb|config/deploy|\.kamal/|vendor/|lib/feedback_agent|
+                           config/launchd/|package(?:-lock)?\.json|yarn\.lock|bun\.lock)}x
+    # Files where a subtle change is a security change: flagged on the board
+    # as "read the diff carefully" (sign-in, sessions, permissions, roles,
+    # impersonation, API tokens, the workspace sandbox).
+    SENSITIVE_PATHS = %r{authentication|session|password|passkey|credential|impersonat|
+                         current\.rb|membership|role|/admin/|api_token|application_controller\.rb|
+                         models/user\.rb|models/workspace\.rb|kitchen_tenant|feedback}ix
+
     Config = Struct.new(:repo_dir, :work_root, :gh_repo, :prod_url, :fly_app, :claude_bin, :model,
                         :checks_timeout, :deploy_timeout, :poll_interval, keyword_init: true)
 
@@ -96,9 +110,17 @@ module FeedbackAgent
       head = rev(dir)
       raise "the agent made no changes" if head == before
 
+      files = @sh.run("git", "diff", "--name-only", "origin/main...HEAD", chdir: dir).lines.map(&:strip).reject(&:empty?)
+      protected = files.grep(PROTECTED_PATHS)
+      if protected.any?
+        raise "the change touches files the agent may not change (a person must do these by hand): #{protected.join(', ')}"
+      end
+      sensitive = files.grep(SENSITIVE_PATHS)
+
       @sh.run("git", "push", "-u", "origin", branch, chdir: dir)
       number, url = number ? [ number, item.dig("pr", "url") ] : open_pr(item, branch, out)
-      report = { number: number, url: url, head_sha: head, summary: out["summary"], ship_note: out["ship_note"] }
+      report = { number: number, url: url, head_sha: head, summary: out["summary"], ship_note: out["ship_note"],
+                 sensitive_files: sensitive }
       @api.pr(id, **report, checks: "pending")
 
       result, failed = wait_for_checks(number, head)

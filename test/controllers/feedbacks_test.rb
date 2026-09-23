@@ -6,7 +6,7 @@ class FeedbacksTest < ActionDispatch::IntegrationTest
   setup do
     @owner = User.create!(email_address: "fb-owner-#{SecureRandom.hex(3)}@example.com")
     @ws = Workspace.create!(name: "Finger Lakes Culinary", slug: "flc#{SecureRandom.hex(2)}", owner: @owner)
-    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin")
+    @user = User.create!(email_address: "caitlin-#{SecureRandom.hex(3)}@example.com", display_name: "Caitlin", feedback_access: true)
     @ws.memberships.create!(user: @user, role: "editor")
     @admin = User.create!(email_address: "rich-#{SecureRandom.hex(3)}@example.com", role: "admin")
   end
