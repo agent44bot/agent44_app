@@ -174,6 +174,22 @@ class FeedbackPipelineTest < ActionDispatch::IntegrationTest
     assert_nil @fb.pr_url
   end
 
+  test "the PR's diff stats are stored and shown on the Pull request card" do
+    @fb.update!(status: "approved")
+    pr = { number: 7, url: "https://github.com/agent44bot/agent44_app/pull/7", head_sha: "c" * 40, checks: "green" }
+    api(:post, "/api/v1/feedbacks/#{@fb.id}/pr", pr)
+    assert_response :success
+    assert_nil @fb.reload.pr_files_changed, "stats are optional"
+    sign_in_as @admin
+    get admin_feedback_path(@fb)
+    assert_select ".pr-stats", count: 0
+
+    json = api(:post, "/api/v1/feedbacks/#{@fb.id}/pr", pr.merge(files_changed: 5, additions: 120, deletions: 34))
+    assert_equal [ 5, 120, 34 ], json["pr"].values_at("files_changed", "additions", "deletions")
+    get admin_feedback_path(@fb)
+    assert_select ".pr-stats", text: /5 files changed,\s+\+120\s+-34/
+  end
+
   test "a stale claim is handed out again" do
     @fb.update!(agent_claimed_at: 2.hours.ago)
     assert Feedback.agent_queue.include?(@fb)
