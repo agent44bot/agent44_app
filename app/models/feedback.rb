@@ -200,7 +200,7 @@ class Feedback < ApplicationRecord
     raise InvalidTransition, "It's merging now; wait for it to finish." if status == "merge_requested"
     update!(status: "received", plan: nil, planned_at: nil, agent_error: nil, agent_claimed_at: nil,
             closed_at: nil, pr_number: nil, pr_url: nil, pr_head_sha: nil, pr_checks: nil,
-            pr_summary: nil, pr_ready_at: nil, merge_requested_sha: nil, merge_requested_at: nil,
+            pr_files_changed: nil, pr_additions: nil, pr_deletions: nil, pr_summary: nil, pr_ready_at: nil, merge_requested_sha: nil, merge_requested_at: nil,
             ship_note: nil)
   end
 
@@ -234,13 +234,17 @@ class Feedback < ApplicationRecord
 
   # The PR as it stands. Green checks move it to pr_ready (one push per new
   # head); pending or red keep it building under the same claim.
-  def record_pr!(number:, url:, head_sha:, checks:, summary: nil, ship_note: nil, sensitive_files: nil)
+  def record_pr!(number:, url:, head_sha:, checks:, summary: nil, ship_note: nil, sensitive_files: nil,
+                 files_changed: nil, additions: nil, deletions: nil)
     require_status!("approved", "changes_requested", "pr_ready")
     raise InvalidTransition, "PR number, url and head_sha are required." if [ number, url, head_sha ].any?(&:blank?)
     new_head = head_sha != pr_head_sha
     attrs = { pr_number: number, pr_url: url, pr_head_sha: head_sha, pr_checks: checks,
               pr_summary: summary.presence || pr_summary, ship_note: ship_note.presence || self.ship_note }
     attrs[:pr_sensitive_files] = Array(sensitive_files).map(&:to_s).first(50) unless sensitive_files.nil?
+    unless files_changed.blank?
+      attrs.merge!(pr_files_changed: files_changed.to_i, pr_additions: additions.to_i, pr_deletions: deletions.to_i)
+    end
     if checks == "green"
       update!(attrs.merge(status: "pr_ready", pr_ready_at: Time.current, agent_claimed_at: nil))
       FeedbackAlerts.push(self, "Ready to merge: #{excerpt(60)}", "PR ##{number} · checks green. #{pr_summary}".strip) if new_head || saved_change_to_status?
