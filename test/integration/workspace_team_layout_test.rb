@@ -84,6 +84,42 @@ class WorkspaceTeamLayoutTest < ActionDispatch::IntegrationTest
     assert_select "input[value=?]", "Delete workspace", false
   end
 
+  test "the NYK settings People list shows admins first, then other members in their own section" do
+    nyk    = Workspace.find_or_create_by!(slug: "nykitchen") { |w| w.name = "NY Kitchen"; w.owner = @owner }
+    nyk.memberships.find_or_create_by!(user: @owner) { |m| m.role = "owner" }
+    lora   = User.create!(email_address: "tl-lora2-#{SecureRandom.hex(4)}@example.com")
+    viewer = User.create!(email_address: "tl-v-#{SecureRandom.hex(4)}@example.com")
+    nyk.memberships.create!(user: viewer, role: "viewer")
+    nyk.memberships.create!(user: lora, role: "admin")
+    nyk.memberships.create!(user: @editor, role: "editor")
+
+    sign_in_as(lora)
+    get nykitchen_path
+    assert_response :success
+
+    assert_select "[data-test=people-admins]" do
+      assert_select "h3", text: "Admins"
+      assert_includes css_select("[data-test=people-admins]").text, lora.email_address
+      assert_includes css_select("[data-test=people-admins]").text, @owner.email_address
+    end
+    members = css_select("[data-test=people-members]").text
+    assert_includes members, viewer.email_address
+    assert_includes members, @editor.email_address
+    refute_includes members, lora.email_address
+
+    body = response.body
+    assert body.index('data-test="people-admins"') < body.index('data-test="people-members"'),
+           "Admins section should come before Members"
+  end
+
+  test "the Members section is hidden when everyone is an admin" do
+    solo = Workspace.create!(name: "Solo WS", owner: @owner)
+    sign_in_as(@owner)
+    get workspace_path(solo.slug)
+    assert_select "[data-test=people-admins]"
+    assert_select "[data-test=people-members]", false
+  end
+
   # ----- NY Kitchen adaptive root -----
 
   test "a NY Kitchen-only customer sees NY Kitchen as the root, not Workspaces" do

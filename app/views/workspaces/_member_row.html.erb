@@ -1,0 +1,29 @@
+<%# One row in the People lists of workspaces/_team.
+    Locals: workspace, m (the WorkspaceMembership), admin (viewer can manage) %>
+<div class="flex items-center justify-between gap-3 px-4 py-3">
+  <div class="flex items-center gap-3 min-w-0">
+    <%= user_avatar_tag m.user, size: "h-8 w-8", ring: "" %>
+    <div class="min-w-0">
+      <p class="text-sm text-white truncate"><%= m.user.display_identifier %></p>
+      <% if m.user.email_address.present? %>
+        <p class="text-xs text-gray-500 truncate"><%= m.user.email_address %></p>
+      <% end %>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 shrink-0">
+    <% if admin && !m.owner? %>
+      <%= form_with url: workspace_membership_path(workspace_slug: workspace.slug, id: m.id), method: :patch, local: true do |f| %>
+        <%= f.select :role, options_for_select(%w[admin editor viewer], m.role), {},
+            onchange: "this.form.requestSubmit()", aria: { label: "Role for #{m.user.display_identifier}" },
+            class: "rounded-md bg-gray-900 border border-gray-700 text-white text-base px-2 py-1 focus:border-orange-500 focus:outline-none" %>
+      <% end %>
+    <% else %>
+      <span class="text-xs uppercase tracking-wide text-gray-400"><%= m.role %></span>
+    <% end %>
+    <% if admin && !m.owner? %>
+      <%= button_to "Remove", workspace_membership_path(workspace_slug: workspace.slug, id: m.id),
+          method: :delete, form: { data: { turbo_confirm: "Remove #{m.user.display_identifier} from #{workspace.name}?" } },
+          class: "text-xs text-red-400 hover:text-red-300 px-3 py-1 border border-red-900 rounded-md cursor-pointer" %>
+    <% end %>
+  </div>
+</div>
