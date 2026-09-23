@@ -218,6 +218,41 @@ class FeedbackAgentTest < ActiveSupport::TestCase
     assert_equal [ :shipped, 5, { sha: "approved1" } ], @api.calls.last
   end
 
+  test "a Retry after the merge went through resumes at the deploy check, without merging again" do
+    item = @item.merge("step" => "merge", "pr" => { "number" => 539 }, "merge_requested_sha" => "approved1")
+    w = worker([ item ], [
+      [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "approved1", "state" => "MERGED", "mergeCommit" => { "oid" => "merge888" }) ],
+      [ starts("gh", "run", "list"), JSON.generate([ { "headSha" => "merge888", "status" => "completed", "conclusion" => "success" } ]) ],
+      [ starts("curl"), "200" ],
+      [ starts("fly"), "4\n" ]
+    ])
+    assert_equal :merge, w.tick
+    refute @sh.ran?("gh", "pr", "merge"), "never merges twice"
+    assert_equal [ :shipped, 5, { sha: "approved1" } ], @api.calls.last
+  end
+
+  test "an expired Fly login says what to do" do
+    item = @item.merge("step" => "merge", "pr" => { "number" => 539 }, "merge_requested_sha" => "approved1")
+    sh_rules = [
+      [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "approved1", "state" => "MERGED", "mergeCommit" => { "oid" => "m" }) ],
+      [ starts("gh", "run", "list"), JSON.generate([ { "headSha" => "m", "status" => "completed", "conclusion" => "success" } ]) ],
+      [ starts("curl"), "200" ],
+      [ starts("fly"), ->(_) { raise FeedbackAgent::Shell::Failed, "fly ssh console exited 1: Error: no access token available. Please login with 'flyctl auth login'" } ]
+    ]
+    w = worker([ item ], sh_rules)
+    assert_equal :error, w.tick
+    assert_match "Run `fly auth login` on the mini, then Retry", @api.calls.last.last[:message]
+  end
+
+  test "a merged PR whose head isn't the approved SHA is still refused" do
+    item = @item.merge("step" => "merge", "pr" => { "number" => 539 }, "merge_requested_sha" => "approved1")
+    w = worker([ item ], [
+      [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "other222", "state" => "MERGED", "mergeCommit" => { "oid" => "m" }) ]
+    ])
+    assert_equal :error, w.tick
+    refute(@api.calls.any? { |c| c.first == :shipped })
+  end
+
   test "merge is stuck if prod has no job processes after the deploy" do
     item = @item.merge("step" => "merge", "pr" => { "number" => 540 }, "merge_requested_sha" => "approved1")
     views = [ { "headRefOid" => "approved1", "state" => "OPEN" }, { "state" => "MERGED", "mergeCommit" => { "oid" => "m" } } ]
