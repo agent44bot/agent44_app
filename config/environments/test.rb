@@ -50,4 +50,12 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Test-only Active Record encryption keys (not secret, never used outside
+  # tests). With these, the suite needs no RAILS_MASTER_KEY, so CI never holds
+  # the production key: code in a PR (including an agent-built one) runs in
+  # CI before anyone merges it, and must not be able to read prod secrets.
+  config.active_record.encryption.primary_key = "test-only-primary-key-not-a-secret"
+  config.active_record.encryption.deterministic_key = "test-only-deterministic-key-not-secret"
+  config.active_record.encryption.key_derivation_salt = "test-only-key-derivation-salt-not-secret"
 end

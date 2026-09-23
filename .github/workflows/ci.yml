@@ -5,6 +5,12 @@ on:
   push:
     branches: [ main ]
 
+# CI runs code from PRs (including agent-built ones) before anyone merges it,
+# so it gets a read-only GitHub token and no production secrets: the tests use
+# test-only encryption keys (config/environments/test.rb), not RAILS_MASTER_KEY.
+permissions:
+  contents: read
+
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
@@ -135,7 +141,6 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test
 
@@ -169,7 +174,6 @@ jobs:
       - name: Run System Tests
         env:
           RAILS_ENV: test
-          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system
 
