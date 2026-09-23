@@ -23,6 +23,14 @@ class WorkspaceInvitationMailerTest < ActionMailer::TestCase
     assert_match @ws.name, body
   end
 
+  test "shared footer carries the current tagline in both parts" do
+    mail = WorkspaceInvitationMailer.invite(@inv)
+    [ mail.html_part, mail.text_part ].each do |part|
+      assert_match "Building agents for business and everyday life.", part.body.decoded
+      assert_no_match "Autonomous agent fleets for small business", part.body.decoded
+    end
+  end
+
   test "invite email is addressed using the invitation's normalized email" do
     inv = @ws.invitations.create!(invited_by: @owner, email: "MixedCase@Example.com", role: "viewer")
     mail = WorkspaceInvitationMailer.invite(inv)
