@@ -117,4 +117,29 @@ class FeedbackBoardTest < ActionDispatch::IntegrationTest
     post admin_feedbacks_path, params: { feedback: { message: "x" } }
     assert_redirected_to "/workspaces"
   end
+
+  # /admin/feedbacks/new is admin-only, whatever else the user can do: feedback
+  # access lets someone send feedback, not add items to the board.
+  test "the new item page redirects anyone who isn't an admin" do
+    fb = item("received")
+
+    delete session_path # signed out
+    get new_admin_feedback_path
+    assert_redirected_to sign_in_path
+
+    sign_in_as @user # has feedback access, not an admin
+    assert @user.feedback_access?
+    get new_admin_feedback_path
+    assert_redirected_to "/workspaces"
+    get edit_admin_feedback_path(fb)
+    assert_redirected_to "/workspaces"
+    assert_no_difference -> { Feedback.count } do
+      delete admin_feedback_path(fb)
+    end
+
+    sign_in_as @admin
+    get new_admin_feedback_path
+    assert_response :success
+    assert_select "textarea[name='feedback[message]']"
+  end
 end
