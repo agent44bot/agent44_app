@@ -12,6 +12,9 @@
     cadence is low enough not to trip rate limiters.
   - Test failures email botwhisperer@hey.com only (NYK_SMOKE_RECIPIENTS in
     the workflow's GH secret). Lora's only contact path is the 10am digest.
+  - Wednesdays only: extra 9:30/10:00/10:30/11:00 runs (half-hourly 9-11am)
+    so the grocery list reflects late sign-ups before Caitlin submits the
+    week's order around 11am. launchd Weekday 3 = Wednesday.
 
   Install:
     cp ops/launchd/com.agent44.smoke-nyk-scrape.plist ~/Library/LaunchAgents/
@@ -49,6 +52,11 @@
         <dict><key>Hour</key><integer>15</integer> <key>Minute</key><integer>0</integer></dict>
         <dict><key>Hour</key><integer>18</integer> <key>Minute</key><integer>0</integer></dict>
         <dict><key>Hour</key><integer>21</integer> <key>Minute</key><integer>0</integer></dict>
+        <!-- Wednesday order-day burst: half-hourly 9-11am (9:00 is above). -->
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>9</integer>  <key>Minute</key><integer>30</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>10</integer> <key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>10</integer> <key>Minute</key><integer>30</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>11</integer> <key>Minute</key><integer>0</integer></dict>
     </array>
 
     <key>StandardOutPath</key>
