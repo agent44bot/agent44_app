@@ -38,15 +38,21 @@
   <div data-member-flyout-target="menu"
        class="hidden z-50 w-64 rounded-lg bg-gray-900 border border-gray-800 shadow-xl p-1.5">
     <% members.each do |u| %>
+      <% online = online_ids.include?(u.id) %>
       <div class="flex items-center gap-2 px-2 py-1.5">
-        <%= user_avatar_tag u, size: "h-7 w-7", ring: "" %>
+        <span class="relative inline-flex shrink-0 rounded-full">
+          <%= user_avatar_tag u, size: "h-7 w-7", ring: online ? "ring-2 ring-emerald-400" : "" %>
+          <% if online %>
+            <span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-gray-900"></span>
+          <% end %>
+        </span>
         <div class="min-w-0">
-          <p class="text-sm text-white truncate leading-tight">
-            <%= u.display_identifier %>
-            <% if online_ids.include?(u.id) %><span class="ml-1 text-xs text-emerald-400">● online</span><% end %>
-          </p>
+          <p class="text-sm text-white truncate leading-tight"><%= u.display_identifier %></p>
           <% if u.email_address.present? && u.email_address != u.display_identifier %>
             <p class="text-xs text-gray-500 truncate leading-tight"><%= u.email_address %></p>
+          <% end %>
+          <% if online %>
+            <p class="text-xs text-emerald-400 leading-tight">Online now</p>
           <% end %>
         </div>
       </div>
