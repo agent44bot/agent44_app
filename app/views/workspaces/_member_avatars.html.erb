@@ -2,6 +2,8 @@
     initials. Callers pass the members to show; today they exclude the owner
     (the Agent44 Labs side) so the stack shows the customer's team. Hovering the
     stack opens a flyout listing every shown member with name + email.
+    Members active in the last few minutes (PageView::ONLINE_WINDOW) get a
+    green ring + dot and sort to the front so they're never hidden in "+N".
     Locals:
       members — array of User
       limit   — max avatars before a "+N" chip (default 4)
@@ -11,10 +13,19 @@
 <% limit ||= 4 %>
 <% size  ||= "h-8 w-8" %>
 <% return if members.empty? %>
+<% online_ids = PageView.online_user_ids(members.map(&:id)) %>
+<% members = members.sort_by.with_index { |u, i| [ online_ids.include?(u.id) ? 0 : 1, i ] } %>
 <div class="relative shrink-0" data-controller="member-flyout">
   <div class="flex -space-x-2">
     <% members.first(limit).each do |u| %>
-      <%= user_avatar_tag u, size: size %>
+      <% if online_ids.include?(u.id) %>
+        <span class="relative inline-flex shrink-0 rounded-full" title="<%= u.display_identifier %> (online now)">
+          <%= user_avatar_tag u, size: size, ring: "ring-2 ring-emerald-400" %>
+          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-gray-950"></span>
+        </span>
+      <% else %>
+        <%= user_avatar_tag u, size: size %>
+      <% end %>
     <% end %>
     <% if members.size > limit %>
       <span class="<%= size %> rounded-full bg-gray-800 text-gray-300 ring-2 ring-gray-950 inline-flex items-center justify-center text-xs font-semibold shrink-0">+<%= members.size - limit %></span>
@@ -30,7 +41,10 @@
       <div class="flex items-center gap-2 px-2 py-1.5">
         <%= user_avatar_tag u, size: "h-7 w-7", ring: "" %>
         <div class="min-w-0">
-          <p class="text-sm text-white truncate leading-tight"><%= u.display_identifier %></p>
+          <p class="text-sm text-white truncate leading-tight">
+            <%= u.display_identifier %>
+            <% if online_ids.include?(u.id) %><span class="ml-1 text-xs text-emerald-400">● online</span><% end %>
+          </p>
           <% if u.email_address.present? && u.email_address != u.display_identifier %>
             <p class="text-xs text-gray-500 truncate leading-tight"><%= u.email_address %></p>
           <% end %>
