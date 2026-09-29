@@ -9,6 +9,37 @@ class Notification < ApplicationRecord
   scope :unread, -> { where(read_at: nil) }
   scope :recent, -> { order(created_at: :desc) }
 
+  # The admin notifications page: log (user-less) copies plus the viewing
+  # admin's own. A broadcast alert (e.g. kitchen_tickets) also saves one copy
+  # per recipient so each person's badge counts their own unread; those are
+  # their inbox, not the admin log, and listing them showed every alert ~10x.
+  scope :admin_feed, ->(user) { where(user_id: [ nil, user&.id ]) }
+
+  # Copies of one alert (the log copy + the admin's own) share source, title
+  # and body and are written in the same moment; this key collapses them.
+  ALERT_MINUTE_SQL = "strftime('%Y-%m-%d %H:%M', notifications.created_at)".freeze
+
+  def alert_key
+    [ source, title, body, created_at.utc.strftime("%Y-%m-%d %H:%M") ]
+  end
+
+  # Collapse copies of the same alert into one row, keeping newest-first order.
+  # Returns arrays of notifications; the first of each is the one to display.
+  def self.collapse(notifications)
+    notifications.group_by(&:alert_key).values
+  end
+
+  # Unread alerts in the admin feed, counting each alert once.
+  def self.admin_unread_count(user)
+    admin_feed(user).unread.distinct.count(Arel.sql("source || '|' || title || '|' || COALESCE(body, '') || '|' || #{ALERT_MINUTE_SQL}"))
+  end
+
+  # All copies of this alert within scope.
+  def copies_in(scope)
+    minute = created_at.utc.beginning_of_minute
+    scope.where(source: source, title: title, body: body, created_at: minute...(minute + 1.minute))
+  end
+
   def read?
     read_at.present?
   end
