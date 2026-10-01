@@ -65,7 +65,7 @@
         </div>
 
         <div class="flex items-center space-x-4">
-          <% unread_notifications_count = Notification.unread.count %>
+          <% unread_notifications_count = Notification.admin_unread_count(Current.user) %>
           <%= link_to admin_notifications_path,
                 class: "relative text-gray-300 hover:text-orange-400 transition",
                 title: "Notifications" do %>
