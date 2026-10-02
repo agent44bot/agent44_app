@@ -39,6 +39,11 @@ class HomeAccessTest < ActionDispatch::IntegrationTest
     assert_select "h1 span.text-purple-400", false
   end
 
+  test "hero uses the agents at work brand artwork" do
+    get "/"
+    assert_select "section img[src*='agent44-agents-at-work']", 1
+  end
+
   # Feedback #3 (Rich, 2026-09-22): the phone-only "Scan to visit" QR stays
   # at the bottom of the page (#530 removed it, this puts it back), next to
   # the desktop QR beside the App Store badge.
