@@ -39,9 +39,12 @@ class HomeAccessTest < ActionDispatch::IntegrationTest
     assert_select "h1 span.text-purple-400", false
   end
 
-  test "hero uses the agents at work brand artwork" do
+  test "hero is a static Agent44 brand treatment" do
     get "/"
-    assert_select "section img[src*='agent44-agents-at-work']", 1
+    assert_select "section img[src*='icon.png']", 1
+    assert_select "section", text: /Agent44 Labs/
+    assert_select "section [data-controller~='mock-agents']", 0
+    assert_select "section [data-controller~='web-pulses']", 0
   end
 
   # Feedback #3 (Rich, 2026-09-22): the phone-only "Scan to visit" QR stays
