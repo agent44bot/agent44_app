@@ -14,52 +14,25 @@
     </svg>
   </div>
 
-  <%# Corner web — bubbles travel down strands while agents are busy, flip emerald
-      and fade when the agent finishes. Wired to the agents list via web-pulses. %>
-  <svg class="absolute top-0 left-0 w-44 sm:w-60 md:w-80 pointer-events-none select-none"
-       viewBox="0 0 200 200" fill="none"
-       data-controller="web-pulses"
-       aria-hidden="true">
-    <%# Web (dimmed) — radial strands and concentric rings %>
-    <g stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" stroke-opacity="0.28">
-      <line x1="0" y1="0" x2="198" y2="27.8" />
-      <line x1="0" y1="0" x2="185.4" y2="75" />
-      <line x1="0" y1="0" x2="157.6" y2="123.2" />
-      <line x1="0" y1="0" x2="123.2" y2="157.6" />
-      <line x1="0" y1="0" x2="75" y2="185.4" />
-      <line x1="0" y1="0" x2="27.8" y2="198" />
-    </g>
-    <g stroke="#ffffff" stroke-width="0.5">
-      <polyline points="49.5,7 46.4,18.7 39.4,30.8 30.8,39.4 18.7,46.4 7,49.5" stroke-opacity="0.26" />
-      <polyline points="94,13.2 88,35.6 74.8,58.5 58.5,74.8 35.6,88 13.2,94" stroke-opacity="0.22" />
-      <polyline points="143.5,20.2 134.4,54.4 114.2,89.3 89.3,114.2 54.4,134.4 20.2,143.5" stroke-opacity="0.18" />
-      <polyline points="198,27.8 185.4,75 157.6,123.2 123.2,157.6 75,185.4 27.8,198" stroke-opacity="0.12" />
-    </g>
-
-    <%# Bubbles get appended here, one per busy agent %>
-    <g data-web-pulses-target="host"></g>
-  </svg>
-
-  <%# Agent status — mobile: stacked above hero, desktop: pinned top-left %>
-  <% mock_header = "AI Agents" %>
-
-  <% show_mock_fleet = true %>
-
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12 sm:pb-20 md:pb-24 relative">
 
-    <%# "Agents at work" banner: full width on mobile and desktop, above the tagline %>
-    <%= image_tag "marketing/hero-agents-at-work.jpg",
-          srcset: { image_path("marketing/hero-agents-at-work-900.jpg") => "900w",
-                    image_path("marketing/hero-agents-at-work.jpg") => "1672w" },
-          sizes: "(min-width: 1280px) 1216px, 100vw",
-          alt: "Agents at work: the Agent44 hub routing tasks to its agents",
-          width: 1672, height: 941, fetchpriority: "high",
-          class: "block w-full h-auto sm:w-auto sm:max-w-full sm:max-h-[40vh] mx-auto rounded-2xl border border-gray-800 shadow-2xl shadow-orange-600/10 mb-8 sm:mb-10" %>
+    <%# Desktop (lg+): tagline + CTA on the left, "Agents at work" image on the
+        right. Below lg the image stacks on top. The image's edges are masked
+        so its black background fades into the page instead of reading as a box. %>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      <div class="lg:order-2 -mx-4 sm:mx-0">
+        <%= image_tag "marketing/hero-agents-at-work.jpg",
+              srcset: { image_path("marketing/hero-agents-at-work-900.jpg") => "900w",
+                        image_path("marketing/hero-agents-at-work.jpg") => "1672w" },
+              sizes: "(min-width: 1024px) 50vw, 100vw",
+              alt: "Agents at work: the Agent44 hub routing tasks to its agents",
+              width: 1672, height: 941, fetchpriority: "high",
+              class: "block w-full h-auto",
+              style: "-webkit-mask-image: radial-gradient(ellipse 60% 62% at 50% 50%, #000 70%, transparent 100%); mask-image: radial-gradient(ellipse 60% 62% at 50% 50%, #000 70%, transparent 100%);" %>
+      </div>
 
-    <%# Desktop: hero on left (60%), QR code on right (25%), agents below %>
-    <div class="grid grid-cols-1 sm:grid-cols-10 gap-2 sm:gap-3 md:gap-4 items-start">
-      <%# Hero — full width on mobile, 60% on desktop %>
-      <div class="col-span-1 sm:col-span-6 sm:col-start-1 text-left sm:pr-6 md:pr-10 lg:pr-16">
+      <%# Tagline + CTA: below the image on mobile, left column on desktop %>
+      <div class="lg:order-1 text-left">
         <% tagline = { before: "Building agents", highlight: "for business and everyday life.", after: "" } %>
         <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
           <%= tagline[:before] %><br><span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent"><%= tagline[:highlight] %></span><%= tagline[:after] %>
@@ -112,25 +85,6 @@
         <% end %>
       </div>
 
-      <%# Agents — desktop only, right column %>
-      <div class="hidden sm:block sm:col-span-4 sm:col-start-7 space-y-4">
-        <% if @agents.present? %>
-          <%= render "shared/agent_profiles", agents: @agents %>
-        <% end %>
-        <% if show_mock_fleet %>
-          <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header, visible_count: 10 %>
-        <% end %>
-      </div>
-    </div>
-
-    <%# Mobile-only: agents stacked below hero (10 visible) %>
-    <div class="sm:hidden mt-8 space-y-4">
-      <% if @agents.present? %>
-        <%= render "shared/agent_profiles", agents: @agents %>
-      <% end %>
-      <% if show_mock_fleet %>
-        <%= render "shared/mock_agent_profiles", agents: @mock_agents, header: mock_header, visible_count: 10 %>
-      <% end %>
     </div>
 
     <!-- Live pulse: latest NYK smoke run -->
