@@ -262,6 +262,21 @@ class FeedbackAgentTest < ActiveSupport::TestCase
     assert_equal [ :shipped, 5, { sha: "approved1" } ], @api.calls.last
   end
 
+  # #12, 2026-10-09: the agent's merge hit a changelog conflict, Rich's side
+  # rebased and merged by hand (new head), and Retry still refused it.
+  test "a PR merged by hand after a rebase is picked up at the deploy check" do
+    item = @item.merge("step" => "merge", "pr" => { "number" => 569 }, "merge_requested_sha" => "approved1")
+    w = worker([ item ], [
+      [ starts("gh", "pr", "view"), JSON.generate("headRefOid" => "rebased2", "state" => "MERGED", "mergeCommit" => { "oid" => "merge999" }) ],
+      [ starts("gh", "run", "list"), JSON.generate([ { "headSha" => "merge999", "status" => "completed", "conclusion" => "success" } ]) ],
+      [ starts("curl"), "200" ],
+      [ starts("fly"), "4\n" ]
+    ])
+    assert_equal :merge, w.tick
+    refute @sh.ran?("gh", "pr", "merge")
+    assert_equal [ :shipped, 5, { sha: "approved1" } ], @api.calls.last
+  end
+
   test "an expired Fly login says what to do" do
     item = @item.merge("step" => "merge", "pr" => { "number" => 539 }, "merge_requested_sha" => "approved1")
     sh_rules = [

@@ -137,14 +137,15 @@ module FeedbackAgent
       raise "no PR or approved SHA to merge" unless number && sha
 
       pr = gh_json("pr", "view", number.to_s, "--json", "headRefOid,state,mergeCommit")
-      unless pr["headRefOid"] == sha
+      # Already merged, by an earlier try (say the prod check failed on an
+      # expired Fly login) or by a person by hand (say after fixing a merge
+      # conflict, which moves the head): pick up from the deploy instead of
+      # failing on "not open". The SHA guard only matters for what the agent
+      # itself merges.
+      merged = pr if pr["state"] == "MERGED"
+      if !merged && pr["headRefOid"] != sha
         raise "PR ##{number} moved to #{pr['headRefOid'][0, 7]} after Rich approved #{sha[0, 7]}"
       end
-
-      # A Retry after the merge itself went through (say the prod check failed
-      # on an expired Fly login) picks up from the deploy instead of failing
-      # on "not open". Only for the exact SHA Rich approved, checked above.
-      merged = pr if pr["state"] == "MERGED"
       unless merged
         raise "PR ##{number} is #{pr['state']}, not open" unless pr["state"] == "OPEN"
         failed = failing_checks(number)
