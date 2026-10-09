@@ -12,25 +12,30 @@ class KitchenDigestEmailJob < ApplicationJob
   end
 
   # One-off personal note shown at the top of a single day's digest (e.g. Rich
-  # congratulating the team after a class). Set both keys from a console:
-  # nyk_digest:note (plain text) and nyk_digest:note_on (YYYY-MM-DD). It only
-  # renders on that date, so it expires on its own.
+  # congratulating the team after a class). Edited at /admin/digest_note. It
+  # only renders on its date, so it expires on its own.
+  NOTE_KEY             = "nyk_digest:note".freeze
+  NOTE_ON_KEY          = "nyk_digest:note_on".freeze
+  NOTE_HEADING_KEY     = "nyk_digest:note_heading".freeze
+  DEFAULT_NOTE_HEADING = "A note from our human, Rich".freeze
+
   def self.note_for(day)
-    Setting.get("nyk_digest:note").presence if Setting.get("nyk_digest:note_on") == day.iso8601
+    Setting.get(NOTE_KEY).presence if Setting.get(NOTE_ON_KEY) == day.iso8601
   end
 
-  def perform
-    today    = Date.today
+  def self.note_heading
+    Setting.get(NOTE_HEADING_KEY).presence || DEFAULT_NOTE_HEADING
+  end
+
+  # Digest payload for `today`, or nil when there are no snapshots at all.
+  # Shared by #perform and the admin "send me a test" button.
+  def self.build_digest(today)
     # Prefer today's snapshot, but fall back to the most recent one we have.
     # The 9 AM smoke that produces today's snapshot has been failing
     # intermittently, and skipping the digest entirely on those days is
     # worse for Lora than showing yesterday's data with a clear note.
     snapshot = KitchenSnapshot.find_by(taken_on: today) || KitchenSnapshot.latest
-
-    unless snapshot
-      Rails.logger.info("KitchenDigestEmailJob: no snapshots in DB at all, skipping")
-      return
-    end
+    return unless snapshot
 
     previous = KitchenSnapshot.latest_before(snapshot.taken_on)
 
@@ -52,6 +57,16 @@ class KitchenDigestEmailJob < ApplicationJob
     )
     digest[:snapshot_date] = snapshot.taken_on
     digest[:stale_data]    = snapshot.taken_on != today
+    [ digest, snapshot ]
+  end
+
+  def perform
+    today    = Date.today
+    digest, snapshot = self.class.build_digest(today)
+    unless digest
+      Rails.logger.info("KitchenDigestEmailJob: no snapshots in DB at all, skipping")
+      return
+    end
 
     # Mondays: prepend the Carson weekly team report (one combined email). The
     # builder makes the single paid Carson call; the other six days skip it.
@@ -60,7 +75,7 @@ class KitchenDigestEmailJob < ApplicationJob
     end
 
     recipients = self.class.recipients
-    KitchenMailer.daily_digest(digest, recipients: recipients, weekly_report: weekly, note: self.class.note_for(today)).deliver_now
+    KitchenMailer.daily_digest(digest, recipients: recipients, weekly_report: weekly, note: self.class.note_for(today), note_heading: self.class.note_heading).deliver_now
 
     # Stamp the weekly report's send time so the Analyst dashboard's recipient
     # engagement panel keeps measuring dashboard visits after Monday's report.

@@ -3,10 +3,12 @@ class KitchenMailer < ApplicationMailer
   # the digest job passes it so the Carson team report is prepended above the
   # class list (same email); the other six days it's nil and only the classes
   # show. @weekly_report drives the _weekly_report partial in the template.
-  # `note` is an optional one-day plain-text note (KitchenDigestEmailJob.note_for).
-  def daily_digest(digest, recipients:, weekly_report: nil, note: nil)
+  # `note` is an optional one-day plain-text note (KitchenDigestEmailJob.note_for),
+  # shown under `note_heading`.
+  def daily_digest(digest, recipients:, weekly_report: nil, note: nil, note_heading: nil)
     @weekly_report = weekly_report
     @note = note
+    @note_heading = note_heading.presence || KitchenDigestEmailJob::DEFAULT_NOTE_HEADING
     @today = digest[:today]
     @current_week_events = digest[:current_week_events]
     @week1_events = digest[:week1_events]

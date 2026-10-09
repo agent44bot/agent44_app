@@ -349,6 +349,9 @@ Rails.application.routes.draw do
     delete "finance/revenues/:id", to: "finance#destroy_revenue", as: :finance_revenue
     get  "plan",        to: "plan#show",   as: :plan
     post "plan/toggle", to: "plan#toggle", as: :plan_toggle
+    get   "digest_note",      to: "digest_note#show",      as: :digest_note
+    patch "digest_note",      to: "digest_note#update"
+    post  "digest_note/test", to: "digest_note#send_test", as: :digest_note_test
     get "visitors/map", to: "visitors#map"
     resources :agents, param: :slug
     get "kitchen", to: redirect("/nykitchen", status: 301)
