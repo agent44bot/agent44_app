@@ -9,6 +9,9 @@
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-10-09
+  note: Recipe handouts now open cleanly in Adobe Acrobat, with every fraction and letter showing (no more missing font warning).
+
+- date: 2026-10-09
   note: You can now add a recipe to an existing recipe packet. Open the packet, scroll to Add a recipe, and paste it, add a link, or attach a PDF (or start a blank one), and it is added after the recipes already there.
 
 - date: 2026-09-25
