@@ -11,6 +11,14 @@ class KitchenDigestEmailJob < ApplicationJob
     Workspace.find_by(slug: "nykitchen")&.daily_digest_recipients.presence || FALLBACK_RECIPIENTS
   end
 
+  # One-off personal note shown at the top of a single day's digest (e.g. Rich
+  # congratulating the team after a class). Set both keys from a console:
+  # nyk_digest:note (plain text) and nyk_digest:note_on (YYYY-MM-DD). It only
+  # renders on that date, so it expires on its own.
+  def self.note_for(day)
+    Setting.get("nyk_digest:note").presence if Setting.get("nyk_digest:note_on") == day.iso8601
+  end
+
   def perform
     today    = Date.today
     # Prefer today's snapshot, but fall back to the most recent one we have.
@@ -52,7 +60,7 @@ class KitchenDigestEmailJob < ApplicationJob
     end
 
     recipients = self.class.recipients
-    KitchenMailer.daily_digest(digest, recipients: recipients, weekly_report: weekly).deliver_now
+    KitchenMailer.daily_digest(digest, recipients: recipients, weekly_report: weekly, note: self.class.note_for(today)).deliver_now
 
     # Stamp the weekly report's send time so the Analyst dashboard's recipient
     # engagement panel keeps measuring dashboard visits after Monday's report.
