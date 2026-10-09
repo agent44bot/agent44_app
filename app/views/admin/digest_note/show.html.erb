@@ -1,0 +1,32 @@
+<% content_for :title, "Digest note" %>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-white mb-2">Digest note</h1>
+  <p class="text-sm text-gray-400 mb-6">
+    A personal note at the top of the 10am NY Kitchen digest. It shows only on the date you pick, then expires on its own.
+  </p>
+
+  <%= form_with url: admin_digest_note_path, method: :patch, class: "space-y-4" do |f| %>
+    <div>
+      <%= f.label :heading, "Heading", class: "block text-sm text-gray-300 mb-1" %>
+      <%= f.text_field :heading, value: @heading, class: "w-full rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-base" %>
+    </div>
+    <div>
+      <%= f.label :note, "Note", class: "block text-sm text-gray-300 mb-1" %>
+      <%= f.text_area :note, value: @note, rows: 8, class: "w-full rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-base" %>
+      <p class="text-xs text-gray-500 mt-1">Plain text. Blank lines start a new paragraph.</p>
+    </div>
+    <div>
+      <%= f.label :note_on, "Show on", class: "block text-sm text-gray-300 mb-1" %>
+      <%= f.date_field :note_on, value: @note_on, class: "rounded-md bg-gray-900 border border-gray-700 text-white px-3 py-2 text-base" %>
+    </div>
+    <div class="flex flex-wrap gap-2 pt-2">
+      <%= f.submit "Save", class: "px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold cursor-pointer" %>
+      <%= f.submit "Clear note", name: "clear", value: "Clear note", class: "px-4 py-2 rounded-md border border-gray-700 text-gray-300 hover:border-red-500 hover:text-red-300 text-sm cursor-pointer",
+            data: { turbo_confirm: "Remove the note?" } %>
+    </div>
+  <% end %>
+
+  <%= button_to "Send me a test email", admin_digest_note_test_path, method: :post,
+        class: "mt-6 px-4 py-2 rounded-md border border-gray-700 text-gray-300 hover:border-orange-500 hover:text-orange-200 text-sm" %>
+</div>
