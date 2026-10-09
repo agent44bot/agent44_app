@@ -168,26 +168,37 @@
 
         <%# Column header only makes sense beside the 4-up desktop grid; on mobile
             each field is full-width with its own placeholder, so hide it there. %>
-        <div class="hidden sm:grid grid-cols-[1fr_1fr_2fr_1fr] gap-2 text-xs font-semibold text-gray-500 mb-1 px-1">
-          <span>Full amount</span><span class="text-amber-400"><%= @packet.station_label %> *</span><span>Ingredient</span><span>Sub-heading</span>
+        <div class="hidden sm:grid grid-cols-[1fr_1fr_2fr_1fr_auto] gap-2 text-xs font-semibold text-gray-500 mb-1 px-1">
+          <span>Full amount</span><span class="text-amber-400"><%= @packet.station_label %> *</span><span>Ingredient</span><span>Sub-heading</span><span class="w-[5.5rem]"></span>
         </div>
         <% rows = Array(recipe["ingredients"]) + Array.new(3) { {} } %>
+        <%# Insert a row mid-list or nudge one up/down so the list stays in the
+            order the recipe uses it (Caitlin, 2026-10-09). Saves follow page order. %>
+        <div data-controller="ingredient-rows">
         <% rows.each_with_index do |ing, ii| %>
+          <div data-ingredient-rows-target="row">
           <%# Mobile: amount + scaled amount share a row, ingredient and sub-heading
               go full-width below. Desktop: the original 4-up grid. min-w-0 lets the
               inputs shrink so nothing overflows off-screen. %>
-          <div class="grid grid-cols-2 sm:grid-cols-[1fr_1fr_2fr_1fr] gap-2 mb-1.5">
+          <div class="grid grid-cols-2 sm:grid-cols-[1fr_1fr_2fr_1fr_auto] gap-2 mb-1.5">
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][qty]", KitchenUnits.standardize(ing["qty"]), placeholder: "Full amount", class: "min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][station_qty]", KitchenUnits.standardize(ing["station_qty"]), placeholder: @packet.station_label, class: "min-w-0 rounded-lg bg-gray-950 border border-amber-900/60 text-amber-200 text-base px-2.5 py-1.5 focus:border-amber-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][item]", IngredientText.normalize(ing["item"]), placeholder: "Ingredient", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-200 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
             <%= text_field_tag "recipes[#{ri}][ingredients][#{ii}][section]", ing["section"], placeholder: "Sub-heading", class: "col-span-2 sm:col-span-1 min-w-0 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 text-base px-2.5 py-1.5 focus:border-orange-500 focus:outline-none" %>
+            <div class="col-span-2 sm:col-span-1 flex justify-end gap-1">
+              <button type="button" data-action="ingredient-rows#up" title="Move this line up" aria-label="Move this line up" class="w-8 h-8 rounded-lg border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600">↑</button>
+              <button type="button" data-action="ingredient-rows#down" title="Move this line down" aria-label="Move this line down" class="w-8 h-8 rounded-lg border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600">↓</button>
+              <button type="button" data-action="ingredient-rows#insert" title="Add a blank line below this one" aria-label="Add a blank line below this one" class="w-8 h-8 rounded-lg border border-gray-800 text-orange-400 hover:text-orange-300 hover:border-orange-700">+</button>
+            </div>
           </div>
           <%# A single amount that isn't half the full one usually means the full
               amount was edited and the single left stale (Caitlin, 2026-09-22). %>
           <% if KitchenUnits.half_mismatch?(ing["qty"], ing["station_qty"]) %>
-            <p class="text-xs text-red-400 -mt-1 mb-2 px-1">Check this line: <%= KitchenUnits.standardize(ing["station_qty"]) %> is not half of <%= KitchenUnits.standardize(ing["qty"]) %>.</p>
+            <p data-ingredient-rows-warning class="text-xs text-red-400 -mt-1 mb-2 px-1">Check this line: <%= KitchenUnits.standardize(ing["station_qty"]) %> is not half of <%= KitchenUnits.standardize(ing["qty"]) %>.</p>
           <% end %>
+          </div>
         <% end %>
+        </div>
 
         <label class="block text-xs font-semibold text-gray-500 uppercase mt-4 mb-1">Directions (one step per line)</label>
         <% groups = Array(recipe["directions"]).presence || [ {} ] %>

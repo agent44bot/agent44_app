@@ -289,6 +289,34 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal [ "Pour flour in a bowl.", "Knead." ], packet.recipes.first["directions"].first["steps"]
   end
 
+  test "an ingredient row inserted mid-list saves in page order, not index order" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    patch nyk_packet_path(packet), params: {
+      title: "Packet", station_label: "Single",
+      recipes: {
+        "0" => {
+          title: "Fresh Pasta",
+          ingredients: {
+            "0" => { qty: "2 c", station_qty: "1 c", item: "Flour", section: "" },
+            "n17283" => { qty: "1 tsp", station_qty: "½ tsp", item: "Salt", section: "" }, # inserted below row 0
+            "1" => { qty: "3", station_qty: "", item: "Eggs", section: "" }
+          },
+          directions: { "0" => { section: "", steps: "Mix." } }
+        }
+      }
+    }
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_equal %w[Flour Salt Eggs], packet.reload.recipes.first["ingredients"].map { |i| i["item"] }
+  end
+
+  test "the edit page wires insert and move buttons on each ingredient row" do
+    packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
+    get edit_nyk_packet_path(packet)
+    assert_select "[data-controller='ingredient-rows'] [data-ingredient-rows-target='row'] button[data-action='ingredient-rows#insert']"
+    assert_select "button[data-action='ingredient-rows#up']"
+    assert_select "button[data-action='ingredient-rows#down']"
+  end
+
   test "update standardizes measurement units on save (Lora's house style)" do
     packet = KitchenPacket.create!(title: "Packet", data: { "recipes" => EXTRACTED })
     patch nyk_packet_path(packet), params: {
