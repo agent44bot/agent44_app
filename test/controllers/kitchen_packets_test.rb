@@ -59,6 +59,47 @@ class KitchenPacketsTest < ActionDispatch::IntegrationTest
     assert_equal "1¼ c", packet.recipes.first["ingredients"].first["station_qty"]
   end
 
+  test "add_recipe queues an append build and the new recipe lands after the existing one" do
+    packet = KitchenPacket.create!(title: "Sushi Night", data: { "recipes" => [ EXTRACTED.first.merge("title" => "Sushi Rice") ] })
+    assert_enqueued_with(job: ExtractRecipeJob, args: [ packet.id, @user.id, { append: true } ]) do
+      post add_recipe_nyk_packet_path(packet), params: { recipe_text: "Fresh Pasta... 2 1/2 c flour..." }
+    end
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert packet.reload.building?
+
+    stub_extractor_success
+    perform_enqueued_jobs
+    packet.reload
+    assert packet.ready?
+    assert_equal "Sushi Night", packet.title
+    assert_equal [ "Sushi Rice", "Fresh Pasta" ], packet.recipes.map { |r| r["title"] }
+  end
+
+  test "add_recipe with no source asks for one and queues nothing" do
+    packet = KitchenPacket.create!(title: "Sushi Night", data: { "recipes" => EXTRACTED })
+    assert_no_enqueued_jobs do
+      post add_recipe_nyk_packet_path(packet), params: { recipe_text: "" }
+    end
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert packet.reload.ready?
+  end
+
+  test "add_recipe blank appends an empty recipe right away, no AI" do
+    packet = KitchenPacket.create!(title: "Sushi Night", data: { "recipes" => EXTRACTED })
+    assert_no_enqueued_jobs do
+      post add_recipe_nyk_packet_path(packet), params: { blank: "Blank recipe" }
+    end
+    assert_redirected_to edit_nyk_packet_path(packet)
+    assert_equal [ "Fresh Pasta", "New recipe" ], packet.reload.recipes.map { |r| r["title"] }
+  end
+
+  test "edit page shows the Add a recipe box" do
+    packet = KitchenPacket.create!(title: "Sushi Night", data: { "recipes" => EXTRACTED })
+    get edit_nyk_packet_path(packet)
+    assert_response :success
+    assert_select "form[action=?]", add_recipe_nyk_packet_path(packet)
+  end
+
   test "active_builds returns building + just-finished packets as JSON for the navbar" do
     building = KitchenPacket.create!(title: "Building One", status: "building", build_stage: "recipes", data: {})
     get nyk_active_builds_path
