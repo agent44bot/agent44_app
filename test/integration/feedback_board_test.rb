@@ -62,6 +62,15 @@ class FeedbackBoardTest < ActionDispatch::IntegrationTest
     assert_select ".feedback-badge", count: 0
   end
 
+  test "Mark Live on a stuck item clears the error, so the card leaves Stuck" do
+    fb = item("approved", agent_error: "the change touches files the agent may not change")
+    post ship_admin_feedback_path(fb)
+    fb.reload
+    assert fb.shipped?
+    assert_nil fb.agent_error
+    assert_equal 0, Feedback.needs_rich.count
+  end
+
   test "+ New item goes into Pre-dev with no push or email to Rich himself" do
     Notification.delete_all
     assert_no_enqueued_jobs(only: FeedbackSubmittedJob) do

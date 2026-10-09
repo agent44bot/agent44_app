@@ -264,7 +264,6 @@ class Feedback < ApplicationRecord
     require_status!("merge_requested")
     raise InvalidTransition, "Merged #{sha.to_s.first(7)}, but #{merge_requested_sha.to_s.first(7)} was approved." unless sha == merge_requested_sha
     ship!(ship_note)
-    update!(agent_claimed_at: nil)
     FeedbackAlerts.push(self, "Live: #{excerpt(60)}", "Merged and deployed. #{user.display_identifier} was emailed.")
   end
 
@@ -277,7 +276,8 @@ class Feedback < ApplicationRecord
   # Only the first transition sends, so re-saving never mails twice.
   def ship!(note = nil)
     first_time = !shipped?
-    update!(status: "shipped", reply: note.presence || reply, shipped_at: shipped_at || Time.current)
+    update!(status: "shipped", reply: note.presence || reply, shipped_at: shipped_at || Time.current,
+            agent_error: nil, agent_claimed_at: nil)
     FeedbackMailer.shipped(self).deliver_later if first_time
   end
 
