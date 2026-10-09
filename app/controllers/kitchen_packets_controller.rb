@@ -179,6 +179,42 @@ class KitchenPacketsController < ApplicationController
     redirect_to edit_nyk_packet_path(@packet), alert: e.message
   end
 
+  # Add one more recipe to an existing packet instead of starting a new one
+  # (Caitlin, 2026-10-09). "Blank recipe" appends an empty recipe to type in
+  # by hand, right away. Otherwise the pasted text, URL, or PDF is extracted in
+  # the background (ExtractRecipeJob, append mode) and the new recipes land
+  # after the existing ones.
+  def add_recipe
+    @packet = current_workspace.kitchen_packets.find(params[:id])
+    return redirect_to(edit_nyk_packet_path(@packet), alert: "This packet is still building.") unless @packet.ready?
+
+    if params[:blank].present?
+      @packet.recipes = @packet.recipes + [ { "title" => "New recipe", "ingredients" => [], "directions" => [] } ]
+      @packet.save!
+      return redirect_to edit_nyk_packet_path(@packet), notice: "Added a blank recipe at the bottom. Fill it in below."
+    end
+
+    pdf = params[:pdf].presence
+    if pdf && pdf.size > MAX_PDF_BYTES
+      return redirect_to edit_nyk_packet_path(@packet), alert: "PDF is too large (10 MB max)."
+    end
+
+    source_url  = params[:recipe_url].to_s.strip.presence
+    source_text = params[:recipe_text].presence
+    if pdf.blank? && source_url.blank? && source_text.blank?
+      return redirect_to edit_nyk_packet_path(@packet), alert: "Paste a recipe, add a recipe URL, or attach a PDF."
+    end
+
+    @packet.assign_attributes(status: "building", build_stage: "queued", extract_error: nil,
+                              source_url: source_url, source_text: source_text)
+    @packet.source_document.attach(pdf) if pdf
+    @packet.save!
+    ExtractRecipeJob.perform_later(@packet.id, Current.user&.id, append: true)
+
+    redirect_to edit_nyk_packet_path(@packet),
+                notice: "Adding the recipe in the background. This page fills in on its own when it is ready."
+  end
+
   # Auto-save just the equipment list (the tag picker posts here on every
   # add/remove). Only touches data["equipment"] so unsaved recipe edits in the
   # form aren't affected.

@@ -81,6 +81,33 @@ class ExtractRecipeJobTest < ActiveJob::TestCase
     assert_nothing_raised { ExtractRecipeJob.perform_now(999_999) }
   end
 
+  test "append adds the new recipes after the existing ones, keeps the title, merges equipment" do
+    stub_extractor(equipment: [ "Whisk", "Rolling pin" ])
+    existing = [ RECIPES.first.merge("title" => "Sushi Rice") ]
+    packet = building_packet(title: "Sushi Night")
+    packet.update!(data: { "recipes" => existing, "equipment" => [ "Whisk", "Bamboo mat" ] })
+    ExtractRecipeJob.perform_now(packet.id, nil, append: true)
+    packet.reload
+    assert packet.ready?
+    assert_equal "Sushi Night", packet.title
+    assert_equal [ "Sushi Rice", "Fresh Pasta" ], packet.recipes.map { |r| r["title"] }
+    assert_equal [ "Whisk", "Bamboo mat", "Rolling pin" ], packet.equipment
+  end
+
+  test "a failed append leaves the packet ready with its recipes and the error" do
+    KitchenAi::RecipeExtractor.stub = lambda do |messages:|
+      OpenStruct.new(content: [ OpenStruct.new(text: "not a recipe") ],
+                     usage: OpenStruct.new(input_tokens: 10, output_tokens: 10), stop_reason: "end_turn")
+    end
+    packet = building_packet
+    packet.update!(data: { "recipes" => RECIPES })
+    ExtractRecipeJob.perform_now(packet.id, nil, append: true)
+    packet.reload
+    assert packet.ready?
+    assert_equal 1, packet.recipes.size
+    assert_match(/could not find a recipe/i, packet.extract_error)
+  end
+
   test "runs on its own low-concurrency queue" do
     assert_equal "extraction", ExtractRecipeJob.new.queue_name
   end

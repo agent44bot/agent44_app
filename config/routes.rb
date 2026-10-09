@@ -165,6 +165,7 @@ Rails.application.routes.draw do
     post "packets",           to: "kitchen_packets#create", as: :nyk_packets
     get "packets/:id/edit",  to: "kitchen_packets#edit",   as: :edit_nyk_packet
     post "packets/:id/regenerate", to: "kitchen_packets#regenerate", as: :regenerate_nyk_packet
+    post "packets/:id/add_recipe", to: "kitchen_packets#add_recipe", as: :add_recipe_nyk_packet
     patch "packets/:id",       to: "kitchen_packets#update", as: :nyk_packet
     patch "packets/:id/equipment", to: "kitchen_packets#update_equipment", as: :nyk_packet_equipment
     patch "packets/:id/purchase_equipment", to: "kitchen_packets#update_purchase_equipment", as: :nyk_packet_purchase_equipment

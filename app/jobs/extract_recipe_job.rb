@@ -11,11 +11,16 @@
 # (with_released_connection), so a long build never occupies a connection that
 # web requests need. Without these, concurrent long builds starved requests
 # (the failure that got the earlier attempts reverted).
+#
+# append: true is the "Add a recipe" path on the edit page: the extracted
+# recipes go on the end of the packet's existing ones (title kept, new
+# equipment merged in) instead of replacing them. A failed append leaves the
+# packet ready with its recipes intact and the error on extract_error.
 class ExtractRecipeJob < ApplicationJob
   queue_as :extraction
   limits_concurrency to: 1, key: "recipe_extract", duration: 20.minutes
 
-  def perform(packet_id, user_id = nil)
+  def perform(packet_id, user_id = nil, append: false)
     packet = KitchenPacket.find_by(id: packet_id)
     return unless packet&.building? # deleted or already processed: nothing to do
 
@@ -33,11 +38,16 @@ class ExtractRecipeJob < ApplicationJob
       KitchenAi::RecipeExtractor.new(user: user).extract(text: text, pdf: pdf, url: url)
     end
     unless result.ok?
-      packet.update!(status: "failed", extract_error: result.error, build_stage: nil)
+      packet.update!(status: append ? "ready" : "failed", extract_error: result.error, build_stage: nil)
       return
     end
-    packet.title = result.recipes.first["title"] if packet.title == KitchenPacket::BUILDING_TITLE
-    packet.recipes = result.recipes
+    if append
+      packet.reload # pick up any edits saved while the AI call was in flight
+      packet.recipes = packet.recipes + result.recipes
+    else
+      packet.title = result.recipes.first["title"] if packet.title == KitchenPacket::BUILDING_TITLE
+      packet.recipes = result.recipes
+    end
     packet.extract_cost_cents = result.cost_cents
     packet.save!
 
@@ -46,7 +56,9 @@ class ExtractRecipeJob < ApplicationJob
     eq = with_released_connection do
       KitchenAi::RecipeExtractor.new(user: user).suggest_equipment(class_name: packet.title, recipes: packet.recipes)
     end
-    packet.equipment = eq.equipment if eq.ok? && eq.equipment.present?
+    if eq.ok? && eq.equipment.present?
+      packet.equipment = append ? (packet.equipment + eq.equipment).uniq : eq.equipment
+    end
 
     # --- Done ---
     packet.status        = "ready"
