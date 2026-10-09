@@ -60,6 +60,11 @@ production:
   # generate_newsletter:
   #   class: GenerateNewsletterJob
   #   schedule: every 3 days at 7am
+  # Daily 9am push for customer feedback (Lora, Caitlin) that has waited on
+  # Rich's call for over a day. See FeedbackNudgeJob.
+  feedback_nudge:
+    class: FeedbackNudgeJob
+    schedule: "0 9 * * *"
   nyk_filter_card_check:
     class: NykFilterCardCheckJob
     schedule: every day at 11am

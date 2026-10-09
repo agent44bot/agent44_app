@@ -20,9 +20,18 @@ class FeedbackSubmittedJobTest < ActiveJob::TestCase
     n = Notification.last
     assert_equal "feedback", n.source
     assert_equal @admin.id, n.user_id
-    assert_equal "Feedback from Caitlin", n.title
+    assert_equal "Customer: Caitlin sent feedback", n.title
     assert_equal "/admin/feedbacks/#{@fb.id}", n.url
     assert_match "one page", n.body
+  end
+
+  test "a customer's item names their workspace; an admin's stays plain" do
+    ws = Workspace.create!(name: "NY Kitchen", owner: @admin)
+    @fb.update!(workspace: ws)
+    assert_equal "NY Kitchen: Caitlin sent feedback", FeedbackAlerts.submitted_title(@fb)
+
+    own = Feedback.new(user: @admin, message: "x")
+    assert_equal "Feedback from #{@admin.email_address}", FeedbackAlerts.submitted_title(own)
   end
 
   test "the acknowledgement and Live emails go to the sender with no dashes" do
