@@ -17,7 +17,7 @@ class KitchenDigestEmailJob < ApplicationJob
   NOTE_KEY             = "nyk_digest:note".freeze
   NOTE_ON_KEY          = "nyk_digest:note_on".freeze
   NOTE_HEADING_KEY     = "nyk_digest:note_heading".freeze
-  DEFAULT_NOTE_HEADING = "A note from our human, Rich".freeze
+  DEFAULT_NOTE_HEADING = "A note from (human) Rich".freeze
 
   def self.note_for(day)
     Setting.get(NOTE_KEY).presence if Setting.get(NOTE_ON_KEY) == day.iso8601
