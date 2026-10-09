@@ -17,6 +17,14 @@ module FeedbackAlerts
     )
   end
 
+  # A customer's item names their workspace so it stands out from Rich's own:
+  # "NY Kitchen: Caitlin sent feedback".
+  def self.submitted_title(feedback)
+    who = feedback.user.display_identifier
+    return "Feedback from #{who}" unless feedback.from_customer?
+    "#{feedback.workspace&.name || "Customer"}: #{who} sent feedback"
+  end
+
   # Settings "feedback.alert_email" when set, else the first admin (Rich).
   def self.alert_user
     email = Setting.get(ALERT_EMAIL_KEY).to_s.strip

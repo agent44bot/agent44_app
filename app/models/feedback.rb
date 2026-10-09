@@ -127,6 +127,16 @@ class Feedback < ApplicationRecord
   # The PR touches sign-in, permissions or roles: read the diff carefully.
   def security_sensitive? = pr_sensitive_files.present?
   def waiting_on_rich? = WAITING_ON_RICH.include?(status) && !stuck?
+  # Sent by someone other than an admin (Lora, Caitlin): alerts name the
+  # workspace and the daily nudge chases these.
+  def from_customer? = !user.admin?
+
+  # When the ball landed in Rich's court, for the daily nudge. A stuck item
+  # has no timestamp of its own, so it falls back to its last change.
+  def waiting_since
+    return updated_at if stuck?
+    { "planned" => planned_at, "pr_ready" => pr_ready_at }[status] || updated_at
+  end
 
   # Which board column the item sits in. "Post-dev" is a PR that exists but
   # isn't green yet; the agent is still on it until checks pass.

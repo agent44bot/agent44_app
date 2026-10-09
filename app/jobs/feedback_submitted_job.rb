@@ -6,7 +6,7 @@ class FeedbackSubmittedJob < ApplicationJob
   queue_as :default
 
   def perform(feedback)
-    FeedbackAlerts.push(feedback, "Feedback from #{feedback.user.display_identifier}", feedback.excerpt(200))
+    FeedbackAlerts.push(feedback, FeedbackAlerts.submitted_title(feedback), feedback.excerpt(200))
     FeedbackMailer.received(feedback).deliver_later if feedback.user.email_address.present?
   end
 end
