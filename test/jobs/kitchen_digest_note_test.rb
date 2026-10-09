@@ -24,10 +24,10 @@ class KitchenDigestNoteTest < ActiveSupport::TestCase
     }
     html = KitchenMailer.daily_digest(digest, recipients: [ "a@example.com" ], note: "Great job <b>team</b>\n\nRich").body.encoded
 
-    assert_includes html, "A note from our human, Rich"
+    assert_includes html, "A note from Rich (human)"
     assert_includes html, "Great job &lt;b&gt;team&lt;/b&gt;"
 
     without = KitchenMailer.daily_digest(digest, recipients: [ "a@example.com" ]).body.encoded
-    assert_not_includes without, "A note from our human, Rich"
+    assert_not_includes without, "A note from Rich (human)"
   end
 end
