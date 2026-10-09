@@ -101,6 +101,11 @@ class Feedback < ApplicationRecord
 
   scope :recent_first, -> { order(created_at: :desc) }
   scope :open, -> { where.not(status: DONE) }
+  # What the nav badge counts for Rich: items waiting on his call, plus open
+  # items the agent got stuck on (those need a person too).
+  scope :needs_rich, lambda {
+    where(status: WAITING_ON_RICH, agent_error: nil).or(open.where.not(agent_error: nil))
+  }
   # Items waiting on the mini: not stuck, not claimed by a live worker.
   scope :agent_queue, lambda {
     where(status: AGENT_STEPS.keys, agent_error: nil)
