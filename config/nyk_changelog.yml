@@ -5,7 +5,10 @@
 # surfaces entries from the last 7 days in the Sunday report, newest first.
 # Keep each note short, concrete, and written for Lora — not for engineers.
 #
-#   - date: 2026-06-12
+#   - date: 2026-10-09
+  note: Recipe handouts now open cleanly in Adobe Acrobat, with every fraction and letter showing (no more missing font warning).
+
+- date: 2026-06-12
 #     note: Plain sentence about what changed and why it helps.
 
 - date: 2026-10-09
