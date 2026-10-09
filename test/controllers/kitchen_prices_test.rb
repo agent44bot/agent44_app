@@ -9,8 +9,8 @@ class KitchenPricesTest < ActionDispatch::IntegrationTest
   end
 
   test "prices page lists the latest price per ingredient" do
-    IngredientPrice.create!(canonical_name: "chicken breast", unit: "lb", unit_price_cents: 599, observed_on: Date.new(2026, 6, 1))
-    IngredientPrice.create!(canonical_name: "chicken breast", unit: "lb", unit_price_cents: 699, observed_on: Date.new(2026, 6, 10))
+    IngredientPrice.create!(canonical_name: "chicken breast", unit: "lb", unit_price_cents: 599, observed_on: 20.days.ago.to_date)
+    IngredientPrice.create!(canonical_name: "chicken breast", unit: "lb", unit_price_cents: 699, observed_on: 10.days.ago.to_date)
     get nyk_prices_path
     assert_response :success
     assert_select "body", /chicken breast/i

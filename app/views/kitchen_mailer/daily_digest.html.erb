@@ -85,6 +85,13 @@
   </div>
 <% end %>
 
+<% if @note %>
+  <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 14px;margin-bottom:20px">
+    <div style="font-size:13px;color:#5b21b6;font-weight:600;margin-bottom:6px">A note from Rich</div>
+    <div style="font-size:14px;color:#222;line-height:1.5"><%= simple_format(h(@note.strip), { style: "margin:0 0 8px 0" }, sanitize: false) %></div>
+  </div>
+<% end %>
+
 <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;margin-bottom:20px">
   <div style="font-size:13px;color:#9a3412;font-weight:600;margin-bottom:4px">View the live calendar &rarr;</div>
   <a href="https://agent44labs.com/nykitchen" style="display:inline-block;background:#ea580c;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;margin-top:4px">agent44labs.com/nykitchen</a>
