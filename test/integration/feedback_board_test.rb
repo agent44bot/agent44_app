@@ -39,6 +39,29 @@ class FeedbackBoardTest < ActionDispatch::IntegrationTest
     assert_match "2 items waiting on you", response.body
   end
 
+  # Rich missed a plan waiting on him for three days (2026-10-09): the nav's
+  # Feedback button carries a count of what needs him.
+  test "the nav Feedback badge counts items waiting on Rich, including stuck ones" do
+    item("planned")
+    item("pr_ready")
+    item("approved", agent_error: "build failed")
+    item("received")
+    item("shipped", agent_error: "old error")
+    assert_equal 3, Feedback.needs_rich.count
+    get root_path
+    assert_select "a[href='#{admin_feedbacks_path}'] .feedback-badge", text: "3"
+  end
+
+  test "no badge when nothing waits, and senders keep the send-feedback button" do
+    item("received")
+    get root_path
+    assert_select ".feedback-badge", count: 0
+    sign_in_as @user
+    get feedbacks_path
+    assert_select "a[href^='#{new_feedback_path}']"
+    assert_select ".feedback-badge", count: 0
+  end
+
   test "+ New item goes into Pre-dev with no push or email to Rich himself" do
     Notification.delete_all
     assert_no_enqueued_jobs(only: FeedbackSubmittedJob) do

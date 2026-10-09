@@ -226,11 +226,24 @@
 
         <!-- Right: Auth -->
         <% nav_unread = authenticated? ? Current.user.notifications.unread.count : 0 %>
+        <% nav_feedback = authenticated? && Current.user.admin? ? Feedback.needs_rich.count : 0 %>
         <div class="hidden md:flex items-center space-x-4">
           <% if authenticated? %>
             <%= render "shared/notifications_bell", unread: nav_unread %>
-            <%# Feedback button: only users with feedback access (set on /admin/users). %>
-            <% if Current.user.feedback_access? %>
+            <%# Feedback button: only users with feedback access (set on /admin/users).
+                For admins it opens the board, badged with what's waiting on them. %>
+            <% if Current.user.admin? %>
+            <%= link_to admin_feedbacks_path,
+                  class: "relative inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-orange-400 transition",
+                  aria: { label: nav_feedback.positive? ? "Feedback board, #{nav_feedback} waiting on you" : "Feedback board" } do %>
+              <span aria-hidden="true">💬</span><span>Feedback</span>
+              <% if nav_feedback.positive? %>
+                <span class="feedback-badge absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-orange-600 text-white text-[11px] font-bold leading-none">
+                  <%= nav_feedback > 9 ? "9+" : nav_feedback %>
+                </span>
+              <% end %>
+            <% end %>
+            <% elsif Current.user.feedback_access? %>
             <%= link_to new_feedback_path(from: request.fullpath),
                   class: "inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-orange-400 transition" do %>
               <span aria-hidden="true">💬</span><span>Feedback</span>
@@ -334,6 +347,12 @@
           <% end %>
         <% end %>
         <% if authenticated? && Current.user.admin? %>
+          <%= link_to admin_feedbacks_path, class: "flex items-center justify-between px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" do %>
+            <span>💬 Feedback board</span>
+            <% if nav_feedback.positive? %>
+              <span class="feedback-badge min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-600 text-white text-xs font-bold"><%= nav_feedback > 9 ? "9+" : nav_feedback %></span>
+            <% end %>
+          <% end %>
           <%= link_to "👁 Track users", admin_track_path(range: "today"), class: "block px-3 py-2 rounded-md text-base font-medium text-amber-400 hover:bg-gray-800" %>
           <%= link_to "Jobs", jobs_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
           <%= link_to "Crypto", crypto_path, class: "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800" %>
