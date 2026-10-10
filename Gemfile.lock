@@ -398,7 +398,7 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
-    simple_oauth (1.0.0)
+    simple_oauth (1.0.1)
     simpleidn (0.2.3)
     solid_cable (4.1.0)
       actioncable (>= 7.2)
